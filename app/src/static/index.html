@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AWS DevOps SDET Demo</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 640px; margin: 40px auto; padding: 0 16px; }
+    h1 { font-size: 1.5rem; }
+    .row { margin: 12px 0; padding: 10px 14px; border: 1px solid #ddd; border-radius: 6px; }
+    .label { font-weight: 600; }
+    .ok { color: #137333; }
+    .err { color: #c5221f; }
+    .pending { color: #888; }
+  </style>
+</head>
+<body>
+  <h1 data-testid="app-title">AWS DevOps SDET Demo</h1>
+
+  <div class="row">
+    <span class="label">API health:</span>
+    <span data-testid="api-health-status" class="pending">checking…</span>
+  </div>
+
+  <div class="row">
+    <span class="label">DB check:</span>
+    <span data-testid="db-check-status" class="pending">checking…</span>
+  </div>
+
+  <script>
+    async function check(url, el) {
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+        if (res.ok && data.status === "ok") {
+          el.textContent = data.db ? `connected (${data.db})` : "ok";
+          el.className = "ok";
+        } else {
+          el.textContent = data.db ? `error (${data.db})` : "error";
+          el.className = "err";
+        }
+      } catch (e) {
+        el.textContent = "unreachable";
+        el.className = "err";
+      }
+    }
+    check("/api/health", document.querySelector('[data-testid="api-health-status"]'));
+    check("/api/db-check", document.querySelector('[data-testid="db-check-status"]'));
+  </script>
+</body>
+</html>
