@@ -1,0 +1,4 @@
+# Standalone DB assertion deps. Kept independent of app/requirements.txt so
+# the assertion can run in CI without the full app image.
+sqlalchemy==2.0.36
+psycopg2-binary==2.9.10

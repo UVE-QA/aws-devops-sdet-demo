@@ -1,0 +1,34 @@
+# Local development stack for v0 (Lightsail devbox).
+# postgres is NOT published to the host — it stays on the internal network.
+# Only the app port 8000 is exposed locally (reach it via SSH tunnel).
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: demo
+      POSTGRES_USER: demo
+      POSTGRES_PASSWORD: demo
+    # No "ports:" on purpose — 5432 must not be reachable from outside.
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U demo -d demo"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    environment:
+      # Matches the docker-compose service name "postgres" as host.
+      DATABASE_URL: postgresql+psycopg2://demo:demo@postgres:5432/demo
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:
