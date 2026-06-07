@@ -12,7 +12,7 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 1     | Lightsail devbox prep          | âœ… done     | (pre-3cf1c98) |
 | 2     | Minimal local app skeleton     | âœ… done     | 3cf1c98   |
 | 3     | Docker Compose + local tests   | âœ… done     | de781bc   |
-| 4     | Terraform foundation           | í ½íº§ in progress | â€”      |
+| 4     | Terraform foundation           | âœ… done     | 0256dc8   |
 | 5     | GitHub Actions + OIDC          | â¬œ pending  | â€”         |
 | 6     | First AWS stage deploy         | â¬œ pending  | â€”         |
 | 7     | Destroy validation             | â¬œ pending  | â€”         |
