@@ -32,3 +32,8 @@ output "task_role_arn" {
   description = "ARN of the ECS task role (for iam:PassRole in the deploy policy)."
   value       = aws_iam_role.task.arn
 }
+
+output "container_name" {
+  description = "Name of the app container in the task definition (used by run-task overrides)."
+  value       = "app"
+}

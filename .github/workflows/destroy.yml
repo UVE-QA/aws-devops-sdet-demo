@@ -1,0 +1,137 @@
+name: destroy
+
+# Tears down a Terraform environment in the demo AWS account via GitHub OIDC.
+# Manual only. Requires confirm == DESTROY. Ends with a verification step that
+# lists any remaining billable resources and fails if something is still present.
+# The Terraform state bucket (infra/bootstrap) is intentionally NOT touched.
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environment to destroy"
+        required: true
+        type: choice
+        options:
+          - stage
+          - prod
+      confirm:
+        description: "Type DESTROY to confirm"
+        required: true
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  destroy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      TF_VAR_demo_account_id: ${{ vars.TF_VAR_demo_account_id }}
+      TF_VAR_budget_email: ${{ vars.TF_VAR_budget_email }}
+      TF_VAR_owner: ${{ vars.TF_VAR_owner }}
+      TF_VAR_state_bucket_name: ${{ vars.TF_STATE_BUCKET }}
+      TF_VAR_github_owner: ${{ github.repository_owner }}
+      TF_VAR_github_repo: ${{ github.event.repository.name }}
+    steps:
+      - name: Validate confirmation
+        run: |
+          if [ "${{ inputs.confirm }}" != "DESTROY" ]; then
+            echo "confirm must be exactly DESTROY (got: '${{ inputs.confirm }}')"
+            exit 1
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.15.5"
+
+      - name: Resolve deploy role ARN for ${{ inputs.environment }}
+        id: role
+        run: |
+          ROLE="arn:aws:iam::${{ vars.TF_VAR_demo_account_id }}:role/aws-devops-sdet-demo-${{ inputs.environment }}-github-deploy"
+          echo "arn=$ROLE" >> "$GITHUB_OUTPUT"
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ steps.role.outputs.arn }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Terraform init
+        working-directory: infra/envs/${{ inputs.environment }}
+        run: terraform init -input=false
+
+      - name: Terraform destroy
+        working-directory: infra/envs/${{ inputs.environment }}
+        run: terraform destroy -input=false -auto-approve
+
+      - name: Verify no billable resources remain
+        run: |
+          REGION="${{ vars.AWS_REGION }}"
+          PREFIX="aws-devops-sdet-demo"
+          leftovers=0
+
+          echo "::group::ECS clusters"
+          ecs=$(aws ecs list-clusters --region "$REGION" \
+            --query "clusterArns[?contains(@, '$PREFIX')]" --output text)
+          echo "${ecs:-<none>}"
+          [ -n "$ecs" ] && leftovers=$((leftovers+1))
+          echo "::endgroup::"
+
+          echo "::group::RDS instances"
+          rds=$(aws rds describe-db-instances --region "$REGION" \
+            --query "DBInstances[?starts_with(DBInstanceIdentifier, '$PREFIX')].DBInstanceIdentifier" \
+            --output text)
+          echo "${rds:-<none>}"
+          [ -n "$rds" ] && leftovers=$((leftovers+1))
+          echo "::endgroup::"
+
+          echo "::group::Load balancers"
+          alb=$(aws elbv2 describe-load-balancers --region "$REGION" \
+            --query "LoadBalancers[?starts_with(LoadBalancerName, '$PREFIX')].LoadBalancerName" \
+            --output text)
+          echo "${alb:-<none>}"
+          [ -n "$alb" ] && leftovers=$((leftovers+1))
+          echo "::endgroup::"
+
+          echo "::group::NAT gateways (must be none in v0)"
+          nat=$(aws ec2 describe-nat-gateways --region "$REGION" \
+            --filter "Name=state,Values=available,pending" \
+            --query "NatGateways[].NatGatewayId" --output text)
+          echo "${nat:-<none>}"
+          [ -n "$nat" ] && leftovers=$((leftovers+1))
+          echo "::endgroup::"
+
+          echo "::group::EKS clusters (must be none in v0)"
+          eks=$(aws eks list-clusters --region "$REGION" --query "clusters" --output text)
+          echo "${eks:-<none>}"
+          [ -n "$eks" ] && leftovers=$((leftovers+1))
+          echo "::endgroup::"
+
+          echo "::group::Unattached Elastic IPs"
+          eip=$(aws ec2 describe-addresses --region "$REGION" \
+            --query "Addresses[?AssociationId==null].PublicIp" --output text)
+          echo "${eip:-<none>}"
+          [ -n "$eip" ] && leftovers=$((leftovers+1))
+          echo "::endgroup::"
+
+          echo "::group::Project ECR repositories"
+          ecr=$(aws ecr describe-repositories --region "$REGION" \
+            --query "repositories[?starts_with(repositoryName, '$PREFIX')].repositoryName" \
+            --output text)
+          echo "${ecr:-<none>}"
+          [ -n "$ecr" ] && leftovers=$((leftovers+1))
+          echo "::endgroup::"
+
+          echo "-----"
+          if [ "$leftovers" -ne 0 ]; then
+            echo "FAIL: $leftovers resource group(s) still present — investigate above."
+            exit 1
+          fi
+          echo "OK: no billable project resources remain (state bucket intentionally kept)."

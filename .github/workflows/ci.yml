@@ -1,0 +1,95 @@
+name: ci
+
+# Deterministic, AWS-free CI: brings up the local Docker Compose stack and
+# runs the exact same make targets used on the devbox, then Terraform fmt/validate.
+# No AWS credentials are used or required anywhere in this workflow.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  local-ci:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install app dependencies (backend checks)
+        run: pip install -r app/requirements.txt
+
+      - name: Backend import check
+        working-directory: app
+        run: python -c "import src.main; print('app imports OK')"
+
+      - name: Build app image
+        run: make docker-build
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Bring up local stack (postgres + app)
+        run: make local-up
+
+      - name: Wait for app /health
+        run: |
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:8000/health; then
+              echo "app healthy"; exit 0
+            fi
+            echo "waiting for app ($i)..."; sleep 2
+          done
+          echo "app did not become healthy in time"; exit 1
+
+      - name: Migrate
+        run: make migrate
+
+      - name: Seed
+        run: make seed
+
+      - name: Playwright smoke
+        run: make test-smoke
+
+      - name: DB assertion
+        run: make test-db
+
+      - name: Tear down local stack
+        if: always()
+        run: make local-down
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: tests/playwright/playwright-report/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  terraform-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.15.5"
+
+      - name: Terraform fmt check
+        run: terraform fmt -check -recursive infra
+
+      - name: Terraform validate (stage, no backend)
+        run: make tf-validate

@@ -1,0 +1,158 @@
+name: deploy-stage
+
+# Deploys the stage environment to the demo AWS account via GitHub OIDC.
+# No static AWS keys. AWS values come from repo Variables (vars.*), not Secrets.
+# Image flow: build+push by commit SHA, then `terraform apply` with
+# TF_VAR_app_image=<ECR_URL>:<SHA> so the service runs exactly that revision
+# (no separate update-service). One-off migrate/seed/db-assert reuse the SAME
+# task definition via run-task containerOverrides (ADR-0007). The first stage
+# apply was done LOCALLY (OIDC role bootstrap); this workflow runs the rest.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: stage
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      TF_VAR_demo_account_id: ${{ vars.TF_VAR_demo_account_id }}
+      TF_VAR_budget_email: ${{ vars.TF_VAR_budget_email }}
+      TF_VAR_owner: ${{ vars.TF_VAR_owner }}
+      TF_VAR_state_bucket_name: ${{ vars.TF_STATE_BUCKET }}
+      TF_VAR_github_owner: ${{ github.repository_owner }}
+      TF_VAR_github_repo: ${{ github.event.repository.name }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.15.5"
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.GITHUB_OIDC_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Terraform init (S3 backend)
+        working-directory: infra/envs/stage
+        run: terraform init -input=false
+
+      - name: Resolve ECR repository URL
+        id: repo
+        working-directory: infra/envs/stage
+        run: echo "ecr_url=$(terraform output -raw ecr_repository_url)" >> "$GITHUB_OUTPUT"
+
+      - name: Build, tag, and push image
+        env:
+          ECR_URL: ${{ steps.repo.outputs.ecr_url }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t "$ECR_URL:$IMAGE_TAG" -t "$ECR_URL:latest" ./app
+          docker push "$ECR_URL:$IMAGE_TAG"
+          docker push "$ECR_URL:latest"
+
+      - name: Terraform plan
+        working-directory: infra/envs/stage
+        env:
+          TF_VAR_app_image: ${{ steps.repo.outputs.ecr_url }}:${{ github.sha }}
+        run: terraform plan -input=false -out=tfplan
+
+      - name: Terraform apply
+        working-directory: infra/envs/stage
+        run: terraform apply -input=false -auto-approve tfplan
+
+      - name: Read stage outputs
+        id: tf
+        working-directory: infra/envs/stage
+        run: |
+          {
+            echo "cluster=$(terraform output -raw ecs_cluster_name)"
+            echo "service=$(terraform output -raw ecs_service_name)"
+            echo "task_def=$(terraform output -raw task_definition_arn)"
+            echo "container=$(terraform output -raw container_name)"
+            echo "sg=$(terraform output -raw ecs_app_security_group_id)"
+            echo "alb_url=$(terraform output -raw alb_url)"
+            echo "subnets=$(terraform output -json public_subnet_ids | jq -r 'join(",")')"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Wait for ECS service to be stable
+        run: |
+          aws ecs wait services-stable \
+            --cluster "${{ steps.tf.outputs.cluster }}" \
+            --services "${{ steps.tf.outputs.service }}"
+
+      - name: Run one-off tasks (migrate, seed, db-assert)
+        env:
+          CLUSTER: ${{ steps.tf.outputs.cluster }}
+          TASK_DEF: ${{ steps.tf.outputs.task_def }}
+          CONTAINER: ${{ steps.tf.outputs.container }}
+          SUBNETS: ${{ steps.tf.outputs.subnets }}
+          SG: ${{ steps.tf.outputs.sg }}
+        run: |
+          run_task() {
+            local label="$1"; shift
+            local overrides
+            overrides=$(jq -nc --arg name "$CONTAINER" --argjson cmd "$1" \
+              '{containerOverrides:[{name:$name,command:$cmd}]}')
+            echo "::group::run-task $label"
+            local arn
+            arn=$(aws ecs run-task \
+              --cluster "$CLUSTER" \
+              --task-definition "$TASK_DEF" \
+              --launch-type FARGATE \
+              --count 1 \
+              --network-configuration "awsvpcConfiguration={subnets=[$SUBNETS],securityGroups=[$SG],assignPublicIp=ENABLED}" \
+              --overrides "$overrides" \
+              --query 'tasks[0].taskArn' --output text)
+            echo "task: $arn"
+            aws ecs wait tasks-stopped --cluster "$CLUSTER" --tasks "$arn"
+            local code
+            code=$(aws ecs describe-tasks --cluster "$CLUSTER" --tasks "$arn" \
+              --query 'tasks[0].containers[0].exitCode' --output text)
+            echo "exitCode: $code"
+            echo "::endgroup::"
+            if [ "$code" != "0" ]; then
+              echo "$label failed (exitCode=$code)"; exit 1
+            fi
+          }
+          run_task migrate    '["alembic","upgrade","head"]'
+          run_task seed       '["python","scripts/seed.py"]'
+          run_task db-assert  '["python","tests/db/assert_seed.py"]'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Playwright smoke against ALB
+        working-directory: tests/playwright
+        env:
+          BASE_URL: ${{ steps.tf.outputs.alb_url }}
+        run: |
+          npm install
+          npx playwright install --with-deps chromium
+          npx playwright test
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: tests/playwright/playwright-report/
+          if-no-files-found: ignore
+          retention-days: 7
