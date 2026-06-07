@@ -13,7 +13,7 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 2     | Minimal local app skeleton     | ✅ done     | 3cf1c98   |
 | 3     | Docker Compose + local tests   | ✅ done     | de781bc   |
 | 4     | Terraform foundation           | ✅ done     | 0256dc8   |
-| 5     | GitHub Actions + OIDC          | ⬜ pending  | —         |
+| 5     | GitHub Actions + OIDC          | ✅ done     | 40eb757   |
 | 6     | First AWS stage deploy         | ⬜ pending  | —         |
 | 7     | Destroy validation             | ⬜ pending  | —         |
 | 8     | Feature expansion              | ⬜ pending  | —         |
