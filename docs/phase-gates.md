@@ -81,6 +81,19 @@ confirmation before the next phase. This file is the "where we are" cursor.
   migrate/seed/db-assert, smoke, artifacts); destroy.yml (confirm=DESTROY,
   verification step).
 - Validation: workflow files present; `terraform validate` passes in CI path.
+- GitHub config notes (carry forward to Phase 6+):
+  - 6 vars live as ENVIRONMENT variables under environment `stage` (not repo-wide):
+    AWS_REGION, OIDC_ROLE_ARN, TF_STATE_BUCKET, TF_VAR_BUDGET_EMAIL,
+    TF_VAR_DEMO_ACCOUNT_ID, TF_VAR_OWNER. No secrets (OIDC).
+  - Visible only to jobs with `environment:` set. deploy-stage (environment: stage)
+    and destroy (environment: ${{ inputs.environment }}) see them; ci.yml has no
+    environment and needs no AWS, so that is fine. A future AWS job WITHOUT an
+    `environment:` would NOT see these — add the environment or duplicate as repo vars.
+  - Variable was named OIDC_ROLE_ARN, NOT GITHUB_OIDC_ROLE_ARN: GitHub reserves the
+    GITHUB_ prefix for variable names. Workflows reference vars.OIDC_ROLE_ARN.
+  - These vars only work AFTER the local first apply creates the deploy role
+    aws-devops-sdet-demo-stage-github-deploy (Phase 6). Until then Actions OIDC fails.
+
 
 ### Phase 6 — First AWS stage deploy
 - Criteria: bootstrap applied locally (state bucket exists); first stage apply
@@ -110,3 +123,15 @@ confirmation before the next phase. This file is the "where we are" cursor.
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,
 `phase complete`, `go next`, `ок`, `дальше`, `подтверждаю`.
 On error: fix the current phase only; do not advance.
+
+## Manual sync reminder (do at EVERY phase gate)
+Project files (discussion-log.md, project-prompt.md) are READ-ONLY copies in the
+Claude Project and are NOT in git. Chat edits do not save back. So at each phase
+gate, after the small "mark phase done" commit, MANUALLY update the Project files:
+- Update the "Current state" / phase cursor in discussion-log.md to the new phase.
+- Add any new decisions/gotchas (e.g. the GitHub vars notes above) to the right
+  section of discussion-log.md.
+- If the build prompt scope changed, reflect it in project-prompt.md.
+Claude must remind the user to do this manual sync as part of every phase-gate
+STOP summary. Source of truth for code = git; source of truth for narrative
+context across chats = the Project files (only the user can update them).
