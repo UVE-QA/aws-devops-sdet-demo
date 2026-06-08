@@ -14,7 +14,7 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 3     | Docker Compose + local tests   | ✅ done     | de781bc   |
 | 4     | Terraform foundation           | ✅ done     | 0256dc8   |
 | 5     | GitHub Actions + OIDC          | ✅ done     | 40eb757   |
-| 6     | First AWS stage deploy         | ⬜ pending  | —         |
+| 6     | First AWS stage deploy         | ✅ done     | 36ecfba   |
 | 7     | Destroy validation             | ⬜ pending  | —         |
 | 8     | Feature expansion              | ⬜ pending  | —         |
 
@@ -105,6 +105,25 @@ confirmation before the next phase. This file is the "where we are" cursor.
   aws rds describe-db-instances --profile demo-admin --region us-west-2
   aws elbv2 describe-load-balancers --profile demo-admin --region us-west-2
 ```
+
+- Phase 6 learnings (carry forward):
+  - Run the first/long applies under SSH-disconnect protection (nohup or tmux):
+    RDS takes ~5-10 min and Lightsail browser SSH drops long commands. A dropped
+    apply got SIGHUP mid-create, leaving a stuck S3 lockfile + orphaned resources
+    (public subnet, ALB) created in AWS but absent from state.
+  - Recovery pattern: `terraform force-unlock <id>` (id from the .tflock JSON in
+    S3) → `terraform import` each orphan (subnet, ALB) → plan (0 to destroy) →
+    re-apply (idempotent, finishes the rest).
+  - app_image has no real default: local apply must pass
+    -var="app_image=<ECR_URL>:<sha>" or it reverts the service to the :bootstrap
+    placeholder. Actions sets TF_VAR_app_image itself.
+  - DB-assert bug found & fixed (commit 36ecfba): deploy-stage.yml ran
+    python tests/db/assert_seed.py inside the app image, but the image is built
+    from context app/ and does not contain tests/. Added app/scripts/assert_seed.py
+    (ships via COPY scripts ./scripts); workflow now runs scripts/assert_seed.py.
+    tests/db/assert_seed.py stays as the local `make test-db` gate.
+  - CloudWatch log stream format is app/app/<task-id> (awslogs-stream-prefix=app),
+    not ecs/app/<task-id>.
 
 ### Phase 7 — Destroy validation
 - Criteria: destroy removes ECS/ALB/RDS/ECR/logs/VPC; state bucket remains;
