@@ -134,6 +134,23 @@ confirmation before the next phase. This file is the "where we are" cursor.
   aws eks list-clusters --profile demo-admin --region us-west-2           # none
   aws ecr describe-repositories --profile demo-admin --region us-west-2   # app repo gone
 ```
+- STATUS: DONE (2026-06-08). Stage torn down; verified zero billable resources
+  (ECS/RDS/ALB/ECR/logs/VPC/secret all empty; no NAT, no EKS, no unattached EIP).
+  State bucket aws-devops-sdet-demo-tfstate-993912191738 intentionally remains.
+- HOW: teardown completed via LOCAL `terraform destroy` (AWS_PROFILE=demo-admin),
+  NOT via destroy.yml end-to-end. The first Actions-OIDC destroy run surfaced two
+  latent deploy-role bugs, both fixed in commit 2c1efcc:
+  (1) trust policy allowed only sub=ref:refs/heads/main; destroy.yml runs with
+      environment:stage -> sub=...:environment:stage was denied. Added
+      github_environments var; trust now permits both ref and environment subs.
+  (2) the role's permissions inline policy was absent in AWS (state/AWS drift
+      from an interrupted Phase 6 apply); the Actions run got AccessDenied on
+      s3:PutObject to the state bucket. Re-created via local targeted apply.
+  Both fixes are committed and the live role was corrected, but a full
+  end-to-end destroy.yml (Actions OIDC) run was NOT re-validated after the fixes.
+- NOT DONE (deferred, by user decision): repeatability-check (fresh apply after
+  destroy to confirm no name conflicts). Also not validated: destroy.yml
+  end-to-end via Actions OIDC. Both to be closed in a later cycle if needed.
 
 ### Phase 8 — Feature expansion
 - Criteria: defined per future request (see docs/next-phases.md).
