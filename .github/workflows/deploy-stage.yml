@@ -132,7 +132,7 @@ jobs:
           }
           run_task migrate    '["alembic","upgrade","head"]'
           run_task seed       '["python","scripts/seed.py"]'
-          run_task db-assert  '["python","tests/db/assert_seed.py"]'
+          run_task db-assert  '["python","scripts/assert_seed.py"]'
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
