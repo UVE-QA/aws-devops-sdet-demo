@@ -78,6 +78,7 @@ module "ecs" {
   task_cpu              = var.task_cpu
   task_memory           = var.task_memory
   desired_count         = var.desired_count
+  depends_on            = [module.alb]
 }
 
 module "rds" {
