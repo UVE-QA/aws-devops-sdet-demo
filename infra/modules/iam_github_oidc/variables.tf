@@ -28,3 +28,9 @@ variable "db_secret_arn" {
   description = "ARN of the DB credentials secret; the deploy role gets scoped GetSecretValue on it."
   type        = string
 }
+
+variable "github_environments" {
+  description = "GitHub Actions environments allowed to assume the deploy role (sub: environment:<name>). Covers workflow_dispatch jobs that set environment:, e.g. destroy.yml."
+  type        = list(string)
+  default     = ["stage"]
+}
