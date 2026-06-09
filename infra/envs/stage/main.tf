@@ -1,5 +1,6 @@
 # Stage environment: wires all modules together. Module data flow is one-way:
-# network -> alb -> ecs -> rds, plus ecr, observability, iam_github_oidc, budgets.
+# network -> alb -> ecs -> rds, plus ecr, observability, budgets.
+# (GitHub OIDC provider + deploy role live in infra/bootstrap-oidc, separate state.)
 # No terraform apply in Phase 4 (ADR-0014); validate only with -backend=false.
 
 terraform {
@@ -92,16 +93,6 @@ module "rds" {
   instance_class            = var.db_instance_class
 }
 
-module "iam_github_oidc" {
-  source = "../../modules/iam_github_oidc"
-
-  name_prefix      = local.name_prefix
-  github_owner     = var.github_owner
-  github_repo      = var.github_repo
-  github_branch    = var.github_branch
-  state_bucket_arn = "arn:aws:s3:::${var.state_bucket_name}"
-  db_secret_arn    = module.rds.db_secret_arn
-}
 
 module "budgets" {
   source = "../../modules/budgets"

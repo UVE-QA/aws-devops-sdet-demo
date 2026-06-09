@@ -1,0 +1,11 @@
+# infra/bootstrap-oidc — applied LOCALLY (AWS_PROFILE=demo-admin), once per cycle,
+# before the first stage apply. Creates the GitHub OIDC provider + deploy role
+# in their own state. github_owner/repo/branch and name_prefix have defaults.
+
+owner             = "UVE"
+state_bucket_name = "aws-devops-sdet-demo-tfstate-993912191738"
+# region          = "us-west-2"                      # default
+# name_prefix     = "aws-devops-sdet-demo-stage"      # default; must match stage
+# github_owner    = "UVE-QA"                          # default
+# github_repo     = "aws-devops-sdet-demo"            # default
+# github_branch   = "main"                            # default

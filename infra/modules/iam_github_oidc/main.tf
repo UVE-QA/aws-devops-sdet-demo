@@ -90,7 +90,7 @@ data "aws_iam_policy_document" "deploy" {
   statement {
     sid       = "ReadDbSecret"
     actions   = ["secretsmanager:GetSecretValue"]
-    resources = [var.db_secret_arn]
+    resources = [var.db_secret_arn_pattern]
   }
 
   statement {
@@ -110,7 +110,8 @@ data "aws_iam_policy_document" "deploy" {
       "iam:TagRole",
     ]
     resources = [
-      "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.name_prefix}-*",
+      "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.name_prefix}-ecs-execution",
+      "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.name_prefix}-ecs-task",
     ]
   }
 

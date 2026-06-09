@@ -152,8 +152,21 @@ confirmation before the next phase. This file is the "where we are" cursor.
   destroy to confirm no name conflicts). Also not validated: destroy.yml
   end-to-end via Actions OIDC. Both to be closed in a later cycle if needed.
 
-### Phase 8 — Feature expansion
-- Criteria: defined per future request (see docs/next-phases.md).
+### Phase 8 — Repeatable lifecycle via CI + feature expansion
+- C2 refactor (ADR-0015): GitHub OIDC provider + deploy role moved OUT of
+  infra/envs/stage into infra/bootstrap-oidc/ with its own remote state
+  (key bootstrap-oidc/terraform.tfstate). Fixes destroy.yml self-deleting the
+  deploy role's own permissions mid-destroy. Also: IamManageScoped narrowed to
+  the two ECS roles only (no longer matches the deploy role itself); deploy-role
+  GetSecretValue scoped to <name_prefix>-db-credentials-* wildcard; retry commit
+  8d3ed9d reverted to a plain terraform destroy step.
+- Bootstrap ordering is now TWO local-first applies per cycle (demo-admin):
+  (1) infra/bootstrap (S3 state bucket), (2) infra/bootstrap-oidc (OIDC + role).
+  After both, deploy-stage.yml and destroy.yml run end-to-end via Actions OIDC.
+- Criteria to close: local apply bootstrap-oidc -> local/Actions apply stage ->
+  deploy-stage.yml green via Actions -> destroy.yml green via Actions WITHOUT
+  failing on self-deleted permissions -> green verification step.
+- Further feature expansion: defined per future request (see docs/next-phases.md).
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

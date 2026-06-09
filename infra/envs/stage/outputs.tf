@@ -23,10 +23,6 @@ output "rds_endpoint" {
   value       = module.rds.db_endpoint
 }
 
-output "github_oidc_role_arn" {
-  description = "ARN of the GitHub Actions deploy role (set as GITHUB_OIDC_ROLE_ARN in workflows)."
-  value       = module.iam_github_oidc.deploy_role_arn
-}
 
 output "db_secret_arn" {
   description = "ARN of the DB credentials secret. ARN only, never the value (ADR-0005)."

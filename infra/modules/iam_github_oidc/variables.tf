@@ -24,8 +24,8 @@ variable "state_bucket_arn" {
   type        = string
 }
 
-variable "db_secret_arn" {
-  description = "ARN of the DB credentials secret; the deploy role gets scoped GetSecretValue on it."
+variable "db_secret_arn_pattern" {
+  description = "ARN pattern (wildcard suffix) of the DB credentials secret; the deploy role gets scoped GetSecretValue on it. Wildcard because the secret name carries a per-cycle random suffix (recovery_window=0)."
   type        = string
 }
 
