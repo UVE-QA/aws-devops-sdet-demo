@@ -31,7 +31,7 @@ jobs:
       TF_VAR_github_repo: ${{ github.event.repository.name }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v3
@@ -135,7 +135,7 @@ jobs:
           run_task db-assert  '["python","scripts/assert_seed.py"]'
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: "20"
 
