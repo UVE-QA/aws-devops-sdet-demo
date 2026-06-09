@@ -67,9 +67,29 @@ jobs:
         working-directory: infra/envs/${{ inputs.environment }}
         run: terraform init -input=false
 
-      - name: Terraform destroy
+      - name: Terraform destroy (with retries for transient IAM propagation)
         working-directory: infra/envs/${{ inputs.environment }}
-        run: terraform destroy -input=false -auto-approve
+        run: |
+          set +e
+          max=3
+          delay=60
+          for attempt in $(seq 1 "$max"); do
+            echo "::group::terraform destroy attempt $attempt/$max"
+            terraform destroy -input=false -auto-approve
+            rc=$?
+            echo "::endgroup::"
+            if [ "$rc" -eq 0 ]; then
+              echo "destroy succeeded on attempt $attempt"
+              exit 0
+            fi
+            if [ "$attempt" -lt "$max" ]; then
+              echo "destroy failed (rc=$rc); waiting ${delay}s before retry (transient IAM/state propagation)..."
+              sleep "$delay"
+              delay=$((delay * 2))
+            fi
+          done
+          echo "destroy failed after $max attempts (rc=$rc)"
+          exit "$rc"
 
       - name: Verify no billable resources remain
         run: |
