@@ -15,8 +15,8 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 4     | Terraform foundation           | ✅ done     | 0256dc8   |
 | 5     | GitHub Actions + OIDC          | ✅ done     | 40eb757   |
 | 6     | First AWS stage deploy         | ✅ done     | 36ecfba   |
-| 7     | Destroy validation             | ⬜ pending  | —         |
-| 8     | Feature expansion              | ⬜ pending  | —         |
+| 7     | Destroy validation             | ✅ done     | 497a4b2   |
+| 8     | Feature expansion              | 🟡 lifecycle done, features pending | f08f2f4 |
 
 ## Completion criteria & validation
 
@@ -148,9 +148,10 @@ confirmation before the next phase. This file is the "where we are" cursor.
       s3:PutObject to the state bucket. Re-created via local targeted apply.
   Both fixes are committed and the live role was corrected, but a full
   end-to-end destroy.yml (Actions OIDC) run was NOT re-validated after the fixes.
-- NOT DONE (deferred, by user decision): repeatability-check (fresh apply after
-  destroy to confirm no name conflicts). Also not validated: destroy.yml
-  end-to-end via Actions OIDC. Both to be closed in a later cycle if needed.
+- CLOSED LATER (in Phase 8): the repeatability-check passed (two fresh applies
+  after a full destroy, 34 added each, no name conflicts), and destroy.yml
+  finally ran green end-to-end via Actions OIDC on 2026-07-25 (destroy #7,
+  8m21s). See the Phase 8 section for the three bugs that had to be fixed first.
 
 ### Phase 8 — Repeatable lifecycle via CI + feature expansion
 - C2 refactor (ADR-0015): GitHub OIDC provider + deploy role moved OUT of
@@ -166,7 +167,27 @@ confirmation before the next phase. This file is the "where we are" cursor.
 - Criteria to close: local apply bootstrap-oidc -> local/Actions apply stage ->
   deploy-stage.yml green via Actions -> destroy.yml green via Actions WITHOUT
   failing on self-deleted permissions -> green verification step.
-- Further feature expansion: defined per future request (see docs/next-phases.md).
+- STATUS: lifecycle CLOSED (2026-07-25). The full cycle is proven through
+  Actions: local apply of infra/bootstrap + infra/bootstrap-oidc, then
+  deploy-stage #18 green (14m23s; /health 200, /api/db-check connected, smoke and
+  db-assert pass), then destroy #7 green end-to-end (8m21s) including the
+  "no billable resources remain" verification step. Zero manual AWS operations.
+- C2 itself was sound: no self-deletion of permissions occurred in any run. But
+  three independent latent bugs sat underneath it, each observable only on a
+  from-scratch cycle:
+  (1) b71b846 - deploy-stage resolved ecr_repository_url from an empty stage
+      state, producing the invalid docker tag ":<sha>". ECR is now created by a
+      targeted apply before the build, and an empty URL now fails the step.
+  (2) b110b41 - iam:ListInstanceProfilesForRole was lost in the C2 narrowing, so
+      both ECS role deletions were denied; and no dependency edge exists between
+      the ALB and the IGW, so Terraform destroyed them concurrently and hit
+      DependencyViolation on detach. See ADR-0016.
+  (3) 58ec209 - eks:ListClusters was missing, so the workflow's own "no EKS in
+      v0" assertion could not run and reddened an otherwise clean teardown.
+- Also 6944229: deploy-stage.yml no longer triggers on push to main. Every push
+  had been deploying billable infrastructure as a side effect.
+- Feature expansion itself is still PENDING; only the lifecycle half of Phase 8
+  is done. Scope defined per future request (see docs/next-phases.md).
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,
