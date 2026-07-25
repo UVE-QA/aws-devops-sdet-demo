@@ -8,9 +8,10 @@ name: deploy-stage
 # task definition via run-task containerOverrides (ADR-0007). The first stage
 # apply was done LOCALLY (OIDC role bootstrap); this workflow runs the rest.
 
+# Manual only. A push to main must not spin up billable infrastructure
+# (ALB + RDS + ECS) in the demo account; the stage environment is short-lived
+# and is brought up on demand, then torn down via destroy.yml.
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
