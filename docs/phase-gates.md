@@ -16,7 +16,11 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 5     | GitHub Actions + OIDC          | ✅ done     | 40eb757   |
 | 6     | First AWS stage deploy         | ✅ done     | 36ecfba   |
 | 7     | Destroy validation             | ✅ done     | 497a4b2   |
-| 8     | Feature expansion              | 🟡 lifecycle done, features pending | f08f2f4 |
+| 8     | Feature expansion              | 🟡 lifecycle done, features pending | ee0a25e |
+| 9     | Prod env, promotion, HTTPS     | ⬜ next — starts at 9.0 | — |
+
+Phases 9-19 are planned in `docs/next-phases.md` (MVP track 9-13, polish
+track 14-19), shaped by ADR-0017. This table tracks only what is done.
 
 ## Completion criteria & validation
 
@@ -187,7 +191,60 @@ confirmation before the next phase. This file is the "where we are" cursor.
 - Also 6944229: deploy-stage.yml no longer triggers on push to main. Every push
   had been deploying billable infrastructure as a side effect.
 - Feature expansion itself is still PENDING; only the lifecycle half of Phase 8
-  is done. Scope defined per future request (see docs/next-phases.md).
+  is done. Scope is now defined in docs/next-phases.md, decisions in ADR-0017.
+- 2026-07-25 planning session, finding 1: the CONTROL LAYER had never been
+  committed. CLAUDE.md, .claude/skills/ (9 skills + registry),
+  docs/sessions/, docs/skills-structure.md, docs/project-instructions-pointer.md
+  and docs/decisions/0000-template.md existed ONLY in a non-git folder on the
+  MacBook, created 2026-06-06. The repo had 93 tracked files and none of them,
+  so Claude Code on the devbox had been starting with no anchor and no skills
+  for seven weeks. Fixed in f8f32e5 (93 -> 111 tracked files). The stale
+  README.md was deliberately NOT committed; it is rewritten in Phase 12.
+  Lesson: "GitHub is the source of truth" was asserted by a document that was
+  itself outside the source of truth. Verify the claim, do not assume it.
+- 2026-07-25 planning session, finding 2: infra/envs/prod is a stale Phase 4
+  scaffold that contradicts ADR-0015 and ADR-0016. Details and the fix are
+  Phase 9.0 below.
+
+### Phase 9 — Prod environment, promotion, HTTPS  [NEXT]
+- Plan: docs/next-phases.md. Decisions: ADR-0017 (same account for prod, hybrid
+  availability, HTTPS on an owned domain, phased external access).
+- STARTS WITH RECONCILIATION, NOT CONSTRUCTION. infra/envs/prod already exists
+  in git as a Phase 4 scaffold mirror (committed, never applied,
+  desired_count = 0) and was never updated by the C2 refactor. It looks
+  finished and is not:
+  (1) it still contains module "iam_github_oidc" - the construct ADR-0015
+      removed from stage because a destroy under that role deletes its own
+      permissions mid-run;
+  (2) it passes db_secret_arn where the post-C2 module takes
+      db_secret_arn_pattern, so this directory cannot plan against the current
+      modules at all - which proves terraform validate does not cover the
+      whole tree;
+  (3) it has no depends_on = [module.alb] on the ecs module (commit 2c4162b
+      went to stage only), so the ADR-0016 ENI/IGW teardown race is built in;
+  (4) it declares its own ECR repository (...-app-prod), which conflicts with
+      promotion-by-digest. Decide before writing promote-prod.yml: one shared
+      ECR across environments, or an explicit cross-repository image copy;
+  (5) destroy.yml offers "prod" in its dropdown with nothing behind it - a
+      trap, not a feature. Wire it or remove it.
+- Criteria to close 9.0: terraform validate passes for EVERY directory under
+  infra/, CI enforces that, and prod differs from stage only in name prefix,
+  sizing and intentional prod-only additions.
+- Criteria to close 9.1: a full stage -> approve -> prod -> destroy both cycle
+  runs through Actions with no manual AWS operation, and https://app.<domain>
+  returns 200 with a valid certificate.
+- Validation:
+```bash
+  terraform fmt -recursive -check
+  for d in infra/bootstrap infra/bootstrap-oidc infra/envs/stage infra/envs/prod; do
+    (cd "$d" && terraform init -backend=false >/dev/null 2>&1 && terraform validate) \
+      || echo "FAIL $d"
+  done
+```
+- New invariants adopted this session (see docs/next-phases.md):
+  - a fix to a SHARED invariant is applied to EVERY environment directory in the
+    same commit, not only to the one currently being exercised;
+  - CI validates EVERY IaC directory - an unvalidated directory rots invisibly.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,
