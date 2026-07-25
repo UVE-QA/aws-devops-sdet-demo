@@ -21,9 +21,13 @@ Phase 8 (features)   NOT STARTED
 ```
 
 Stage is fully destroyed in AWS. Nothing is billing except the state bucket. The
-OIDC provider and stage deploy role exist (IAM, free). There is no prod
+OIDC provider and stage deploy role exist (IAM, free). There is no deployed prod
 environment, no public surface, and no test coverage beyond one smoke test and a
 seed assertion.
+
+`infra/envs/prod` DOES exist in git as a Phase 4 scaffold mirror — committed,
+never applied, `desired_count = 0`. It is stale and must be reconciled before
+use; see Phase 9.
 
 **Everything below this line is planned, not built.** No document in this repo
 may describe any of it as implemented.
@@ -55,6 +59,13 @@ Anything not required by that sentence is polish and waits for Phase 14+.
   artifact that cannot be reconstructed from the repository afterwards.
 - an app contract change is not done until its tests are updated (app-dev → test-dev)
 - no static AWS keys, ever
+- a fix to a SHARED invariant is applied to EVERY environment directory in the
+  same commit, not only to the one currently being exercised. The C2 refactor
+  (ADR-0015) and the ecs/alb ordering fix (ADR-0016) were both applied to stage
+  only; prod silently kept the broken shape for seven weeks.
+- CI validates EVERY IaC directory. An unvalidated directory rots invisibly —
+  `infra/envs/prod` could not have planned against the current modules and
+  nothing reported it.
 ```
 
 ---
@@ -69,11 +80,48 @@ bugs that surfaced on a path's **first real run**; a second deploy role and a
 second environment are two such new paths. Do it while the context is fresh,
 and do not compress it.
 
+### 9.0 — Reconcile the existing prod scaffold FIRST
+
+The starting point is not empty, and it is worse than empty: `infra/envs/prod`
+was written in Phase 4 as a mirror of stage and was never updated by the C2
+refactor. It looks finished and is not. Nothing else in this phase starts until
+these are fixed:
+
+```text
+prod/main.tf still contains module "iam_github_oidc"
+   → the exact construct ADR-0015 removed from stage because a destroy run
+     under that role deletes its own permissions mid-run. Delete it from prod;
+     both deploy roles belong in infra/bootstrap-oidc.
+
+prod/main.tf passes db_secret_arn to that module
+   → after C2 the module takes db_secret_arn_pattern. This directory cannot
+     plan against the current modules at all, which proves CI's terraform
+     validate does not cover it. Fix the validate scope as part of this step.
+
+prod/main.tf has no depends_on = [module.alb] on the ecs module
+   → commit 2c4162b was applied to stage only, so the ADR-0016 ENI/IGW
+     teardown race is built into prod from birth.
+
+prod declares its own ECR repository (…-app-prod)
+   → conflicts with promotion-by-digest. Decide BEFORE writing promote-prod.yml:
+     one shared ECR across environments (simplest, and what "never rebuild"
+     implies) or an explicit cross-repository image copy step.
+
+destroy.yml offers "prod" in its dropdown, nothing else supports it
+   → today that choice is a trap, not a feature. Either wire it or remove it.
+```
+
+Done when: `terraform validate` passes for every directory under `infra/`, and
+the prod config differs from stage only in name prefix, sizing and the
+intentional prod-specific additions below.
+
+### 9.1 — Build out prod
+
 Per ADR-0017 D1: same AWS account, environment-level separation.
 
 ```text
 infra/envs/prod            same modules, prefix <project>-prod-*,
-                           state key prod/terraform.tfstate
+                           state key prod/terraform.tfstate (already set)
 bootstrap-oidc             a SECOND deploy role for prod; stage credentials
                            must not reach prod
 GitHub Environment prod    with required reviewers — the approval gate,
