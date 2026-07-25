@@ -107,6 +107,7 @@ data "aws_iam_policy_document" "deploy" {
       "iam:GetRolePolicy",
       "iam:ListRolePolicies",
       "iam:ListAttachedRolePolicies",
+      "iam:ListInstanceProfilesForRole",
       "iam:TagRole",
     ]
     resources = [

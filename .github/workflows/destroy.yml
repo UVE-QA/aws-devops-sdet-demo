@@ -67,6 +67,10 @@ jobs:
         working-directory: infra/envs/${{ inputs.environment }}
         run: terraform init -input=false
 
+      - name: Destroy ALB first (release ENIs before the IGW)
+        working-directory: infra/envs/${{ inputs.environment }}
+        run: terraform destroy -input=false -auto-approve -target=module.alb
+
       - name: Terraform destroy
         working-directory: infra/envs/${{ inputs.environment }}
         run: terraform destroy -input=false -auto-approve
