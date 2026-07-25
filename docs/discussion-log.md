@@ -458,9 +458,22 @@ destroy.yml run surfaced two latent deploy-role bugs:
 - **project-prompt.md** should reflect the repo shape after C2 (§7 repo
   structure, §10 bootstrap ordering) and note that **§14 is superseded by
   docs/next-phases.md**.
-- **This file is the last artifact still outside git.** The lesson of session 4
-  applies to it directly: things kept outside the source of truth rot silently.
-  Worth deciding whether `discussion-log.md` should simply live in `docs/`.
+- **Repository visibility: public at Phase 11, not before (decided 2026-07-25).**
+  Phase 11's dashboard reads run history from the PUBLIC GitHub API, so the repo
+  must be public by then; a portfolio repo nobody can open is a contradiction
+  anyway. Prerequisite: gitleaks over the FULL history plus a conscious decision
+  about the account id, the devbox IP and the SSO start URL. Deferred rather
+  than rejected — see docs/next-phases.md 11.0.
+- **Deferred idea: a session-start skill that clones the repo into the chat
+  sandbox** and reads CLAUDE.md / phase-gates.md / next-phases.md /
+  discussion-log.md itself. Verified feasible: the Cowork sandbox reaches
+  github.com over HTTPS (SSH out is blocked). Blocked only by the repo being
+  private, since asking for a PAT is against the project's own rules. Unblocks
+  itself at Phase 11. Its appeal is that the clone lives in the ephemeral
+  sandbox, so it is NOT a second working copy on a laptop.
+- **RESOLVED (1f50243): this file now lives in git at `docs/discussion-log.md`.**
+  The copy inside the Claude Project is a MIRROR, refreshed at phase gates for
+  chats that have no devbox access. Never edit the mirror; edit the repo.
 
 ## Collaboration / context model
 
@@ -514,8 +527,8 @@ explain why something was NOT built is itself an interview asset.
   UI contention. **Cowork on the MacBook** was used for session 4 (planning and
   document production) — a reasonable split: Cowork for thinking and writing,
   Claude Code on the devbox for anything that touches the repo or AWS.
-- Devbox tool versions: Docker 29.5.3, Compose v5.1.4, AWS CLI 2.34.63,
-  Terraform 1.15.5, Node 20.20.2, Python 3.12.3, Git 2.43.0, Make 4.3.
+- Devbox tool versions: Docker 29.6.2, Compose v5.3.1, AWS CLI 2.34.63,
+  Terraform 1.15.8, Node 20.20.2, Python 3.12.3, Git 2.43.0, Make 4.3.
 - **Shell gotchas that cost time:** long heredocs get mangled over browser SSH
   (write long docs in short flat chunks and verify each); pasted example commands
   containing `...` will be run literally; `exit` typed into a `tail -f` does

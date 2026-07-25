@@ -193,6 +193,34 @@ Cost: **$0 extra** — runs inside the existing cycle.
 
 ## Phase 11 (M3) — Public dashboard
 
+### 11.0 — Make the repository public FIRST
+
+The dashboard reads run history from the **public** GitHub API, which does not
+work against a private repository without a token. This was an unstated
+dependency when the phase was first written. A portfolio repository that cannot
+be linked to is also a contradiction in itself: an interviewer needs the code.
+
+Before building anything in this phase:
+
+```text
+- run gitleaks over the FULL history, not just HEAD. Phase 15 adds it to CI;
+  this is the one case where it is needed earlier.
+- decide CONSCIOUSLY about: the AWS account id 993912191738 (in backend.tf, in
+  the state bucket name, throughout the docs), the devbox static IP, and the
+  SSO start URL. None of these is a secret, but publishing them should be a
+  decision rather than an accident.
+- confirm .gitignore held across every commit: no .env, no *.tfstate,
+  no *.tfvars anywhere in history.
+```
+
+Side effect worth having: once the repo is public, a chat session can clone it
+over HTTPS and read the current docs itself. That removes the manual "upload
+discussion-log.md to the Claude Project" ritual entirely, with no second working
+copy on any laptop — the clone lives in the ephemeral session sandbox and dies
+with it. Deliberately deferred to here rather than done now (2026-07-25).
+
+### 11.1 — Build the dashboard
+
 Per ADR-0017 D2 and D4 Wave A. The permanent public surface: the only thing that
 stays online when every workload environment is destroyed.
 
