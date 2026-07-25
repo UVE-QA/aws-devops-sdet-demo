@@ -27,8 +27,6 @@ jobs:
       TF_VAR_budget_email: ${{ vars.TF_VAR_budget_email }}
       TF_VAR_owner: ${{ vars.TF_VAR_owner }}
       TF_VAR_state_bucket_name: ${{ vars.TF_STATE_BUCKET }}
-      TF_VAR_github_owner: ${{ github.repository_owner }}
-      TF_VAR_github_repo: ${{ github.event.repository.name }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -52,10 +50,22 @@ jobs:
         working-directory: infra/envs/stage
         run: terraform init -input=false
 
+      - name: Ensure ECR repository exists (fresh-cycle bootstrap)
+        working-directory: infra/envs/stage
+        run: terraform apply -input=false -auto-approve -target=module.ecr
+
       - name: Resolve ECR repository URL
         id: repo
         working-directory: infra/envs/stage
-        run: echo "ecr_url=$(terraform output -raw ecr_repository_url)" >> "$GITHUB_OUTPUT"
+        shell: bash
+        run: |
+          set -euo pipefail
+          url="$(terraform output -raw ecr_repository_url)"
+          if [ -z "$url" ]; then
+            echo "::error::ecr_repository_url resolved to an empty string"
+            exit 1
+          fi
+          echo "ecr_url=$url" >> "$GITHUB_OUTPUT"
 
       - name: Build, tag, and push image
         env:
