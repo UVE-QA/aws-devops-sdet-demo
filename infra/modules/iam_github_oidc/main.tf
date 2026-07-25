@@ -93,6 +93,14 @@ data "aws_iam_policy_document" "deploy" {
     resources = [var.db_secret_arn_pattern]
   }
 
+  # The destroy workflow asserts "no EKS in v0"; asserting absence still
+  # requires the read. Deliberately read-only and separate from InfraManage.
+  statement {
+    sid       = "TeardownVerifyRead"
+    actions   = ["eks:ListClusters"]
+    resources = ["*"]
+  }
+
   statement {
     sid = "IamManageScoped"
     actions = [
