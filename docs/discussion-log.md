@@ -38,7 +38,8 @@ Polish 14  release resilience / rollback
 Repo (origin/main), most recent first:
 
 ```text
-<hash>   docs: close the 2026-07-25 planning session — phase-gates Phase 9, summary, index
+1f50243  docs: move discussion-log into git (last artifact outside the source of truth)
+bbe8bd0  docs: close the 2026-07-25 planning session — phase-gates Phase 9, summary, index
 ee0a25e  docs: next-phases — Phase 9.0 reconcile the stale prod scaffold
 f8f32e5  chore: commit the control layer (CLAUDE.md, skills, sessions) + ADR-0017 + next-phases
 8912aa9  docs: phase-gates — Phase 7 done, Phase 8 lifecycle closed
