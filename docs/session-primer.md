@@ -150,6 +150,21 @@ ssh:     ssh devbox / scp file devbox:/tmp/
 Anything sitting in the buffer has not been committed yet. The read half of
 this disappears once the repository is public.
 
+**The chat knows where its files are; you do not. So the chat supplies the
+path.** A chat session writes into an outputs folder whose path contains that
+session's own identifiers, so it is different in every chat and can never be
+written down here. Immediately after authoring a file, and BEFORE any mention of
+`send.sh`, the chat must emit a ready-to-run `[mac]` command that copies the
+file from its current outputs folder into the buffer, with the full path already
+substituted:
+
+```text
+cp "<the chat's own outputs path>/<file>" ~/Projects/_claude-transfer/
+```
+
+File cards in the chat are for reading the file, not for delivering it. Assuming
+a card lands in the buffer by itself costs a round trip every time.
+
 ## Current shape of the project (structural, changes rarely)
 
 ```text
@@ -160,13 +175,16 @@ GitHub OIDC only; no static AWS keys anywhere.
 Terraform state levels — only the last two are ever destroyed:
   infra/bootstrap        S3 state bucket, local state, permanent
   infra/bootstrap-oidc   OIDC provider + deploy roles, permanent
+  infra/shared-ecr       container registry, permanent        (ADR-0018)
   infra/public-site      dashboard S3+CloudFront, permanent   (Phase 11)
   infra/envs/stage       workload, destroyed every cycle
   infra/envs/prod        workload, destroyed every cycle      (Phase 9)
 ```
 
 Anything that must survive a teardown — including the artifact that PROVES the
-teardown works — belongs above the env levels.
+teardown works — belongs above the env levels. The container registry was the
+second thing to qualify and the first one nobody noticed: it only becomes
+obvious once prod runs an image that stage's teardown would delete (ADR-0018).
 
 ## Known traps (verify against phase-gates.md; these get fixed and go stale)
 
