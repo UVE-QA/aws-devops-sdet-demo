@@ -137,18 +137,38 @@ Ops — devbox maintenance
 ## Delivering files from a chat to the repo
 
 ```text
-mac:     ~/Projects/_claude-transfer/    buffer; should be empty almost always
-devbox:  ~/aws-devops-sdet-demo/         the ONE working copy
-github:  UVE-QA/aws-devops-sdet-demo     source of truth
-ssh:     ssh devbox / scp file devbox:/tmp/
+mac      ~/Projects/_claude-transfer/          tooling, permanent:
+                                                send.sh
+                                                README.md
+                                                session-primer.md  <- local
+                                                  original; its appendix is what
+                                                  you paste to start a new chat
+         ~/Projects/_claude-transfer/outbox/   PAYLOAD ONLY.
+                                                empty = everything is committed
+devbox   ~/aws-devops-sdet-demo/               the ONE working copy
+github   UVE-QA/aws-devops-sdet-demo           source of truth
+ssh      ssh devbox / scp file devbox:/tmp/
 
-./send.sh <local-file> <repo/path> ["commit message"]
+./send.sh <file> <repo/path> ["commit message"]
+    a bare filename is looked up in outbox/
     without a message: delivers and shows git status, you commit after review
-    with a message:    delivers, commits, pushes, clears the buffer copy
+    with a message:    delivers, commits, pushes
 ```
 
-Anything sitting in the buffer has not been committed yet. The read half of
-this disappears once the repository is public.
+The split matters because it makes one rule checkable. "The buffer should be
+empty" was unverifiable while permanent tooling and in-flight files shared a
+flat folder — it was never empty, so nothing could be read from its contents.
+**Anything in `outbox/` has not been committed yet**, and that is now a fact you
+can see at a glance.
+
+Refresh the local primer whenever the repository one changes; a stale copy is
+actively harmful, because it is the copy a new chat starts from:
+
+```text
+scp devbox:aws-devops-sdet-demo/docs/session-primer.md ~/Projects/_claude-transfer/
+```
+
+The read half of all this disappears once the repository is public.
 
 **The chat knows where its files are; you do not. So the chat supplies the
 path.** A chat session writes into an outputs folder whose path contains that
@@ -159,11 +179,20 @@ file from its current outputs folder into the buffer, with the full path already
 substituted:
 
 ```text
-cp "<the chat's own outputs path>/<file>" ~/Projects/_claude-transfer/
+cp "<the chat's own outputs path>/<file>" ~/Projects/_claude-transfer/outbox/
 ```
+
+**The destination is always `outbox/`.** One fixed directory, never "wherever it
+went this time" — the whole point is that the answer to "where is that file"
+never has to be looked up.
 
 File cards in the chat are for reading the file, not for delivering it. Assuming
 a card lands in the buffer by itself costs a round trip every time.
+
+Known debt: `send.sh` and the buffer README exist ONLY on the MacBook. That is
+control-layer tooling outside the source of truth — the same shape as the
+2026-07-25 finding, when `CLAUDE.md` and the skills had never been committed.
+They belong in the repository, with the local copies being copies.
 
 ## Current shape of the project (structural, changes rarely)
 
