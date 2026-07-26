@@ -14,10 +14,12 @@ on:
         type: choice
         options:
           - stage
-        # prod is deliberately absent until Phase 9.1 creates its deploy role in
-        # infra/bootstrap-oidc. The role ARN below is derived from the
-        # environment name, so offering prod today produces a run that fails at
-        # OIDC authentication — a trap in the UI, not a feature.
+          - prod
+        # Both choices are real as of Phase 9.1: infra/bootstrap-oidc creates one
+        # deploy role PER ENVIRONMENT (ADR-0021) and the role ARN below is
+        # derived from the environment name. Destroying prod additionally pauses
+        # for required reviewers, because the job declares
+        # `environment: ${{ inputs.environment }}`.
       confirm:
         description: "Type DESTROY to confirm"
         required: true
@@ -78,7 +80,16 @@ jobs:
       - name: Verify no billable resources remain
         run: |
           REGION="${{ vars.AWS_REGION }}"
-          PREFIX="aws-devops-sdet-demo"
+          # Scoped to the environment BEING DESTROYED, not to the project. With a
+          # project-wide prefix this step reports the other environment's live
+          # resources as leftovers: tearing down stage while prod is up would
+          # fail a teardown that is in fact complete. Nothing exercised that path
+          # while stage was the only environment.
+          #
+          # The account-wide assertions further down (NAT, EKS, unattached EIPs)
+          # stay account-wide on purpose: those must not exist in v0 for ANY
+          # environment, so narrowing them would weaken the check.
+          PREFIX="aws-devops-sdet-demo-${{ inputs.environment }}"
           leftovers=0
 
           echo "::group::ECS clusters"
@@ -125,15 +136,14 @@ jobs:
           [ -n "$eip" ] && leftovers=$((leftovers+1))
           echo "::endgroup::"
 
-          echo "::group::Project ECR repositories"
-          # The shared registry is a permanent level (ADR-0018) and is EXPECTED
-          # to survive a teardown; it holds the image prod may still be running.
-          # Anything else with the project prefix is an environment-scoped
-          # leftover and is a failure.
-          SHARED_ECR="aws-devops-sdet-demo-app"
-          echo "shared, expected to remain: $SHARED_ECR"
+          echo "::group::Environment ECR repositories"
+          # The shared registry (ADR-0018) is named aws-devops-sdet-demo-app, so
+          # it cannot match an environment prefix: it is out of scope here by
+          # construction rather than by an exception that has to be maintained.
+          # It is permanent and EXPECTED to survive - it holds the image prod may
+          # still be running.
           ecr=$(aws ecr describe-repositories --region "$REGION" \
-            --query "repositories[?starts_with(repositoryName, '$PREFIX') && repositoryName != '$SHARED_ECR'].repositoryName" \
+            --query "repositories[?starts_with(repositoryName, '$PREFIX')].repositoryName" \
             --output text)
           echo "unexpected: ${ecr:-<none>}"
           [ -n "$ecr" ] && leftovers=$((leftovers+1))
@@ -144,4 +154,4 @@ jobs:
             echo "FAIL: $leftovers resource group(s) still present — investigate above."
             exit 1
           fi
-          echo "OK: no billable project resources remain (state bucket intentionally kept)."
+          echo "OK: no billable ${{ inputs.environment }} resources remain (permanent levels intentionally kept)."
