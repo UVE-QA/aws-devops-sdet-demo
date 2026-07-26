@@ -65,8 +65,11 @@ resource "aws_acm_certificate" "wildcard" {
   domain_name       = "*.${var.zone_name}"
   validation_method = "DNS"
 
+  # No asterisk in the tag VALUE: ACM restricts tag values to
+  # [\p{L}\p{Z}\p{N}_.:/=+\-@] and rejects the request outright otherwise. The
+  # certificate's domain_name above is the wildcard; this is only a label.
   tags = {
-    Name = "*.${var.zone_name}"
+    Name = "wildcard.${var.zone_name}"
   }
 
   lifecycle {
