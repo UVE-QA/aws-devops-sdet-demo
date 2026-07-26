@@ -13,17 +13,25 @@ Key infra invariants (full detail in `docs/decisions/`):
 
 - AWS profile: `demo-admin` (local SSO) / GitHub OIDC (CI). No static keys.
 - Region: `us-west-2`. Deploy only into the dedicated demo member account.
-- Terraform remote state in S3 (`infra/bootstrap` creates the bucket once).
+- Terraform remote state in S3, in SEPARATE levels. `infra/bootstrap`
+  (bucket) and `infra/bootstrap-oidc` (OIDC provider + deploy roles) are
+  permanent and never destroyed by CI; only `infra/envs/*` are torn down.
+  A fourth permanent level `infra/public-site` arrives in Phase 11.
 - DB password via Secrets Manager, never in repo.
 - No NAT Gateway, no EKS in v0.
 
 ## Start of every session (do this first)
 
+0. Read `docs/session-primer.md` — reading order, working agreements and
+   the traps that are currently live. It is a pointer, not a summary.
 1. `git pull` to get the current source of truth.
 2. Read `docs/phase-gates.md` — this is the cursor: which phase we are in,
    the last validated step, and what is allowed next.
-3. Skim `docs/decisions/` (ADRs) for the "why" behind the architecture.
-4. Read `docs/sessions/INDEX.md` only if you need history of a prior session.
+3. Read `docs/next-phases.md` — the plan for everything after Phase 8.
+   It supersedes `project-prompt.md` §14.
+4. Skim `docs/decisions/` (ADRs) for the "why". 0015, 0016 and 0017 shape
+   everything currently in flight.
+5. Read `docs/sessions/INDEX.md` only if you need history of a prior session.
 
 Use the `session-protocol` skill for the full entry/exit checklist.
 
@@ -59,6 +67,9 @@ See `session-protocol` for the exact steps and templates.
 ## Source of truth (do not duplicate state)
 
 - Code, IaC, tests, docs, decisions → this git repo (GitHub is origin).
+  This includes `docs/discussion-log.md`. The copy inside the Claude
+  Project is a MIRROR that lags; never edit it, never reason from it
+  without checking `git log` first.
 - Infrastructure state → S3 Terraform state (not the chat, not local files).
 - Run results / reports → GitHub Actions artifacts.
 - Secrets → Secrets Manager / GitHub Secrets. Never committed.
