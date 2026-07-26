@@ -21,6 +21,7 @@ Phase 8 (features)   NOT STARTED
 Phase 9              done (2026-07-26) — prod, promotion by digest, HTTPS
 Phase 10             local + CI green (2026-07-26), AWS run owed — see below
 Phase 11.0           done (2026-07-26) — repository is public
+Phase 11.1a          written (2026-07-26) — ADR-0026, ADR-0027, scaffold only
 ```
 
 Both environments are fully destroyed in AWS. Billing is the state bucket, the
@@ -262,6 +263,19 @@ copy on any laptop — the clone lives in the ephemeral session sandbox and dies
 with it. Deliberately deferred to here rather than done now (2026-07-25).
 
 ### 11.1 — Build the dashboard
+
+Split into three steps, so that the one that costs money stands alone and can be
+approved on its own:
+
+```text
+11.1a  ADR-0026, ADR-0027, infra/public-site scaffold, gitleaks debt   $0
+11.1b  local apply, publish workflow, status.json                      cents/month, permanent
+11.1c  dashboard content, then a full cycle with the dashboard live    inside the existing cycle
+```
+
+The open question below is **answered by ADR-0026**: both sources, split by what
+each one can actually observe. The text is kept as it was written, because the
+way the question was framed is what made the answer obvious.
 
 Per ADR-0017 D2 and D4 Wave A. The permanent public surface: the only thing that
 stays online when every workload environment is destroyed.

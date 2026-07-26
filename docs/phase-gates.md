@@ -20,6 +20,7 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 9     | Prod env, promotion, HTTPS     | ✅ done     | 25d4dab   |
 | 10    | Thin application slice         | ✅ done     | 1bf89ac   |
 | 11.0  | Publish the repository         | ✅ done (pulled forward) | a1c4402 |
+| 11.1  | Public dashboard               | 🟡 11.1a written, nothing applied | (this patch) |
 
 Phases 9-19 are planned in `docs/next-phases.md` (MVP track 9-13, polish
 track 14-19), shaped by ADR-0017. This table tracks only what is done.
@@ -420,6 +421,68 @@ track 14-19), shaped by ADR-0017. This table tracks only what is done.
 - The UI write path against PROD is covered by nothing automated, by design, and
   was exercised by hand once in this cycle. Say that out loud rather than letting
   the suites imply otherwise.
+
+### Phase 11.1 — Public dashboard  [IN PROGRESS]
+- Plan: `docs/next-phases.md` Phase 11 (M3). Decisions: **ADR-0026** (where the
+  dashboard's two kinds of status come from), **ADR-0027** (the dashboard is a
+  permanent state level, S3 behind CloudFront with OAC).
+- Split into three steps so the billable one stands alone:
+```text
+  11.1a  decisions + scaffold, nothing applied      <- this session
+  11.1b  local apply of infra/public-site, publish workflow, status.json
+  11.1c  dashboard content, then a full cycle with the dashboard live
+```
+
+#### 11.1a — decisions and scaffold  [WRITTEN 2026-07-26, VALIDATION OWED]
+- Closes the debt Phase 11.0 left: **gitleaks over the FULL history, all refs**
+  — 81 commits, no findings. The scan was then verified capable of failing, by
+  running the same invocation against a throwaway repository containing a fake
+  key: exit 1, finding named. A gate seen only green is indistinguishable from a
+  gate that cannot fail; this one has now been seen both ways.
+  `git rev-list --all --count` returned 81, matching what gitleaks reported it
+  had scanned — the scan really did cover every ref, rather than only HEAD.
+- ADR-0026 settles the open question the plan left dangling. Two sources, split
+  by what each one can actually observe: the public GitHub Actions API for run
+  history and per-stage status, `status.json` in the site bucket for the state of
+  each environment in AWS. Actions cannot know an environment is destroyed;
+  a file written at the end of a run cannot know a run is in progress. Each is
+  the other's staleness detector, and the page renders "unknown" rather than a
+  stale value when they disagree.
+- ADR-0027 puts the dashboard in a new permanent level `infra/public-site`. This
+  is the third instance of one rule — after ADR-0018 (registry) and ADR-0024
+  (hosted zone) — and the sharpest: **the exhibit cannot be destroyed by the
+  thing it exhibits.** A dashboard inside `infra/envs/*` would be deleted by the
+  very teardown it exists to report.
+- Scaffold written, NOT applied: private bucket, CloudFront + OAC, a second
+  certificate in **us-east-1** (CloudFront accepts no other region, while the
+  prod ALB accepts only its own — two certificates, two regions, one domain),
+  apex and `www` alias records, and a narrow publish role trusting only
+  `environment:stage` and `environment:prod`, scoped to this bucket and this
+  distribution.
+- `docs/security-posture.md` records, with the re-checking command beside each
+  claim, why a public repository cannot be used to start a billable run: all
+  three AWS workflows are dispatch-only and dispatch needs write access; there is
+  no `pull_request_target` anywhere; `ci.yml` is the only workflow a stranger can
+  start and it has no AWS path at all; and the OIDC `sub` is scoped to this
+  repository plus a branch or environment, which a fork's token cannot match.
+  Two residual items are named rather than buried: public Actions logs could
+  surface `TF_VAR_budget_email`, and the fork-PR approval setting is UI state
+  that git cannot assert.
+- Criteria to close 11.1a: `terraform fmt -recursive -check infra` clean and
+  `make tf-validate` green with the new level DISCOVERED — root levels must go
+  from 6 to 7. Counting them is part of the check: a discovery that silently
+  finds nothing is the e1e577a failure this project has already had once.
+- **STATUS: written, not yet validated.** Nothing has been applied to AWS and
+  nothing in this step is billable. The validation result lands in a second,
+  small patch, per `docs/session-primer.md`.
+
+#### 11.1b — apply and publish  [NOT STARTED]
+- First billable step of the phase. Local apply under `demo-admin`; CloudFront
+  takes 10-15 minutes to propagate, once, not per cycle.
+- **Closing criterion that must not be dropped: the `teardown` skill lists the
+  levels a destroy must not touch, and there will then be FIVE, not four.** It is
+  deliberately not edited in 11.1a, because a document here must not describe as
+  existing in AWS something that only exists in git.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

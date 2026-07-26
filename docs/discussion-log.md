@@ -10,8 +10,9 @@ Phase 0–8 = done as far as they go: the Phase 8 lifecycle half is CLOSED, the
 feature half is not started. **Phase 9 is CLOSED (2026-07-26): 9.0
 reconciliation on 07-25, 9.1 prod + promotion + HTTPS on 07-26. Phase 10 is
 CLOSED (2026-07-26) — validated against AWS, not only locally. Phase 11.0
-(publish the repository) was pulled forward and is DONE.** Next up is Phase 11.1,
-the public dashboard.
+(publish the repository) was pulled forward and is DONE. Phase 11.1a — the
+decisions and the scaffold for the public dashboard — is WRITTEN but not yet
+validated, and nothing of it has been applied to AWS.**
 
 The full cycle now runs end-to-end through GitHub Actions with zero manual AWS
 operations for BOTH environments:
@@ -38,6 +39,41 @@ Stage infrastructure is FULLY DESTROYED in AWS — zero billable resources.
 Nothing is billing except the near-zero state bucket. The OIDC provider + deploy
 role from `infra/bootstrap-oidc` are still present (IAM, free) because a stage
 teardown does not touch that state level.
+
+### Phase 11.1a session (2026-07-26) — decisions, scaffold, and one direct question
+
+Full write-up: `docs/sessions/2026-07-26-phase-11-1a-decisions-and-scaffold.md`.
+
+The debt Phase 11.0 left was paid first: gitleaks over the full history, every
+ref, 81 commits, nothing found — and then the same invocation was pointed at a
+throwaway repository holding a fake key, so that the green result came from a
+check demonstrably able to go red. `git rev-list --all --count` returned the same
+81, which is what makes "the whole history" a measurement rather than a hope.
+
+Two decisions. **ADR-0026** answers where the dashboard's status comes from, and
+the answer is both sources, divided by what each can observe: GitHub Actions
+knows where a run is and nothing about what exists in AWS; a file written by a
+workflow knows what was there when it finished and cannot know a run is in
+flight. Neither is allowed to speak for the other, and because each carries a
+run id, each detects the other going stale. **ADR-0027** puts the dashboard in a
+new permanent state level for a reason this project has now met three times —
+after the registry (ADR-0018) and the hosted zone (ADR-0024) — and this is the
+sharpest form of it: the exhibit cannot be destroyed by the thing it exhibits.
+
+The scaffold for `infra/public-site` is written and nothing is applied: private
+bucket, CloudFront with OAC, a second certificate in us-east-1 because CloudFront
+takes no other region while the prod ALB takes only its own, and a publish role
+narrow enough to be uninteresting if it leaked — this bucket, this distribution,
+no branch subject at all.
+
+The session also answered a question asked directly rather than found in the
+code: can a stranger start a billable run now that the repository is public. The
+answer is in `docs/security-posture.md`, with the re-checking command beside every
+claim rather than the claim alone. Four independent locks; the interesting part
+is the two things that are NOT covered by any of them — public Actions logs can
+carry `TF_VAR_budget_email`, and the fork-PR approval setting is UI state, in the
+same uncheckable category as prod's protection rules and the NS record in the
+parent zone.
 
 ### Phase 10 closing session (2026-07-26) — the AWS validation cycle
 
