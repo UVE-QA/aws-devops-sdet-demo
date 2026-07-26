@@ -206,7 +206,7 @@ demo-admin
 Expected commands:
 
 ```bash
-aws sso login --profile demo-admin
+aws sso login --profile demo-admin --use-device-code
 aws sts get-caller-identity --profile demo-admin
 ```
 
@@ -383,7 +383,7 @@ Do not paste passwords, secret keys, private SSH keys, database passwords, AWS r
 If the user has access to AWS CLI on the devbox, ask them to run:
 
 ```bash
-aws sso login --profile demo-admin
+aws sso login --profile demo-admin --use-device-code
 aws sts get-caller-identity --profile demo-admin
 ```
 
@@ -546,7 +546,7 @@ aws --version
 terraform version
 node --version
 python3 --version
-aws sso login --profile demo-admin
+aws sso login --profile demo-admin --use-device-code
 aws sts get-caller-identity --profile demo-admin
 ```
 

@@ -24,7 +24,7 @@ Target: Browser → ALB → ECS Fargate (one app container) → RDS PostgreSQL.
 
 1. **State bucket** — the S3 bucket can't live in state it doesn't yet hold.
    ```bash
-   export AWS_PROFILE=demo-admin   # after: aws sso login --profile demo-admin
+   export AWS_PROFILE=demo-admin   # after: aws sso login --profile demo-admin --use-device-code
    cd infra/bootstrap
    terraform init && terraform plan
    terraform apply                 # only after confirmation; creates the bucket

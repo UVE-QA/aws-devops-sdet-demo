@@ -26,7 +26,7 @@ The job fails unless `confirm` is exactly `DESTROY`. It runs OIDC auth →
 ## Local fallback (demo-admin)
 
 ```bash
-export AWS_PROFILE=demo-admin   # after aws sso login
+export AWS_PROFILE=demo-admin   # after aws sso login --use-device-code
 cd infra/envs/stage
 terraform init
 terraform destroy               # only after explicit confirmation
@@ -34,25 +34,52 @@ terraform destroy               # only after explicit confirmation
 
 ## Post-destroy verification (must be clean)
 
+Verify against the AWS CLI, never against Terraform state, and **start with the
+identity check**. Every query below answers an expired SSO token with an empty
+list, which reads exactly like a clean account:
+
 ```bash
-aws ecs list-clusters            --profile demo-admin --region us-west-2
-aws rds describe-db-instances    --profile demo-admin --region us-west-2
-aws elbv2 describe-load-balancers --profile demo-admin --region us-west-2
-aws ec2 describe-nat-gateways    --profile demo-admin --region us-west-2
-aws eks list-clusters            --profile demo-admin --region us-west-2
-aws ec2 describe-addresses       --profile demo-admin --region us-west-2
-aws ecr describe-repositories    --profile demo-admin --region us-west-2
+aws sso login --profile demo-admin --use-device-code
+export AWS_PROFILE=demo-admin AWS_REGION=us-west-2
+aws sts get-caller-identity --query Account --output text   # must be 993912191738
 ```
 
-Expected: no ECS/RDS/ALB, no NAT, no EKS, no unattached EIP, app ECR repo gone.
-If anything cost-bearing remains, surface it loudly — do not leave it running.
+Only then:
+
+```bash
+aws ecs list-clusters             --query 'clusterArns'
+aws rds describe-db-instances     --query 'DBInstances[].DBInstanceIdentifier'
+aws elbv2 describe-load-balancers --query 'LoadBalancers[].LoadBalancerName'
+aws ec2 describe-nat-gateways     --filter Name=state,Values=available,pending
+aws eks list-clusters             --query 'clusters'
+aws ec2 describe-addresses        --query 'Addresses[?AssociationId==null].PublicIp'
+aws ec2 describe-vpcs             --filters Name=isDefault,Values=false
+aws logs describe-log-groups      --query 'logGroups[].logGroupName'
+aws secretsmanager list-secrets   --query 'SecretList[].Name'
+```
+
+Expected: all nine empty. If anything cost-bearing remains, surface it loudly —
+do not leave it running. In a script, assign each result to a variable under
+`set -e` so a failed call aborts instead of printing an empty line.
 
 ## What intentionally survives
 
-- The Terraform state bucket (`infra/bootstrap`) — near-zero cost, needed for
-  the next deploy. Never part of the destroy cycle.
-- Optionally the OIDC provider/role, if you keep them between cycles. Document
-  which choice this repo made.
+Destroying an environment must NOT remove any of these. A teardown that takes
+one of them has taken too much:
+
+- `infra/bootstrap` — the Terraform state bucket. Near-zero cost, needed by the
+  next deploy.
+- `infra/bootstrap-oidc` — the account-wide OIDC provider and the per-environment
+  deploy roles (ADR-0015, ADR-0021). IAM, free. The question of whether to keep
+  them is settled: they are a permanent level, because a destroy running under a
+  role that deletes its own permissions cannot finish.
+- `infra/shared-ecr` — the container registry (**ADR-0018**). The image prod runs
+  is the one stage tested, so a registry inside an environment would be deleted
+  by that environment's teardown, taking the promoted image with it. An ECR
+  repository still present after a destroy is CORRECT, not a leak.
+- `infra/dns` — the hosted zone for `demo.uveapp.net` and the wildcard
+  certificate (**ADR-0024**). The alias record pointing at the ALB lives in the
+  environment and does go away; the zone does not.
 
 ## Repeatability check
 

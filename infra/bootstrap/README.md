@@ -21,7 +21,7 @@ writes this code) and NOT from GitHub Actions.
 ## Usage (Phase 6 — do not run in Phase 4)
 
 ```bash
-aws sso login --profile demo-admin
+aws sso login --profile demo-admin --use-device-code
 aws sts get-caller-identity --profile demo-admin   # confirm demo account 993912191738
 export AWS_PROFILE=demo-admin
 

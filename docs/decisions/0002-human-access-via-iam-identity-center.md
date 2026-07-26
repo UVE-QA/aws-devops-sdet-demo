@@ -17,7 +17,7 @@ CLI profile `demo-admin`. No static access keys for human operators.
 ## Decision details
 - Local profile: `demo-admin` (SSO-based).
 - Validate with:
-  - `aws sso login --profile demo-admin`
+  - `aws sso login --profile demo-admin --use-device-code`
   - `aws sts get-caller-identity --profile demo-admin` (Account must be the
     demo account, 993912191738).
 - Terraform local runs export `AWS_PROFILE=demo-admin`.

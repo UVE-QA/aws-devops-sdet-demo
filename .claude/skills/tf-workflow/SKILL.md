@@ -20,7 +20,7 @@ S3 state. Higher-level skills (deploy-stage, teardown) call into this flow.
 ## Auth
 
 - Local: `export AWS_PROFILE=demo-admin` (run `aws sso login --profile
-  demo-admin` first; SSO sessions expire).
+  demo-admin --use-device-code` first; SSO sessions expire).
 - CI: GitHub OIDC assumes the deploy role. No static keys anywhere.
 
 ## Format and validate (no AWS creds needed)
