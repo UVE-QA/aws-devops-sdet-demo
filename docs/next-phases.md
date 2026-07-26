@@ -19,7 +19,7 @@ Phase 0-7            done
 Phase 8 (lifecycle)  done  — deploy → demo → destroy green end-to-end via Actions
 Phase 8 (features)   NOT STARTED
 Phase 9              done (2026-07-26) — prod, promotion by digest, HTTPS
-Phase 10             CODE COMPLETE (2026-07-26), unvalidated — see below
+Phase 10             local + CI green (2026-07-26), AWS run owed — see below
 Phase 11.0           done (2026-07-26) — repository is public
 ```
 
@@ -170,9 +170,9 @@ matches stage.
 
 ## Phase 10 (M2) — Thin application slice  [CODE COMPLETE 2026-07-26, NOT CLOSED]
 
-The code below is written, committed and reviewed. **None of it has run against
-PostgreSQL and none of it has run against AWS**, so this phase is not done. What
-the session actually produced, and what it is still owed, is in
+The code below is written, committed, validated against PostgreSQL on the devbox
+and green in CI. **None of it has run against AWS**, so this phase is not done.
+What the session produced, what it measured, and what it is still owed, is in
 `docs/sessions/2026-07-26-phase-10-thin-application-slice.md`.
 
 One thing the plan below did not anticipate, now recorded as **ADR-0025**: the

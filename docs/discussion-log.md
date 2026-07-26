@@ -45,8 +45,16 @@ create/list/delete with real negatives, a page that drives it, 19 HTTP contract
 cases, a Playwright regression, and a database assertion made by a DIFFERENT
 process than the browser that wrote the row.
 
-**None of it has run against PostgreSQL or AWS yet.** The code is committed; the
-phase is not closed, and the cursor says so.
+Validated on the devbox against real PostgreSQL and green in CI on the first
+attempt (`ci` 30217591361). **Nothing has run against AWS**, so the phase is not
+closed and the cursor says so. The migrate step is the one worth keeping: the
+volume had survived earlier sessions, so alembic upgraded an EXISTING database
+instead of building a schema from nothing — a path that could not exist before
+this phase added a second revision.
+
+Both new gates were also made to fail on purpose: the spec-coverage guard with a
+stray spec, the UI-write assertion with a probe name nothing had created. A gate
+seen only green is indistinguishable from one that cannot go red.
 
 The finding is the familiar one. `promote-prod.yml` carried a step called
 "Read-only smoke against prod" and ran `npx playwright test` — the whole

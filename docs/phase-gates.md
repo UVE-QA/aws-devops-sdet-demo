@@ -18,7 +18,7 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 7     | Destroy validation             | ✅ done     | 497a4b2   |
 | 8     | Feature expansion              | 🟡 lifecycle done, features pending | ee0a25e |
 | 9     | Prod env, promotion, HTTPS     | ✅ done     | 25d4dab   |
-| 10    | Thin application slice         | 🟡 code complete, unvalidated | 9c166df |
+| 10    | Thin application slice         | 🟡 local + CI green, AWS pending | 93ce481 |
 | 11.0  | Publish the repository         | ✅ done (pulled forward) | a1c4402 |
 
 Phases 9-19 are planned in `docs/next-phases.md` (MVP track 9-13, polish
@@ -335,7 +335,7 @@ track 14-19), shaped by ADR-0017. This table tracks only what is done.
     same commit, not only to the one currently being exercised;
   - CI validates EVERY IaC directory - an unvalidated directory rots invisibly.
 
-### Phase 10 — Thin application slice  [CODE COMPLETE 2026-07-26, NOT CLOSED]
+### Phase 10 — Thin application slice  [LOCAL + CI GREEN 2026-07-26, NOT CLOSED]
 - Plan: `docs/next-phases.md` Phase 10. Decision: **ADR-0025**.
 - Delivered, all of it unvalidated against a real database:
   `POST/GET/DELETE /api/items` with 201/409/422/404/204; Alembic revision 0002
@@ -353,20 +353,27 @@ track 14-19), shaped by ADR-0017. This table tracks only what is done.
   reported by nothing — the e1e577a shape again.
   `tests/playwright/scripts/assert-spec-coverage.sh` fails on it, and was
   verified by breaking it on purpose.
-- STATUS: the code is written and committed. **Nothing has run against
-  PostgreSQL and nothing has run against AWS.** Do not record this phase as done
-  on the strength of the code existing — that is the failure mode this file
-  exists to prevent.
-- Owed on the devbox before anything else:
-```bash
-  make local-up && make migrate && make seed
-  make test-spec-coverage
-  make test-api
-  make test-smoke
-  make test-regression      # includes the UI-write database assertion
-  make test-db
-  make local-down
+- STATUS: validated against PostgreSQL on the devbox and green in CI
+  (`ci` run 30217591361, first attempt, both jobs). **Nothing has run against
+  AWS.** Do not record the phase as done on the strength of local green — the
+  environment that decides it is stage.
+- What the devbox run actually established, 2026-07-26:
+```text
+  migrate     0001 -> 0002 on an EXISTING database, not a schema built from
+              nothing. That path had never been exercised before this phase.
+  seed        'seed-item-001' already present (id=1) -> no-op. Idempotency
+              demonstrated against a genuinely non-empty database.
+  spec cover  2 spec files, both resolved by a project
+  test-api    19 passed against real PostgreSQL
+  test-smoke  2 passed (project smoke)
+  test-regr   3 passed (project regression), then the database assertion found
+              ui-probe-1785095034 (id=11) written through the browser
+  test-db     seed assertion passed
 ```
+- The UI-write gate was also made to FAIL on purpose, with a probe name nothing
+  had created: `make test-ui-db UI_PROBE_NAME=deliberately-absent-probe` exits
+  non-zero with the row named in the message. A gate never seen red is a
+  decoration; both new gates in this phase have now been seen red.
 - Criteria to close: the regression green in `ci.yml` against Compose, the
   read-only smoke green against deployed prod, the DB assertion proving a UI
   action reached RDS — and, per the standing invariant, a destroy that passes
@@ -375,7 +382,10 @@ track 14-19), shaped by ADR-0017. This table tracks only what is done.
   Nothing new is billable; the suites run inside the existing cycle.
 - Expect one failed first run somewhere. This phase adds a genuinely new AWS
   path — an ECS task carrying an environment override — and every new path in
-  this project so far has cost exactly one run to discover what it needed.
+  this project so far has cost exactly one run to discover what it needed. CI
+  passing on the first attempt does not buy that back: `ci.yml` touches no IAM
+  policy, and both IAM gaps this project has had were reads that no amount of
+  local green could have predicted.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

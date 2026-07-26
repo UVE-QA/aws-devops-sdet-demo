@@ -1,8 +1,8 @@
 # Session 2026-07-26 — Phase 10: the thin application slice
 
-- Phase: 10 (M2). **Code complete, NOT closed** — the phase's closing criterion
-  requires a run against deployed stage, which is billable and was deliberately
-  deferred to the next session.
+- Phase: 10 (M2). **Local and CI green, NOT closed** — the phase's closing
+  criterion requires a run against deployed stage, which is billable and was
+  deliberately deferred to the next session.
 - Request: run Phase 10 as planned in `docs/next-phases.md`, steps 1–4 plus
   local validation, with the paid `deploy-stage → destroy` cycle held back.
 - Tooling: Cowork chat driving from a fresh clone of `origin/main`, authoring
@@ -122,8 +122,8 @@ commit" is easier to keep when there is only one place to fix.
 
 ## Preflight performed in the chat sandbox
 
-Not a substitute for the devbox run, but it moved four defects earlier than a
-round trip:
+Not a substitute for the devbox run, but it moved defects earlier than a round
+trip — and everything it predicted held on PostgreSQL:
 
 ```text
 19/19 contract tests pass against the app on SQLite
@@ -137,15 +137,56 @@ on PostgreSQL). The table was created by hand for the preflight. That is a
 harness limitation, not an application one, and it is the reason this preflight
 does not replace `make local-up` on the devbox.
 
+## Validation actually performed
+
+Devbox, against real PostgreSQL, in order:
+
+```text
+local-up            image rebuilt, postgres healthy
+migrate             0001 -> 0002 on an EXISTING database
+seed                'seed-item-001' already present (id=1) -> no-op
+test-spec-coverage  2 spec files, both resolved by a project
+test-api            19 passed
+test-smoke          2 passed   (project smoke)
+test-regression     3 passed   (project regression)
+                    + ui-probe-1785095034 (id=11) found in the database
+test-db             seed assertion passed
+local-down
+```
+
+The migrate line is the one worth keeping. The `pgdata` volume survived earlier
+sessions, so alembic upgraded an existing database rather than building the
+schema from nothing — a distinct code path that this project has never
+exercised, because until revision 0002 there was nothing to upgrade FROM.
+
+Then the UI-write gate was made to fail on purpose:
+
+```text
+make test-ui-db UI_PROBE_NAME=deliberately-absent-probe
+  FAIL: no row name='deliberately-absent-probe' in demo_items
+  make: *** [Makefile:49: test-ui-db] Error 1
+```
+
+Both gates introduced by this phase have now been seen red as well as green.
+The spec-coverage guard was broken with a stray spec in the chat sandbox; this
+one with an absent probe on the devbox. A gate observed only in its passing
+state is indistinguishable from a gate that cannot fail.
+
+CI: `ci` run **30217591361**, green on the FIRST attempt, both jobs, including
+all four new steps (`Every spec belongs to a project`, `API contract tests`,
+`Playwright smoke`, `Playwright regression + UI write assertion`).
+
+Worth noting precisely because it is unusual here: every genuinely new path in
+this project so far has cost one failed run. This one did not — but `ci.yml`
+touches no IAM policy and no AWS API, which is exactly the class where the
+failures came from. The prediction stands for stage.
+
 ## What is NOT done
 
-- Nothing has run against PostgreSQL. `make local-up`, `migrate`, `seed`,
-  `test-api`, `test-smoke`, `test-regression`, `test-db` and
-  `test-spec-coverage` are all still owed on the devbox.
-- Nothing has run against AWS. The phase's closing criterion — the regression
-  green in CI against Compose, the read-only smoke green against deployed prod,
-  and the DB assertion proving a UI action reached RDS — is unmet until a
-  `deploy-stage → destroy` cycle runs.
+- Nothing has run against AWS. The phase's closing criterion — the read-only
+  smoke green against deployed prod, and the DB assertion proving a UI action
+  reached RDS — is unmet until a `deploy-stage → promote-prod → destroy` cycle
+  runs. The regression-green-in-CI half is now met.
 - Per the standing invariant, destroy must pass end-to-end at the end of this
   phase too, not only at the end of the MVP.
 
