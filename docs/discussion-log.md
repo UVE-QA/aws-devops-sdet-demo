@@ -535,9 +535,10 @@ destroy.yml run surfaced two latent deploy-role bugs:
   private, since asking for a PAT is against the project's own rules. Unblocks
   itself at Phase 11. Its appeal is that the clone lives in the ephemeral
   sandbox, so it is NOT a second working copy on a laptop.
-- **RESOLVED (1f50243): this file now lives in git at `docs/discussion-log.md`.**
-  The copy inside the Claude Project is a MIRROR, refreshed at phase gates for
-  chats that have no devbox access. Never edit the mirror; edit the repo.
+- **RESOLVED (1f50243 + ADR-0019): this file lives in git at
+  `docs/discussion-log.md` and nowhere else.** The Claude Project mirror was
+  retired on 2026-07-25 after being measured five commits stale. Load state from
+  git, or from the devbox when the sandbox cannot clone.
 
 ## Collaboration / context model
 
@@ -558,13 +559,14 @@ destroy.yml run surfaced two latent deploy-role bugs:
   (where we are), session summaries on demand.
 - `CLAUDE.md` is the always-read anchor/router; skills load on demand. **Both are
   in git as of f8f32e5.**
-- **Manual Project-file sync (IMPORTANT):** `discussion-log.md` and
-  `project-prompt.md` are READ-ONLY copies inside the Claude Project and are NOT
-  in git; chat edits do not save back. At EVERY phase gate the user must
-  manually replace these Project files with the freshly generated full versions.
-- **Project-file update workflow:** new full version → user commits any
-  git-tracked parts → user uploads the new file to the Project → user DELETES
-  the old version. Keep exactly one current copy of each; no -2/-3 copies.
+- **No manual context sync (ADR-0019).** The Claude Project holds a pointer and
+  no state. `discussion-log.md` and `project-prompt.md` are tracked files; the
+  Project copies were exact duplicates and were deleted. A phase gate ends in
+  git — cursor, session summary, ADRs, commit, push — and nothing outside the
+  repository needs touching for the state to be correct.
+  The ritual failed structurally, not through carelessness: a manual step gets
+  skipped exactly when a session was long, which is when the next session most
+  needs accurate context.
 
 ## Skills design
 

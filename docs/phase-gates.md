@@ -274,14 +274,14 @@ Advance only on explicit confirmation: `continue`, `confirmed`, `done`,
 `phase complete`, `go next`, `ок`, `дальше`, `подтверждаю`.
 On error: fix the current phase only; do not advance.
 
-## Manual sync reminder (do at EVERY phase gate)
-Project files (discussion-log.md, project-prompt.md) are READ-ONLY copies in the
-Claude Project and are NOT in git. Chat edits do not save back. So at each phase
-gate, after the small "mark phase done" commit, MANUALLY update the Project files:
-- Update the "Current state" / phase cursor in discussion-log.md to the new phase.
-- Add any new decisions/gotchas (e.g. the GitHub vars notes above) to the right
-  section of discussion-log.md.
-- If the build prompt scope changed, reflect it in project-prompt.md.
-Claude must remind the user to do this manual sync as part of every phase-gate
-STOP summary. Source of truth for code = git; source of truth for narrative
-context across chats = the Project files (only the user can update them).
+## Context sync (ADR-0019)
+There is nothing to sync by hand. `docs/discussion-log.md` and
+`docs/project-prompt.md` are tracked files; the Claude Project holds only a
+pointer, which carries no state and therefore cannot go stale.
+
+A phase gate ends IN GIT: update the cursor above, write the session summary in
+`docs/sessions/` with a row in `INDEX.md`, record new structural decisions as
+ADRs, commit and push. Claude must NOT ask the user to upload anything anywhere.
+
+The mirror was retired because it was measured: on 2026-07-25 it was five
+commits stale and did not contain `docs/session-primer.md` at all.

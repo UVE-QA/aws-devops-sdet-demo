@@ -39,13 +39,18 @@ Try to clone the repository into the session sandbox over HTTPS. The sandbox
 reaches `github.com` over HTTPS; SSH out is blocked; pushing is not possible,
 because that would need a token and asking for tokens is forbidden here.
 
-- **Clone succeeds** → read the order in section B. Ignore the Project mirror.
-- **Clone fails** → the repository is still private. Say so explicitly, fall
-  back to the Project mirror files, and treat them as possibly stale — ask for
-  `git -C ~/aws-devops-sdet-demo log --oneline -5` before relying on them.
+- **Clone succeeds** → read the order in section B.
+- **Clone fails** → the repository is still private. Say so explicitly, then
+  load state FROM THE DEVBOX, not from any copy: ask for
+  `git -C ~/aws-devops-sdet-demo log --oneline -5`, then for the contents of the
+  files in section B, one at a time.
 
-This is not hypothetical: on 2026-07-25 the mirror was seven weeks stale, and
-the control layer it described was not in the repository at all.
+**There is no Project mirror (ADR-0019.)** Never reconstruct state from a copy
+that lives outside git. The mirror was retired because it was measured: on
+2026-07-25 it was five commits stale and did not contain this file at all, while
+the Project it lived in claimed to describe the project.
+
+The clone path becomes free at Phase 11, when the repository goes public.
 
 ## B. Loading state — Claude Code on the devbox
 
