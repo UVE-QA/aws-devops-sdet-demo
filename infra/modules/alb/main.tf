@@ -1,7 +1,16 @@
-# ALB module: public Application Load Balancer, its security group, an HTTP:80
-# listener, and a target group for the Fargate app. Target type is "ip" because
-# Fargate tasks register by IP, not by instance. Health check path is /health
+# ALB module: public Application Load Balancer, its security group, listeners,
+# and a target group for the Fargate app. Target type is "ip" because Fargate
+# tasks register by IP, not by instance. Health check path is /health
 # (liveness, no DB — ADR-0008).
+#
+# HTTPS is OPTIONAL and off by default (certificate_arn = null), so an
+# environment without a certificate keeps exactly the plain HTTP:80 behaviour it
+# had before. With a certificate the module terminates TLS on 443 and turns
+# :80 into a redirect. stage stays HTTP; prod is HTTPS (ADR-0017 D3).
+
+locals {
+  https_enabled = var.certificate_arn != null
+}
 
 resource "aws_security_group" "alb" {
   name        = "${var.name_prefix}-alb-sg"
@@ -14,6 +23,20 @@ resource "aws_security_group" "alb" {
     to_port     = 80
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # Opened only when this ALB actually terminates TLS. A permanently open 443
+  # with no listener behind it is a port that answers nothing while looking
+  # reachable — the kind of thing that reads as configured and is not.
+  dynamic "ingress" {
+    for_each = local.https_enabled ? [1] : []
+    content {
+      description = "HTTPS from anywhere"
+      from_port   = 443
+      to_port     = 443
+      protocol    = "tcp"
+      cidr_blocks = ["0.0.0.0/0"]
+    }
   }
 
   egress {
@@ -63,10 +86,49 @@ resource "aws_lb_target_group" "app" {
   }
 }
 
+# Port 80 always exists. What it DOES depends on whether TLS is configured:
+# it forwards when there is no certificate, and redirects when there is. Two
+# dynamic blocks rather than two resources, so the listener is never destroyed
+# and recreated when an environment gains a certificate.
 resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.this.arn
   port              = 80
   protocol          = "HTTP"
+
+  dynamic "default_action" {
+    for_each = local.https_enabled ? [] : [1]
+    content {
+      type             = "forward"
+      target_group_arn = aws_lb_target_group.app.arn
+    }
+  }
+
+  dynamic "default_action" {
+    for_each = local.https_enabled ? [1] : []
+    content {
+      type = "redirect"
+
+      redirect {
+        port        = "443"
+        protocol    = "HTTPS"
+        status_code = "HTTP_301"
+      }
+    }
+  }
+}
+
+resource "aws_lb_listener" "https" {
+  count = local.https_enabled ? 1 : 0
+
+  load_balancer_arn = aws_lb.this.arn
+  port              = 443
+  protocol          = "HTTPS"
+  certificate_arn   = var.certificate_arn
+
+  # TLS 1.2 floor, TLS 1.3 preferred. The AWS default policy still permits
+  # older suites; an HTTPS demo that ships a weak policy demonstrates the wrong
+  # thing.
+  ssl_policy = "ELBSecurityPolicy-TLS13-1-2-2021-06"
 
   default_action {
     type             = "forward"

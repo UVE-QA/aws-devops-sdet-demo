@@ -1,6 +1,16 @@
 output "alb_url" {
-  description = "Public HTTP URL of the ALB."
+  description = "Direct URL of the ALB. On prod this answers with a 301 to the public HTTPS name; it stays exported because run-task and debugging need a name that works before DNS has propagated."
   value       = module.alb.alb_url
+}
+
+output "app_url" {
+  description = "The public URL of prod. This is what the smoke test targets and what the demo shows."
+  value       = "https://${local.app_fqdn}"
+}
+
+output "app_fqdn" {
+  description = "Public hostname of prod."
+  value       = local.app_fqdn
 }
 
 output "ecs_cluster_name" {

@@ -22,3 +22,13 @@ output "listener_arn" {
   description = "ARN of the HTTP:80 listener."
   value       = aws_lb_listener.http.arn
 }
+
+output "alb_zone_id" {
+  description = "Canonical hosted zone ID of the ALB, required by a Route53 alias record pointing at it."
+  value       = aws_lb.this.zone_id
+}
+
+output "https_enabled" {
+  description = "Whether this ALB terminates TLS. Lets an environment derive its own public URL scheme instead of hardcoding it twice."
+  value       = local.https_enabled
+}

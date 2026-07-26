@@ -109,6 +109,7 @@ jobs:
             echo "container=$(terraform output -raw container_name)"
             echo "sg=$(terraform output -raw ecs_app_security_group_id)"
             echo "alb_url=$(terraform output -raw alb_url)"
+            echo "app_url=$(terraform output -raw app_url)"
             echo "subnets=$(terraform output -json public_subnet_ids | jq -r 'join(",")')"
           } >> "$GITHUB_OUTPUT"
 
@@ -117,6 +118,30 @@ jobs:
           aws ecs wait services-stable \
             --cluster "${{ steps.tf.outputs.cluster }}" \
             --services "${{ steps.tf.outputs.service }}"
+
+      - name: Wait for the public HTTPS name to answer
+        env:
+          APP_URL: ${{ steps.tf.outputs.app_url }}
+        run: |
+          set -euo pipefail
+          # The alias record is created by the same apply that created the ALB.
+          # Route53 alias propagation is fast but not instant, and a smoke run
+          # that failed on NXDOMAIN would read as an application failure.
+          #
+          # curl verifies the certificate chain by default, so a 200 here is
+          # also the machine-checked half of "valid certificate" - the phase's
+          # closing criterion, asserted rather than eyeballed in a browser.
+          for i in $(seq 1 30); do
+            code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "$APP_URL/health" || true)"
+            echo "attempt $i: $code"
+            if [ "$code" = "200" ]; then
+              echo "$APP_URL/health answered 200 over a verified TLS connection"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::$APP_URL/health did not answer 200 within 5 minutes"
+          exit 1
 
       - name: Provision the prod database (migrate, seed, db-assert)
         env:
@@ -167,7 +192,7 @@ jobs:
       - name: Read-only smoke against prod
         working-directory: tests/playwright
         env:
-          BASE_URL: ${{ steps.tf.outputs.alb_url }}
+          BASE_URL: ${{ steps.tf.outputs.app_url }}
         run: |
           # Read-only on purpose. Destructive regression belongs to stage, which
           # is seeded and disposable; prod gets the smoke that proves the
@@ -195,7 +220,7 @@ jobs:
             echo "| --- | --- |"
             echo "| tag promoted | ${{ inputs.image_tag }} |"
             echo "| image | ${{ steps.image.outputs.ref }} |"
-            echo "| prod URL | ${{ steps.tf.outputs.alb_url }} |"
+            echo "| prod URL | ${{ steps.tf.outputs.app_url }} |"
             echo ""
             echo "prod is billable while it is up. Tear it down with the destroy workflow (environment: prod)."
           } >> "$GITHUB_STEP_SUMMARY"

@@ -39,6 +39,25 @@ provider "aws" {
 
 locals {
   name_prefix = "aws-devops-sdet-demo-${var.environment}"
+  app_fqdn    = "app.${var.dns_zone_name}"
+}
+
+# The DNS level (infra/dns) is permanent and applied once per account. prod
+# looks the zone and the certificate up BY NAME instead of reading that level's
+# state, so the only thing the two levels share is a domain name.
+#
+# Both lookups fail the plan outright if infra/dns has not been applied. That is
+# the intended ordering expressed as an error rather than as a comment nobody
+# reads.
+data "aws_route53_zone" "demo" {
+  name         = "${var.dns_zone_name}."
+  private_zone = false
+}
+
+data "aws_acm_certificate" "wildcard" {
+  domain      = "*.${var.dns_zone_name}"
+  statuses    = ["ISSUED"]
+  most_recent = true
 }
 
 module "network" {
@@ -61,6 +80,27 @@ module "alb" {
   vpc_id            = module.network.vpc_id
   public_subnet_ids = module.network.public_subnet_ids
   app_port          = var.app_port
+
+  # Present only in prod. stage passes nothing and stays on plain HTTP:80
+  # (ADR-0017 D3) — the public HTTPS surface is a prod property, not a shared
+  # invariant, so this is a deliberate difference rather than drift.
+  certificate_arn = data.aws_acm_certificate.wildcard.arn
+}
+
+# The alias record is PER-CYCLE state and belongs here, not in infra/dns: the
+# ALB it points at is created and destroyed with this environment, so the target
+# changes every cycle. The zone survives a teardown; the record does not, and
+# app.<zone> is a dead name while prod is down (ADR-0017 D2a).
+resource "aws_route53_record" "app" {
+  zone_id = data.aws_route53_zone.demo.zone_id
+  name    = local.app_fqdn
+  type    = "A"
+
+  alias {
+    name                   = module.alb.alb_dns_name
+    zone_id                = module.alb.alb_zone_id
+    evaluate_target_health = true
+  }
 }
 
 module "ecs" {

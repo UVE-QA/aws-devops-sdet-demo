@@ -145,6 +145,50 @@ data "aws_iam_policy_document" "deploy" {
     actions   = ["iam:GetOpenIDConnectProvider"]
     resources = ["*"]
   }
+
+  # Records inside a hosted zone, never the zone itself. The zone is a permanent
+  # level (ADR-0024) whose name servers are referenced from a parent zone in
+  # another account: a deploy role able to delete it could break the delegation
+  # in a way this project has no credentials to repair. DeleteHostedZone is
+  # therefore absent, deliberately.
+  #
+  # Scoped to hostedzone/* rather than to one zone id: the id is only known
+  # after infra/dns is applied, and making this level depend on that one would
+  # create an ordering cycle between two permanent levels for no security gain
+  # in a single-zone account.
+  statement {
+    sid = "Route53ManageRecords"
+    actions = [
+      "route53:ChangeResourceRecordSets",
+      "route53:ListResourceRecordSets",
+      "route53:GetHostedZone",
+    ]
+    resources = ["arn:aws:route53:::hostedzone/*"]
+  }
+
+  # Route53 zone discovery and change polling do not support resource-level
+  # scoping; they are reads and a change id is meaningless on its own.
+  statement {
+    sid = "Route53Read"
+    actions = [
+      "route53:GetChange",
+      "route53:ListHostedZones",
+      "route53:ListHostedZonesByName",
+    ]
+    resources = ["*"]
+  }
+
+  # Read-only: the certificate is issued by the permanent DNS level under
+  # demo-admin. An environment consumes it and must never be able to delete it.
+  statement {
+    sid = "AcmRead"
+    actions = [
+      "acm:DescribeCertificate",
+      "acm:ListCertificates",
+      "acm:ListTagsForCertificate",
+    ]
+    resources = ["*"]
+  }
 }
 
 resource "aws_iam_role_policy" "deploy" {

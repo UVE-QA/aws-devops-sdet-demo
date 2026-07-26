@@ -45,6 +45,12 @@ variable "desired_count" {
   default     = 1
 }
 
+variable "dns_zone_name" {
+  description = "Delegated subdomain hosting this environment's public name. MUST equal var.zone_name in infra/dns - a shared literal, like the project name, not an independent knob."
+  type        = string
+  default     = "demo.uveapp.net"
+}
+
 variable "log_retention_days" {
   description = "CloudWatch log retention in days."
   type        = number
