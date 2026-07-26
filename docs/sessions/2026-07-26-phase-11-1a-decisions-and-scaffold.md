@@ -105,9 +105,23 @@ The real threat model is the GitHub account, not the repository. Every lock
 
 ## Validation
 
-Owed, and delivered in the follow-up patch as `docs/session-primer.md` describes:
-the documents are written before the validation, because the patch has to reach
-the devbox before anything can run there.
+Run on the devbox after the patch landed, both green on the first attempt:
+
+```text
+terraform fmt -recursive -check infra     exit 0, no output
+make tf-validate                          OK x7, including infra/public-site
+```
+
+The seven include the new level because `tf-validate` DISCOVERS root levels with
+a `find` expression rather than reading a list, so a level cannot be added
+without being validated. The discovery itself was printed and counted rather than
+assumed — an empty discovery that exits 0 is a failure this project has already
+had once (e1e577a).
+
+The documents above were written before this ran, which is the normal shape here
+and not an oversight: the patch has to reach the devbox before anything can be
+run there, so a session produces one patch with the work and a second, small one
+recording what the validation showed.
 
 ```bash
 terraform fmt -recursive -check infra
@@ -118,8 +132,12 @@ Terraform is not installed in the chat sandbox and could not be downloaded there
 so the HCL was written without a local `fmt` pass. Alignment was pre-checked with
 a throwaway script that reproduces the `=` alignment rule; the script was itself
 verified by breaking a line on purpose and confirming it went red, and by running
-it clean over `infra/dns` and `infra/envs/prod`. That is a proxy for
-`terraform fmt`, not a substitute — budget for one correction round.
+it clean over `infra/dns` and `infra/envs/prod`.
+
+That script is a proxy for `terraform fmt`, not a substitute, and the session
+said so and budgeted one correction round. **No correction was needed** — kept
+here as a wrong prediction rather than edited away, because the reasoning behind
+it stays the right default for the next person writing HCL blind.
 
 ## Follow-ups this session did not touch
 

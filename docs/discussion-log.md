@@ -11,8 +11,10 @@ feature half is not started. **Phase 9 is CLOSED (2026-07-26): 9.0
 reconciliation on 07-25, 9.1 prod + promotion + HTTPS on 07-26. Phase 10 is
 CLOSED (2026-07-26) — validated against AWS, not only locally. Phase 11.0
 (publish the repository) was pulled forward and is DONE. Phase 11.1a — the
-decisions and the scaffold for the public dashboard — is WRITTEN but not yet
-validated, and nothing of it has been applied to AWS.**
+decisions and the scaffold for the public dashboard — is CLOSED (2026-07-26):
+`fmt -check` clean and `tf-validate` green over seven discovered root levels,
+with nothing applied to AWS.** Next is 11.1b, the first billable step of the
+phase.
 
 The full cycle now runs end-to-end through GitHub Actions with zero manual AWS
 operations for BOTH environments:

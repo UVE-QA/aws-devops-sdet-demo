@@ -20,7 +20,7 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 9     | Prod env, promotion, HTTPS     | ✅ done     | 25d4dab   |
 | 10    | Thin application slice         | ✅ done     | 1bf89ac   |
 | 11.0  | Publish the repository         | ✅ done (pulled forward) | a1c4402 |
-| 11.1  | Public dashboard               | 🟡 11.1a written, nothing applied | (this patch) |
+| 11.1  | Public dashboard               | 🟡 11.1a done, 11.1b not started | (this patch) |
 
 Phases 9-19 are planned in `docs/next-phases.md` (MVP track 9-13, polish
 track 14-19), shaped by ADR-0017. This table tracks only what is done.
@@ -433,7 +433,7 @@ track 14-19), shaped by ADR-0017. This table tracks only what is done.
   11.1c  dashboard content, then a full cycle with the dashboard live
 ```
 
-#### 11.1a — decisions and scaffold  [WRITTEN 2026-07-26, VALIDATION OWED]
+#### 11.1a — decisions and scaffold  [DONE 2026-07-26]
 - Closes the debt Phase 11.0 left: **gitleaks over the FULL history, all refs**
   — 81 commits, no findings. The scan was then verified capable of failing, by
   running the same invocation against a throwaway repository containing a fake
@@ -472,9 +472,21 @@ track 14-19), shaped by ADR-0017. This table tracks only what is done.
   `make tf-validate` green with the new level DISCOVERED — root levels must go
   from 6 to 7. Counting them is part of the check: a discovery that silently
   finds nothing is the e1e577a failure this project has already had once.
-- **STATUS: written, not yet validated.** Nothing has been applied to AWS and
-  nothing in this step is billable. The validation result lands in a second,
-  small patch, per `docs/session-primer.md`.
+- **STATUS: CLOSED (2026-07-26).** Both criteria met on the devbox, first
+  attempt: `terraform fmt -recursive -check infra` exited 0 with no output, and
+  `make tf-validate` printed OK for **seven** root levels with `infra/public-site`
+  among them — discovered by the `find` expression, not added to a list, which is
+  the property that stops a new level from rotting unvalidated. Nothing was
+  applied to AWS and nothing in this step is billable.
+- The session predicted "budget for one correction round" on the HCL, because it
+  was written without a local `terraform fmt` — terraform is not installed in the
+  chat sandbox and could not be fetched there. **The prediction was wrong**: the
+  hand-written alignment was clean on the first check. Recorded as wrong rather
+  than deleted, exactly as Phase 10's identical miss was. The pre-check that
+  substituted for `fmt` was a throwaway script reproducing the `=` alignment
+  rule, itself verified by being made to fail on purpose and by running clean
+  over two known-good directories. That is still a proxy, and the next author
+  writing HCL without terraform to hand should assume the same budget.
 
 #### 11.1b — apply and publish  [NOT STARTED]
 - First billable step of the phase. Local apply under `demo-admin`; CloudFront
