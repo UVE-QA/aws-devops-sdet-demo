@@ -53,6 +53,7 @@ TF_ROOTS := $(shell find infra -name '*.tf' -not -path 'infra/modules/*' -printf
 # the cached S3 backend configuration left in .terraform/ by a real init and the
 # check quietly starts requiring AWS credentials.
 tf-validate:
+	@[ -n "$(TF_ROOTS)" ] || { echo "tf-validate: no root levels discovered - the find expression above is broken. Refusing to pass without validating anything."; exit 1; }
 	@fail=0; \
 	for d in $(TF_ROOTS); do \
 	  printf '%-26s ' "$$d"; \
