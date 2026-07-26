@@ -189,12 +189,14 @@ obvious once prod runs an image that stage's teardown would delete (ADR-0018).
 ## Known traps (verify against phase-gates.md; these get fixed and go stale)
 
 ```text
-- infra/envs/prod is a stale Phase 4 scaffold. It still contains
-  module "iam_github_oidc" (removed from stage by ADR-0015) and passes
-  db_secret_arn where the module now takes db_secret_arn_pattern. Phase 9.0
-  reconciles it. Do not build on it before that.
-- terraform validate does not cover the whole infra/ tree. Fixed in Phase 9.0.
-- destroy.yml offers a "prod" choice with nothing behind it.
+- infra/shared-ecr has never been applied. Apply it locally under demo-admin
+  once per account, BEFORE the first deploy-stage run of a cycle; the workflow
+  fails fast with an explicit message if the repository is absent.
+- prod has no deploy role of its own yet, so destroy.yml offers stage only and
+  prod desired_count is still 0. Phase 9.1.
+- the GitHub variable TF_VAR_DEMO_ACCOUNT_ID is NOT a Terraform variable.
+  Only destroy.yml uses it, to build the deploy role ARN. Fixing the name means
+  renaming it in the GitHub UI.
 - prod keeps no data between cycles, and app.<domain> is a dead link most of
   the time (ADR-0017 D2a). Say so; do not get caught by it.
 ```

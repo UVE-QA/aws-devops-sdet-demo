@@ -17,7 +17,7 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 6     | First AWS stage deploy         | ✅ done     | 36ecfba   |
 | 7     | Destroy validation             | ✅ done     | 497a4b2   |
 | 8     | Feature expansion              | 🟡 lifecycle done, features pending | ee0a25e |
-| 9     | Prod env, promotion, HTTPS     | ⬜ next — starts at 9.0 | — |
+| 9     | Prod env, promotion, HTTPS     | 🟡 9.0 done, 9.1 next | e1e577a   |
 
 Phases 9-19 are planned in `docs/next-phases.md` (MVP track 9-13, polish
 track 14-19), shaped by ADR-0017. This table tracks only what is done.
@@ -230,6 +230,32 @@ track 14-19), shaped by ADR-0017. This table tracks only what is done.
 - Criteria to close 9.0: terraform validate passes for EVERY directory under
   infra/, CI enforces that, and prod differs from stage only in name prefix,
   sizing and intentional prod-only additions.
+- STATUS 9.0: DONE (2026-07-25, e1e577a). All five root levels pass
+  `terraform fmt -check` and `make tf-validate` with no AWS credentials present;
+  CI green at ci #33. prod and stage now have identical module and output
+  structure, verified by diffing them. Nothing was applied to AWS.
+  Session summary: docs/sessions/2026-07-25-phase-9-0-reconcile-prod.md.
+  - ADR-0018 closed the open ECR question: the registry moves OUT of the
+    environments into a permanent level infra/shared-ecr. A shared registry left
+    in stage state would be deleted by stage teardown, taking the image prod had
+    promoted with it. This also retired the two b71b846 workarounds in
+    deploy-stage.yml (targeted apply of module.ecr, terraform output lookup).
+  - Four defects beyond the five documented ones: prod/outputs.tf was missing
+    the four outputs run-task consumes; destroy.yml's prod choice died at OIDC
+    authentication because bootstrap-oidc creates exactly one role; destroy.yml
+    still exported dead TF_VAR_github_*; state_bucket_name was dead in STAGE too.
+  - The validation gap had a second half nobody knew about:
+    `terraform init -backend=false` does NOT skip the backend in a directory
+    initialized for real — it reuses the cached S3 config in .terraform/ and
+    reads state. The target's own comment promised "no AWS creds needed" and was
+    false on the devbox; it passed in CI only because a fresh checkout has no
+    .terraform/. Now fixed with an isolated TF_DATA_DIR, and the claim is tested
+    by re-running with the AWS environment stripped.
+  - Root levels are DISCOVERED, not listed, so a new level cannot be added
+    without being validated. An empty discovery result is an explicit failure
+    (e1e577a) — the first version of the target would have passed green having
+    validated nothing, which is b71b846 all over again.
+- 9.1 is unblocked and not started.
 - Criteria to close 9.1: a full stage -> approve -> prod -> destroy both cycle
   runs through Actions with no manual AWS operation, and https://app.<domain>
   returns 200 with a valid certificate.
