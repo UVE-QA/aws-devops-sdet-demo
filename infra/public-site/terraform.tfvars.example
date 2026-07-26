@@ -1,0 +1,18 @@
+# Copy to terraform.tfvars and fill in. This level is applied LOCALLY under
+# AWS_PROFILE=demo-admin, once per account, after infra/bootstrap, infra/dns and
+# infra/bootstrap-oidc. It is never applied by a workflow.
+#
+# No secrets belong in this file. Everything here is an identifier.
+
+owner = "uve"
+
+# Globally unique. The account id keeps it so, and keeps it deterministic:
+# the publish workflow builds this name rather than reading Terraform state.
+site_bucket_name = "aws-devops-sdet-demo-site-993912191738"
+
+# Defaults are correct for this project and are listed only to show what exists:
+# region               = "us-west-2"
+# zone_name            = "demo.uveapp.net"
+# github_owner         = "UVE-QA"
+# github_repo          = "aws-devops-sdet-demo"
+# publish_environments = ["stage", "prod"]
