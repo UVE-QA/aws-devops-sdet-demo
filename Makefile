@@ -52,12 +52,22 @@ TF_ROOTS := $(shell find infra -name '*.tf' -not -path 'infra/modules/*' -printf
 # TF_DATA_DIR is isolated per directory. Without it, `init -backend=false` reuses
 # the cached S3 backend configuration left in .terraform/ by a real init and the
 # check quietly starts requiring AWS credentials.
+#
+# The isolation is right; the FIRST version of it leaked. `mktemp -d` per level,
+# never removed, left a full provider download (~700MB) per root level in /tmp on
+# every run - about 4.5GB each time. On 2026-07-26 that filled a 58GB disk to
+# 99% and stopped an unrelated `terraform init` with "no space left on device".
+# One temporary root, removed by a trap, plus a shared plugin cache so the
+# provider is fetched once per machine instead of once per level per run.
 tf-validate:
 	@[ -n "$(TF_ROOTS)" ] || { echo "tf-validate: no root levels discovered - the find expression above is broken. Refusing to pass without validating anything."; exit 1; }
 	@fail=0; \
+	tmp=$$(mktemp -d); trap 'rm -rf "$$tmp"' EXIT INT TERM; \
+	export TF_PLUGIN_CACHE_DIR="$${TF_PLUGIN_CACHE_DIR:-$$HOME/.terraform.d/plugin-cache}"; \
+	mkdir -p "$$TF_PLUGIN_CACHE_DIR"; \
 	for d in $(TF_ROOTS); do \
 	  printf '%-26s ' "$$d"; \
-	  if out=$$(cd "$$d" && TF_DATA_DIR=$$(mktemp -d) bash -c 'terraform init -backend=false && terraform validate' 2>&1); then \
+	  if out=$$(cd "$$d" && TF_DATA_DIR="$$tmp/$$(echo $$d | tr / _)" bash -c 'terraform init -backend=false && terraform validate' 2>&1); then \
 	    echo OK; \
 	  else \
 	    echo FAIL; echo "$$out" | sed 's/^/    /'; fail=1; \

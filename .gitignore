@@ -7,6 +7,10 @@
 *.tfstate
 *.tfstate.*
 .terraform/
+# Saved plan files. `-out=tfplan` is the right way to apply exactly what was
+# reviewed, and the artifact must not follow the review into git.
+tfplan
+*.tfplan
 .terraform.tfstate.lock.info
 crash.log
 *.tfvars
