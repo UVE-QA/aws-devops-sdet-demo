@@ -1,19 +1,29 @@
-# GitHub OIDC module: creates the OIDC identity provider and the deploy role
-# that GitHub Actions assumes (no static keys, ADR-0003). The trust policy
-# restricts to a specific owner/repo and branch. The deploy policy is
-# least-privilege and demo-scoped. This module is created by the FIRST local
-# apply (ADR-0014); Actions cannot assume a role that does not exist yet.
+# GitHub Actions deploy role — ONE INSTANCE PER ENVIRONMENT (ADR-0021).
+#
+# Trusts the OIDC provider created by iam_github_oidc_provider; it does not
+# create a provider itself, so this module can be instantiated more than once
+# in the same account.
+#
+# The deploy policy is least-privilege and demo-scoped, keyed entirely off
+# name_prefix, so a prod instance grants nothing over stage resources and vice
+# versa. Lives in the bootstrap-oidc state level, never in an environment's
+# state, so a destroy run cannot delete the permissions it is running with
+# (ADR-0015).
 
 data "aws_caller_identity" "current" {}
 
-resource "aws_iam_openid_connect_provider" "github" {
-  url             = "https://token.actions.githubusercontent.com"
-  client_id_list  = ["sts.amazonaws.com"]
-  thumbprint_list = ["6938fd4d98bab03faadb97b34396831e3780aea1"]
+locals {
+  repo_ref = "repo:${var.github_owner}/${var.github_repo}"
 
-  tags = {
-    Name = "${var.name_prefix}-github-oidc"
-  }
+  # A branch subject lets any workflow on that branch assume the role directly.
+  # That is what makes the stage role usable from a push-triggered job — and
+  # exactly what must NOT exist for prod, where the GitHub Environment's
+  # required reviewers are the approval gate. A branch subject would route
+  # straight around them.
+  trust_subjects = concat(
+    var.trust_branch_ref ? ["${local.repo_ref}:ref:refs/heads/${var.github_branch}"] : [],
+    [for e in var.github_environments : "${local.repo_ref}:environment:${e}"],
+  )
 }
 
 data "aws_iam_policy_document" "trust" {
@@ -23,7 +33,7 @@ data "aws_iam_policy_document" "trust" {
 
     principals {
       type        = "Federated"
-      identifiers = [aws_iam_openid_connect_provider.github.arn]
+      identifiers = [var.oidc_provider_arn]
     }
 
     condition {
@@ -35,10 +45,7 @@ data "aws_iam_policy_document" "trust" {
     condition {
       test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
-      values = concat(
-        ["repo:${var.github_owner}/${var.github_repo}:ref:refs/heads/${var.github_branch}"],
-        [for e in var.github_environments : "repo:${var.github_owner}/${var.github_repo}:environment:${e}"]
-      )
+      values   = local.trust_subjects
     }
   }
 }
@@ -50,14 +57,23 @@ resource "aws_iam_role" "deploy" {
   tags = {
     Name = "${var.name_prefix}-github-deploy"
   }
+
+  lifecycle {
+    # An empty subject list produces a trust policy nothing can satisfy, which
+    # fails at the next OIDC login with an opaque STS error rather than here.
+    precondition {
+      condition     = length(local.trust_subjects) > 0
+      error_message = "iam_github_deploy_role: no trust subjects. Set trust_branch_ref = true or provide at least one entry in github_environments."
+    }
+  }
 }
 
 # Least-privilege, demo-scoped deploy policy. Resource-level scoping is applied
-# where it is cheap and meaningful (state bucket, DB secret, PassRole); the
-# infrastructure-management actions (network/alb/ecs/rds/logs/budgets) use "*"
-# because Terraform creates/destroys many short-lived resources whose ARNs are
-# not known ahead of time in a repeatable cycle. This is a deliberate demo
-# trade-off, documented in README.md.
+# where it is cheap and meaningful (state bucket, DB secret, the two ECS roles);
+# the infrastructure-management actions (network/alb/ecs/rds/logs/budgets) use
+# "*" because Terraform creates and destroys many short-lived resources whose
+# ARNs are not known ahead of time in a repeatable cycle. This is a deliberate
+# demo trade-off, documented in README.md.
 data "aws_iam_policy_document" "deploy" {
   statement {
     sid       = "TerraformStateBucket"
