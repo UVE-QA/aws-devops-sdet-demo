@@ -1,30 +1,53 @@
 # Session Primer
 
 Read this first in any new session. It is a **pointer**, not a summary — it says
-what to read, in what order, who is allowed to write, and what has burned us
-before. It deliberately holds almost no state, so it does not go stale.
+what to read, in what order, who does what, and what has burned us before. It
+deliberately holds almost no state, so it does not go stale.
 
 The cursor lives in `docs/phase-gates.md`. Nothing else claims to know the
 current phase — including this file.
 
 ---
 
-## Roles: who reads, who writes
+## How a session works
+
+**Every session starts in a new chat.** The chat is the entry point and the
+driver: it loads the current state, reports where the project is, then runs the
+session — discussion, decisions, and step-by-step instructions. Execution
+happens on the devbox.
 
 ```text
-Claude Code on the devbox   the ONLY writer. Reads and writes git natively,
-                            commits and pushes. No manual transfer steps.
-Chat / Cowork session       READ ONLY. Loads current state itself, thinks,
-                            plans, drafts. Never commits.
-Claude Project files        a mirror of last resort. Not a source.
-Project memory              permanent identifiers only. Never status.
+chat      DRIVES the session. Loads state, reports it, discusses, decides,
+          authors documents, and issues commands one at a time, each labelled
+          [mac] or [devbox]. It does not commit directly.
+devbox    EXECUTES. Commands run there; files land there; git lives there.
+you       the bridge between the two.
+send.sh   delivery in one command (buffer → repo path → optional commit+push).
 ```
 
-Text produced in a chat reaches the repo through a devbox session, not through
-the chat. Every manual `scp` ritual this project has suffered came from a chat
-trying to be a writer.
+Optionally the chat can hand a task to a **Claude Code session on the devbox**
+when the work is heavy file editing — that session reads `CLAUDE.md`, lands
+here, and writes directly. Use it when a task touches many files; use the chat
+for everything that needs thinking, planning, or judgement first.
 
-## A. Claude Code on the devbox (full repo access)
+What must never happen: the chat inventing state instead of loading it, or a
+document reaching the repo without going through git.
+
+## A. Loading state — chat session
+
+Try to clone the repository into the session sandbox over HTTPS. The sandbox
+reaches `github.com` over HTTPS; SSH out is blocked; pushing is not possible,
+because that would need a token and asking for tokens is forbidden here.
+
+- **Clone succeeds** → read the order in section B. Ignore the Project mirror.
+- **Clone fails** → the repository is still private. Say so explicitly, fall
+  back to the Project mirror files, and treat them as possibly stale — ask for
+  `git -C ~/aws-devops-sdet-demo log --oneline -5` before relying on them.
+
+This is not hypothetical: on 2026-07-25 the mirror was seven weeks stale, and
+the control layer it described was not in the repository at all.
+
+## B. Loading state — Claude Code on the devbox
 
 `CLAUDE.md` is read automatically and sends you here. Then:
 
@@ -44,20 +67,16 @@ trying to be a writer.
 Then STOP and state the phase, the next allowed step, and any blocker before
 touching anything.
 
-## B. Chat / Cowork session (no native repo access)
+## C. Closing a session
 
-Try to clone the repository into the session sandbox over HTTPS. The sandbox
-reaches `github.com` over HTTPS; SSH out is blocked; pushing is not possible
-because it would require a token, and asking for tokens is forbidden here.
-
-- **Clone succeeds** → read the same order as section A. You now have current
-  state; do not use the Project mirror at all.
-- **Clone fails** → the repository is still private. Say so explicitly. Fall
-  back to the Project mirror files and treat them as possibly stale — ask for
-  `git -C ~/aws-devops-sdet-demo log --oneline -5` before relying on them.
-
-This is not hypothetical: on 2026-07-25 the mirror was seven weeks stale, and
-the control layer it described was not in the repository at all.
+```text
+- run the relevant validation
+- update docs/phase-gates.md if the phase status changed
+- write a summary in docs/sessions/ and add a row to INDEX.md
+- record new structural decisions as ADRs
+- commit and push; work is only shared once pushed
+- leave the transfer buffer empty
+```
 
 ---
 
@@ -115,19 +134,21 @@ Ops — devbox maintenance
   commit, not only the one being exercised.
 ```
 
-## The transfer workflow (while chats cannot write)
+## Delivering files from a chat to the repo
 
 ```text
 mac:     ~/Projects/_claude-transfer/    buffer; should be empty almost always
-         send.sh <file> <repo/path>      copies to the devbox, never commits
 devbox:  ~/aws-devops-sdet-demo/         the ONE working copy
 github:  UVE-QA/aws-devops-sdet-demo     source of truth
 ssh:     ssh devbox / scp file devbox:/tmp/
+
+./send.sh <local-file> <repo/path> ["commit message"]
+    without a message: delivers and shows git status, you commit after review
+    with a message:    delivers, commits, pushes, clears the buffer copy
 ```
 
-Anything sitting in the buffer has not been committed yet. Delete it after it
-lands. This whole section disappears once the repository is public and chats
-load context themselves.
+Anything sitting in the buffer has not been committed yet. The read half of
+this disappears once the repository is public.
 
 ## Current shape of the project (structural, changes rarely)
 
@@ -164,36 +185,46 @@ teardown works — belongs above the env levels.
 
 ## Appendix — paste-in starter for a new chat session
 
-```text
-AWS project session — CHAT SIDE, READ ONLY.
-Session title: Phase <N> — <topic>
+This is the entry point. Paste it as the first message of a new chat, then
+rename the chat per the naming convention above.
 
-Try to clone https://github.com/UVE-QA/aws-devops-sdet-demo into your sandbox
-over HTTPS. If it succeeds, read in this order:
+```text
+AWS project session. You are the driver for this session.
+
+First, load state. Try to clone
+https://github.com/UVE-QA/aws-devops-sdet-demo into your sandbox over HTTPS
+and read, in this order:
   docs/session-primer.md
   docs/phase-gates.md          (the cursor — the only file that knows the phase)
   docs/next-phases.md
-  docs/decisions/              (newest first; 0015, 0016, 0017 are live)
+  docs/decisions/              (newest first)
   docs/discussion-log.md       (top "Current state" block only)
 
-If the clone fails, the repo is still private. Say so explicitly, fall back to
-the Project mirror files, and treat them as possibly stale — ask me to run
+If the clone fails the repo is still private: say so, fall back to the Claude
+Project mirror files, treat them as possibly stale, and ask me to run
 `git -C ~/aws-devops-sdet-demo log --oneline -5` before relying on them.
 
-Then STOP and report: current phase, next allowed step, blockers.
+Then STOP and report: current phase, next allowed step, blockers. Propose what
+this session should cover and wait for my confirmation.
 
-Rules for this chat:
-- You READ. You do not write to the repo. Anything that changes files is done
-  by Claude Code on the devbox.
-- ONE command at a time, labelled [mac] or [devbox]. Wait for real terminal
+Then run the session: discuss, decide, draft, and give me instructions.
+- ONE command at a time, labelled [mac] or [devbox]. Wait for my real terminal
   output before the next. Never assume a step ran.
 - Verify the previous step before starting the next.
-- English for anything that lands in the repo or is pasted into a session.
-  Russian is fine for live discussion.
-- Never ask for secrets. Explicit confirmation before any billable action.
+- Files you author go to the repo through ~/Projects/_claude-transfer and
+  ./send.sh <file> <repo/path> ["commit message"]. You never commit directly.
+- Explicit confirmation before any billable AWS action. Never ask for secrets.
+- English for anything that lands in the repo or is pasted into a session;
+  Russian is fine for discussion.
+
+At the end, close the session properly: validation, phase-gates update, a
+summary in docs/sessions/ with a row in INDEX.md, ADRs for new structural
+decisions, commit and push, and an empty transfer buffer.
 ```
 
-## Appendix — starter for a devbox session
+## Appendix — starter for a Claude Code session on the devbox
+
+Use when the work is heavy file editing and the chat hands it over.
 
 ```text
 New session. Read docs/session-primer.md, then docs/phase-gates.md,
