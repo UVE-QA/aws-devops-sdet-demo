@@ -1,7 +1,9 @@
 import { test, expect } from "@playwright/test";
 
-// Smoke test against a running app (local compose or ALB via BASE_URL).
-// Verifies the page renders and that the async health/DB checks resolve.
+// READ-ONLY. This file lives under tests/smoke/ and is therefore in the
+// `smoke` project (see playwright.config.ts) — the only project prod runs.
+// Nothing here may create, modify or delete data. Destructive coverage goes
+// to tests/regression/, which prod never executes (ADR-0025).
 test.describe("aws-devops-sdet-demo smoke", () => {
   test("page loads and health/db statuses resolve", async ({ page }) => {
     await page.goto("/");
@@ -22,5 +24,21 @@ test.describe("aws-devops-sdet-demo smoke", () => {
     const dbCheck = page.getByTestId("db-check-status");
     await expect(dbCheck).toBeVisible();
     await expect(dbCheck).toContainText(/connected|ok/i, { timeout: 30000 });
+  });
+
+  test("the items list renders and contains the seeded row", async ({ page }) => {
+    await page.goto("/");
+
+    // data-loaded is set by the page once a list response has been rendered,
+    // so this waits on a real signal rather than on a timer.
+    const table = page.getByTestId("items-table");
+    await expect(table).toHaveAttribute("data-loaded", "true", { timeout: 30000 });
+
+    // The seed row is provisioning, not a test fixture (ADR-0017 D2a), and
+    // exists in every environment after the seed task. Seeing it in the
+    // browser proves the whole path — browser, ALB, app, RDS — read-only.
+    await expect(
+      page.getByTestId("item-name").filter({ hasText: "seed-item-001" })
+    ).toHaveCount(1);
   });
 });

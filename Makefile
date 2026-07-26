@@ -1,7 +1,8 @@
 # Ubuntu-compatible developer commands for the v0 local stack.
 # All container commands run on the Lightsail devbox via docker compose.
 
-.PHONY: local-up local-down migrate seed test-smoke test-db docker-build tf-fmt tf-validate
+.PHONY: local-up local-down migrate seed test-smoke test-regression test-api \
+        test-db test-ui-db test-spec-coverage docker-build tf-fmt tf-validate
 
 # Bring up postgres + app (build app image if needed), detached.
 local-up:
@@ -20,12 +21,52 @@ migrate:
 seed:
 	docker compose run --rm app python scripts/seed.py
 
-# Run Playwright smoke against the running app (BASE_URL default localhost:8000).
+# Where the HTTP-level suites point. Overridden with the ALB URL (stage) or the
+# public HTTPS name (prod) when they run against AWS.
+BASE_URL ?= http://localhost:8000
+
+# The name the UI regression writes and the database assertion then looks up.
+# Expanded ONCE, at parse time, so both halves of `test-regression` see the same
+# value — the whole point of the probe is that two processes agree on it.
+UI_PROBE_NAME ?= ui-probe-$(shell date +%s)
+
+# Read-only Playwright suite. The ONLY suite prod runs (ADR-0025).
 # Installs node deps + chromium on first run.
 test-smoke:
-	cd tests/playwright && npm install && npx playwright install --with-deps chromium && npx playwright test
+	cd tests/playwright && npm install && npx playwright install --with-deps chromium \
+	  && BASE_URL=$(BASE_URL) npx playwright test --project=smoke
 
-# Run the standalone DB assertion against postgres, on the compose network.
+# Destructive Playwright suite, plus the database assertion that proves the
+# browser's write reached PostgreSQL. Never run against prod.
+test-regression:
+	cd tests/playwright && npm install && npx playwright install --with-deps chromium \
+	  && BASE_URL=$(BASE_URL) UI_PROBE_NAME=$(UI_PROBE_NAME) npx playwright test --project=regression
+	$(MAKE) test-ui-db UI_PROBE_NAME=$(UI_PROBE_NAME)
+
+# Assert that the row the UI created exists in the database. Reuses the app
+# image, which already contains the script and the driver.
+test-ui-db:
+	docker compose run --rm -e UI_PROBE_NAME=$(UI_PROBE_NAME) app python scripts/assert_ui_write.py
+
+# Every spec file must belong to a project, or it runs in no suite at all.
+test-spec-coverage:
+	cd tests/playwright && npm install && ./scripts/assert-spec-coverage.sh
+
+# HTTP contract tests (pytest + httpx) against a RUNNING app. Destructive:
+# they create and delete items, so stage and local only, never prod.
+#
+# A virtualenv rather than a bare `pip install`: Ubuntu 24.04 marks the system
+# interpreter externally-managed (PEP 668) and refuses to install into it, and
+# pytest has no business in the application image.
+API_VENV := .venv-api
+test-api:
+	@python3 -m venv $(API_VENV) 2>/dev/null || { \
+	  echo "could not create a virtualenv - install python3-venv (apt install python3-venv)"; exit 1; }
+	@$(API_VENV)/bin/pip install -q --upgrade pip
+	$(API_VENV)/bin/pip install -q -r tests/api/requirements.txt
+	BASE_URL=$(BASE_URL) $(API_VENV)/bin/pytest tests/api -q
+
+# Run the standalone seed DB assertion against postgres, on the compose network.
 # Reuses the app image (has sqlalchemy + psycopg2-binary) and mounts the test.
 test-db:
 	docker compose run --rm -v "$(PWD)/tests/db:/tests-db" app python /tests-db/assert_seed.py
