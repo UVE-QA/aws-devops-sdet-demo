@@ -64,8 +64,9 @@ before believing anything, every time. Cloning fresh costs seconds.
                             what is allowed next
 3. docs/next-phases.md      the plan: MVP track 9-13, polish track 14-19.
                             Supersedes project-prompt.md §14.
-4. docs/decisions/          the "why". Newest first; 0015, 0016, 0017 shape
-                            everything currently in flight
+4. docs/decisions/          the "why". Newest first. 0020-0023 are the ones
+                            in flight; 0015 and 0016 still shape the state
+                            levels and the teardown order
 5. docs/discussion-log.md   the narrative. Read the top "Current state" block;
                             go deeper only for history
 6. docs/sessions/INDEX.md   only when you need a specific past session
@@ -308,9 +309,12 @@ Then run the session: discuss, decide, draft, and give me instructions.
 - Verify the previous step before starting the next.
 - Author files inside your own clone, commit them there with real commit
   messages, and deliver the session as ONE patch:
-  `git format-patch <base>..HEAD --stdout`. Give me a ready-to-run scp with
-  your own outputs path substituted — I cannot guess where your sandbox put
-  it — then the `git am` line. You never push; I apply and push after reading.
+  `git format-patch <base>..HEAD --stdout`, written into
+  ~/Projects/_claude-transfer/outbox/ — ask for access to that folder at the
+  start and the path stops being something either of us has to look up. Then
+  give me the ready-to-run scp and `git am` lines. If you cannot get access to
+  the folder, substitute your own sandbox path, because I cannot guess it.
+  You never push; I apply and push after reading.
 - Explicit confirmation before any billable AWS action. Never ask for secrets.
 - English for anything that lands in the repo or is pasted into a session;
   Russian is fine for discussion.
