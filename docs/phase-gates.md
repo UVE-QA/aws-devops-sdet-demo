@@ -235,11 +235,8 @@ track 14-19), shaped by ADR-0017. This table tracks only what is done.
   returns 200 with a valid certificate.
 - Validation:
 ```bash
-  terraform fmt -recursive -check
-  for d in infra/bootstrap infra/bootstrap-oidc infra/envs/stage infra/envs/prod; do
-    (cd "$d" && terraform init -backend=false >/dev/null 2>&1 && terraform validate) \
-      || echo "FAIL $d"
-  done
+  terraform fmt -recursive -check infra
+  make tf-validate      # every root level, isolated TF_DATA_DIR, no AWS creds
 ```
 - New invariants adopted this session (see docs/next-phases.md):
   - a fix to a SHARED invariant is applied to EVERY environment directory in the

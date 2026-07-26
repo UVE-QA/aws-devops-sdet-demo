@@ -38,6 +38,28 @@ docker-build:
 tf-fmt:
 	terraform fmt -recursive infra
 
-# Terraform validate for stage without a backend (no AWS creds needed).
+# Root levels are DISCOVERED, not listed: any directory with .tf files outside
+# infra/modules/. A new state level is therefore validated the moment it exists,
+# which is the specific failure this replaces — infra/envs/prod was invalid for
+# seven weeks while this target only entered infra/envs/stage.
+#
+# Modules are covered transitively: a broken module fails every level using it.
+# They are excluded deliberately, because running `terraform init` inside a
+# module directory litters it with a .terraform.lock.hcl that does not belong
+# to a non-root configuration.
+TF_ROOTS := $(shell find infra -name '*.tf' -not -path 'infra/modules/*' -printf '%h\n' | sort -u)
+
+# TF_DATA_DIR is isolated per directory. Without it, `init -backend=false` reuses
+# the cached S3 backend configuration left in .terraform/ by a real init and the
+# check quietly starts requiring AWS credentials.
 tf-validate:
-	cd infra/envs/stage && terraform init -backend=false && terraform validate
+	@fail=0; \
+	for d in $(TF_ROOTS); do \
+	  printf '%-26s ' "$$d"; \
+	  if out=$$(cd "$$d" && TF_DATA_DIR=$$(mktemp -d) bash -c 'terraform init -backend=false && terraform validate' 2>&1); then \
+	    echo OK; \
+	  else \
+	    echo FAIL; echo "$$out" | sed 's/^/    /'; fail=1; \
+	  fi; \
+	done; \
+	[ "$$fail" -eq 0 ] || { echo; echo "tf-validate: at least one root level is invalid"; exit 1; }
