@@ -176,9 +176,7 @@ and push them, after reading them.
 mac      ~/Projects/_claude-transfer/          tooling, permanent:
                                                 send.sh
                                                 README.md
-                                                session-primer.md  <- local
-                                                  original; its appendix is what
-                                                  you paste to start a new chat
+                                                (no copy of this file — see below)
          ~/Projects/_claude-transfer/outbox/   PAYLOAD ONLY.
                                                 empty = everything is committed
 devbox   ~/aws-devops-sdet-demo/               the ONE working copy
@@ -224,12 +222,26 @@ control-layer tooling outside the source of truth — the same shape as the
 2026-07-25 finding, when `CLAUDE.md` and the skills had never been committed.
 They belong in the repository, with the local copies being copies.
 
-Refresh the local primer whenever the repository one changes; a stale copy is
-actively harmful, because it is the copy a new chat starts from:
+### There is no local copy of this file
 
-```text
-scp devbox:aws-devops-sdet-demo/docs/session-primer.md ~/Projects/_claude-transfer/
-```
+There used to be one on the MacBook, and it called itself the "local original"
+while another section of this same file told you to refresh it whenever the
+repository version changed. Both could not be true. In a project whose first
+rule is that git is the source of truth, the repository version wins.
+
+It existed because a private repository could not be read by a chat session, so
+the paste-in starter had to live somewhere reachable. Publishing the repository
+(ADR-0022) removed that job: the session clones this file itself, and the
+starter in the appendix is one click away on GitHub, always current.
+
+The copy was deleted rather than kept in sync. On 2026-07-26 alone it went stale
+three times in a single session — because it is read at the start of a session
+and edited at the end, which makes staleness structural rather than careless. A
+sync ritual would have postponed that, not fixed it. Deleting the second copy
+fixes it.
+
+**Do not recreate it.** If you find yourself wanting a local copy, the thing you
+actually want is `git pull` on the devbox.
 
 ## Current shape of the project (structural, changes rarely)
 
