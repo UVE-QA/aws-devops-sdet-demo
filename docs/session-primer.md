@@ -22,7 +22,8 @@ chat      DRIVES the session. Loads state, reports it, discusses, decides,
           [mac] or [devbox]. It does not commit directly.
 devbox    EXECUTES. Commands run there; files land there; git lives there.
 you       the bridge between the two.
-send.sh   delivery in one command (buffer → repo path → optional commit+push).
+patch     delivery in ONE file: the session's own commits, exported as an
+          mbox and applied with `git am`. send.sh remains for one-offs.
 ```
 
 Optionally the chat can hand a task to a **Claude Code session on the devbox**
@@ -35,22 +36,35 @@ document reaching the repo without going through git.
 
 ## A. Loading state — chat session
 
-Try to clone the repository into the session sandbox over HTTPS. The sandbox
-reaches `github.com` over HTTPS; SSH out is blocked; pushing is not possible,
-because that would need a token and asking for tokens is forbidden here.
+The session clones the repository into its sandbox over HTTPS and reads state
+from that clone. While the repository is private this needs a token, which is a
+deliberate, bounded exception to "never ask for secrets" — see ADR-0020.
 
-- **Clone succeeds** → read the order in section B.
-- **Clone fails** → the repository is still private. Say so explicitly, then
-  load state FROM THE DEVBOX, not from any copy: ask for
-  `git -C ~/aws-devops-sdet-demo log --oneline -5`, then for the contents of the
-  files in section B, one at a time.
+```text
+Resource owner    UVE-QA
+Repository access Only select repositories → aws-devops-sdet-demo
+Permissions       Contents: Read-only        (nothing else)
+Expiration        shortest that covers the phase
+```
 
-**There is no Project mirror (ADR-0019.)** Never reconstruct state from a copy
-that lives outside git. The mirror was retired because it was measured: on
-2026-07-25 it was five commits stale and did not contain this file at all, while
-the Project it lived in claimed to describe the project.
+Read-only on one repository: it cannot push, cannot reach anything else, and
+expires on its own. The session clones with it, rewrites `origin` to the
+credential-free URL immediately, and never writes it to a file. **Revoke it by
+hand when the phase closes** — do not leave it to expire, and do not reuse a
+token from an earlier chat.
 
-The clone path becomes free at Phase 11, when the repository goes public.
+If no token is supplied, fall back to loading state FROM THE DEVBOX: ask for
+`git -C ~/aws-devops-sdet-demo log --oneline -5`, then the files in section B
+one at a time. Treat that as the degraded path, not the normal one — what it
+loads is a hand-picked excerpt, and nothing checks that the excerpt is complete.
+
+**Never reconstruct state from a copy that lives outside git (ADR-0019).** That
+includes a clone left in the sandbox by an earlier chat: on 2026-07-26 one was
+four commits behind `origin/main` and looked entirely authoritative. Compare the
+hash before believing anything, every time.
+
+Both the token and this section expire at Phase 11, when the repository goes
+public and the clone needs no credential.
 
 ## B. Loading state — Claude Code on the devbox
 
@@ -97,7 +111,8 @@ touching anything.
   wasted round trip.
 - Explicit confirmation before ANY billable action. Review the plan first.
 - Never ask for secrets. Account ids, ARNs, regions, repo names are fine;
-  keys, tokens, passwords are not.
+  keys, tokens, passwords are not. ONE exception, bounded and written down:
+  the read-only clone token of section A (ADR-0020). Nothing else.
 - Give one correct method, not options A/B.
 - Prefer a checked-in patch script over a long interactive heredoc when editing
   long documents: it fails loudly and changes nothing on mismatch.
@@ -141,6 +156,33 @@ Ops — devbox maintenance
 
 ## Delivering files from a chat to the repo
 
+**The normal path is one patch per session, not one command per file.**
+
+The chat session works inside its own clone of `origin/main`, commits there with
+real commit messages, and exports the whole session as a single mbox file:
+
+```text
+git format-patch <base>..HEAD --stdout > phase-N.patch
+```
+
+You move that one file and apply it:
+
+```text
+[mac]     scp "<the chat's own outputs path>/phase-N.patch" devbox:/tmp/
+[devbox]  cd ~/aws-devops-sdet-demo && git pull && git am /tmp/phase-N.patch
+[devbox]  <validation> && git push
+```
+
+`git am` refuses to apply onto a diverged or dirty working copy and changes
+nothing when it refuses. That is the property the "prefer a patch script over a
+heredoc" rule was already asking for, applied to delivery itself: if the chat's
+assumption about the base commit is wrong, you find out before anything moves.
+
+Nothing about this lets the chat commit to `main`. It authors commits; you apply
+and push them, after reading them.
+
+### The layout
+
 ```text
 mac      ~/Projects/_claude-transfer/          tooling, permanent:
                                                 send.sh
@@ -153,18 +195,41 @@ mac      ~/Projects/_claude-transfer/          tooling, permanent:
 devbox   ~/aws-devops-sdet-demo/               the ONE working copy
 github   UVE-QA/aws-devops-sdet-demo           source of truth
 ssh      ssh devbox / scp file devbox:/tmp/
+```
 
+### The one-off path
+
+For a single file outside a session's patch, `send.sh` still works:
+
+```text
 ./send.sh <file> <repo/path> ["commit message"]
     a bare filename is looked up in outbox/
     without a message: delivers and shows git status, you commit after review
     with a message:    delivers, commits, pushes
 ```
 
-The split matters because it makes one rule checkable. "The buffer should be
-empty" was unverifiable while permanent tooling and in-flight files shared a
-flat folder — it was never empty, so nothing could be read from its contents.
-**Anything in `outbox/` has not been committed yet**, and that is now a fact you
-can see at a glance.
+**The destination is always `outbox/`.** One fixed directory, never "wherever it
+went this time". The split between tooling and `outbox/` makes one rule
+checkable: **anything in `outbox/` has not been committed yet**, and that is now
+a fact you can see at a glance. It was unverifiable while permanent tooling and
+in-flight files shared a flat folder — the folder was never empty, so nothing
+could be read from its contents.
+
+### Paths
+
+**The chat knows where its files are; you do not. So the chat supplies the
+path.** A chat session writes into an outputs folder whose path contains that
+session's own identifiers, so it is different in every chat and can never be
+written down here. Whenever the chat hands you a file — patch or otherwise — it
+must emit a ready-to-run `[mac]` command with the full path already substituted.
+
+File cards in the chat are for reading the file, not for delivering it. Assuming
+a card lands anywhere by itself costs a round trip every time.
+
+Known debt: `send.sh` and the buffer README exist ONLY on the MacBook. That is
+control-layer tooling outside the source of truth — the same shape as the
+2026-07-25 finding, when `CLAUDE.md` and the skills had never been committed.
+They belong in the repository, with the local copies being copies.
 
 Refresh the local primer whenever the repository one changes; a stale copy is
 actively harmful, because it is the copy a new chat starts from:
@@ -172,32 +237,6 @@ actively harmful, because it is the copy a new chat starts from:
 ```text
 scp devbox:aws-devops-sdet-demo/docs/session-primer.md ~/Projects/_claude-transfer/
 ```
-
-The read half of all this disappears once the repository is public.
-
-**The chat knows where its files are; you do not. So the chat supplies the
-path.** A chat session writes into an outputs folder whose path contains that
-session's own identifiers, so it is different in every chat and can never be
-written down here. Immediately after authoring a file, and BEFORE any mention of
-`send.sh`, the chat must emit a ready-to-run `[mac]` command that copies the
-file from its current outputs folder into the buffer, with the full path already
-substituted:
-
-```text
-cp "<the chat's own outputs path>/<file>" ~/Projects/_claude-transfer/outbox/
-```
-
-**The destination is always `outbox/`.** One fixed directory, never "wherever it
-went this time" — the whole point is that the answer to "where is that file"
-never has to be looked up.
-
-File cards in the chat are for reading the file, not for delivering it. Assuming
-a card lands in the buffer by itself costs a round trip every time.
-
-Known debt: `send.sh` and the buffer README exist ONLY on the MacBook. That is
-control-layer tooling outside the source of truth — the same shape as the
-2026-07-25 finding, when `CLAUDE.md` and the skills had never been committed.
-They belong in the repository, with the local copies being copies.
 
 ## Current shape of the project (structural, changes rarely)
 
@@ -245,20 +284,20 @@ rename the chat per the naming convention above.
 ```text
 AWS project session. You are the driver for this session.
 
-First, load state. Try to clone
-https://github.com/UVE-QA/aws-devops-sdet-demo into your sandbox over HTTPS
-and read, in this order:
+First, load state. Clone https://github.com/UVE-QA/aws-devops-sdet-demo into
+your sandbox over HTTPS using the read-only token I paste next, rewrite origin
+to the credential-free URL straight away, and read, in this order:
   docs/session-primer.md
   docs/phase-gates.md          (the cursor — the only file that knows the phase)
   docs/next-phases.md
   docs/decisions/              (newest first)
   docs/discussion-log.md       (top "Current state" block only)
 
-If the clone fails the repo is still private (it goes public at Phase 11): say
-so, then load state FROM THE DEVBOX. Ask me for
-`git -C ~/aws-devops-sdet-demo log --oneline -5`, then for the contents of the
-files above, one at a time. There is no Claude Project mirror any more
-(ADR-0019) — never rebuild state from a copy that lives outside git.
+If I have not given you a token, ask for one (fine-grained, this repo only,
+Contents: Read-only — ADR-0020) or fall back to loading state FROM THE DEVBOX:
+`git -C ~/aws-devops-sdet-demo log --oneline -5`, then the files above one at a
+time. Never rebuild state from a copy that lives outside git (ADR-0019) —
+including a clone left in your sandbox by an earlier chat. Check the hash.
 
 Then STOP and report: current phase, next allowed step, blockers. Propose what
 this session should cover and wait for my confirmation.
@@ -267,12 +306,13 @@ Then run the session: discuss, decide, draft, and give me instructions.
 - ONE command at a time, labelled [mac] or [devbox]. Wait for my real terminal
   output before the next. Never assume a step ran.
 - Verify the previous step before starting the next.
-- Files you author reach the repo through ~/Projects/_claude-transfer/outbox/
-  and ./send.sh <file> <repo/path> ["commit message"]. Right after writing a
-  file, give me a ready-to-run cp into outbox/ with your own outputs path
-  already substituted — I cannot guess where your sandbox put it. You never
-  commit directly.
-- Explicit confirmation before any billable AWS action. Never ask for secrets.
+- Author files inside your own clone, commit them there with real commit
+  messages, and deliver the session as ONE patch:
+  `git format-patch <base>..HEAD --stdout`. Give me a ready-to-run scp with
+  your own outputs path substituted — I cannot guess where your sandbox put
+  it — then the `git am` line. You never push; I apply and push after reading.
+- Explicit confirmation before any billable AWS action. Never ask for secrets —
+  the read-only clone token above is the one written-down exception.
 - English for anything that lands in the repo or is pasted into a session;
   Russian is fine for discussion.
 
