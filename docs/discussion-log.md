@@ -354,18 +354,25 @@ destroy.yml run surfaced two latent deploy-role bugs:
 - **Region:** us-west-2. **Tag:** Project = aws-devops-sdet-demo (+ Owner=UVE).
 - **MVP architecture:** single app container (FastAPI static HTML + API) →
   Browser → ALB → ECS Fargate → RDS PostgreSQL.
-- **Terraform state levels.** Three today; **five** at the end of the MVP track:
+- **Terraform state levels.** Three exist today; **six** at the end of the MVP
+  track. Levels marked NOT BUILT are decided, not implemented:
 
 ```text
 1. infra/bootstrap       S3 state bucket. LOCAL state, applied once. Permanent.
 2. infra/bootstrap-oidc  OIDC provider + deploy roles. S3 state. Permanent.
-3. infra/public-site     dashboard S3+CloudFront. S3 state. Permanent. (Phase 11)
-4. infra/envs/stage      workload. Destroyed every cycle.
-5. infra/envs/prod       workload. Destroyed every cycle. (Phase 9)
+3. infra/shared-ecr      container registry. S3 state. Permanent.
+                         NOT BUILT — ADR-0018, Phase 9.0.
+4. infra/public-site     dashboard S3+CloudFront. S3 state. Permanent.
+                         NOT BUILT — Phase 11.
+5. infra/envs/stage      workload. Destroyed every cycle.
+6. infra/envs/prod       workload. Destroyed every cycle. Stale scaffold until
+                         Phase 9.0 reconciles it.
 ```
 
-  Only levels 4 and 5 are ever destroyed. Anything that must survive a teardown
+  Only levels 5 and 6 are ever destroyed. Anything that must survive a teardown
   — including the artifact that PROVES the teardown works — belongs above them.
+  The registry qualifies and nobody noticed until prod needed to run an image
+  that stage's own teardown would delete (ADR-0018).
 - **Two chicken-and-egg bootstraps, both first run LOCALLY (demo-admin):** the
   state bucket, then the OIDC provider + deploy role.
 - **Deploy-role IAM scope:** S3 on the state bucket + ECR/ECS/RDS/logs/secrets/
@@ -388,14 +395,19 @@ destroy.yml run surfaced two latent deploy-role bugs:
 
 ## Repeatable lifecycle (deploy → demo → destroy → repeat)
 
-- **Survives every cycle:** the state bucket, `infra/bootstrap-oidc`, and (from
-  Phase 11) `infra/public-site`.
-- **Destroyed every cycle:** ECS/ALB/RDS/ECR/logs/VPC.
+- **Survives every cycle:** the state bucket, `infra/bootstrap-oidc`, (from
+  Phase 9.0) `infra/shared-ecr`, and (from Phase 11) `infra/public-site`.
+- **Destroyed every cycle:** ECS/ALB/RDS/logs/VPC. ECR leaves this list in
+  Phase 9.0 — see ADR-0018.
 - Start of a cycle (LOCAL, demo-admin): `aws sso login --use-device-code` →
-  apply `infra/bootstrap` → apply `infra/bootstrap-oidc` → then
-  `deploy-stage.yml` via the Actions UI.
+  apply `infra/bootstrap` → apply `infra/bootstrap-oidc` → (from Phase 9.0)
+  apply `infra/shared-ecr` → then `deploy-stage.yml` via the Actions UI. The
+  permanent levels are applied once per ACCOUNT, not once per cycle; a normal
+  cycle finds them already there.
 - End of a cycle: `destroy.yml` via the Actions UI, confirm = `DESTROY`.
-- Idempotency fixes: ECR `force_delete = true`; Secrets Manager
+- Idempotency fixes: ECR `force_delete = true` (becomes `false` once the
+  registry moves to a permanent level — its only purpose was per-cycle teardown,
+  ADR-0018); Secrets Manager
   `recovery_window_in_days = 0`; RDS `skip_final_snapshot = true` +
   `backup_retention_period = 0`; CloudWatch log group Terraform-managed.
 - Safety nets: Budgets module (free), monthly limit $20, alerts at 50% ACTUAL /
@@ -451,8 +463,10 @@ destroy.yml run surfaced two latent deploy-role bugs:
   docs/cost-control.md, docs/interview-talking-points.md,
   docs/lightsail-devbox.md (Phase 18). Present: phase-gates.md,
   preflight-inventory.md, next-phases.md, decisions/0001–0017, sessions/.
-- **`architecture.md` must be written against the FIVE-level state model**, not
-  the three-level model of ADR-0015 — otherwise it is stale on arrival.
+- **`architecture.md` must be written against the SIX-level state model**
+  (ADR-0018), not the three-level model of ADR-0015 — otherwise it is stale on
+  arrival. This has now been revised twice before being written, which is the
+  argument for writing it in Phase 12 and not earlier.
 - **Skills freshness:** `tf-workflow` and `teardown` should mention the
   multi-level bootstrap and the targeted apply/destroy passes. Likely stale.
 - **project-prompt.md** should reflect the repo shape after C2 (§7 repo
