@@ -162,6 +162,10 @@ data "aws_iam_policy_document" "deploy" {
       "route53:ChangeResourceRecordSets",
       "route53:ListResourceRecordSets",
       "route53:GetHostedZone",
+      # The aws_route53_zone DATA SOURCE reads the zone's tags. Terraform calls
+      # it whether or not the configuration mentions tags, so leaving this out
+      # fails the plan, not the apply.
+      "route53:ListTagsForResource",
     ]
     resources = ["arn:aws:route53:::hostedzone/*"]
   }
@@ -186,6 +190,9 @@ data "aws_iam_policy_document" "deploy" {
       "acm:DescribeCertificate",
       "acm:ListCertificates",
       "acm:ListTagsForCertificate",
+      # Returns the certificate BODY and chain - both public. The private key is
+      # never exposed by ACM to any caller, so this stays a read.
+      "acm:GetCertificate",
     ]
     resources = ["*"]
   }
