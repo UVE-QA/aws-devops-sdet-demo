@@ -40,9 +40,9 @@ variable "task_memory" {
 }
 
 variable "desired_count" {
-  description = "Number of app tasks. Still 0: prod gets its own deploy role and promotion path in Phase 9.1, and until then nothing here should be able to raise billable tasks."
+  description = "Number of app tasks. 1 since Phase 9.1: prod now has its own deploy role and a promotion workflow, so the guard that kept this at 0 has served its purpose. prod is still only reachable through promote-prod.yml behind required reviewers."
   type        = number
-  default     = 0
+  default     = 1
 }
 
 variable "log_retention_days" {
