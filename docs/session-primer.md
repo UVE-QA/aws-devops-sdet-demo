@@ -36,35 +36,23 @@ document reaching the repo without going through git.
 
 ## A. Loading state — chat session
 
-The session clones the repository into its sandbox over HTTPS and reads state
-from that clone. While the repository is private this needs a token, which is a
-deliberate, bounded exception to "never ask for secrets" — see ADR-0020.
+**The repository is public.** Clone it into the session sandbox over HTTPS, with
+no credential of any kind, and read state from that clone:
 
 ```text
-Resource owner    UVE-QA
-Repository access Only select repositories → aws-devops-sdet-demo
-Permissions       Contents: Read-only        (nothing else)
-Expiration        shortest that covers the phase
+git clone https://github.com/UVE-QA/aws-devops-sdet-demo
 ```
 
-Read-only on one repository: it cannot push, cannot reach anything else, and
-expires on its own. The session clones with it, rewrites `origin` to the
-credential-free URL immediately, and never writes it to a file. **Revoke it by
-hand when the phase closes** — do not leave it to expire, and do not reuse a
-token from an earlier chat.
-
-If no token is supplied, fall back to loading state FROM THE DEVBOX: ask for
-`git -C ~/aws-devops-sdet-demo log --oneline -5`, then the files in section B
-one at a time. Treat that as the degraded path, not the normal one — what it
-loads is a hand-picked excerpt, and nothing checks that the excerpt is complete.
+The read-only token this section described for a few hours on 2026-07-26 is
+gone. ADR-0020 wrote its own expiry condition — "superseded when the repository
+goes public" — and that condition was met the same day, by ADR-0022. Do not ask
+for a token; there is nothing for one to unlock.
 
 **Never reconstruct state from a copy that lives outside git (ADR-0019).** That
 includes a clone left in the sandbox by an earlier chat: on 2026-07-26 one was
-four commits behind `origin/main` and looked entirely authoritative. Compare the
-hash before believing anything, every time.
-
-Both the token and this section expire at Phase 11, when the repository goes
-public and the clone needs no credential.
+four commits behind `origin/main` and looked entirely authoritative — right
+remote, clean tree, plausible HEAD. Compare the hash against `origin/main`
+before believing anything, every time. Cloning fresh costs seconds.
 
 ## B. Loading state — Claude Code on the devbox
 
@@ -111,8 +99,8 @@ touching anything.
   wasted round trip.
 - Explicit confirmation before ANY billable action. Review the plan first.
 - Never ask for secrets. Account ids, ARNs, regions, repo names are fine;
-  keys, tokens, passwords are not. ONE exception, bounded and written down:
-  the read-only clone token of section A (ADR-0020). Nothing else.
+  keys, tokens, passwords are not. No exceptions: the clone needs no
+  credential now.
 - Give one correct method, not options A/B.
 - Prefer a checked-in patch script over a long interactive heredoc when editing
   long documents: it fails loudly and changes nothing on mismatch.
@@ -217,11 +205,15 @@ could be read from its contents.
 
 ### Paths
 
-**The chat knows where its files are; you do not. So the chat supplies the
-path.** A chat session writes into an outputs folder whose path contains that
-session's own identifiers, so it is different in every chat and can never be
-written down here. Whenever the chat hands you a file — patch or otherwise — it
-must emit a ready-to-run `[mac]` command with the full path already substituted.
+**The chat should mount the buffer and write into it directly.** Ask it to
+request access to `~/Projects/_claude-transfer` at the start of the session;
+after that it writes straight into `outbox/` and the path is fixed and known to
+both sides.
+
+Without that mount, a chat session writes into an outputs folder whose path
+carries that session's own identifiers — different in every chat, impossible to
+write down here. In that case the chat must emit a ready-to-run `[mac]` command
+with the full path already substituted, because you cannot guess it.
 
 File cards in the chat are for reading the file, not for delivering it. Assuming
 a card lands anywhere by itself costs a round trip every time.
@@ -249,7 +241,8 @@ Terraform state levels — only the last two are ever destroyed:
   infra/bootstrap        S3 state bucket, local state, permanent
   infra/bootstrap-oidc   OIDC provider + deploy roles, permanent
   infra/shared-ecr       container registry, permanent        (ADR-0018)
-  infra/public-site      dashboard S3+CloudFront, permanent   (Phase 11)
+  infra/public-site      dashboard S3+CloudFront, permanent   (Phase 11.1,
+                         not built yet; 11.0 publish-the-repo is DONE)
   infra/envs/stage       workload, destroyed every cycle
   infra/envs/prod        workload, destroyed every cycle      (Phase 9)
 ```
@@ -265,8 +258,14 @@ obvious once prod runs an image that stage's teardown would delete (ADR-0018).
 - infra/shared-ecr has never been applied. Apply it locally under demo-admin
   once per account, BEFORE the first deploy-stage run of a cycle; the workflow
   fails fast with an explicit message if the repository is absent.
-- prod has no deploy role of its own yet, so destroy.yml offers stage only and
-  prod desired_count is still 0. Phase 9.1.
+- prod's deploy role EXISTS IN CODE but has never been applied. The next local
+  apply of infra/bootstrap-oidc under demo-admin must plan as 1 role + 1 role
+  policy added, 0 destroyed (ADR-0021 moved blocks). Anything else means a
+  moved block is wrong — do not apply through it.
+- destroy.yml still offers stage only, and prod desired_count is still 0.
+- prod's approval gate needs BOTH halves: trust_branch_ref = false in IAM (done)
+  and required reviewers on the GitHub Environment (UI, unassertable from git).
+  Verify the GitHub half before the first promote run — ADR-0022.
 - the GitHub variable TF_VAR_DEMO_ACCOUNT_ID is NOT a Terraform variable.
   Only destroy.yml uses it, to build the deploy role ARN. Fixing the name means
   renaming it in the GitHub UI.
@@ -284,20 +283,20 @@ rename the chat per the naming convention above.
 ```text
 AWS project session. You are the driver for this session.
 
-First, load state. Clone https://github.com/UVE-QA/aws-devops-sdet-demo into
-your sandbox over HTTPS using the read-only token I paste next, rewrite origin
-to the credential-free URL straight away, and read, in this order:
+First, load state. The repository is PUBLIC — clone
+https://github.com/UVE-QA/aws-devops-sdet-demo into your sandbox over HTTPS,
+no credential needed, and read, in this order:
   docs/session-primer.md
   docs/phase-gates.md          (the cursor — the only file that knows the phase)
   docs/next-phases.md
   docs/decisions/              (newest first)
   docs/discussion-log.md       (top "Current state" block only)
 
-If I have not given you a token, ask for one (fine-grained, this repo only,
-Contents: Read-only — ADR-0020) or fall back to loading state FROM THE DEVBOX:
-`git -C ~/aws-devops-sdet-demo log --oneline -5`, then the files above one at a
-time. Never rebuild state from a copy that lives outside git (ADR-0019) —
-including a clone left in your sandbox by an earlier chat. Check the hash.
+Never rebuild state from a copy that lives outside git (ADR-0019) — including a
+clone left in your sandbox by an earlier chat. Check the hash against
+origin/main before believing anything. Also ask me for access to
+~/Projects/_claude-transfer so you can write deliverables straight into
+outbox/.
 
 Then STOP and report: current phase, next allowed step, blockers. Propose what
 this session should cover and wait for my confirmation.
@@ -311,8 +310,7 @@ Then run the session: discuss, decide, draft, and give me instructions.
   `git format-patch <base>..HEAD --stdout`. Give me a ready-to-run scp with
   your own outputs path substituted — I cannot guess where your sandbox put
   it — then the `git am` line. You never push; I apply and push after reading.
-- Explicit confirmation before any billable AWS action. Never ask for secrets —
-  the read-only clone token above is the one written-down exception.
+- Explicit confirmation before any billable AWS action. Never ask for secrets.
 - English for anything that lands in the repo or is pasted into a session;
   Russian is fine for discussion.
 
