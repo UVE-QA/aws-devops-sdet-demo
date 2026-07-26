@@ -19,9 +19,20 @@ Keeping them current was a manual step the user had to perform at every phase
 gate, and `docs/phase-gates.md` required Claude to *remind* the user to do it in
 every STOP summary.
 
-Both files have since moved into git — `discussion-log.md` in `1f50243`,
-`project-prompt.md` earlier. The Project copies are therefore exact duplicates
-of tracked files, not a separate artifact.
+`discussion-log.md` moved into git in `1f50243`.
+
+**`project-prompt.md` had never been in git at all** — not in any commit, not
+anywhere in history. The first version of this ADR asserted that both files were
+tracked and reasoned from there. That assertion was written from memory and was
+not checked against `git ls-files`.
+
+It was caught at the moment of deletion. Acting on this ADR as originally
+written would have removed the only copy of a 2,271-line document. The file was
+committed first, in `96e110c`, and nothing was deleted until it was.
+
+The decision below is unchanged, but it now rests on a different footing: the
+Project holds no state **because everything it held is in git** — which had to
+be MADE true, not observed to be true.
 
 On 2026-07-25 the mirror was measured against the repository for the first time
 in weeks. It was **five commits stale**, and it did not contain
@@ -59,6 +70,23 @@ command either, so it cannot do the work the context would be for.
 4. **A phase gate ends in git.** Update the cursor, write the session summary,
    commit, push. Nothing outside the repository has to be touched for the state
    to be correct.
+
+## Correction, same day
+
+The near-miss is recorded here rather than in a commit message because it is
+evidence about this ADR's own reliability. The document argued that copies
+outside git rot unnoticed, and was itself written on an unverified claim about
+what git contained. The failure mode it describes does not spare documents that
+describe it.
+
+It also corrects the record from 2026-07-25 session 4, which stated that
+everything unique in `~/Projects/aws-devops-sdet-demo` had been committed and
+that the folder could be deleted. That was wrong by exactly one file — the one
+that mattered most, because it existed nowhere else.
+
+Operational rule taken from this: **a document is committed BEFORE the copy it
+duplicates is removed, and "it is already in git" is checked with `git ls-files`,
+never recalled.**
 
 ## Consequences
 

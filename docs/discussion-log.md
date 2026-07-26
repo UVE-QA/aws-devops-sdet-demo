@@ -545,10 +545,13 @@ destroy.yml run surfaced two latent deploy-role bugs:
 - One working copy, on the Lightsail devbox (`ubuntu@34.213.147.86`,
   `~/aws-devops-sdet-demo`); laptops connect via SSH. GitHub is the source of
   truth. Don't sync repos via Dropbox/iCloud or scp between machines.
-- **`~/Projects/aws-devops-sdet-demo` on the MacBook** is NOT a working copy. As
-  of session 4 everything unique in it has been committed, so it holds nothing
-  the repo does not — except the stale June `README.md`, `discussion-log.md` and
-  `project-prompt.md`. It can be archived or deleted.
+- **`~/Projects/aws-devops-sdet-demo` on the MacBook** is NOT a working copy.
+  Session 4 recorded that everything unique in it had been committed. That was
+  wrong: `docs/project-prompt.md` lived there and in the Claude Project and
+  NOWHERE ELSE until `96e110c`, and it was nearly deleted on the strength of the
+  earlier claim. Only `README.md` is now uncommitted, deliberately — the June
+  version contradicts reality and is rewritten in Phase 12.
+  Verify with `git ls-files` before treating anything there as redundant.
 - **`~/Projects/_claude-transfer` on the MacBook** is the buffer for files
   produced in chat that still need to reach the devbox. It should be empty most
   of the time; anything sitting there is uncommitted. Contains `send.sh` and
