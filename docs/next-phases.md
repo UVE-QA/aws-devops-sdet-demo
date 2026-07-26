@@ -19,6 +19,7 @@ Phase 0-7            done
 Phase 8 (lifecycle)  done  — deploy → demo → destroy green end-to-end via Actions
 Phase 8 (features)   NOT STARTED
 Phase 9              done (2026-07-26) — prod, promotion by digest, HTTPS
+Phase 10             CODE COMPLETE (2026-07-26), unvalidated — see below
 Phase 11.0           done (2026-07-26) — repository is public
 ```
 
@@ -167,7 +168,19 @@ certificate.
 Cost: hosted zone ~$0.50/month. Prod is on-demand, so per-hour cost while up
 matches stage.
 
-## Phase 10 (M2) — Thin application slice
+## Phase 10 (M2) — Thin application slice  [CODE COMPLETE 2026-07-26, NOT CLOSED]
+
+The code below is written, committed and reviewed. **None of it has run against
+PostgreSQL and none of it has run against AWS**, so this phase is not done. What
+the session actually produced, and what it is still owed, is in
+`docs/sessions/2026-07-26-phase-10-thin-application-slice.md`.
+
+One thing the plan below did not anticipate, now recorded as **ADR-0025**: the
+stage/prod split it describes in three lines did not exist in the workflows.
+`promote-prod.yml` ran the whole `testDir` under a step named "read-only". The
+split is now made by directory and enforced by a guard, rather than asserted in
+a comment.
+
 
 **Not the full domain build.** The cycle already works with today's trivial app —
 but the dashboard would then link to a single smoke test, which proves nothing.

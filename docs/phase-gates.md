@@ -18,6 +18,7 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 7     | Destroy validation             | ✅ done     | 497a4b2   |
 | 8     | Feature expansion              | 🟡 lifecycle done, features pending | ee0a25e |
 | 9     | Prod env, promotion, HTTPS     | ✅ done     | 25d4dab   |
+| 10    | Thin application slice         | 🟡 code complete, unvalidated | 9c166df |
 | 11.0  | Publish the repository         | ✅ done (pulled forward) | a1c4402 |
 
 Phases 9-19 are planned in `docs/next-phases.md` (MVP track 9-13, polish
@@ -333,6 +334,48 @@ track 14-19), shaped by ADR-0017. This table tracks only what is done.
   - a fix to a SHARED invariant is applied to EVERY environment directory in the
     same commit, not only to the one currently being exercised;
   - CI validates EVERY IaC directory - an unvalidated directory rots invisibly.
+
+### Phase 10 — Thin application slice  [CODE COMPLETE 2026-07-26, NOT CLOSED]
+- Plan: `docs/next-phases.md` Phase 10. Decision: **ADR-0025**.
+- Delivered, all of it unvalidated against a real database:
+  `POST/GET/DELETE /api/items` with 201/409/422/404/204; Alembic revision 0002
+  (nullable `description`, and the first chain longer than one revision); the
+  static page driving the API; 19 pytest/httpx contract cases; Playwright split
+  into `smoke` (read-only) and `regression` (destructive); a database assertion
+  after a UI action; `scripts/ecs-run-task.sh` shared by both AWS workflows.
+- **The finding of this phase**: `promote-prod.yml` ran `npx playwright test` —
+  the WHOLE testDir — under a step named "Read-only smoke against prod". The
+  comment was an intention the command could not honour, true only while no
+  destructive spec existed. The first one would have made prod destructive
+  silently. Suites are now split by DIRECTORY and every caller names its
+  projects explicitly (ADR-0025).
+- A spec outside both directories belongs to no project, runs in no suite and is
+  reported by nothing — the e1e577a shape again.
+  `tests/playwright/scripts/assert-spec-coverage.sh` fails on it, and was
+  verified by breaking it on purpose.
+- STATUS: the code is written and committed. **Nothing has run against
+  PostgreSQL and nothing has run against AWS.** Do not record this phase as done
+  on the strength of the code existing — that is the failure mode this file
+  exists to prevent.
+- Owed on the devbox before anything else:
+```bash
+  make local-up && make migrate && make seed
+  make test-spec-coverage
+  make test-api
+  make test-smoke
+  make test-regression      # includes the UI-write database assertion
+  make test-db
+  make local-down
+```
+- Criteria to close: the regression green in `ci.yml` against Compose, the
+  read-only smoke green against deployed prod, the DB assertion proving a UI
+  action reached RDS — and, per the standing invariant, a destroy that passes
+  end-to-end at the end of this phase, not only at the end of the MVP.
+- Cost when it runs: one `deploy-stage → promote-prod → destroy both` cycle.
+  Nothing new is billable; the suites run inside the existing cycle.
+- Expect one failed first run somewhere. This phase adds a genuinely new AWS
+  path — an ECS task carrying an environment override — and every new path in
+  this project so far has cost exactly one run to discover what it needed.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

@@ -47,7 +47,10 @@ curl -s localhost:8000/api/db-check   # now reports connected
 ## Run the existing suites
 
 ```bash
-make test-smoke         # Playwright smoke against BASE_URL (localhost:8000)
+make test-spec-coverage # every spec belongs to a Playwright project
+make test-api           # HTTP contract tests (pytest+httpx), DESTRUCTIVE
+make test-smoke         # Playwright read-only suite against BASE_URL
+make test-regression    # Playwright destructive suite + the UI-write DB assertion
 make test-db            # DB assertion: seed-item-001 exists
 ```
 

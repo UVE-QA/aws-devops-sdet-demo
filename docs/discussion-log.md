@@ -20,7 +20,8 @@ BY DIGEST to prod at https://app.demo.uveapp.net → both environments destroyed
 ```
 
 That was the project's headline goal, and it is done. What the MVP still lacks
-is a public dashboard (Phase 11) and test coverage worth gating on (Phase 10).
+is a public dashboard (Phase 11) and test coverage worth gating on (Phase 10) —
+the latter is now WRITTEN but not yet validated against a database or AWS.
 
 Phase 9.0 made `infra/envs/prod` valid for the first time in seven weeks, moved
 the container registry to a permanent state level (**ADR-0018**), and closed the
@@ -32,6 +33,34 @@ Stage infrastructure is FULLY DESTROYED in AWS — zero billable resources.
 Nothing is billing except the near-zero state bucket. The OIDC provider + deploy
 role from `infra/bootstrap-oidc` are still present (IAM, free) because a stage
 teardown does not touch that state level.
+
+### Phase 10 session (2026-07-26) — the thin application slice
+
+Full write-up: `docs/sessions/2026-07-26-phase-10-thin-application-slice.md`.
+
+The cycle worked; what it gated on did not mean much. One smoke test and a seed
+assertion cannot tell a working application from one that returns 200 for
+everything. Phase 10 adds the smallest surface worth gating on — items
+create/list/delete with real negatives, a page that drives it, 19 HTTP contract
+cases, a Playwright regression, and a database assertion made by a DIFFERENT
+process than the browser that wrote the row.
+
+**None of it has run against PostgreSQL or AWS yet.** The code is committed; the
+phase is not closed, and the cursor says so.
+
+The finding is the familiar one. `promote-prod.yml` carried a step called
+"Read-only smoke against prod" and ran `npx playwright test` — the whole
+`testDir`. The comment was an intention the command could not honour; it was
+true only because no destructive spec existed, and the first one would have made
+prod destructive silently, with nothing turning red. Suites are now split by
+DIRECTORY into Playwright projects, every caller names its projects explicitly,
+and a guard fails when a spec belongs to no project (**ADR-0025**). The guard was
+verified by breaking it on purpose, because an unexercised guard is not a guard.
+
+Second-order but the same species: the ECS run-task loop existed in two copies,
+and this phase needed to teach it environment overrides. That is precisely the
+change that lands in one copy and not the other, so it moved to
+`scripts/ecs-run-task.sh` and both workflows call it.
 
 ### Phase 9.1 closing session (2026-07-26) — prod, promotion, HTTPS
 

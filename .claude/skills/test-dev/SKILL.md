@@ -21,8 +21,26 @@ and hands off here; this skill makes the suite match the new reality.
 
 ## What lives here
 
-- `tests/` — Playwright smoke and (later) regression specs
-- DB-assertion tests (e.g. checking `seed-item-001` exists)
+```text
+tests/api/                          HTTP contract tests (pytest + httpx).
+                                    DESTRUCTIVE. stage and local only.
+tests/playwright/tests/smoke/       READ-ONLY. project "smoke".
+                                    The only suite prod runs.
+tests/playwright/tests/regression/  DESTRUCTIVE. project "regression".
+                                    stage and local only.
+tests/db/assert_seed.py             seed assertion, local gate
+app/scripts/assert_seed.py          the same, shipped in the image for ECS
+app/scripts/assert_ui_write.py      asserts the row the UI wrote reached RDS
+```
+
+**Where a spec lives decides where it runs (ADR-0025).** The Playwright projects
+select by directory, so a new spec goes under `smoke/` only if it is genuinely
+read-only — no create, no update, no delete, not even a cleanup. Anything else
+goes under `regression/`.
+
+A spec in neither directory belongs to no project, runs in no suite and is
+reported by nothing. `make test-spec-coverage` fails on exactly that, and it is
+not optional: run it after adding or moving any spec file.
 
 ## The contract to track
 
@@ -40,11 +58,18 @@ When adapting tests, align them to the current app contract:
 2. Update or add the spec/assertion to match the new shape.
 3. Run against the local stack (via `local-dev`):
    ```bash
+   make test-spec-coverage   # after adding or moving any spec
+   make test-api
    make test-smoke
+   make test-regression      # includes the UI-write DB assertion
    make test-db
    ```
-4. Keep smoke fast and deterministic; put broader coverage in regression
-   (regression is a later phase, not v0).
+4. Keep smoke fast, read-only and deterministic. Broader and destructive
+   coverage goes to regression.
+5. If a test needs a name that another process will look up — the UI-write
+   assertion is the existing example — pass it explicitly and give it NO
+   default. A default lets the assertion pass while checking something nobody
+   created.
 
 ## Quality guidance
 
