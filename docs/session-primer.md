@@ -175,6 +175,15 @@ Ops — devbox maintenance
   "read-only smoke against prod" and ran the whole test directory; it was true
   only while no destructive test existed. When a document and a command
   disagree, the command wins — go read the command.
+- An EMPTY result is not a clean result. A post-teardown check whose SSO token
+  had expired printed `ecs :`, `rds :`, `alb :` and six more empty lines, which
+  is exactly what success looks like. Put `aws sts get-caller-identity` first and
+  assign each result to a variable under `set -e`, so losing credentials aborts
+  instead of rendering green.
+- Documenting a trap once does not remove it. `--use-device-code` was written
+  down in one file while eight others still printed the flagless command, and the
+  eight were the ones being copied from. A fix goes to every copyable
+  occurrence, in the same commit, exactly like a shared invariant.
 ```
 
 ## Delivering files from a chat to the repo
@@ -354,6 +363,17 @@ obvious once prod runs an image that stage's teardown would delete (ADR-0018).
   renaming it in the GitHub UI. TF_STATE_BUCKET, on stage, is used by nothing.
 - prod keeps no data between cycles, and app.demo.uveapp.net is a dead name most
   of the time (ADR-0017 D2a). Say so; do not get caught by it.
+- BECAUSE that name is usually dead, clients negative-cache it. On 2026-07-26
+  prod looked dead in the browser for half an hour while serving 200s throughout:
+  the macOS system resolver held an NXDOMAIN for it. `dig` resolved and `curl` on
+  the same machine did not, because only `curl` goes through the system resolver.
+  Verify prod from a host that has not been asking for the name, and flush before
+  a demo: `sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder`.
+  Three separate client-side symptoms all accused the application, which was
+  never involved.
+- `aws sso login` on the devbox needs `--use-device-code`. The default flow opens
+  a callback on 127.0.0.1 that nothing there can reach. Put the login in the step
+  itself; a chat session cannot see whether the token is still alive.
 - a genuinely new path costs one failed run. Both IAM gaps in this project were
   reads a data source makes and the configuration never mentions; no amount of
   policy review finds them. Budget for it instead of being surprised.

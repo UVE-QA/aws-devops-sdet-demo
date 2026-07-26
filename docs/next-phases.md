@@ -168,12 +168,23 @@ certificate.
 Cost: hosted zone ~$0.50/month. Prod is on-demand, so per-hour cost while up
 matches stage.
 
-## Phase 10 (M2) — Thin application slice  [CODE COMPLETE 2026-07-26, NOT CLOSED]
+## Phase 10 (M2) — Thin application slice  [DONE 2026-07-26]
 
-The code below is written, committed, validated against PostgreSQL on the devbox
-and green in CI. **None of it has run against AWS**, so this phase is not done.
-What the session produced, what it measured, and what it is still owed, is in
-`docs/sessions/2026-07-26-phase-10-thin-application-slice.md`.
+The code was written and green locally in one session and validated against AWS
+in the next. The closing cycle — deploy-stage, promotion behind required
+reviewers, read-only smoke against deployed prod, destroy both — ran green
+through Actions with no manual AWS operation, and the teardown was confirmed
+against the AWS CLI. What each session produced and measured is in
+`docs/sessions/2026-07-26-phase-10-thin-application-slice.md` and
+`docs/sessions/2026-07-26-phase-10-aws-validation.md`.
+
+The closing session found no structural problem and produced no ADR. It found
+three documentation and tooling defects of the project's usual species — a trap
+documented in one file and contradicted by eight, a verification that reads as
+green when it loses its credentials, and a skill still describing the world
+before ADR-0018 — plus one operational hazard: a client-side negative DNS cache
+makes prod look dead for a while after it comes up, because the name is dead
+most of the time by design.
 
 One thing the plan below did not anticipate, now recorded as **ADR-0025**: the
 stage/prod split it describes in three lines did not exist in the workflows.

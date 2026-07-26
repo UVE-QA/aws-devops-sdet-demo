@@ -18,7 +18,7 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 7     | Destroy validation             | ✅ done     | 497a4b2   |
 | 8     | Feature expansion              | 🟡 lifecycle done, features pending | ee0a25e |
 | 9     | Prod env, promotion, HTTPS     | ✅ done     | 25d4dab   |
-| 10    | Thin application slice         | 🟡 local + CI green, AWS pending | 93ce481 |
+| 10    | Thin application slice         | ✅ done     | 1bf89ac   |
 | 11.0  | Publish the repository         | ✅ done (pulled forward) | a1c4402 |
 
 Phases 9-19 are planned in `docs/next-phases.md` (MVP track 9-13, polish
@@ -31,7 +31,7 @@ track 14-19), shaped by ADR-0017. This table tracks only what is done.
   GitHub owner/repo/branch, devbox status, owner tag, state bucket name fixed.
 - Validation:
 ```bash
-  aws sso login --profile demo-admin
+  aws sso login --profile demo-admin --use-device-code
   aws sts get-caller-identity --profile demo-admin   # Account must be the demo account
 ```
 
@@ -335,7 +335,7 @@ track 14-19), shaped by ADR-0017. This table tracks only what is done.
     same commit, not only to the one currently being exercised;
   - CI validates EVERY IaC directory - an unvalidated directory rots invisibly.
 
-### Phase 10 — Thin application slice  [LOCAL + CI GREEN 2026-07-26, NOT CLOSED]
+### Phase 10 — Thin application slice  [DONE 2026-07-26]
 - Plan: `docs/next-phases.md` Phase 10. Decision: **ADR-0025**.
 - Delivered, all of it unvalidated against a real database:
   `POST/GET/DELETE /api/items` with 201/409/422/404/204; Alembic revision 0002
@@ -353,10 +353,16 @@ track 14-19), shaped by ADR-0017. This table tracks only what is done.
   reported by nothing — the e1e577a shape again.
   `tests/playwright/scripts/assert-spec-coverage.sh` fails on it, and was
   verified by breaking it on purpose.
-- STATUS: validated against PostgreSQL on the devbox and green in CI
-  (`ci` run 30217591361, first attempt, both jobs). **Nothing has run against
-  AWS.** Do not record the phase as done on the strength of local green — the
-  environment that decides it is stage.
+- STATUS: **CLOSED (2026-07-26).** A full cycle ran through Actions from `main`
+  at 1bf89ac with no manual AWS operation: deploy-stage 30218469484 green on the
+  FIRST attempt (14m54s), promote-prod 30219504665 green after pausing for
+  required reviewers (13m31s), destroy prod 30221241572 green (8m24s), destroy
+  stage 30221612424 green (8m29s). Post-teardown state verified against the AWS
+  CLI: nothing billable remains beyond the four permanent levels. Session
+  summary: docs/sessions/2026-07-26-phase-10-aws-validation.md.
+  Earlier status, kept because it is the state the cursor correctly refused to
+  call done: validated against PostgreSQL on the devbox and green in CI
+  (`ci` run 30217591361, first attempt, both jobs), with nothing run against AWS.
 - What the devbox run actually established, 2026-07-26:
 ```text
   migrate     0001 -> 0002 on an EXISTING database, not a schema built from
@@ -386,6 +392,34 @@ track 14-19), shaped by ADR-0017. This table tracks only what is done.
   passing on the first attempt does not buy that back: `ci.yml` touches no IAM
   policy, and both IAM gaps this project has had were reads that no amount of
   local green could have predicted.
+  **This prediction was WRONG** (2026-07-26): the environment override needed no
+  new IAM permission and deploy-stage was green on its first attempt. Recorded
+  as wrong rather than deleted — the reasoning was sound and stays the default
+  for the next new path.
+- Findings of the closing session, none structural, all fixed in the same commit:
+  - `aws sso login` requires `--use-device-code` on the headless devbox. That was
+    documented in docs/preflight-inventory.md and NOWHERE else, while eight other
+    files still printed the flagless form and were the ones actually copied from.
+    Documenting a trap once does not remove it while the wrong command stays
+    copyable — the promote-prod "read-only" comment in a different costume.
+  - a post-teardown check whose SSO token has expired prints an EMPTY list for
+    every resource, which is exactly what a clean account looks like. Any such
+    check must start with `aws sts get-caller-identity` and assign results to
+    variables under `set -e`. The teardown skill now does.
+  - the `teardown` skill still expected the ECR repository to be gone after a
+    destroy — false since ADR-0018, and it would have made a correct teardown
+    look failed. It now lists all four permanent levels a destroy must not touch.
+- Operational hazard found while demoing, worth more than it looks: prod appeared
+  dead in the browser for ~30 minutes while serving 200s throughout. The macOS
+  system resolver was holding a NEGATIVE cache entry for app.demo.uveapp.net,
+  which is a dead name most of the time by design (ADR-0017 D2a). `dig` resolved
+  and `curl` on the same machine did not, because only the latter uses the system
+  resolver. Verify prod with a request that bypasses it, and flush the cache
+  (`sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder`) before
+  showing anything to anyone.
+- The UI write path against PROD is covered by nothing automated, by design, and
+  was exercised by hand once in this cycle. Say that out loud rather than letting
+  the suites imply otherwise.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

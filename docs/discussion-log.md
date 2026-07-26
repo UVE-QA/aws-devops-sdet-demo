@@ -8,8 +8,10 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 Phase 0–8 = done as far as they go: the Phase 8 lifecycle half is CLOSED, the
 feature half is not started. **Phase 9 is CLOSED (2026-07-26): 9.0
-reconciliation on 07-25, 9.1 prod + promotion + HTTPS on 07-26. Phase 11.0
-(publish the repository) was pulled forward and is DONE.**
+reconciliation on 07-25, 9.1 prod + promotion + HTTPS on 07-26. Phase 10 is
+CLOSED (2026-07-26) — validated against AWS, not only locally. Phase 11.0
+(publish the repository) was pulled forward and is DONE.** Next up is Phase 11.1,
+the public dashboard.
 
 The full cycle now runs end-to-end through GitHub Actions with zero manual AWS
 operations for BOTH environments:
@@ -19,9 +21,12 @@ deploy stage → tests gate it → a human approves → the tested image is prom
 BY DIGEST to prod at https://app.demo.uveapp.net → both environments destroyed
 ```
 
-That was the project's headline goal, and it is done. What the MVP still lacks
-is a public dashboard (Phase 11) and test coverage worth gating on (Phase 10) —
-the latter is now WRITTEN but not yet validated against a database or AWS.
+That was the project's headline goal, and it is done. Phase 10 then made what
+the cycle gates on mean something: an items slice with real negatives, suites
+split into read-only and destructive by directory, and a database assertion
+proving a browser action reached RDS — all of it now exercised against AWS, not
+just against Compose. What the MVP still lacks is the public dashboard
+(Phase 11.1).
 
 Phase 9.0 made `infra/envs/prod` valid for the first time in seven weeks, moved
 the container registry to a permanent state level (**ADR-0018**), and closed the
@@ -33,6 +38,46 @@ Stage infrastructure is FULLY DESTROYED in AWS — zero billable resources.
 Nothing is billing except the near-zero state bucket. The OIDC provider + deploy
 role from `infra/bootstrap-oidc` are still present (IAM, free) because a stage
 teardown does not touch that state level.
+
+### Phase 10 closing session (2026-07-26) — the AWS validation cycle
+
+Full write-up: `docs/sessions/2026-07-26-phase-10-aws-validation.md`.
+
+One cycle through Actions, no manual AWS operation: deploy-stage green on the
+first attempt, promote-prod paused for required reviewers then green, destroy
+prod and destroy stage green. Prod was checked from outside the workflow that
+declared itself green — `curl` from a different host confirmed the certificate,
+the HTTP redirect, and `/api/items` returning the seeded row with a `description`
+column, which is what proves prod ran the Phase 10 slice on a database migrated
+to revision 0002 rather than an older image answering `/health`. Teardown
+confirmed against the AWS CLI, not Terraform state.
+
+The phase-gate note had predicted one failed run, because every genuinely new AWS
+path in this project had cost exactly one. It was wrong this time, and is kept as
+wrong rather than deleted: the reasoning stands as the default for the next path.
+
+The session's real findings were not in AWS at all.
+
+`aws sso login` needs `--use-device-code` on the headless devbox. That was
+already documented — in one file — while eight others still printed the flagless
+form, and those were the ones being copied from. A trap documented once is not a
+trap removed while the wrong command stays copyable; this is the
+`promote-prod.yml` "read-only" comment wearing different clothes.
+
+A post-teardown check whose SSO token had expired printed an empty list for every
+resource, which is indistinguishable from a clean account. It now starts with
+`aws sts get-caller-identity` and assigns each result under `set -e`, so losing
+credentials aborts instead of rendering green. The `teardown` skill also still
+expected the ECR repository to disappear — false since ADR-0018 — and would have
+made a correct teardown look failed; it now lists all four permanent levels.
+
+And the operational hazard worth carrying into the demo script: prod appeared
+dead in the browser for half an hour while serving 200s the whole time. The macOS
+system resolver held a NEGATIVE cache entry for `app.demo.uveapp.net`, a name
+that is dead most of the time by design (ADR-0017 D2a). `dig` resolved, `curl` on
+the same machine did not, because only the second goes through the system
+resolver. Verify prod with a request that bypasses it, and flush the cache before
+showing anything to anyone.
 
 ### Phase 10 session (2026-07-26) — the thin application slice
 
@@ -46,8 +91,8 @@ cases, a Playwright regression, and a database assertion made by a DIFFERENT
 process than the browser that wrote the row.
 
 Validated on the devbox against real PostgreSQL and green in CI on the first
-attempt (`ci` 30217591361). **Nothing has run against AWS**, so the phase is not
-closed and the cursor says so. The migrate step is the one worth keeping: the
+attempt (`ci` 30217591361). Nothing had run against AWS at that point, so the
+phase stayed open until the following session closed it. The migrate step is the one worth keeping: the
 volume had survived earlier sessions, so alembic upgraded an EXISTING database
 instead of building a schema from nothing — a path that could not exist before
 this phase added a second revision.
