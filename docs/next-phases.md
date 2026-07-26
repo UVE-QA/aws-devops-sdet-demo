@@ -18,16 +18,21 @@ owned domain, phased external access).
 Phase 0-7            done
 Phase 8 (lifecycle)  done  — deploy → demo → destroy green end-to-end via Actions
 Phase 8 (features)   NOT STARTED
+Phase 9              done (2026-07-26) — prod, promotion by digest, HTTPS
+Phase 11.0           done (2026-07-26) — repository is public
 ```
 
-Stage is fully destroyed in AWS. Nothing is billing except the state bucket. The
-OIDC provider and stage deploy role exist (IAM, free). There is no deployed prod
-environment, no public surface, and no test coverage beyond one smoke test and a
-seed assertion.
+Both environments are fully destroyed in AWS. Billing is the state bucket, the
+shared registry and one hosted zone — cents. The OIDC provider and both deploy
+roles exist (IAM, free), as does the wildcard certificate (free).
 
-`infra/envs/prod` DOES exist in git as a Phase 4 scaffold mirror — committed,
-never applied, `desired_count = 0`. It is stale and must be reconciled before
-use; see Phase 9.
+What the project can now do, proven end to end through Actions with no manual
+AWS operation: deploy stage, gate on tests, pause for a human, promote the
+tested image BY DIGEST to a prod environment reachable at
+`https://app.demo.uveapp.net`, and destroy both.
+
+What it still lacks: a public surface, and any test coverage beyond one smoke
+test and a seed assertion. Those are Phases 10 and 11.
 
 **Everything below this line is planned, not built.** No document in this repo
 may describe any of it as implemented.
@@ -72,7 +77,13 @@ Anything not required by that sentence is polish and waits for Phase 14+.
 
 # MVP track
 
-## Phase 9 (M1) — Prod environment, promotion, HTTPS
+## Phase 9 (M1) — Prod environment, promotion, HTTPS  [DONE 2026-07-26]
+
+Closed by `docs/sessions/2026-07-26-phase-9-1-prod-promotion-https.md`. HTTPS
+landed on a delegated subdomain, `demo.uveapp.net`, per **ADR-0024** — the
+parent zone turned out to live in the Organizations management account, which
+makes delegation the only acceptable route rather than the convenient one. The
+plan below is kept as written for the record.
 
 **First, deliberately.** This is the only genuinely missing half of the cycle,
 and it is the riskiest work in the plan. ADR-0015 and ADR-0016 both came from
@@ -254,10 +265,30 @@ content     architecture diagram — what happens and in what order
             link to the latest Playwright HTML report
             run history and the duration of the last cycle
 
+            THE STAGES OF A RUN, WITH PER-STAGE STATUS — not just a final
+            colour. Requested 2026-07-26 while watching `gh run watch` print
+            exactly that in the terminal: what is planned, what is running,
+            what is done. The visual form is open; the requirement is that a
+            viewer can see WHERE a cycle is, not only whether it ended well.
+
 plumbing    a publish workflow syncs the site + status.json + the Playwright
             HTML report to S3 and invalidates the CloudFront distribution,
             under a narrow role scoped to that bucket and distribution only.
             The dashboard reads the public GitHub API for run history.
+```
+
+Open question for an ADR in this phase — where per-stage status comes from:
+
+```text
+GitHub Actions API, read from the browser
+  the repository is public, so no token and no backend of our own. Live by
+  construction. Bounded by GitHub's unauthenticated rate limit and by whatever
+  shape GitHub's API happens to have.
+
+workflows write status into the S3 bucket
+  independent of GitHub, and able to describe things Actions knows nothing
+  about — the state of an environment in AWS, for instance. Costs a write step
+  in every workflow and can go stale if a run dies before writing.
 ```
 
 The detail that makes this phase necessary rather than decorative: **GitHub

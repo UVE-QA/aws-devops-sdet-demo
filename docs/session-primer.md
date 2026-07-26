@@ -277,15 +277,17 @@ starts a session is the design. Keep it that way.
 Browser → ALB → ECS Fargate → RDS PostgreSQL, one FastAPI container.
 Region us-west-2, one dedicated AWS Organizations member account.
 GitHub OIDC only; no static AWS keys anywhere.
+prod is public at https://app.demo.uveapp.net while it is up.
 
 Terraform state levels — only the last two are ever destroyed:
   infra/bootstrap        S3 state bucket, local state, permanent
   infra/bootstrap-oidc   OIDC provider + deploy roles, permanent
   infra/shared-ecr       container registry, permanent        (ADR-0018)
+  infra/dns              hosted zone + ACM certificate, permanent  (ADR-0024)
   infra/public-site      dashboard S3+CloudFront, permanent   (Phase 11.1,
                          not built yet; 11.0 publish-the-repo is DONE)
   infra/envs/stage       workload, destroyed every cycle
-  infra/envs/prod        workload, destroyed every cycle      (Phase 9)
+  infra/envs/prod        workload, destroyed every cycle
 ```
 
 Anything that must survive a teardown — including the artifact that PROVES the
@@ -296,23 +298,27 @@ obvious once prod runs an image that stage's teardown would delete (ADR-0018).
 ## Known traps (verify against phase-gates.md; these get fixed and go stale)
 
 ```text
-- infra/shared-ecr has never been applied. Apply it locally under demo-admin
-  once per account, BEFORE the first deploy-stage run of a cycle; the workflow
-  fails fast with an explicit message if the repository is absent.
-- prod's deploy role EXISTS IN CODE but has never been applied. The next local
-  apply of infra/bootstrap-oidc under demo-admin must plan as 1 role + 1 role
-  policy added, 0 destroyed (ADR-0021 moved blocks). Anything else means a
-  moved block is wrong — do not apply through it.
-- destroy.yml still offers stage only, and prod desired_count is still 0.
-- prod's approval gate has BOTH halves as of 2026-07-26: trust_branch_ref =
-  false in IAM, and the prod environment's 2 protection rules in GitHub (required
-  reviewers, main-only, admin bypass off). The GitHub half is UI state that git
-  cannot assert — if a promotion ever runs without pausing, check it first.
+- Every permanent level is applied. A cycle now starts straight at
+  deploy-stage; the local applies are only needed on a fresh account, in the
+  order listed in docs/preflight-inventory.md.
+- prod's approval gate has BOTH halves: trust_branch_ref = false in IAM, and the
+  prod environment's 2 protection rules in GitHub (required reviewers, main-only,
+  admin bypass off). The GitHub half is UI state that git cannot assert — if a
+  promotion ever runs without pausing, check it first.
+- the NS record delegating demo.uveapp.net lives BY HAND in the parent zone, in
+  org-management. Untracked by git, same category as the protection rules. If
+  prod's name stops resolving, check it before anything else. And beware: a
+  second, non-authoritative hosted zone for uveapp.net exists in an unrelated
+  account and looks entirely real. Ground truth is the TLD:
+  dig +noall +authority NS uveapp.net @a.gtld-servers.net
 - the GitHub variable TF_VAR_DEMO_ACCOUNT_ID is NOT a Terraform variable.
   Only destroy.yml uses it, to build the deploy role ARN. Fixing the name means
-  renaming it in the GitHub UI.
-- prod keeps no data between cycles, and app.<domain> is a dead link most of
-  the time (ADR-0017 D2a). Say so; do not get caught by it.
+  renaming it in the GitHub UI. TF_STATE_BUCKET, on stage, is used by nothing.
+- prod keeps no data between cycles, and app.demo.uveapp.net is a dead name most
+  of the time (ADR-0017 D2a). Say so; do not get caught by it.
+- a genuinely new path costs one failed run. Both IAM gaps in this project were
+  reads a data source makes and the configuration never mentions; no amount of
+  policy review finds them. Budget for it instead of being surprised.
 ```
 
 ---

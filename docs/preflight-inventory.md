@@ -38,11 +38,16 @@ Status: Phase 0 and Phase 1 completed and confirmed.
 ## GitHub
 
 - Owner/org: UVE-QA
-- Repository: aws-devops-sdet-demo (Private)
+- Repository: aws-devops-sdet-demo (**Public** since 2026-07-26, ADR-0022)
 - SSH remote: git@github.com:UVE-QA/aws-devops-sdet-demo.git (works from devbox)
 - Default branch: main
 - GitHub Actions: enabled
-- GitHub environments: stage (prod later)
+- GitHub environments: stage, prod. Variables are ENVIRONMENT-scoped and are not
+  inherited: prod carries its own AWS_REGION, OIDC_ROLE_ARN (the prod role),
+  TF_VAR_DEMO_ACCOUNT_ID, TF_VAR_BUDGET_EMAIL, TF_VAR_OWNER.
+  prod additionally has 2 protection rules — required reviewers (UVE-QA) and
+  `main` as the only deployment branch, administrator bypass disabled. That is
+  UI state; git cannot assert it.
 - Git identity on devbox: UVE-QA / papers.usher.3m@icloud.com
 - Local clone: /home/ubuntu/aws-devops-sdet-demo
 
@@ -64,6 +69,33 @@ Status: Phase 0 and Phase 1 completed and confirmed.
   - Python 3.12.3
   - Git 2.43.0
   - Make 4.3
+  - GitHub CLI 2.45.0 (added 2026-07-26; runs workflows, reads run logs, manages
+    environment variables, approves deployments)
+  - dnsutils (dig)
+
+### Devbox operating notes
+
+- `aws sso login` needs **`--use-device-code`**. The default flow opens a
+  callback on `127.0.0.1`, which on a headless box resolves to the laptop's
+  loopback and never reaches the CLI waiting here.
+- `gh auth login` likewise: `--git-protocol https --web` avoids the SSH-key
+  upload prompt entirely. git keeps pushing over SSH; gh only needs API access.
+- `make tf-validate` used to leave ~700MB per root level in /tmp on every run.
+  Fixed 2026-07-26; if a disk-full appears again, check `/tmp/tmp.*` first.
+
+## DNS
+
+- Public name of prod: `app.demo.uveapp.net` (exists only while prod is up).
+- Delegated zone `demo.uveapp.net` lives in the DEMO account, Terraform-managed
+  by the permanent level `infra/dns` (ADR-0024). Zone id Z0075526IEV5ME131TFQ.
+- Wildcard certificate `*.demo.uveapp.net`, ACM us-west-2, DNS-validated, free.
+- Parent zone `uveapp.net` is in **org-management (029280391941)** and holds one
+  manual `NS` record for `demo`. That record is untracked by git and is the first
+  thing to check if prod's name stops resolving.
+- Trap: a SECOND, non-authoritative hosted zone for `uveapp.net` exists in an
+  unrelated account, 478937318617 (`vlad.urban.qa`), outside this Organization.
+  It looks complete and serves nobody. Ground truth for the delegation is
+  `dig +noall +authority NS uveapp.net @a.gtld-servers.net`.
 
 ## Budget Alerts
 
@@ -80,8 +112,25 @@ Status: Phase 0 and Phase 1 completed and confirmed.
 - State region: us-west-2
 - Locking: S3 native lockfile (use_lockfile = true), no DynamoDB
 
-## Missing Prerequisites / Next Manual Steps
+## Manual steps, per fresh account
 
-- Terraform state bucket not yet created (Phase 4, infra/bootstrap, local apply).
-- GitHub OIDC provider + deploy role not yet created (first local stage apply, Phase 6).
+Everything below is applied LOCALLY under `AWS_PROFILE=demo-admin`, in order,
+before any workflow can run. All of it exists today; this list is for rebuilding
+from nothing.
+
+```text
+1. infra/bootstrap        S3 state bucket
+2. infra/bootstrap-oidc   OIDC provider + one deploy role per environment
+3. infra/shared-ecr       the shared container registry
+4. infra/dns              hosted zone + wildcard certificate
+5. one NS record for the delegated zone, by hand, in the parent zone
+   (org-management) - see the DNS section above
+6. GitHub environment variables for stage and prod, and prod's protection rules
+```
+
+Still outstanding, non-blocking:
+
 - VS Code Remote-SSH deferred; working via Lightsail browser SSH for now.
+- Delete the stray `demo` NS record in the non-authoritative zone (478937318617).
+- The GitHub variable `TF_STATE_BUCKET` on the stage environment is referenced by
+  nothing and should go.

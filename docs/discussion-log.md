@@ -7,14 +7,20 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 ## Current state (update at every phase gate)
 
 Phase 0–8 = done as far as they go: the Phase 8 lifecycle half is CLOSED, the
-feature half is not started. **Phase 9.0 (reconciliation) is CLOSED
-(2026-07-25). Phase 9.1 (build out prod) is IN PROGRESS: the second deploy role
-is built and validated but not applied. Phase 11.0 (publish the repository) was
-pulled forward and is DONE — the repository is public as of 2026-07-26.**
+feature half is not started. **Phase 9 is CLOSED (2026-07-26): 9.0
+reconciliation on 07-25, 9.1 prod + promotion + HTTPS on 07-26. Phase 11.0
+(publish the repository) was pulled forward and is DONE.**
 
-The full `deploy → demo → destroy` cycle runs end-to-end through GitHub Actions
-with zero manual AWS operations, for STAGE only. This was the project's
-headline goal.
+The full cycle now runs end-to-end through GitHub Actions with zero manual AWS
+operations for BOTH environments:
+
+```text
+deploy stage → tests gate it → a human approves → the tested image is promoted
+BY DIGEST to prod at https://app.demo.uveapp.net → both environments destroyed
+```
+
+That was the project's headline goal, and it is done. What the MVP still lacks
+is a public dashboard (Phase 11) and test coverage worth gating on (Phase 10).
 
 Phase 9.0 made `infra/envs/prod` valid for the first time in seven weeks, moved
 the container registry to a permanent state level (**ADR-0018**), and closed the
@@ -26,6 +32,31 @@ Stage infrastructure is FULLY DESTROYED in AWS — zero billable resources.
 Nothing is billing except the near-zero state bucket. The OIDC provider + deploy
 role from `infra/bootstrap-oidc` are still present (IAM, free) because a stage
 teardown does not touch that state level.
+
+### Phase 9.1 closing session (2026-07-26) — prod, promotion, HTTPS
+
+Full write-up: `docs/sessions/2026-07-26-phase-9-1-prod-promotion-https.md`.
+
+HTTPS went onto a **delegated subdomain**, `demo.uveapp.net` (**ADR-0024**). The
+authoritative zone for `uveapp.net` turned out to be in `org-management` — the
+account ADR-0001 forbids this project to deploy into — which turns delegation
+from the convenient answer into the only acceptable one. A new permanent level
+`infra/dns` holds the zone and the wildcard certificate; the alias record stays
+in `infra/envs/prod`, because it points at an ALB rebuilt every cycle. Seven
+state levels now, not six.
+
+Two defects worth remembering. `destroy.yml`'s "nothing billable remains" check
+searched the whole account for the project prefix, so tearing down one
+environment while the other was up would have failed a correct teardown — found
+by reading, fixed, and then proven in the same session by destroying prod while
+stage was live. And `promote-prod` failed its first plan on two IAM reads no
+inspection would have revealed, `route53:ListTagsForResource` and
+`acm:GetCertificate`, both issued by data sources the configuration never asks
+to read tags or bodies from. The lesson generalises: budget one failed run for
+every genuinely new path, because that is the only detector this class has.
+
+An hour went to a hosted zone that looked authoritative and was not. The ground
+truth for a delegation is what the TLD publishes, not what a console shows.
 
 ### Phase 9.1 session (2026-07-26) — the OIDC split, and why the repo went public
 

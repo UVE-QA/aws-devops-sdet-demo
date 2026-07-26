@@ -17,7 +17,7 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 6     | First AWS stage deploy         | ✅ done     | 36ecfba   |
 | 7     | Destroy validation             | ✅ done     | 497a4b2   |
 | 8     | Feature expansion              | 🟡 lifecycle done, features pending | ee0a25e |
-| 9     | Prod env, promotion, HTTPS     | 🟡 9.0 done, 9.1 in progress | a1c4402 |
+| 9     | Prod env, promotion, HTTPS     | ✅ done     | 25d4dab   |
 | 11.0  | Publish the repository         | ✅ done (pulled forward) | a1c4402 |
 
 Phases 9-19 are planned in `docs/next-phases.md` (MVP track 9-13, polish
@@ -207,7 +207,7 @@ track 14-19), shaped by ADR-0017. This table tracks only what is done.
   scaffold that contradicts ADR-0015 and ADR-0016. Details and the fix are
   Phase 9.0 below.
 
-### Phase 9 — Prod environment, promotion, HTTPS  [NEXT]
+### Phase 9 — Prod environment, promotion, HTTPS  [DONE 2026-07-26]
 - Plan: docs/next-phases.md. Decisions: ADR-0017 (same account for prod, hybrid
   availability, HTTPS on an owned domain, phased external access).
 - STARTS WITH RECONCILIATION, NOT CONSTRUCTION. infra/envs/prod already exists
@@ -256,8 +256,38 @@ track 14-19), shaped by ADR-0017. This table tracks only what is done.
     without being validated. An empty discovery result is an explicit failure
     (e1e577a) — the first version of the target would have passed green having
     validated nothing, which is b71b846 all over again.
-- STATUS 9.1: IN PROGRESS (2026-07-26, a1c4402). First step done, nothing
-  applied to AWS, zero cost.
+- STATUS 9.1: **DONE (2026-07-26, 25d4dab).** The closing criterion ran end to
+  end through Actions with no manual AWS operation: deploy-stage green (14m13s),
+  promote-prod PAUSED for required reviewers then green (13m24s, promoted by
+  digest, no rebuild), https://app.demo.uveapp.net returned 200 with a
+  curl-verified certificate, destroy prod green (8m28s) and destroy stage green
+  (8m24s). Post-teardown state verified against the AWS CLI, not Terraform state:
+  nothing billable remains beyond the state bucket, the shared registry and one
+  hosted zone. Session summary:
+  docs/sessions/2026-07-26-phase-9-1-prod-promotion-https.md.
+  - HTTPS lives on a DELEGATED SUBDOMAIN, demo.uveapp.net (ADR-0024). The parent
+    zone is in org-management, the account this project must not deploy into, so
+    delegation is the only acceptable answer rather than the convenient one. A
+    new permanent level infra/dns holds the zone and the wildcard certificate;
+    the alias record stays in infra/envs/prod because it points at an ALB that is
+    rebuilt every cycle. The NS record in the parent zone is manual, one-time and
+    untracked by git - the same category as the GitHub protection rules.
+  - The teardown verification in destroy.yml searched the WHOLE ACCOUNT for the
+    project prefix, so destroying one environment while the other was up would
+    have failed a correct teardown. Fixed to an environment-scoped prefix and
+    then proven in the same session: prod was destroyed while stage was live and
+    the check passed.
+  - Two IAM reads were missing and could not have been found by inspection:
+    route53:ListTagsForResource and acm:GetCertificate, both issued by data
+    sources the configuration never asks to read tags or bodies from. Same class
+    as ADR-0016's iam:ListInstanceProfilesForRole. Budget for one failed first
+    run on any genuinely new path.
+  - Earlier notes said this phase's bootstrap-oidc apply must plan as
+    "2 added, 0 changed, 0 destroyed". It planned as 2 added, **1 changed**,
+    0 destroyed: the moved OIDC provider's Name tag lost its stage prefix, which
+    is correct - the provider is account-wide and the word "stage" in its name
+    was always a lie. Assert on "0 destroyed", not on the change count.
+- HISTORY 9.1 (2026-07-26, a1c4402). First step, nothing applied to AWS.
   - The OIDC provider is split from the deploy role (ADR-0021). The old combined
     module could not have been instantiated twice: AWS allows one OIDC provider
     per issuer URL per account, so a copied module block would have died on
@@ -282,17 +312,23 @@ track 14-19), shaped by ADR-0017. This table tracks only what is done.
     reviewer exists, not before. This is UI state; git cannot assert it, so
     re-check it if promotion ever fails to pause.
   - Session summary: docs/sessions/2026-07-26-phase-9-1-oidc-split.md.
-- Remaining in 9.1: promote-prod.yml (promotion by digest, no rebuild), the prod
-  branch of destroy.yml, and HTTPS (ACM us-west-2 + Route53 + 443 listener +
-  HTTP->HTTPS redirect).
+- Everything 9.1 planned is delivered: promote-prod.yml (promotion by digest, no
+  rebuild), the prod branch of destroy.yml, and HTTPS (ACM us-west-2 + Route53 +
+  443 listener + HTTP->HTTPS redirect).
 - Criteria to close 9.1: a full stage -> approve -> prod -> destroy both cycle
   runs through Actions with no manual AWS operation, and https://app.<domain>
-  returns 200 with a valid certificate.
+  returns 200 with a valid certificate. **MET.**
 - Validation:
 ```bash
   terraform fmt -recursive -check infra
   make tf-validate      # every root level, isolated TF_DATA_DIR, no AWS creds
+  curl -sS -o /dev/null -w "%{http_code} %{ssl_verify_result}\n" https://app.demo.uveapp.net/health
 ```
+- Follow-ups left by this phase, none blocking: a stray `demo` NS record sits in
+  a NON-authoritative copy of the parent zone (account 478937318617) and should
+  be deleted; the GitHub variable TF_STATE_BUCKET is referenced by nothing and
+  still exists on the stage environment; three actions are annotated as Node 20
+  deprecated on every run.
 - New invariants adopted this session (see docs/next-phases.md):
   - a fix to a SHARED invariant is applied to EVERY environment directory in the
     same commit, not only to the one currently being exercised;
