@@ -1,7 +1,13 @@
-# Prod environment: SCAFFOLD mirror of stage (v0). Same module wiring; defaults
-# are conservative (desired_count = 0) so a stray apply does not raise billable
-# resources. Full prod deployment (approval gate, HTTPS, autoscaling) is Phase 8.
-# No terraform apply in Phase 4 (ADR-0014).
+# Prod environment: same module wiring as stage, differing only in name prefix,
+# sizing and log retention. Reconciled in Phase 9.0 against the post-C2 modules.
+#
+# desired_count still defaults to 0: prod has no deploy role of its own yet
+# (Phase 9.1 adds a second role in infra/bootstrap-oidc), so nothing should be
+# able to raise billable tasks here by accident in the meantime.
+#
+# The GitHub OIDC provider and deploy roles live in infra/bootstrap-oidc
+# (ADR-0015); the container registry lives in infra/shared-ecr (ADR-0018).
+# Neither belongs in an environment that is destroyed every cycle.
 
 terraform {
   required_version = ">= 1.5"
@@ -73,6 +79,7 @@ module "ecs" {
   task_cpu              = var.task_cpu
   task_memory           = var.task_memory
   desired_count         = var.desired_count
+  depends_on            = [module.alb]
 }
 
 module "rds" {
@@ -84,17 +91,6 @@ module "rds" {
   ecs_app_security_group_id = module.ecs.app_security_group_id
   engine_version            = var.db_engine_version
   instance_class            = var.db_instance_class
-}
-
-module "iam_github_oidc" {
-  source = "../../modules/iam_github_oidc"
-
-  name_prefix      = local.name_prefix
-  github_owner     = var.github_owner
-  github_repo      = var.github_repo
-  github_branch    = var.github_branch
-  state_bucket_arn = "arn:aws:s3:::${var.state_bucket_name}"
-  db_secret_arn    = module.rds.db_secret_arn
 }
 
 module "budgets" {

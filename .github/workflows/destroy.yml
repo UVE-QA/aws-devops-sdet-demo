@@ -14,7 +14,10 @@ on:
         type: choice
         options:
           - stage
-          - prod
+        # prod is deliberately absent until Phase 9.1 creates its deploy role in
+        # infra/bootstrap-oidc. The role ARN below is derived from the
+        # environment name, so offering prod today produces a run that fails at
+        # OIDC authentication — a trap in the UI, not a feature.
       confirm:
         description: "Type DESTROY to confirm"
         required: true
@@ -32,9 +35,6 @@ jobs:
       TF_VAR_demo_account_id: ${{ vars.TF_VAR_demo_account_id }}
       TF_VAR_budget_email: ${{ vars.TF_VAR_budget_email }}
       TF_VAR_owner: ${{ vars.TF_VAR_owner }}
-      TF_VAR_state_bucket_name: ${{ vars.TF_STATE_BUCKET }}
-      TF_VAR_github_owner: ${{ github.repository_owner }}
-      TF_VAR_github_repo: ${{ github.event.repository.name }}
     steps:
       - name: Validate confirmation
         run: |

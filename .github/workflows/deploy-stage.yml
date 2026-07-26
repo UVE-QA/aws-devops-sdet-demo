@@ -27,7 +27,6 @@ jobs:
       TF_VAR_demo_account_id: ${{ vars.TF_VAR_demo_account_id }}
       TF_VAR_budget_email: ${{ vars.TF_VAR_budget_email }}
       TF_VAR_owner: ${{ vars.TF_VAR_owner }}
-      TF_VAR_state_bucket_name: ${{ vars.TF_STATE_BUCKET }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5

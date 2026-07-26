@@ -15,11 +15,6 @@ variable "owner" {
   type        = string
 }
 
-variable "state_bucket_name" {
-  description = "Name of the S3 Terraform state bucket (used to scope the deploy role's S3 access)."
-  type        = string
-}
-
 variable "app_port" {
   description = "Port the app container listens on."
   type        = number
@@ -45,7 +40,7 @@ variable "task_memory" {
 }
 
 variable "desired_count" {
-  description = "Number of app tasks. Default 0 for the prod scaffold so a stray apply raises no billable tasks."
+  description = "Number of app tasks. Still 0: prod gets its own deploy role and promotion path in Phase 9.1, and until then nothing here should be able to raise billable tasks."
   type        = number
   default     = 0
 }
@@ -66,24 +61,6 @@ variable "db_instance_class" {
   description = "RDS instance class."
   type        = string
   default     = "db.t4g.micro"
-}
-
-variable "github_owner" {
-  description = "GitHub org/owner for the OIDC trust policy."
-  type        = string
-  default     = "UVE-QA"
-}
-
-variable "github_repo" {
-  description = "GitHub repository for the OIDC trust policy."
-  type        = string
-  default     = "aws-devops-sdet-demo"
-}
-
-variable "github_branch" {
-  description = "Branch allowed to assume the deploy role."
-  type        = string
-  default     = "main"
 }
 
 variable "budget_enabled" {

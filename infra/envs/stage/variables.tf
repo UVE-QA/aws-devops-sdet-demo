@@ -15,11 +15,6 @@ variable "owner" {
   type        = string
 }
 
-variable "state_bucket_name" {
-  description = "Name of the S3 Terraform state bucket (used to scope the deploy role's S3 access)."
-  type        = string
-}
-
 variable "app_port" {
   description = "Port the app container listens on."
   type        = number
