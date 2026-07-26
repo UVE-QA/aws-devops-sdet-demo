@@ -5,13 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AWS DevOps SDET Demo</title>
   <style>
-    body { font-family: system-ui, sans-serif; max-width: 640px; margin: 40px auto; padding: 0 16px; }
+    body { font-family: system-ui, sans-serif; max-width: 720px; margin: 40px auto; padding: 0 16px; }
     h1 { font-size: 1.5rem; }
+    h2 { font-size: 1.1rem; margin-top: 32px; }
     .row { margin: 12px 0; padding: 10px 14px; border: 1px solid #ddd; border-radius: 6px; }
     .label { font-weight: 600; }
     .ok { color: #137333; }
     .err { color: #c5221f; }
     .pending { color: #888; }
+    form { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0; }
+    input { padding: 6px 8px; border: 1px solid #ccc; border-radius: 4px; font: inherit; }
+    button { padding: 6px 12px; border: 1px solid #ccc; border-radius: 4px; background: #f6f6f6; font: inherit; cursor: pointer; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { text-align: left; padding: 8px; border-bottom: 1px solid #eee; }
+    .muted { color: #888; }
+    .message { min-height: 1.2em; margin: 8px 0; }
   </style>
 </head>
 <body>
@@ -26,6 +34,26 @@
     <span class="label">DB check:</span>
     <span data-testid="db-check-status" class="pending">checking…</span>
   </div>
+
+  <h2>Items</h2>
+
+  <!-- This form exists so Playwright has a real user action to drive: it goes
+       browser -> API -> PostgreSQL, which is what makes the DB assertion after
+       a UI action meaningful. No framework on purpose (see next-phases.md). -->
+  <form data-testid="create-item-form" autocomplete="off">
+    <input data-testid="new-item-name" name="name" placeholder="name" required />
+    <input data-testid="new-item-description" name="description" placeholder="description (optional)" />
+    <button data-testid="create-item" type="submit">Add</button>
+  </form>
+
+  <div class="message" data-testid="items-message"></div>
+
+  <table>
+    <thead>
+      <tr><th>id</th><th>name</th><th>description</th><th></th></tr>
+    </thead>
+    <tbody data-testid="items-table"></tbody>
+  </table>
 
   <script>
     async function check(url, el) {
@@ -46,6 +74,106 @@
     }
     check("/api/health", document.querySelector('[data-testid="api-health-status"]'));
     check("/api/db-check", document.querySelector('[data-testid="db-check-status"]'));
+
+    const tbody = document.querySelector('[data-testid="items-table"]');
+    const message = document.querySelector('[data-testid="items-message"]');
+    const form = document.querySelector('[data-testid="create-item-form"]');
+    const nameInput = document.querySelector('[data-testid="new-item-name"]');
+    const descInput = document.querySelector('[data-testid="new-item-description"]');
+
+    function say(textContent, isError) {
+      message.textContent = textContent;
+      message.className = "message " + (isError ? "err" : "ok");
+    }
+
+    function render(items) {
+      tbody.replaceChildren();
+      for (const item of items) {
+        const tr = document.createElement("tr");
+        tr.dataset.testid = "item-row";
+        tr.dataset.itemName = item.name;
+
+        const id = document.createElement("td");
+        id.textContent = item.id;
+
+        const name = document.createElement("td");
+        name.dataset.testid = "item-name";
+        // textContent, never innerHTML: the name is user input and goes
+        // straight back onto the page.
+        name.textContent = item.name;
+
+        const description = document.createElement("td");
+        description.dataset.testid = "item-description";
+        if (item.description) {
+          description.textContent = item.description;
+        } else {
+          description.textContent = "—";
+          description.className = "muted";
+        }
+
+        const actions = document.createElement("td");
+        const del = document.createElement("button");
+        del.dataset.testid = "delete-item";
+        del.dataset.itemId = item.id;
+        del.dataset.itemName = item.name;
+        del.type = "button";
+        del.textContent = "Delete";
+        del.addEventListener("click", () => remove(item.id));
+        actions.appendChild(del);
+
+        tr.append(id, name, description, actions);
+        tbody.appendChild(tr);
+      }
+      // Marks "the list finished rendering" for the tests, so a spec waits on
+      // a real signal instead of a sleep.
+      tbody.dataset.loaded = "true";
+      tbody.dataset.count = String(items.length);
+    }
+
+    async function load() {
+      try {
+        const res = await fetch("/api/items");
+        if (!res.ok) { say(`could not load items (${res.status})`, true); return; }
+        const data = await res.json();
+        render(data.items);
+      } catch (e) {
+        say("could not load items", true);
+      }
+    }
+
+    async function create(name, description) {
+      const body = { name };
+      if (description) body.description = description;
+      const res = await fetch("/api/items", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (res.status === 201) {
+        say(`created '${name}'`, false);
+        nameInput.value = "";
+        descInput.value = "";
+        await load();
+        return;
+      }
+      if (res.status === 409) { say(`'${name}' already exists`, true); return; }
+      if (res.status === 422) { say("invalid input", true); return; }
+      say(`unexpected error (${res.status})`, true);
+    }
+
+    async function remove(id) {
+      const res = await fetch(`/api/items/${id}`, { method: "DELETE" });
+      if (res.status === 204) { say(`deleted item ${id}`, false); await load(); return; }
+      if (res.status === 404) { say(`item ${id} not found`, true); await load(); return; }
+      say(`unexpected error (${res.status})`, true);
+    }
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      create(nameInput.value.trim(), descInput.value.trim());
+    });
+
+    load();
   </script>
 </body>
 </html>
