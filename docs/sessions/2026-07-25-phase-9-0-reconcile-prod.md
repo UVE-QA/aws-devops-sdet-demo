@@ -23,7 +23,14 @@
              89a424b  discussion-log: Phase 9.0 closed, narrative, debts
              12c25e7  primer: outbox as the single delivery destination
              10db354  ADR-0019 retire the Claude Project mirror
+             fd00f90  summary: complete the commit list, record ADR-0019
+             2678159  primer appendix: the starter still described the mirror
+             96e110c  commit project-prompt.md — never in git at all
+             ba93477  correct ADR-0019: its premise about git was false
 ```
+
+A list like this is always one short: the commit that adds it cannot appear in
+it.
 
 `infra/envs/prod` validates for the first time in seven weeks. All five root
 levels pass `terraform fmt -check` and `make tf-validate`, with no AWS
@@ -174,6 +181,43 @@ shape as the 2026-07-25 finding. Also, `send.sh` prefers a top-level file over
 `outbox/`, and the one file always present at top level is `session-primer.md`,
 which is also the file most often delivered. Use the explicit `outbox/` path
 until that is fixed.
+
+## The near-miss
+
+Deleting the two mirror files was the last step of ADR-0019. The ADR justified
+it by stating that both were already tracked in git. Asked to confirm the
+deletion, the check was run instead of recalled:
+
+```text
+discussion-log.md   Project 540 lines, git 605   -> stale copy, safe to delete
+project-prompt.md   Project 2,272 lines, git ... NOT IN GIT. Not in any commit.
+                                                 Not anywhere in history.
+```
+
+`project-prompt.md` existed in exactly two places, both outside git: the Claude
+Project, and a folder on the MacBook that `discussion-log.md` described as safe
+to delete because "everything unique in it has been committed". Deleting on the
+ADR's own instruction would have destroyed the only copy of a 2,271-line
+document.
+
+Committed first in `96e110c`; nothing was removed until it was. ADR-0019 was
+then corrected in `ba93477` — its reasoning now rests on the Project holding no
+state *because everything it held was put into git*, which had to be made true
+rather than observed.
+
+Two things this is evidence for. The ADR arguing that copies outside git rot
+unnoticed was itself written on an unchecked claim about what git contained: the
+failure mode does not spare the documents describing it. And the session-4 note
+declaring that folder disposable had been wrong by exactly one file — the one
+that existed nowhere else.
+
+Rule taken from it: **a document is committed BEFORE the copy it duplicates is
+removed, and "it is already in git" is answered by `git ls-files`, never from
+memory.**
+
+This is the sixth instance of the same pattern in one session and the only
+destructive one. What stopped it was not a check in the repository; it was being
+asked "delete?" instead of being told to.
 
 ## Open, for 9.1
 
