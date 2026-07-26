@@ -8,7 +8,9 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 Phase 0–8 = done as far as they go: the Phase 8 lifecycle half is CLOSED, the
 feature half is not started. **Phase 9.0 (reconciliation) is CLOSED
-(2026-07-25). Phase 9.1 (build out prod) is next and not started.**
+(2026-07-25). Phase 9.1 (build out prod) is IN PROGRESS: the second deploy role
+is built and validated but not applied. Phase 11.0 (publish the repository) was
+pulled forward and is DONE — the repository is public as of 2026-07-26.**
 
 The full `deploy → demo → destroy` cycle runs end-to-end through GitHub Actions
 with zero manual AWS operations, for STAGE only. This was the project's
@@ -24,6 +26,36 @@ Stage infrastructure is FULLY DESTROYED in AWS — zero billable resources.
 Nothing is billing except the near-zero state bucket. The OIDC provider + deploy
 role from `infra/bootstrap-oidc` are still present (IAM, free) because a stage
 teardown does not touch that state level.
+
+### Phase 9.1 session (2026-07-26) — the OIDC split, and why the repo went public
+
+Full write-up: `docs/sessions/2026-07-26-phase-9-1-oidc-split.md`.
+
+Two structural findings, both caught by reading rather than by an error.
+`iam_github_oidc` created the identity provider and the deploy role together,
+and AWS allows one provider per issuer URL per account — so the second role prod
+needs could never have been a copied module block (**ADR-0021**). And prod's
+trust policy, if copied from stage, would have carried
+`ref:refs/heads/main`: a subject any workflow on the default branch satisfies,
+which would have made the reviewers real in the GitHub UI and absent from IAM.
+
+Then the gate turned out to be unavailable at all: required reviewers need a
+public repository outside Enterprise, confirmed by the protection-rules block
+simply not rendering. **Phase 11.0 was pulled forward and the repository is now
+public** (**ADR-0022**), which also retired the read-only clone token of
+ADR-0020 the same day it was adopted.
+
+Publication was preceded by a full-history sweep: clean on credentials, and four
+identifiers accepted as public with stated reasons rather than rewritten away
+(**ADR-0023**). The deciding number: 39 commit hashes are referenced 103 times
+across `docs/`, and `filter-repo` would have silently invalidated every one of
+them. Buying privacy with the project's own documentation invariant was the
+wrong trade.
+
+The session also changed how chat sessions exchange state with the repository
+(**ADR-0020**): clone in over a read-only token, deliver out as one `git am`
+patch. Adopted mid-session and used for its own delivery. The token half expired
+within hours, by its own terms, when the repository went public.
 
 **The plan for everything after Phase 8 now lives in `docs/next-phases.md`**
 (in git), shaped by **ADR-0017**. It supersedes the unordered wish-list in

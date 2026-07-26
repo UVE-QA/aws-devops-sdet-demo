@@ -193,7 +193,14 @@ Cost: **$0 extra** — runs inside the existing cycle.
 
 ## Phase 11 (M3) — Public dashboard
 
-### 11.0 — Make the repository public FIRST
+### 11.0 — Make the repository public FIRST  [DONE 2026-07-26, a1c4402]
+
+**Executed early, during Phase 9.1.** Required reviewers — prod's approval gate —
+are unavailable on a private repository outside Enterprise, so this step was
+pulled forward rather than waiting for the dashboard. See ADR-0022 for the
+sequencing and ADR-0023 for what the publication exposed and why it was
+accepted. The history was NOT rewritten; the gitleaks run below is still owed.
+
 
 The dashboard reads run history from the **public** GitHub API, which does not
 work against a private repository without a token. This was an unstated

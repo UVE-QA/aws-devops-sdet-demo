@@ -17,7 +17,8 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 6     | First AWS stage deploy         | ✅ done     | 36ecfba   |
 | 7     | Destroy validation             | ✅ done     | 497a4b2   |
 | 8     | Feature expansion              | 🟡 lifecycle done, features pending | ee0a25e |
-| 9     | Prod env, promotion, HTTPS     | 🟡 9.0 done, 9.1 next | e1e577a   |
+| 9     | Prod env, promotion, HTTPS     | 🟡 9.0 done, 9.1 in progress | a1c4402 |
+| 11.0  | Publish the repository         | ✅ done (pulled forward) | a1c4402 |
 
 Phases 9-19 are planned in `docs/next-phases.md` (MVP track 9-13, polish
 track 14-19), shaped by ADR-0017. This table tracks only what is done.
@@ -255,7 +256,30 @@ track 14-19), shaped by ADR-0017. This table tracks only what is done.
     without being validated. An empty discovery result is an explicit failure
     (e1e577a) — the first version of the target would have passed green having
     validated nothing, which is b71b846 all over again.
-- 9.1 is unblocked and not started.
+- STATUS 9.1: IN PROGRESS (2026-07-26, a1c4402). First step done, nothing
+  applied to AWS, zero cost.
+  - The OIDC provider is split from the deploy role (ADR-0021). The old combined
+    module could not have been instantiated twice: AWS allows one OIDC provider
+    per issuer URL per account, so a copied module block would have died on
+    EntityAlreadyExists. Found by reading the resource, before any apply.
+  - prod's deploy role trusts `environment:prod` and NOTHING else
+    (`trust_branch_ref = false`). A `ref:refs/heads/main` subject is satisfied by
+    any workflow on the default branch, which would have routed straight around
+    the reviewers. One boolean is the whole AWS-side enforcement.
+  - `moved` blocks rename the existing provider and stage role in state.
+    **The next local apply MUST plan as 1 role + 1 role policy added, 0
+    destroyed.** Anything else means a `moved` block is wrong — do not apply
+    through it: recreating the provider invalidates the working stage trust.
+  - Required reviewers turned out to be unavailable on a private repository
+    outside Enterprise, so Phase 11.0 was pulled forward and the repository is
+    now public (ADR-0022, ADR-0023). The gate is real in both systems only when
+    BOTH halves exist: `trust_branch_ref = false` in IAM and required reviewers
+    in GitHub. Verify the GitHub half before the first promote run; nothing in
+    git can assert it.
+  - Session summary: docs/sessions/2026-07-26-phase-9-1-oidc-split.md.
+- Remaining in 9.1: promote-prod.yml (promotion by digest, no rebuild), the prod
+  branch of destroy.yml, and HTTPS (ACM us-west-2 + Route53 + 443 listener +
+  HTTP->HTTPS redirect).
 - Criteria to close 9.1: a full stage -> approve -> prod -> destroy both cycle
   runs through Actions with no manual AWS operation, and https://app.<domain>
   returns 200 with a valid certificate.
