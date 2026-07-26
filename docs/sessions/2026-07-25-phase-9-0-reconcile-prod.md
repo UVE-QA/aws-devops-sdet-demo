@@ -12,13 +12,17 @@
 ## Result
 
 ```text
-7 commits    0ce9326  ADR-0018
+11 commits   0ce9326  ADR-0018
              ffe060d  primer: six state levels, chat supplies the transfer path
              2027654  discussion-log: same
              ab22a58  shared ECR at a permanent state level
              1987c1f  prod reconciled against the post-C2 modules
              e05cc02  validate every root level, hermetically
              e1e577a  tf-validate fails when it discovers nothing
+             972c109  session close: cursor, summary, index, trap list
+             89a424b  discussion-log: Phase 9.0 closed, narrative, debts
+             12c25e7  primer: outbox as the single delivery destination
+             10db354  ADR-0019 retire the Claude Project mirror
 ```
 
 `infra/envs/prod` validates for the first time in seven weeks. All five root
@@ -137,6 +141,39 @@ one target: knowing the pattern by name does not stop you writing it.
   short-lived read-only fine-grained token, rather than by trusting the Claude
   Project mirror. The mirror was five commits stale and did not contain
   `session-primer.md` at all — the file the startup prompt names first.
+
+## Two things decided after the phase work was already closed
+
+**ADR-0019 — the Claude Project mirror is retired.** `discussion-log.md` and
+`project-prompt.md` were kept as READ-ONLY copies inside the Claude Project and
+resynced by hand at every phase gate; `phase-gates.md` required Claude to keep
+reminding the user to do it. Both are tracked files, so the copies were exact
+duplicates. Measured at the start of this session they were five commits stale
+and did not contain `session-primer.md` at all — the file the startup prompt
+names first.
+
+The trigger is worth recording: the closing summary of this very session
+repeated the upload instruction automatically, one message after arguing all day
+that duplicates outside git rot. The user caught it. A ritual can survive purely
+because it is written down, long after the reason for it has gone.
+
+The fallback when the sandbox cannot clone is now the devbox — `git log`, then
+`cat` the files one at a time — never a copy outside git.
+
+**The transfer buffer was restructured.** Permanent tooling and in-flight
+payload had shared one flat folder, which made the rule "the buffer should be
+empty" permanently unverifiable: it was never empty. Payload now lives in
+`outbox/`, so *empty* is a state that can be read at a glance, and `outbox/` is
+the single fixed destination for anything a chat produces. A redundant
+plain-text copy of the chat starter was deleted; the local `session-primer.md`
+is the one original, refreshed from the devbox by `scp`.
+
+Recorded as debt rather than fixed: `send.sh` and the buffer README exist only
+on the MacBook — control-layer tooling outside the source of truth, the same
+shape as the 2026-07-25 finding. Also, `send.sh` prefers a top-level file over
+`outbox/`, and the one file always present at top level is `session-primer.md`,
+which is also the file most often delivered. Use the explicit `outbox/` path
+until that is fixed.
 
 ## Open, for 9.1
 
