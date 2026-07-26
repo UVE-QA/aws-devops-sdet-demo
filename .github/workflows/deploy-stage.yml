@@ -51,19 +51,21 @@ jobs:
         working-directory: infra/envs/stage
         run: terraform init -input=false
 
-      - name: Ensure ECR repository exists (fresh-cycle bootstrap)
-        working-directory: infra/envs/stage
-        run: terraform apply -input=false -auto-approve -target=module.ecr
-
-      - name: Resolve ECR repository URL
+      - name: Resolve shared ECR repository URL
         id: repo
-        working-directory: infra/envs/stage
         shell: bash
+        env:
+          ECR_REPOSITORY: aws-devops-sdet-demo-app
         run: |
           set -euo pipefail
-          url="$(terraform output -raw ecr_repository_url)"
-          if [ -z "$url" ]; then
-            echo "::error::ecr_repository_url resolved to an empty string"
+          # `|| true` so a missing repository reaches the check below and gets
+          # the actionable message, instead of dying on the raw AWS exception.
+          url="$(aws ecr describe-repositories \
+                   --region "$AWS_REGION" \
+                   --repository-names "$ECR_REPOSITORY" \
+                   --query 'repositories[0].repositoryUri' --output text 2>/dev/null || true)"
+          if [ -z "$url" ] || [ "$url" = "None" ]; then
+            echo "::error::shared ECR repository $ECR_REPOSITORY not found — apply infra/shared-ecr first (ADR-0018)"
             exit 1
           fi
           echo "ecr_url=$url" >> "$GITHUB_OUTPUT"

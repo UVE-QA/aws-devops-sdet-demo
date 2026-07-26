@@ -3,11 +3,6 @@ output "alb_url" {
   value       = module.alb.alb_url
 }
 
-output "ecr_repository_url" {
-  description = "ECR repository URL for the app image."
-  value       = module.ecr.repository_url
-}
-
 output "ecs_cluster_name" {
   description = "Name of the ECS cluster."
   value       = module.ecs.cluster_name

@@ -41,12 +41,6 @@ module "network" {
   name_prefix = local.name_prefix
 }
 
-module "ecr" {
-  source = "../../modules/ecr"
-
-  repository_name = "aws-devops-sdet-demo-app"
-}
-
 module "observability" {
   source = "../../modules/observability"
 

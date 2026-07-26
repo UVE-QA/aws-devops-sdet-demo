@@ -126,10 +126,16 @@ jobs:
           echo "::endgroup::"
 
           echo "::group::Project ECR repositories"
+          # The shared registry is a permanent level (ADR-0018) and is EXPECTED
+          # to survive a teardown; it holds the image prod may still be running.
+          # Anything else with the project prefix is an environment-scoped
+          # leftover and is a failure.
+          SHARED_ECR="aws-devops-sdet-demo-app"
+          echo "shared, expected to remain: $SHARED_ECR"
           ecr=$(aws ecr describe-repositories --region "$REGION" \
-            --query "repositories[?starts_with(repositoryName, '$PREFIX')].repositoryName" \
+            --query "repositories[?starts_with(repositoryName, '$PREFIX') && repositoryName != '$SHARED_ECR'].repositoryName" \
             --output text)
-          echo "${ecr:-<none>}"
+          echo "unexpected: ${ecr:-<none>}"
           [ -n "$ecr" ] && leftovers=$((leftovers+1))
           echo "::endgroup::"
 

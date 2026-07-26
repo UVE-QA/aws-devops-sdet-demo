@@ -1,0 +1,3 @@
+# Copy to terraform.tfvars for a LOCAL apply under AWS_PROFILE=demo-admin.
+# Applied once per account; a normal deploy/destroy cycle does not touch it.
+owner = "UVE"
