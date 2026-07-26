@@ -1,11 +1,30 @@
 # Session Primer
 
-Read this first in any new session. It is a **pointer**, not a summary — it says
-what to read, in what order, who does what, and what has burned us before. It
-deliberately holds almost no state, so it does not go stale.
+**This file is the whole entry point. Attaching it to a new chat starts the
+session — there is nothing else to paste.**
 
-The cursor lives in `docs/phase-gates.md`. Nothing else claims to know the
-current phase — including this file.
+It is a **pointer**, not a summary: it says what to read, in what order, who
+does what, and what has burned us before. It deliberately holds almost no state,
+so it does not go stale. The cursor lives in `docs/phase-gates.md`; nothing else
+claims to know the current phase, including this file.
+
+## If you are the chat reading this, start here
+
+```text
+1. You are the DRIVER for this session.
+2. Load state NOW, per section A below. Do not ask permission first.
+3. Then STOP. Report: current phase, next allowed step, blockers. Propose what
+   this session should cover, and wait for confirmation before doing anything.
+4. Then run the session per the working agreements below: one command at a time,
+   labelled [mac] or [devbox]; verify each step before the next; explicit
+   confirmation before any billable AWS action; never ask for secrets.
+5. Ask for access to ~/Projects/_claude-transfer early, so deliverables can be
+   written straight into outbox/.
+6. Close the session per section C. Nothing is done until it is pushed.
+```
+
+Discussion may be in Russian. Anything that lands in the repository — docs,
+ADRs, code, commit messages — is in English.
 
 ---
 
@@ -83,6 +102,7 @@ touching anything.
 - write a summary in docs/sessions/ and add a row to INDEX.md
 - record new structural decisions as ADRs
 - commit and push; work is only shared once pushed
+- if this file changed, refresh the local copy (see "The local copy of this file")
 - leave the transfer buffer empty
 ```
 
@@ -176,10 +196,9 @@ and push them, after reading them.
 mac      ~/Projects/_claude-transfer/          tooling, permanent:
                                                 send.sh
                                                 README.md
-                                                starter.sh
                                                 session-primer.md  <- local COPY,
-                                                  kept in sync; the paste-in
-                                                  starter comes from its appendix
+                                                  kept in sync; THIS is the file
+                                                  you attach to a new chat
          ~/Projects/_claude-transfer/outbox/   PAYLOAD ONLY.
                                                 empty = everything is committed
 devbox   ~/aws-devops-sdet-demo/               the ONE working copy
@@ -233,27 +252,24 @@ section told you to refresh it from the repository — both could not be true. I
 a project whose first rule is that git is the source of truth, the repository
 version wins, and this file is the one that gets edited and pushed.
 
-The copy stays because it is what a new chat is started from, and because it is
-where this file is drafted between sessions. Refresh it whenever the repository
-version changes:
+The copy stays because **it is what you attach to a new chat**, and because it
+is where this file is drafted between sessions. Refresh it whenever the
+repository version changes:
 
 ```text
 scp devbox:aws-devops-sdet-demo/docs/session-primer.md ~/Projects/_claude-transfer/
 ```
 
-**That refresh is the weak point, so do not rely on remembering it.** On
-2026-07-26 the copy went stale three times in a single session — not through
-carelessness, but structurally: this file is read at the start of a session and
-edited at the end. Two mitigations, both cheap:
+That refresh is the weak point. On 2026-07-26 the copy went stale three times in
+a single session — not through carelessness, but structurally: this file is read
+at the start of a session and edited at the end. **A push that touches this file
+is not finished until the copy is refreshed in the same breath**, and a session
+that edits it should say so in its closing summary.
 
-```text
-bash ~/Projects/_claude-transfer/starter.sh
-    puts the paste-in starter on the clipboard, read from the PUBLIC repo each
-    time. Starting a chat this way cannot use a stale appendix, whatever state
-    the local copy is in.
-
-after any push that touched this file, run the scp above in the same breath.
-```
+A previous attempt to solve this by deleting the copy, and another by adding a
+script that fetched the appendix from the public repository, both failed the
+same way: they replaced one file with two things to know about. One file that
+starts a session is the design. Keep it that way.
 
 ## Current shape of the project (structural, changes rarely)
 
@@ -300,53 +316,6 @@ obvious once prod runs an image that stage's teardown would delete (ADR-0018).
 ```
 
 ---
-
-## Appendix — paste-in starter for a new chat session
-
-This is the entry point. Paste it as the first message of a new chat, then
-rename the chat per the naming convention above.
-
-```text
-AWS project session. You are the driver for this session.
-
-First, load state. The repository is PUBLIC — clone
-https://github.com/UVE-QA/aws-devops-sdet-demo into your sandbox over HTTPS,
-no credential needed, and read, in this order:
-  docs/session-primer.md
-  docs/phase-gates.md          (the cursor — the only file that knows the phase)
-  docs/next-phases.md
-  docs/decisions/              (newest first)
-  docs/discussion-log.md       (top "Current state" block only)
-
-Never rebuild state from a copy that lives outside git (ADR-0019) — including a
-clone left in your sandbox by an earlier chat. Check the hash against
-origin/main before believing anything. Also ask me for access to
-~/Projects/_claude-transfer so you can write deliverables straight into
-outbox/.
-
-Then STOP and report: current phase, next allowed step, blockers. Propose what
-this session should cover and wait for my confirmation.
-
-Then run the session: discuss, decide, draft, and give me instructions.
-- ONE command at a time, labelled [mac] or [devbox]. Wait for my real terminal
-  output before the next. Never assume a step ran.
-- Verify the previous step before starting the next.
-- Author files inside your own clone, commit them there with real commit
-  messages, and deliver the session as ONE patch:
-  `git format-patch <base>..HEAD --stdout`, written into
-  ~/Projects/_claude-transfer/outbox/ — ask for access to that folder at the
-  start and the path stops being something either of us has to look up. Then
-  give me the ready-to-run scp and `git am` lines. If you cannot get access to
-  the folder, substitute your own sandbox path, because I cannot guess it.
-  You never push; I apply and push after reading.
-- Explicit confirmation before any billable AWS action. Never ask for secrets.
-- English for anything that lands in the repo or is pasted into a session;
-  Russian is fine for discussion.
-
-At the end, close the session properly: validation, phase-gates update, a
-summary in docs/sessions/ with a row in INDEX.md, ADRs for new structural
-decisions, commit and push, and an empty transfer buffer.
-```
 
 ## Appendix — starter for a Claude Code session on the devbox
 
