@@ -6,11 +6,19 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
-Phase 0–7 = done. **Phase 8: the lifecycle half is CLOSED (2026-07-25). The
-feature half is still not started, but it is now PLANNED (2026-07-25).**
+Phase 0–8 = done as far as they go: the Phase 8 lifecycle half is CLOSED, the
+feature half is not started. **Phase 9.0 (reconciliation) is CLOSED
+(2026-07-25). Phase 9.1 (build out prod) is next and not started.**
 
 The full `deploy → demo → destroy` cycle runs end-to-end through GitHub Actions
-with zero manual AWS operations. This was the project's headline goal.
+with zero manual AWS operations, for STAGE only. This was the project's
+headline goal.
+
+Phase 9.0 made `infra/envs/prod` valid for the first time in seven weeks, moved
+the container registry to a permanent state level (**ADR-0018**), and closed the
+validation gap that let an invalid IaC directory sit in the repository unnoticed.
+`make tf-validate` now discovers every root level and runs hermetically. Nothing
+was applied to AWS in that session.
 
 Stage infrastructure is FULLY DESTROYED in AWS — zero billable resources.
 Nothing is billing except the near-zero state bucket. The OIDC provider + deploy
@@ -35,9 +43,46 @@ Polish 14  release resilience / rollback
        19  guarded self-service launch + out-of-band watchdog
 ```
 
+### Phase 9.0 session (2026-07-25) — reconcile prod, close the validation gate
+
+Full write-up: `docs/sessions/2026-07-25-phase-9-0-reconcile-prod.md`. Highlights
+that change how the rest of the project is built:
+
+- **ADR-0018** closed the ECR question `next-phases.md` had left open. The
+  "(simplest)" label on the shared-registry option was an assumption and wrong:
+  a shared registry inside stage state is deleted by stage teardown, taking the
+  image prod has promoted with it. The registry is now level 3 of six.
+- The change **removed** two workarounds instead of adding any: the targeted
+  `apply -target=module.ecr` and the `terraform output` lookup in
+  `deploy-stage.yml` both existed only because the registry did not exist in an
+  empty stage state (bug b71b846).
+- **Four defects beyond the five documented ones**, all found by reading the code
+  rather than the plan: `prod/outputs.tf` lacked the four outputs `run-task`
+  consumes; `destroy.yml`'s prod choice died at OIDC authentication because
+  `bootstrap-oidc` creates exactly one role; `destroy.yml` still exported dead
+  `TF_VAR_github_*`; `state_bucket_name` was dead in STAGE as well as prod.
+- **`terraform init -backend=false` does not skip the backend** in a directory
+  initialized for real — it reuses the cached S3 config in `.terraform/`. The
+  Makefile comment promising "no AWS creds needed" was false on the devbox and
+  true in CI only because a fresh checkout has no `.terraform/`. Fixed with an
+  isolated `TF_DATA_DIR`; the claim now has a test.
+- **A mistake worth keeping:** the first version of the new validate target
+  would have passed green if `find` returned nothing — an empty value passing
+  silently, i.e. b71b846 again, written one commit after recording that lesson.
+  Fixed in e1e577a. Knowing a failure pattern by name does not stop you writing it.
+
 Repo (origin/main), most recent first:
 
 ```text
+972c109  docs: close the Phase 9.0 session — cursor, summary, index, trap list
+e1e577a  ci: tf-validate must fail when it discovers nothing
+e05cc02  ci: validate every root level, hermetically
+1987c1f  fix(prod): reconcile the Phase 4 scaffold against the post-C2 modules
+ab22a58  feat(ecr): shared registry at a permanent state level (ADR-0018)
+2027654  docs: discussion-log — six state levels, ECR leaves the per-cycle teardown
+ffe060d  docs: primer — six state levels; the chat supplies the transfer path
+0ce9326  docs: ADR-0018 shared ECR at a permanent state level
+d56d820  docs: primer — the chat drives the session, devbox executes
 1f50243  docs: move discussion-log into git (last artifact outside the source of truth)
 bbe8bd0  docs: close the 2026-07-25 planning session — phase-gates Phase 9, summary, index
 ee0a25e  docs: next-phases — Phase 9.0 reconcile the stale prod scaffold
@@ -456,8 +501,13 @@ destroy.yml run surfaced two latent deploy-role bugs:
 
 ## Open debts / next steps
 
-- **Phase 9.0 reconciliation** is the immediate next action. See ADR-0017 and
-  `docs/next-phases.md`.
+- **Phase 9.1 (build out prod)** is the immediate next action: a SECOND deploy
+  role in `infra/bootstrap-oidc` (`name_prefix` is a scalar today), a `prod`
+  GitHub Environment with required reviewers, `promote-prod.yml` promoting by
+  DIGEST, and HTTPS. See ADR-0017, ADR-0018 and `docs/next-phases.md`.
+- **`infra/shared-ecr` has never been applied.** It is applied locally under
+  `demo-admin` once per account, BEFORE the first `deploy-stage.yml` run of a
+  cycle. The workflow fails fast with an explicit message if it is absent.
 - **Documentation debt, now scheduled rather than floating.** Still missing:
   README.md, docs/architecture.md, docs/demo-script.md (Phase 12);
   docs/cost-control.md, docs/interview-talking-points.md,
