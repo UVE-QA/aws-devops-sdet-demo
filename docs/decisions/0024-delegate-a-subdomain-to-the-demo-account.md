@@ -7,17 +7,33 @@ domain") and extends the state-level model of ADR-0018.
 ## Context
 
 Phase 9.1 needs `https://app.<domain>` to serve prod with a valid certificate.
-The domain that exists is `uveapp.net`. Its Route53 hosted zone lives in account
-`478937318617` (`vlad.urban.qa`), which is **not a member of this Organization**
-and is not reachable through this project's IAM Identity Center — that portal
-lists exactly four accounts: `devops-sdet-demo` (993912191738),
-`org-management`, `proj-eu-vpn`, `proj-sandbox`. There is no credential path
-from this project into the domain's account, by construction rather than by
-oversight.
+The domain that exists is `uveapp.net`, and its authoritative hosted zone lives
+in `org-management` (029280391941) — **the AWS Organizations management
+account**, the one account this project is forbidden to deploy into (ADR-0001).
+That zone already delegates a sibling subdomain, `files.uveapp.net`, so
+delegation is its established pattern rather than a mechanism invented here.
 
-That zone already delegates sibling subdomains — `files.uveapp.net` and
-`who.uveapp.net` both carry `NS` records — so delegation is the established
-pattern there, not a mechanism invented for this project.
+Finding it took most of an hour, and the reason is worth recording because it
+will mislead the next person too. A SECOND hosted zone for `uveapp.net` exists in
+an unrelated account, `478937318617` (`vlad.urban.qa`), outside this
+Organization. It is a near-complete copy — MX for SES, three DKIM CNAMEs,
+`api`, `serverless`, `autodiscover`, and its own `files` and `who` delegations —
+and it is **authoritative for nothing**: its delegation set
+(`ns-447/555/1112/1559`) does not match what the `.net` registry publishes
+(`ns-143/659/1318/1565`). The first delegation record of this ADR was created
+there and had no effect whatsoever.
+
+Two lessons, both cheap next time:
+
+- **A hosted zone that looks complete proves nothing.** The only ground truth is
+  the delegation the TLD publishes: `dig +noall +authority NS <domain> @a.gtld-servers.net`.
+  Compare that against `DelegationSet.NameServers` of the zone being edited,
+  before editing it.
+- **`dig +short` prints the ANSWER section only.** Asking a parent's
+  authoritative server about a delegated child returns a REFERRAL, whose NS
+  records are in AUTHORITY; asking for `NS` at a name that holds `A` records
+  returns nothing. An empty `+short` result twice looked like "the delegation is
+  missing" when it meant "wrong section" and "wrong record type".
 
 The record that matters is not static. The ALB is created and destroyed with
 every cycle (ADR-0017 D2a), so its DNS name is different on every deploy, and
@@ -39,9 +55,14 @@ the software being deployed.
 ## Decision
 
 1. **Delegate a subdomain, do not move the domain.** `demo.uveapp.net` is
-   delegated to the demo account. The parent zone keeps a single `NS` record for
-   that label, pointing at the four name servers of the delegated zone. Prod is
-   published at `app.demo.uveapp.net`.
+   delegated to the demo account. The parent zone in `org-management` keeps a
+   single `NS` record for that label, pointing at the four name servers of the
+   delegated zone. Prod is published at `app.demo.uveapp.net`.
+
+   The parent living in the management account makes delegation the only
+   acceptable answer rather than merely the convenient one: ADR-0001 forbids
+   this project's workloads there, and a deploy role with write access into the
+   management account would be a far worse outcome than one extra hosted zone.
 
 2. **A new permanent state level `infra/dns/`** holds the hosted zone for
    `demo.uveapp.net` and a wildcard ACM certificate for `*.demo.uveapp.net`,
@@ -93,11 +114,16 @@ The state-level model becomes seven:
 ## Consequences
 
 **One manual action, once, in an account this project otherwise never touches.**
-The `NS` record for `demo.uveapp.net` is created by hand in the parent zone. It
-is untracked state in a different trust domain — the same category as the GitHub
-`prod` environment's protection rules, which git also cannot assert. Both are
-recorded here precisely because nothing else can hold them. If prod's name ever
-stops resolving, this record is the first thing to check.
+The `NS` record for `demo.uveapp.net` is created by hand in the `org-management`
+zone. It is untracked state in an account this project's automation must never
+reach — the same category as the GitHub `prod` environment's protection rules,
+which git also cannot assert. Both are recorded here precisely because nothing
+else can hold them. If prod's name ever stops resolving, this record is the
+first thing to check.
+
+**A stray `demo` NS record remains in the `vlad.urban.qa` copy of the zone** and
+should be deleted. It resolves for nobody, and a record that looks like a working
+delegation and is not is exactly the class of trap this project keeps paying for.
 
 **The blast radius stays inside the demo account.** No role in this project can
 touch the parent zone, and no credential from the domain's account is needed
@@ -131,12 +157,12 @@ already served from `uveapp.net` would have to be recreated there. Isolating the
 demo is the point of the account model (ADR-0001); pulling the parent domain
 into it inverts that.
 
-**Cross-account access from Terraform.** A role in the domain's account, assumed
-by the deploy role to write records. Rejected: the account is outside this
-Organization, so the trust would also be cross-organization, and the OIDC deploy
-role — whose selling point is that it is scoped to one demo account — would gain
-standing authority somewhere else. More moving parts, worse story, no benefit
-over one NS record.
+**Cross-account access from Terraform.** A role in the parent zone's account,
+assumed by the deploy role to write records. Rejected on the strongest possible
+grounds: that account is the Organizations management account. Granting a
+CI-assumed role standing write access there contradicts ADR-0001 directly, and
+it would trade the project's clearest security claim — one deploy role, one demo
+account — for the convenience of skipping a single DNS record.
 
 **Manual records per cycle in the parent zone.** Rejected outright: the ALB name
 changes every deploy, so this makes a human a required step in a cycle that is
