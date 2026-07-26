@@ -123,6 +123,11 @@ touching anything.
   keys, tokens, passwords are not. No exceptions: the clone needs no
   credential now.
 - Give one correct method, not options A/B.
+- ONE copyable block per message, and the host label goes OUTSIDE it. A block
+  whose first line is `[devbox] make local-up` has to be edited before it can
+  be run, and a second block in the same message gets run by accident. Both
+  happened on 2026-07-26, the second one because a discarded command was left
+  in the reply.
 - Prefer a checked-in patch script over a long interactive heredoc when editing
   long documents: it fails loudly and changes nothing on mismatch.
 ```
@@ -161,6 +166,15 @@ Ops — devbox maintenance
 - After a teardown, confirm against the AWS CLI, not against Terraform state.
 - A fix to a shared invariant goes to EVERY environment directory in the same
   commit, not only the one being exercised.
+- A gate that has only ever been seen GREEN is indistinguishable from a gate
+  that cannot fail. Break each new one on purpose, once, and keep the output.
+  Three have been confirmed this way and each took under a minute: the
+  tf-validate discovery check, the Playwright spec-coverage guard, and the
+  UI-write assertion.
+- A guarantee stated in a comment is not a guarantee. `promote-prod.yml` said
+  "read-only smoke against prod" and ran the whole test directory; it was true
+  only while no destructive test existed. When a document and a command
+  disagree, the command wins — go read the command.
 ```
 
 ## Delivering files from a chat to the repo
@@ -190,6 +204,17 @@ assumption about the base commit is wrong, you find out before anything moves.
 Nothing about this lets the chat commit to `main`. It authors commits; you apply
 and push them, after reading them.
 
+### Expect two patches per session, not one
+
+A session writes its closing documents BEFORE its validation runs, because that
+is the order the work happens in: the patch has to reach the devbox before
+anything can be run there. On 2026-07-26 the closing commit said "nothing has
+run against PostgreSQL" — true when written, false twenty minutes later.
+
+So the normal shape is one patch with the work and the documents that can be
+written in advance, then a second, small one recording what the validation
+actually showed. Do not try to collapse them by holding the first patch back.
+
 ### The layout
 
 ```text
@@ -216,6 +241,10 @@ For a single file outside a session's patch, `send.sh` still works:
     without a message: delivers and shows git status, you commit after review
     with a message:    delivers, commits, pushes
 ```
+
+**The chat can write into `outbox/` but cannot delete from it.** Removing a
+patch once it is committed is yours to do. A chat that leaves one behind should
+say so when it closes, rather than leaving the invariant below quietly broken.
 
 **The destination is always `outbox/`.** One fixed directory, never "wherever it
 went this time". The split between tooling and `outbox/` makes one rule
@@ -288,6 +317,15 @@ Terraform state levels — only the last two are ever destroyed:
                          not built yet; 11.0 publish-the-repo is DONE)
   infra/envs/stage       workload, destroyed every cycle
   infra/envs/prod        workload, destroyed every cycle
+```
+
+Test suites are split by DIRECTORY and bound to Playwright projects (ADR-0025).
+Where a spec lives decides where it runs:
+
+```text
+tests/api/                          HTTP contract, DESTRUCTIVE, stage + local
+tests/playwright/tests/smoke/       read-only — the only suite prod runs
+tests/playwright/tests/regression/  DESTRUCTIVE — stage + local only
 ```
 
 Anything that must survive a teardown — including the artifact that PROVES the
