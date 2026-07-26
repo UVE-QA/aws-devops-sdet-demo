@@ -254,9 +254,11 @@ and read, in this order:
   docs/decisions/              (newest first)
   docs/discussion-log.md       (top "Current state" block only)
 
-If the clone fails the repo is still private: say so, fall back to the Claude
-Project mirror files, treat them as possibly stale, and ask me to run
-`git -C ~/aws-devops-sdet-demo log --oneline -5` before relying on them.
+If the clone fails the repo is still private (it goes public at Phase 11): say
+so, then load state FROM THE DEVBOX. Ask me for
+`git -C ~/aws-devops-sdet-demo log --oneline -5`, then for the contents of the
+files above, one at a time. There is no Claude Project mirror any more
+(ADR-0019) — never rebuild state from a copy that lives outside git.
 
 Then STOP and report: current phase, next allowed step, blockers. Propose what
 this session should cover and wait for my confirmation.
@@ -265,8 +267,11 @@ Then run the session: discuss, decide, draft, and give me instructions.
 - ONE command at a time, labelled [mac] or [devbox]. Wait for my real terminal
   output before the next. Never assume a step ran.
 - Verify the previous step before starting the next.
-- Files you author go to the repo through ~/Projects/_claude-transfer and
-  ./send.sh <file> <repo/path> ["commit message"]. You never commit directly.
+- Files you author reach the repo through ~/Projects/_claude-transfer/outbox/
+  and ./send.sh <file> <repo/path> ["commit message"]. Right after writing a
+  file, give me a ready-to-run cp into outbox/ with your own outputs path
+  already substituted — I cannot guess where your sandbox put it. You never
+  commit directly.
 - Explicit confirmation before any billable AWS action. Never ask for secrets.
 - English for anything that lands in the repo or is pasted into a session;
   Russian is fine for discussion.
