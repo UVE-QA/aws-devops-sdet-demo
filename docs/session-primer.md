@@ -263,9 +263,10 @@ obvious once prod runs an image that stage's teardown would delete (ADR-0018).
   policy added, 0 destroyed (ADR-0021 moved blocks). Anything else means a
   moved block is wrong — do not apply through it.
 - destroy.yml still offers stage only, and prod desired_count is still 0.
-- prod's approval gate needs BOTH halves: trust_branch_ref = false in IAM (done)
-  and required reviewers on the GitHub Environment (UI, unassertable from git).
-  Verify the GitHub half before the first promote run — ADR-0022.
+- prod's approval gate has BOTH halves as of 2026-07-26: trust_branch_ref =
+  false in IAM, and the prod environment's 2 protection rules in GitHub (required
+  reviewers, main-only, admin bypass off). The GitHub half is UI state that git
+  cannot assert — if a promotion ever runs without pausing, check it first.
 - the GitHub variable TF_VAR_DEMO_ACCOUNT_ID is NOT a Terraform variable.
   Only destroy.yml uses it, to build the deploy role ARN. Fixing the name means
   renaming it in the GitHub UI.

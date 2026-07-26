@@ -169,10 +169,14 @@ consulted.** The sweep was also manual pattern-matching, not the gitleaks run
 
 ## Open
 
-- **Required reviewers on the `prod` environment** are UI state; nothing in git
-  can assert them. Both halves of the gate must exist — IAM's
-  `trust_branch_ref = false` and GitHub's reviewers — and neither is sufficient
-  alone. Verify before the first `promote-prod.yml` run.
+- **Required reviewers on the `prod` environment** were enabled the same day:
+  2 protection rules, administrator bypass off, `main` the only deployment
+  branch. `Prevent self-review` is off by necessity — the only reviewer is the
+  account that triggers the run, so enabling it would deadlock promotion
+  entirely. In a solo project the gate is a deliberate pause, not separation of
+  duties; that arrives with a second reviewer. This is UI state and git cannot
+  assert it, so it stays on this list as something to re-check rather than
+  assume.
 - **gitleaks over the full history** is still owed; the pre-publication sweep was
   manual. Phase 15 puts it in CI, which is now late rather than early.
 - **MFA on the Identity Center user** should be confirmed, not assumed: the SSO

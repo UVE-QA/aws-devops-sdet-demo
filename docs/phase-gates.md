@@ -274,8 +274,13 @@ track 14-19), shaped by ADR-0017. This table tracks only what is done.
     outside Enterprise, so Phase 11.0 was pulled forward and the repository is
     now public (ADR-0022, ADR-0023). The gate is real in both systems only when
     BOTH halves exist: `trust_branch_ref = false` in IAM and required reviewers
-    in GitHub. Verify the GitHub half before the first promote run; nothing in
-    git can assert it.
+    in GitHub. BOTH NOW EXIST (2026-07-26): the `prod` environment shows
+    2 protection rules — required reviewers (UVE-QA) and `main` as the only
+    deployment branch — with administrator bypass DISABLED. `Prevent self-review`
+    is deliberately off: the sole reviewer is also the triggering account, so
+    enabling it would deadlock every promotion. It goes on when a second
+    reviewer exists, not before. This is UI state; git cannot assert it, so
+    re-check it if promotion ever fails to pause.
   - Session summary: docs/sessions/2026-07-26-phase-9-1-oidc-split.md.
 - Remaining in 9.1: promote-prod.yml (promotion by digest, no rebuild), the prod
   branch of destroy.yml, and HTTPS (ACM us-west-2 + Route53 + 443 listener +
