@@ -154,35 +154,9 @@ jobs:
           # prod is created and destroyed with every cycle and keeps no data
           # between them (ADR-0017 D2a), so migrate and seed are PROVISIONING
           # here, not test fixtures. The seed is idempotent.
-          run_task() {
-            local label="$1"; shift
-            local overrides
-            overrides=$(jq -nc --arg name "$CONTAINER" --argjson cmd "$1" \
-              '{containerOverrides:[{name:$name,command:$cmd}]}')
-            echo "::group::run-task $label"
-            local arn
-            arn=$(aws ecs run-task \
-              --cluster "$CLUSTER" \
-              --task-definition "$TASK_DEF" \
-              --launch-type FARGATE \
-              --count 1 \
-              --network-configuration "awsvpcConfiguration={subnets=[$SUBNETS],securityGroups=[$SG],assignPublicIp=ENABLED}" \
-              --overrides "$overrides" \
-              --query 'tasks[0].taskArn' --output text)
-            echo "task: $arn"
-            aws ecs wait tasks-stopped --cluster "$CLUSTER" --tasks "$arn"
-            local code
-            code=$(aws ecs describe-tasks --cluster "$CLUSTER" --tasks "$arn" \
-              --query 'tasks[0].containers[0].exitCode' --output text)
-            echo "exitCode: $code"
-            echo "::endgroup::"
-            if [ "$code" != "0" ]; then
-              echo "$label failed (exitCode=$code)"; exit 1
-            fi
-          }
-          run_task migrate    '["alembic","upgrade","head"]'
-          run_task seed       '["python","scripts/seed.py"]'
-          run_task db-assert  '["python","scripts/assert_seed.py"]'
+          scripts/ecs-run-task.sh migrate   '["alembic","upgrade","head"]'
+          scripts/ecs-run-task.sh seed      '["python","scripts/seed.py"]'
+          scripts/ecs-run-task.sh db-assert '["python","scripts/assert_seed.py"]'
 
       - name: Set up Node.js
         uses: actions/setup-node@v5
@@ -194,12 +168,15 @@ jobs:
         env:
           BASE_URL: ${{ steps.tf.outputs.app_url }}
         run: |
-          # Read-only on purpose. Destructive regression belongs to stage, which
-          # is seeded and disposable; prod gets the smoke that proves the
-          # promoted image serves traffic and reaches its database.
+          # `--project=smoke` is what makes "read-only" true. Until Phase 10
+          # this step ran the whole testDir and was read-only only because no
+          # destructive spec existed; the comment claiming otherwise would have
+          # survived the first one unchanged. The projects select by directory
+          # (ADR-0025), so prod runs tests/smoke/ and nothing else, and
+          # `make test-spec-coverage` fails if a spec belongs to no project.
           npm install
           npx playwright install --with-deps chromium
-          npx playwright test
+          npx playwright test --project=smoke
 
       - name: Upload Playwright report
         if: always()

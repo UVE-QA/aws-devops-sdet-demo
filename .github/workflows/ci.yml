@@ -58,10 +58,22 @@ jobs:
       - name: Seed
         run: make seed
 
-      - name: Playwright smoke
+      - name: Every spec belongs to a project
+        # Before the smoke/regression split this check did not exist, and a
+        # spec in the wrong directory would have run in no suite while CI
+        # stayed green.
+        run: make test-spec-coverage
+
+      - name: API contract tests
+        run: make test-api
+
+      - name: Playwright smoke (read-only)
         run: make test-smoke
 
-      - name: DB assertion
+      - name: Playwright regression + UI write assertion (destructive)
+        run: make test-regression
+
+      - name: Seed DB assertion
         run: make test-db
 
       - name: Tear down local stack

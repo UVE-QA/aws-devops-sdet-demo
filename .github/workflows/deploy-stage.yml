@@ -27,6 +27,10 @@ jobs:
       TF_VAR_demo_account_id: ${{ vars.TF_VAR_demo_account_id }}
       TF_VAR_budget_email: ${{ vars.TF_VAR_budget_email }}
       TF_VAR_owner: ${{ vars.TF_VAR_owner }}
+      # One value, read by the Playwright regression that WRITES it through the
+      # browser and by the ECS task that then LOOKS IT UP in RDS. Defined at job
+      # level precisely so the two steps cannot drift apart.
+      UI_PROBE_NAME: ui-probe-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -116,49 +120,59 @@ jobs:
           SUBNETS: ${{ steps.tf.outputs.subnets }}
           SG: ${{ steps.tf.outputs.sg }}
         run: |
-          run_task() {
-            local label="$1"; shift
-            local overrides
-            overrides=$(jq -nc --arg name "$CONTAINER" --argjson cmd "$1" \
-              '{containerOverrides:[{name:$name,command:$cmd}]}')
-            echo "::group::run-task $label"
-            local arn
-            arn=$(aws ecs run-task \
-              --cluster "$CLUSTER" \
-              --task-definition "$TASK_DEF" \
-              --launch-type FARGATE \
-              --count 1 \
-              --network-configuration "awsvpcConfiguration={subnets=[$SUBNETS],securityGroups=[$SG],assignPublicIp=ENABLED}" \
-              --overrides "$overrides" \
-              --query 'tasks[0].taskArn' --output text)
-            echo "task: $arn"
-            aws ecs wait tasks-stopped --cluster "$CLUSTER" --tasks "$arn"
-            local code
-            code=$(aws ecs describe-tasks --cluster "$CLUSTER" --tasks "$arn" \
-              --query 'tasks[0].containers[0].exitCode' --output text)
-            echo "exitCode: $code"
-            echo "::endgroup::"
-            if [ "$code" != "0" ]; then
-              echo "$label failed (exitCode=$code)"; exit 1
-            fi
-          }
-          run_task migrate    '["alembic","upgrade","head"]'
-          run_task seed       '["python","scripts/seed.py"]'
-          run_task db-assert  '["python","scripts/assert_seed.py"]'
+          scripts/ecs-run-task.sh migrate   '["alembic","upgrade","head"]'
+          scripts/ecs-run-task.sh seed      '["python","scripts/seed.py"]'
+          scripts/ecs-run-task.sh db-assert '["python","scripts/assert_seed.py"]'
 
       - name: Set up Node.js
         uses: actions/setup-node@v5
         with:
           node-version: "20"
 
-      - name: Playwright smoke against ALB
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Every spec belongs to a project
+        run: make test-spec-coverage
+
+      - name: API contract tests against the ALB
+        env:
+          BASE_URL: ${{ steps.tf.outputs.alb_url }}
+        run: make test-api BASE_URL="$BASE_URL"
+
+      - name: Playwright smoke + regression against the ALB
         working-directory: tests/playwright
         env:
           BASE_URL: ${{ steps.tf.outputs.alb_url }}
         run: |
+          # Both projects are named EXPLICITLY rather than relying on "run
+          # everything". stage is the environment where the destructive suite
+          # belongs, but a bare `playwright test` would also silently adopt any
+          # future project, which is how prod nearly inherited this suite.
+          #
+          # One invocation, so the uploaded HTML report contains both suites:
+          # two runs would leave only the second in playwright-report/.
           npm install
           npx playwright install --with-deps chromium
-          npx playwright test
+          npx playwright test --project=smoke --project=regression
+
+      - name: Assert the UI write reached RDS
+        env:
+          CLUSTER: ${{ steps.tf.outputs.cluster }}
+          TASK_DEF: ${{ steps.tf.outputs.task_def }}
+          CONTAINER: ${{ steps.tf.outputs.container }}
+          SUBNETS: ${{ steps.tf.outputs.subnets }}
+          SG: ${{ steps.tf.outputs.sg }}
+        run: |
+          # The regression created UI_PROBE_NAME through the browser and left
+          # it there. This reads the database directly, from a different
+          # process, over a different protocol. RDS is in private subnets, so
+          # the only way in is a task inside the VPC.
+          scripts/ecs-run-task.sh ui-write-assert \
+            '["python","scripts/assert_ui_write.py"]' \
+            "$(jq -nc --arg v "$UI_PROBE_NAME" '[{name:"UI_PROBE_NAME",value:$v}]')"
 
       - name: Upload Playwright report
         if: always()
