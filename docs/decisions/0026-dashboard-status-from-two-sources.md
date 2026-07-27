@@ -101,6 +101,43 @@ when the environment is in a state nobody predicted, and a status file that
 appeared only after success would report the account as it was the last time
 things went well.
 
+## Implementation note (Phase 11.1c) — staleness has to be scoped, and that costs one line of YAML
+
+The staleness rule above says "the newest run". Written into a page, that turns
+out to be too coarse in both directions, and each error is the kind this project
+has already made once.
+
+**Too wide.** `ci` and `publish-site` write no status file. If the newest run of
+any kind made an environment stale, a documentation commit would turn both
+panels amber while nothing in AWS had moved — a page crying wolf is a page
+nobody reads. So the rule is scoped to the runs that WRITE a given environment's
+file: `deploy-stage` for stage, `promote-prod` for prod, `destroy` for whichever
+it targeted.
+
+**Too narrow.** That last clause is the problem. The anonymous Actions API does
+not expose `workflow_dispatch` inputs, so a `destroy` run gives an outside reader
+no way to tell which environment it tore down. The page's honest fallback is to
+treat it as possibly affecting both and mark both unknown — correct, and useless
+often enough to matter, because a destroy is half of every cycle.
+
+The fix is one line in `destroy.yml`:
+
+```yaml
+run-name: destroy ${{ inputs.environment }}
+```
+
+which is not cosmetic: it is what makes the run OBSERVABLE to the source that is
+allowed to talk about runs. The page still keeps the fallback for the runs that
+predate it, so history from before this change degrades to "unknown" rather than
+being quietly misread.
+
+One consequence is deliberately kept: while the GitHub API cannot be read at
+all, an environment panel shows its last observation and labels it
+**unverified** rather than claiming it is current or blanking it. The bucket is
+still a real observation; what is missing is the second source that would decide
+whether it is the newest one. Half a source is not the same as a source, and the
+page says which half it has.
+
 ## Consequences
 
 - The unauthenticated GitHub REST API is rate-limited to 60 requests per hour

@@ -1,99 +1,635 @@
 <!DOCTYPE html>
 <!--
-  PLACEHOLDER, Phase 11.1b. The dashboard content is Phase 11.1c.
+  The public dashboard for aws-devops-sdet-demo. Phase 11.1c.
 
-  This page exists so that the permanent public level can be proven end to end
-  before there is anything interesting to show: a request reaching it means the
-  origin bucket is private, CloudFront's Origin Access Control works, the
-  us-east-1 certificate is valid, the alias records resolve, and the narrow
-  publish role was able to write here from a workflow.
+  ONE FILE, NO BUILD STEP, NO DEPENDENCIES. It is published by
+  `scripts/publish-site.sh` under a role that can write this bucket and nothing
+  else, so the page that reports on the infrastructure is not written by the
+  credential that can change it.
 
-  It deliberately claims nothing about the state of stage or prod. Neither
-  source of truth for that exists in the bucket yet (ADR-0026), and a page that
-  rendered a plausible-looking "destroyed" from no data would be the exact
-  failure this project keeps rediscovering: a claim standing in for an
-  observation.
+  TWO SOURCES, SPLIT BY WHAT EACH ONE CAN OBSERVE (ADR-0026):
+
+    the public GitHub Actions REST API, read anonymously from this browser
+        where a cycle is: which run, which job, which step, how long.
+        Live by construction. No token, no backend, nothing cached on a server.
+
+    status/<environment>.json in this bucket, written by the workflows
+        what exists in AWS: the load balancer, the service, the database,
+        the image digest prod is running.
+
+  The rule that decides every future addition, and the reason the page is built
+  this way at all:
+
+      A source may only assert what it observes.
+      Actions may not claim an environment is destroyed.
+      status.json may not claim a run is in progress.
+
+  Each source is therefore the other's staleness detector. If the newest run
+  that writes an environment's status file is NOT the run that wrote the file
+  currently in the bucket, the panel renders "unknown" and names the run that
+  has not reported. It does not render the last known value as though it were
+  current — that is the failure this project keeps rediscovering, in which a
+  claim quietly stands in for an observation.
+
+  An empty result is not a clean result. Everything here fails visibly: a rate
+  limited API renders a banner rather than an empty history, and an environment
+  with no observation renders "no observation yet" rather than "destroyed".
 -->
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>aws-devops-sdet-demo &mdash; public dashboard</title>
+    <meta
+      name="description"
+      content="Live status of a deploy - test - approve - promote - destroy pipeline on AWS: environment state read from AWS, run stages read from the public GitHub Actions API."
+    />
     <style>
       :root {
         color-scheme: light dark;
         --fg: #16181d;
         --muted: #5c6370;
         --bg: #fbfbfc;
+        --panel: #ffffff;
         --line: #d8dbe2;
         --accent: #1f6feb;
+        --ok: #1a7f37;
+        --warn: #9a6700;
+        --bad: #cf222e;
+        --off: #6e7781;
+        --ok-bg: #dafbe1;
+        --warn-bg: #fff8c5;
+        --bad-bg: #ffebe9;
+        --off-bg: #eef0f3;
       }
       @media (prefers-color-scheme: dark) {
         :root {
           --fg: #e6e8ee;
           --muted: #9aa2b1;
           --bg: #14161a;
+          --panel: #191c21;
           --line: #2b2f38;
           --accent: #6cb1ff;
+          --ok: #56d364;
+          --warn: #e3b341;
+          --bad: #ff7b72;
+          --off: #8b949e;
+          --ok-bg: #12261a;
+          --warn-bg: #2b2413;
+          --bad-bg: #2d1517;
+          --off-bg: #22262c;
         }
       }
       * { box-sizing: border-box; }
       body {
         margin: 0;
-        padding: 3rem 1.25rem 4rem;
+        padding: 2.5rem 1.25rem 4rem;
         background: var(--bg);
         color: var(--fg);
         font: 16px/1.6 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
       }
-      main { max-width: 46rem; margin: 0 auto; }
-      h1 { font-size: 1.5rem; margin: 0 0 0.25rem; letter-spacing: -0.01em; }
-      .sub { color: var(--muted); margin: 0 0 2rem; }
-      h2 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 2.5rem 0 0.75rem; }
-      ul { padding-left: 1.1rem; margin: 0; }
-      li { margin: 0.35rem 0; }
-      code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.9em; }
-      .card { border: 1px solid var(--line); border-radius: 10px; padding: 1rem 1.25rem; }
-      .pending { color: var(--muted); }
+      main { max-width: 60rem; margin: 0 auto; }
+      h1 { font-size: 1.55rem; margin: 0 0 0.25rem; letter-spacing: -0.01em; }
+      .sub { color: var(--muted); margin: 0 0 1.25rem; max-width: 46rem; }
+      h2 {
+        font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.09em;
+        color: var(--muted); margin: 2.75rem 0 0.85rem; font-weight: 600;
+      }
+      h2 .note { text-transform: none; letter-spacing: 0; font-weight: 400; }
+      code, .mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.88em;
+      }
       a { color: var(--accent); }
-      footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.85rem; }
+      .clocks {
+        display: flex; flex-wrap: wrap; gap: 0.5rem 1.25rem; align-items: center;
+        font-size: 0.82rem; color: var(--muted);
+        border: 1px solid var(--line); border-radius: 8px;
+        padding: 0.55rem 0.85rem; background: var(--panel);
+      }
+      .clocks b { font-weight: 600; color: var(--fg); }
+      button {
+        font: inherit; font-size: 0.82rem; color: var(--fg);
+        background: var(--bg); border: 1px solid var(--line);
+        border-radius: 6px; padding: 0.2rem 0.6rem; cursor: pointer;
+      }
+      button:hover { border-color: var(--accent); color: var(--accent); }
+      .banner {
+        border: 1px solid var(--line); border-left: 4px solid var(--warn);
+        background: var(--warn-bg); border-radius: 8px;
+        padding: 0.8rem 1rem; margin: 1rem 0 0; font-size: 0.9rem;
+      }
+      .banner.bad { border-left-color: var(--bad); background: var(--bad-bg); }
+      .banner p { margin: 0.35rem 0 0; color: var(--muted); }
+      .grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr)); }
+      .card {
+        border: 1px solid var(--line); border-radius: 10px;
+        padding: 1rem 1.1rem; background: var(--panel);
+      }
+      .card > header { display: flex; align-items: baseline; justify-content: space-between; gap: 0.75rem; }
+      .card h3 { margin: 0; font-size: 1.05rem; }
+      .card h3 small { color: var(--muted); font-weight: 400; font-size: 0.75rem; }
+      .badge {
+        display: inline-block; border-radius: 999px; padding: 0.1rem 0.6rem;
+        font-size: 0.74rem; font-weight: 600; text-transform: uppercase;
+        letter-spacing: 0.04em; white-space: nowrap;
+        border: 1px solid transparent;
+      }
+      .badge.up { color: var(--ok); background: var(--ok-bg); }
+      .badge.destroyed { color: var(--off); background: var(--off-bg); }
+      .badge.partial, .badge.unknown { color: var(--warn); background: var(--warn-bg); }
+      .badge.failure { color: var(--bad); background: var(--bad-bg); }
+      .badge.running { color: var(--accent); background: var(--off-bg); }
+      .why { color: var(--muted); font-size: 0.85rem; margin: 0.6rem 0 0; }
+      dl.kv { display: grid; grid-template-columns: 9.5rem 1fr; gap: 0.15rem 0.75rem; margin: 0.85rem 0 0; font-size: 0.88rem; }
+      dl.kv dt { color: var(--muted); }
+      dl.kv dd { margin: 0; overflow-wrap: anywhere; }
+      .stale dl.kv { opacity: 0.55; }
+      .stale-label { font-size: 0.78rem; color: var(--warn); margin: 0.8rem 0 0; font-weight: 600; }
+      ol.steps, ul.plain { list-style: none; padding: 0; margin: 0.5rem 0 0; }
+      ol.steps li {
+        display: flex; align-items: baseline; gap: 0.6rem;
+        padding: 0.22rem 0; border-bottom: 1px solid var(--line); font-size: 0.88rem;
+      }
+      ol.steps li:last-child { border-bottom: 0; }
+      ol.steps .mark { width: 1.1rem; text-align: center; flex: none; }
+      ol.steps .nm { flex: 1; overflow-wrap: anywhere; }
+      ol.steps .dur { color: var(--muted); font-size: 0.8rem; flex: none; }
+      ol.steps li.pending .nm { color: var(--muted); }
+      ol.steps li.in_progress .nm { font-weight: 600; }
+      .ok { color: var(--ok); } .bad { color: var(--bad); }
+      .warn { color: var(--warn); } .off { color: var(--off); }
+      table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+      th, td { text-align: left; padding: 0.4rem 0.6rem 0.4rem 0; border-bottom: 1px solid var(--line); }
+      th { color: var(--muted); font-weight: 600; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; }
+      .arch { display: grid; gap: 0.75rem; }
+      .lane { border: 1px solid var(--line); border-radius: 10px; padding: 0.9rem 1.1rem; background: var(--panel); }
+      .lane h4 { margin: 0 0 0.15rem; font-size: 0.95rem; }
+      .lane p { margin: 0 0 0.6rem; color: var(--muted); font-size: 0.85rem; }
+      .flow { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+      .step-chip {
+        border: 1px solid var(--line); border-radius: 7px; padding: 0.3rem 0.6rem;
+        font-size: 0.82rem; background: var(--bg);
+      }
+      .step-chip b { font-weight: 600; }
+      .step-chip span { color: var(--muted); }
+      .arrow { color: var(--muted); }
+      .perm { border-left: 4px solid var(--ok); }
+      .cycle { border-left: 4px solid var(--accent); }
+      footer { margin-top: 3.5rem; padding-top: 1rem; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.85rem; }
+      footer p { margin: 0.4rem 0; }
     </style>
   </head>
   <body>
     <main>
       <h1>aws-devops-sdet-demo</h1>
       <p class="sub">
-        Permanent public surface for a deploy &rarr; test &rarr; approve &rarr;
-        promote &rarr; destroy pipeline on AWS. This page stays online when every
-        workload environment is gone &mdash; which is the point of it.
+        A deploy &rarr; test &rarr; approve &rarr; promote &rarr; destroy pipeline on AWS,
+        reporting on itself. This page is a permanent state level of its own, so it stays
+        online when every workload environment is gone &mdash; which is most of the time,
+        and is the point of it.
       </p>
 
-      <div class="card">
-        <strong>Phase 11.1b.</strong> The hosting level is live; the dashboard
-        content lands in 11.1c. Nothing here reports the state of
-        <code>stage</code> or <code>prod</code> yet, and it says so rather than
-        rendering a value it cannot observe.
+      <div class="clocks">
+        <span>GitHub read: <b id="clock-github">&hellip;</b></span>
+        <span>bucket read: <b id="clock-bucket">&hellip;</b></span>
+        <span id="ratelimit"></span>
+        <button id="refresh" type="button">Refresh</button>
+        <span id="autorefresh"></span>
       </div>
 
-      <h2>What reaching this page already proves</h2>
-      <ul>
-        <li>the origin bucket is private &mdash; reads happen only through CloudFront Origin Access Control</li>
-        <li>TLS terminates on a certificate issued in <code>us-east-1</code>, because CloudFront accepts no other region</li>
-        <li>the apex and <code>www</code> alias records resolve to the distribution</li>
-        <li>a workflow wrote these bytes under a role scoped to this bucket and this distribution, and to nothing else</li>
-      </ul>
+      <div id="banners"></div>
 
-      <h2>Arriving in 11.1c</h2>
-      <ul class="pending">
-        <li>per-stage status of the current cycle, read anonymously from the public GitHub Actions API</li>
-        <li>the state of each environment in AWS, read from <code>status/&lt;environment&gt;.json</code> in this bucket</li>
-        <li>the published Playwright report &mdash; today it is a GitHub artifact, which needs an account to download</li>
-        <li>the architecture, in the order things actually happen</li>
-      </ul>
+      <h2>Environments <span class="note">&mdash; observed in AWS, not inferred from a green run</span></h2>
+      <div class="grid" id="environments">
+        <div class="card"><p class="why">Reading <code>status/stage.json</code> and <code>status/prod.json</code>&hellip;</p></div>
+      </div>
+
+      <h2>Current cycle <span class="note">&mdash; per-stage, from the public Actions API</span></h2>
+      <div id="cycle">
+        <div class="card"><p class="why">Reading run history&hellip;</p></div>
+      </div>
+
+      <h2>Recent lifecycle runs</h2>
+      <div class="card" id="history">
+        <p class="why">Reading run history&hellip;</p>
+      </div>
+
+      <h2>What happens, in the order it happens</h2>
+      <div class="arch">
+        <div class="lane perm">
+          <h4>Permanent &mdash; no destroy workflow touches these</h4>
+          <p>
+            Five Terraform state levels applied once, by hand, under a human SSO session.
+            The exhibit cannot be destroyed by the thing it exhibits, so anything that has
+            to survive a teardown &mdash; including the artifact that proves the teardown
+            worked &mdash; lives above the environments.
+          </p>
+          <div class="flow">
+            <span class="step-chip"><b>bootstrap</b> <span>S3 state bucket</span></span>
+            <span class="step-chip"><b>bootstrap-oidc</b> <span>OIDC provider + one deploy role per environment</span></span>
+            <span class="step-chip"><b>shared-ecr</b> <span>the registry prod promotes from</span></span>
+            <span class="step-chip"><b>dns</b> <span>delegated zone + ALB certificate</span></span>
+            <span class="step-chip"><b>public-site</b> <span>this page: S3 + CloudFront + OAC</span></span>
+          </div>
+        </div>
+        <div class="lane cycle">
+          <h4>Per cycle &mdash; created and destroyed every time</h4>
+          <p>
+            Every step below runs in GitHub Actions under a short-lived OIDC token. There
+            are no static AWS keys anywhere in this project, and no human runs an AWS
+            command during a cycle.
+          </p>
+          <div class="flow">
+            <span class="step-chip"><b>1 build</b> <span>image &rarr; shared ECR</span></span>
+            <span class="arrow">&rarr;</span>
+            <span class="step-chip"><b>2 apply</b> <span>VPC, ALB, ECS Fargate, RDS</span></span>
+            <span class="arrow">&rarr;</span>
+            <span class="step-chip"><b>3 migrate + seed</b> <span>as an ECS task</span></span>
+            <span class="arrow">&rarr;</span>
+            <span class="step-chip"><b>4 gate</b> <span>API contract, smoke, regression, DB assertion</span></span>
+            <span class="arrow">&rarr;</span>
+            <span class="step-chip"><b>5 approve</b> <span>a human, in the prod environment</span></span>
+            <span class="arrow">&rarr;</span>
+            <span class="step-chip"><b>6 promote</b> <span>the tested digest, not a rebuild</span></span>
+            <span class="arrow">&rarr;</span>
+            <span class="step-chip"><b>7 destroy</b> <span>both, verified against the AWS CLI</span></span>
+          </div>
+          <p style="margin-top: 0.7rem">
+            Suites are bound to directories, so where a test lives decides where it runs:
+            the destructive ones cannot reach prod, and a spec that belongs to no suite
+            fails the build rather than being silently reported by nothing.
+          </p>
+        </div>
+      </div>
 
       <footer>
-        Source: <a href="https://github.com/UVE-QA/aws-devops-sdet-demo">github.com/UVE-QA/aws-devops-sdet-demo</a>
-        &middot; S3 + CloudFront + OAC + ACM + Route53, applied by Terraform as its own permanent state level.
+        <p>
+          Source, including every decision record behind the design:
+          <a href="https://github.com/UVE-QA/aws-devops-sdet-demo">github.com/UVE-QA/aws-devops-sdet-demo</a>
+        </p>
+        <p>
+          Two clocks, deliberately. One is GitHub's and one is this bucket's, so a viewer
+          can see not only the state but how recently each half was confirmed.
+        </p>
       </footer>
     </main>
+
+    <script>
+      "use strict";
+
+      var REPO = "UVE-QA/aws-devops-sdet-demo";
+      var API = "https://api.github.com/repos/" + REPO;
+      var ENVIRONMENTS = ["stage", "prod"];
+
+      // Which workflow writes which environment's status file. This mapping is the
+      // page's half of ADR-0026: a run that cannot write an environment's file must
+      // not be able to make that environment look stale. `ci` and `publish-site`
+      // therefore appear nowhere below, which is why a documentation commit does not
+      // turn both panels amber.
+      var WRITERS = {
+        ".github/workflows/deploy-stage.yml": ["stage"],
+        ".github/workflows/promote-prod.yml": ["prod"],
+        ".github/workflows/destroy.yml": null // resolved from the run name, see below
+      };
+
+      var state = {
+        runs: null,
+        jobs: null,
+        status: {},
+        githubReadAt: null,
+        bucketReadAt: null,
+        githubError: null,
+        lastGithubOk: null,
+        rateRemaining: null,
+        timer: null
+      };
+
+      // ---- small helpers -----------------------------------------------------
+      function el(id) { return document.getElementById(id); }
+      function esc(s) {
+        return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+          return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+        });
+      }
+      function hhmmss(d) {
+        return d ? d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "never";
+      }
+      function ago(iso) {
+        if (!iso) return "unknown";
+        var t = Date.parse(iso);
+        if (isNaN(t)) return "unknown";
+        var s = Math.max(0, Math.round((Date.now() - t) / 1000));
+        if (s < 60) return s + "s ago";
+        if (s < 3600) return Math.round(s / 60) + " min ago";
+        if (s < 86400) return Math.round(s / 3600) + " h ago";
+        return Math.round(s / 86400) + " d ago";
+      }
+      function dur(a, b) {
+        if (!a) return "";
+        var end = b ? Date.parse(b) : Date.now();
+        var s = Math.max(0, Math.round((end - Date.parse(a)) / 1000));
+        var m = Math.floor(s / 60);
+        return m + "m " + (s % 60) + "s";
+      }
+
+      // ---- reading the two sources -------------------------------------------
+      function readGitHub() {
+        // One list call, and one jobs call for the newest lifecycle run. Anonymous
+        // GitHub allows 60 requests per hour per IP, so the page is deliberately
+        // frugal: no polling unless something is actually in flight.
+        return fetch(API + "/actions/runs?per_page=40", {
+          headers: { Accept: "application/vnd.github+json" }
+        }).then(function (r) {
+          var rem = r.headers.get("x-ratelimit-remaining");
+          if (rem !== null) state.rateRemaining = rem;
+          if (!r.ok) throw new Error("HTTP " + r.status);
+          return r.json();
+        }).then(function (data) {
+          state.runs = (data.workflow_runs || []).slice();
+          state.githubError = null;
+          state.githubReadAt = new Date();
+          state.lastGithubOk = state.githubReadAt;
+          var current = currentRun();
+          if (!current) { state.jobs = null; return; }
+          return fetch(API + "/actions/runs/" + current.id + "/jobs", {
+            headers: { Accept: "application/vnd.github+json" }
+          }).then(function (r) {
+            var rem = r.headers.get("x-ratelimit-remaining");
+            if (rem !== null) state.rateRemaining = rem;
+            if (!r.ok) throw new Error("HTTP " + r.status);
+            return r.json();
+          }).then(function (d) { state.jobs = { runId: current.id, jobs: d.jobs || [] }; });
+        }).catch(function (err) {
+          // An empty history is NOT rendered. The banner says the source is
+          // unavailable and names when it was last read successfully, because a
+          // silent empty list is indistinguishable from "nothing has ever run".
+          state.githubError = err.message || String(err);
+          state.githubReadAt = new Date();
+        });
+      }
+
+      function readStatusFiles() {
+        return Promise.all(ENVIRONMENTS.map(function (env) {
+          return fetch("status/" + env + ".json", { cache: "no-store" })
+            .then(function (r) {
+              if (r.status === 403 || r.status === 404) return { env: env, missing: true };
+              if (!r.ok) throw new Error("HTTP " + r.status);
+              return r.json().then(function (j) { return { env: env, file: j }; });
+            })
+            .catch(function (e) { return { env: env, error: e.message || String(e) }; });
+        })).then(function (results) {
+          results.forEach(function (r) { state.status[r.env] = r; });
+          state.bucketReadAt = new Date();
+        });
+      }
+
+      // ---- classifying runs ---------------------------------------------------
+      function runEnvironments(run) {
+        var mapped = WRITERS[run.path];
+        if (mapped) return mapped;
+        if (run.path !== ".github/workflows/destroy.yml") return [];
+        // destroy.yml sets `run-name: destroy <environment>` precisely so this is
+        // observable anonymously. If it ever is not, the honest answer is that the
+        // run could have targeted either environment - so it makes both stale
+        // rather than neither.
+        var m = /destroy\s+(stage|prod)/i.exec(run.name || run.display_title || "");
+        return m ? [m[1].toLowerCase()] : ENVIRONMENTS.slice();
+      }
+
+      function lifecycleRuns() {
+        return (state.runs || []).filter(function (r) { return runEnvironments(r).length > 0; });
+      }
+      function currentRun() {
+        return lifecycleRuns()[0] || null;
+      }
+      function newestRunFor(env) {
+        var list = lifecycleRuns().filter(function (r) { return runEnvironments(r).indexOf(env) !== -1; });
+        return list[0] || null;
+      }
+
+      // ---- rendering ----------------------------------------------------------
+      function renderClocks() {
+        el("clock-github").textContent = state.githubError ? "failed at " + hhmmss(state.githubReadAt) : hhmmss(state.githubReadAt);
+        el("clock-bucket").textContent = hhmmss(state.bucketReadAt);
+        el("ratelimit").textContent = state.rateRemaining === null
+          ? ""
+          : "GitHub budget: " + state.rateRemaining + " of 60 requests left this hour";
+      }
+
+      function renderBanners() {
+        var out = "";
+        if (state.githubError) {
+          out += '<div class="banner bad"><strong>Run history unavailable</strong> &mdash; ' +
+            esc(state.githubError) +
+            '. This page reads the GitHub API anonymously, which is limited to 60 requests ' +
+            'per hour per IP address.<p>Last successful read in this browser session: <b>' +
+            (state.lastGithubOk ? esc(hhmmss(state.lastGithubOk)) : "none yet") +
+            '</b>. Nothing below is being shown as empty to stand in for this failure: the ' +
+            'environment panels come from this bucket and are unaffected.</p></div>';
+        }
+        el("banners").innerHTML = out;
+      }
+
+      function envPanel(env) {
+        var entry = state.status[env] || {};
+        var file = entry.file;
+        var newest = newestRunFor(env);
+        var stale = false, reason = "";
+
+        if (state.githubError) {
+          reason = "Run history could not be read, so this value cannot be checked for staleness. " +
+            "It is whatever the last run wrote.";
+        } else if (!file) {
+          reason = "";
+        } else if (newest && String(newest.id) !== String(file.run && file.run.id)) {
+          stale = true;
+          reason = newest.status !== "completed"
+            ? "Run #" + newest.run_number + " (" + esc(newest.name || newest.path) + ") is " +
+              esc(newest.status.replace("_", " ")) + " and has not reported yet."
+            : "Run #" + newest.run_number + " (" + esc(newest.name || newest.path) + ") finished " +
+              esc(ago(newest.updated_at)) + " and did not write a status file. " +
+              "Whatever it did to this environment is not reflected below.";
+        }
+
+        var stateName, cls, unverified = false;
+        if (entry.missing || !file) {
+          stateName = "no observation";
+          cls = "unknown";
+        } else if (stale) {
+          stateName = "unknown";
+          cls = "unknown";
+        } else {
+          stateName = file.state;
+          cls = file.state === "up" ? "up" : file.state === "destroyed" ? "destroyed" : "partial";
+          // The value is a real observation, but with the run history unreadable it
+          // cannot be checked against the newest run - so the badge says which of the
+          // two it is. Half a source is not the same as a source.
+          if (state.githubError) unverified = true;
+        }
+
+        var h = '<div class="card' + (stale ? " stale" : "") + '">';
+        h += '<header><h3>' + esc(env) + ' <small>' + (file ? esc(file.region || "") + " &middot; " + esc(file.account || "") : "") + '</small></h3>';
+        h += '<span class="badge ' + cls + '">' + esc(stateName) +
+          (unverified ? " &middot; unverified" : "") + '</span></header>';
+
+        if (entry.missing) {
+          h += '<p class="why">No <code>status/' + esc(env) + '.json</code> in the bucket. ' +
+            'Nothing has reported on this environment yet &mdash; which is not the same as ' +
+            'it being destroyed, and is not rendered as though it were.</p>';
+          return h + "</div>";
+        }
+        if (entry.error) {
+          h += '<p class="why bad">Could not read <code>status/' + esc(env) + '.json</code>: ' + esc(entry.error) + '</p>';
+          return h + "</div>";
+        }
+
+        if (reason) h += '<p class="why">' + reason + '</p>';
+        if (stale) h += '<p class="stale-label">Last reported values, shown for reference only:</p>';
+
+        var r = file.resources || {};
+        h += '<dl class="kv">';
+        h += '<dt>observed</dt><dd>' + esc(ago(file.observed_at)) + ' <span class="mono">' + esc(file.observed_at || "") + '</span></dd>';
+        h += '<dt>load balancer</dt><dd>' + (r.load_balancer
+          ? esc(r.load_balancer.state) + ' <span class="mono">' + esc(r.load_balancer.name) + '</span>'
+          : '<span class="off">absent</span>') + '</dd>';
+        h += '<dt>ecs service</dt><dd>' + (r.ecs_service
+          ? esc(r.ecs_service.status) + ", " + esc(r.ecs_service.running) + "/" + esc(r.ecs_service.desired) + " running"
+          : '<span class="off">absent</span>') + '</dd>';
+        h += '<dt>database</dt><dd>' + (r.db_instance
+          ? esc(r.db_instance.status) + ' <span class="mono">' + esc(r.db_instance.identifier) + '</span>'
+          : '<span class="off">absent</span>') + '</dd>';
+        if (file.image) {
+          // A digest rather than a tag is the whole point of promotion: prod runs the
+          // exact bytes stage tested, and a reader can check that here instead of
+          // being told it.
+          h += '<dt>image</dt><dd class="mono">' + esc(file.image) + '</dd>';
+        }
+        if (file.app_url && !stale && file.state === "up") {
+          h += '<dt>application</dt><dd><a href="' + esc(file.app_url) + '">' + esc(file.app_url) + '</a></dd>';
+        } else if (env === "prod") {
+          h += '<dt>application</dt><dd><span class="off">app.demo.uveapp.net is a dead name between cycles, by design. ' +
+            'Clients negative-cache it, so it can stay unreachable for a while after prod is up again.</span></dd>';
+        }
+        if (file.report_url) {
+          h += '<dt>test report</dt><dd><a href="' + esc(file.report_url) + '">Playwright report from run #' +
+            esc(file.run && file.run.number) + '</a> &middot; ' +
+            '<a href="reports/' + esc(env) + '/latest/index.html">latest</a></dd>';
+        }
+        if (file.run) {
+          h += '<dt>written by</dt><dd><a href="' + esc(file.run.url) + '">' + esc(file.run.workflow) +
+            ' #' + esc(file.run.number) + '</a> &middot; job ' + esc(file.run.status) +
+            ' &middot; ' + esc(ago(file.written_at)) + '</dd>';
+        }
+        h += "</dl></div>";
+        return h;
+      }
+
+      function renderEnvironments() {
+        el("environments").innerHTML = ENVIRONMENTS.map(envPanel).join("");
+      }
+
+      function stepMark(step) {
+        if (step.status !== "completed") return step.status === "in_progress"
+          ? '<span class="mark accent">&#9679;</span>'
+          : '<span class="mark off">&#9675;</span>';
+        if (step.conclusion === "success") return '<span class="mark ok">&#10003;</span>';
+        if (step.conclusion === "skipped") return '<span class="mark off">&ndash;</span>';
+        return '<span class="mark bad">&#10007;</span>';
+      }
+
+      function renderCycle() {
+        var run = currentRun();
+        if (state.githubError) {
+          el("cycle").innerHTML = '<div class="card"><p class="why">Not shown, because the run history could not be read. ' +
+            'See the banner above &mdash; this space is deliberately not filled with a plausible-looking empty cycle.</p></div>';
+          return;
+        }
+        if (!run) {
+          el("cycle").innerHTML = '<div class="card"><p class="why">No lifecycle run found in the 40 most recent runs.</p></div>';
+          return;
+        }
+        var concl = run.status !== "completed" ? "running" : (run.conclusion || "unknown");
+        var cls = run.status !== "completed" ? "running" : (run.conclusion === "success" ? "up" : "failure");
+        var h = '<div class="card"><header><h3>' + esc(run.name || run.display_title) +
+          ' <small>#' + esc(run.run_number) +
+          (run.run_attempt > 1 ? " &middot; attempt " + esc(run.run_attempt) : "") + '</small></h3>' +
+          '<span class="badge ' + cls + '">' + esc(concl) + '</span></header>';
+        h += '<p class="why">Started ' + esc(ago(run.run_started_at || run.created_at)) +
+          ' &middot; ' + esc(dur(run.run_started_at || run.created_at, run.status === "completed" ? run.updated_at : null)) +
+          ' &middot; <a href="' + esc(run.html_url) + '">run log</a></p>';
+
+        var jobs = state.jobs && String(state.jobs.runId) === String(run.id) ? state.jobs.jobs : null;
+        if (!jobs || !jobs.length) {
+          h += '<p class="why">Step detail could not be read for this run.</p>';
+        } else {
+          jobs.forEach(function (job) {
+            h += '<p class="why" style="margin-top:1rem"><b>' + esc(job.name) + '</b> &mdash; ' +
+              esc(job.status === "completed" ? (job.conclusion || "") : job.status.replace("_", " ")) +
+              (job.started_at ? " &middot; " + esc(dur(job.started_at, job.completed_at)) : "") + '</p>';
+            h += '<ol class="steps">';
+            (job.steps || []).forEach(function (s) {
+              h += '<li class="' + esc(s.status) + '">' + stepMark(s) +
+                '<span class="nm">' + esc(s.name) + '</span>' +
+                '<span class="dur">' + esc(s.started_at ? dur(s.started_at, s.completed_at) : "") + '</span></li>';
+            });
+            h += "</ol>";
+          });
+        }
+        el("cycle").innerHTML = h + "</div>";
+      }
+
+      function renderHistory() {
+        if (state.githubError) {
+          el("history").innerHTML = '<p class="why">Unavailable &mdash; see the banner above. ' +
+            'An empty table here would be indistinguishable from a project that has never run.</p>';
+          return;
+        }
+        var runs = lifecycleRuns().slice(0, 12);
+        if (!runs.length) {
+          el("history").innerHTML = '<p class="why">No lifecycle runs in the 40 most recent runs.</p>';
+          return;
+        }
+        var h = "<table><thead><tr><th>run</th><th>environment</th><th>result</th><th>duration</th><th>when</th></tr></thead><tbody>";
+        runs.forEach(function (r) {
+          var concl = r.status !== "completed" ? r.status.replace("_", " ") : (r.conclusion || "unknown");
+          var cls = r.status !== "completed" ? "warn" : (r.conclusion === "success" ? "ok" : "bad");
+          h += "<tr><td><a href='" + esc(r.html_url) + "'>" + esc(r.name || r.display_title) + " #" + esc(r.run_number) + "</a></td>" +
+            "<td>" + esc(runEnvironments(r).join(", ")) + "</td>" +
+            "<td class='" + cls + "'>" + esc(concl) + "</td>" +
+            "<td>" + esc(dur(r.run_started_at || r.created_at, r.status === "completed" ? r.updated_at : null)) + "</td>" +
+            "<td>" + esc(ago(r.updated_at)) + "</td></tr>";
+        });
+        el("history").innerHTML = h + "</tbody></table>";
+      }
+
+      function renderAll() {
+        renderClocks();
+        renderBanners();
+        renderEnvironments();
+        renderCycle();
+        renderHistory();
+        scheduleRefresh();
+      }
+
+      function scheduleRefresh() {
+        // Only poll while something is actually in flight, and slowly even then:
+        // two API calls every three minutes is 40 an hour against a budget of 60.
+        // A dashboard that exhausts its own rate limit while nobody is watching
+        // would be reporting on nothing.
+        if (state.timer) { clearTimeout(state.timer); state.timer = null; }
+        var run = currentRun();
+        var live = !state.githubError && run && run.status !== "completed";
+        el("autorefresh").textContent = live ? "auto-refreshing every 3 min while a run is in flight" : "";
+        if (live) state.timer = setTimeout(load, 180000);
+      }
+
+      function load() {
+        return Promise.all([readGitHub(), readStatusFiles()]).then(renderAll);
+      }
+
+      el("refresh").addEventListener("click", function () { load(); });
+      load();
+    </script>
   </body>
 </html>

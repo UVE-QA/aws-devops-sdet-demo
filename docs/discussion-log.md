@@ -18,8 +18,10 @@ added, 0 destroyed, first attempt, and there is now a FIFTH permanent state
 level in AWS behind https://demo.uveapp.net — which returns 200 and stays up when
 every environment is destroyed. 11.1b is CLOSED: `publish-site` ran green under
 the narrow publish role, and the guard that stops the site sync from deleting the
-published evidence was proven in both directions.** Next is 11.1c: the dashboard
-content, and a full cycle with the dashboard live.
+published evidence was proven in both directions. Phase 11.1c is WRITTEN and not
+yet exercised: the dashboard has content, and neither it nor the status plumbing
+under it has ever seen a real run. The cycle that proves it is the next thing
+that happens.**
 
 The full cycle now runs end-to-end through GitHub Actions with zero manual AWS
 operations for BOTH environments:
@@ -46,6 +48,41 @@ Stage infrastructure is FULLY DESTROYED in AWS — zero billable resources.
 Nothing is billing except the near-zero state bucket. The OIDC provider + deploy
 role from `infra/bootstrap-oidc` are still present (IAM, free) because a stage
 teardown does not touch that state level.
+
+### Phase 11.1c session (2026-07-26) — the page, before it has ever seen a run
+
+Full write-up: `docs/sessions/2026-07-26-phase-11-1c-dashboard-content.md`.
+
+`site/index.html` stopped being a placeholder. One file, no build step, no
+dependencies and no credential: environment panels fed by `status/<env>.json`
+from this bucket, the current cycle's every STEP with state and duration from the
+public Actions API, twelve runs of history labelled by environment, and the
+architecture drawn as the split that actually matters — the five permanent levels
+against the ones destroyed every cycle.
+
+The design work was not the layout, it was deciding what the page is allowed to
+say. ADR-0026's rule that a source may only assert what it observes had to be
+scoped in both directions before it could be rendered. Too wide, and a
+documentation commit turns both environment panels amber because `ci` happens to
+be the newest run; too narrow, and a `destroy` run cannot be attributed at all,
+because the anonymous API does not expose `workflow_dispatch` inputs. The first
+is fixed by comparing each environment against the newest run that WRITES ITS
+FILE. The second cost one line of YAML — `run-name: destroy ${{ inputs.environment }}` —
+which is not cosmetic: it is what makes the run observable to the only source
+entitled to describe runs. Runs from before it degrade to "unknown", visibly.
+
+Everything degrades loudly rather than emptying, because an empty result is not a
+clean result: a rate-limited API renders a named banner with the time of the last
+successful read, a missing status file renders "no observation" and never
+"destroyed", and a panel whose freshness cannot be checked labels itself
+unverified instead of implying it is current.
+
+None of this had run when it was written, and the states worth seeing are exactly
+the ones a healthy cycle will not produce on demand. So the render logic was
+driven through a stub DOM with six fixtures — `ci`-after-destroy, a deploy in
+flight, a matching run id, missing files, a 403, and an unattributable destroy —
+and each produced the intended badge and wording. That is a proxy for the real
+thing, and it is the only way the failure paths get looked at at all.
 
 ### Phase 11.1b session (2026-07-26) — the level exists in AWS
 

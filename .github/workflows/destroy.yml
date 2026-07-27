@@ -1,5 +1,14 @@
 name: destroy
 
+# `run-name` is not decoration. The dashboard reads this repository's runs
+# ANONYMOUSLY, and the anonymous API does not expose workflow_dispatch inputs -
+# so without the environment in the run's name, a viewer (and the page) cannot
+# tell which environment a destroy run targeted. The page then has to treat such
+# a run as possibly affecting BOTH, and marks both environments unknown. Naming
+# it here is what makes the run observable to the only source allowed to talk
+# about runs (ADR-0026).
+run-name: destroy ${{ inputs.environment }}
+
 # Tears down a Terraform environment in the demo AWS account via GitHub OIDC.
 # Manual only. Requires confirm == DESTROY. Ends with a verification step that
 # lists any remaining billable resources and fails if something is still present.

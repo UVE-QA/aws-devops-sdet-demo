@@ -20,7 +20,7 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 9     | Prod env, promotion, HTTPS     | ✅ done     | 25d4dab   |
 | 10    | Thin application slice         | ✅ done     | 1bf89ac   |
 | 11.0  | Publish the repository         | ✅ done (pulled forward) | a1c4402 |
-| 11.1  | Public dashboard               | 🟡 11.1a + 11.1b done, 11.1c open | (this patch) |
+| 11.1  | Public dashboard               | 🟡 11.1a + 11.1b done, 11.1c written, cycle pending | (this patch) |
 
 Phases 9-19 are planned in `docs/next-phases.md` (MVP track 9-13, polish
 track 14-19), shaped by ADR-0017. This table tracks only what is done.
@@ -581,6 +581,78 @@ track 14-19), shaped by ADR-0017. This table tracks only what is done.
   certificate, six records in an existing zone. Inside the CloudFront free tier
   at portfolio traffic — a tier, not a guarantee, and the figure to watch is
   requests rather than storage.
+
+#### 11.1c — dashboard content, then a live cycle  [WRITTEN, NOT YET EXERCISED]
+- The content half of the phase, and the first time the status plumbing written
+  in 11.1b runs at all. Everything below is code that has never executed against
+  a real run: `observe-environment.sh` and `publish-status.sh` are invoked by
+  `deploy-stage`, `promote-prod` and `destroy`, and no cycle has happened since
+  they were added. This section says so rather than implying otherwise.
+- `site/index.html` is now the dashboard: one file, no build step, no
+  dependencies, no credential. It reads exactly the two sources ADR-0026 allows
+  and nothing else.
+```text
+  environments   status/<env>.json from this bucket - ALB, ECS, RDS, image
+                 digest, app URL, report URL, and the run that wrote it
+  current cycle  the public Actions API: the newest lifecycle run, its jobs and
+                 EVERY STEP with state and duration - what is done, what is
+                 running, what has not started. That was the explicit request:
+                 a viewer must see WHERE a cycle is, not only how it ended.
+  history        the last twelve lifecycle runs, each labelled with the
+                 environment it touched
+  architecture   permanent levels vs per-cycle levels, in the order things
+                 happen, because that split IS the design
+```
+- **The staleness detector is the point of the page, so it is scoped.** A source
+  may only assert what it observes; the page therefore compares each
+  environment's status file against the newest run THAT WRITES THAT FILE. `ci`
+  and `publish-site` write none, so a documentation commit does not turn the
+  panels amber. See the 11.1c implementation note in ADR-0026.
+- One line of YAML was needed to make that possible: `destroy.yml` now sets
+  `run-name: destroy ${{ inputs.environment }}`, because the anonymous API does
+  not expose `workflow_dispatch` inputs and an unnamed destroy run is one that
+  an outside reader cannot attribute to an environment. Without it the page's
+  only honest option is to mark BOTH environments unknown — which it still does
+  for runs that predate the change.
+- Degradation is explicit everywhere, because an empty result is not a clean
+  result: a rate-limited API renders a named banner and the time of the last
+  successful read, never an empty history; an environment with no file renders
+  "no observation", never "destroyed"; and while the API is unreadable a panel
+  labels its own value **unverified** rather than implying it is current.
+- Rate limit budget: 60 anonymous requests per hour per IP. A page load costs
+  two, and the page polls only while a run is in flight, every three minutes —
+  40 an hour at the worst. A dashboard that exhausts its own budget while nobody
+  is watching would be reporting on nothing.
+- Verified BEFORE any of it ran, in the chat sandbox, because the interesting
+  states are the ones a live cycle will not show on demand: the render logic was
+  driven by six fixtures through a stub DOM. `ci` after a destroy leaves both
+  panels `destroyed`; a `deploy-stage` in flight turns stage `unknown` and names
+  the run; a matching run id renders `up`; missing files render "no observation";
+  a 403 renders the banner, an unavailable history and two `unverified` badges;
+  an unnamed destroy marks both environments unknown. This is a proxy for the
+  real thing and not a substitute for it — but it is how the failure paths get
+  seen at all, since a green cycle exercises none of them.
+- Criteria to close 11.1c:
+```text
+  1. publish-site green, https://demo.uveapp.net/ still 200
+  2. a full cycle through Actions with no manual AWS operation:
+     deploy-stage -> promote-prod (pausing for review) -> destroy prod ->
+     destroy stage
+  3. status/stage.json and status/prod.json exist in the bucket, each written by
+     the run that observed it, and the dashboard renders stage `up` DURING the
+     cycle and `destroyed` after it
+  4. the per-stage panel shows a run in flight at least once - watched, not
+     inferred afterwards from a finished run
+  5. the published Playwright report opens from the dashboard without a GitHub
+     account
+```
+- Cost: one ordinary cycle. Nothing new is billable; the dashboard level was
+  already applied in 11.1b and the status writes are S3 puts and invalidations.
+- Prediction, recorded so it can be wrong in writing like the last three: the
+  status steps run under `if: always()` and have never executed, so the most
+  likely failure is a missing IAM read or a shell assumption in
+  `observe-environment.sh` against a HALF-torn-down environment — the `partial`
+  branch is the one nothing has ever produced.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,
