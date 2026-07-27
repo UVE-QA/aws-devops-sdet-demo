@@ -9,7 +9,13 @@
 .terraform/
 # Saved plan files. `-out=tfplan` is the right way to apply exactly what was
 # reviewed, and the artifact must not follow the review into git.
-tfplan
+#
+# `tfplan*` and not `tfplan`, because the rule has to describe the SHAPE of the
+# artifact and not the one filename someone happened to type. On 2026-07-26 an
+# untracked `infra/public-site/tfplan.tags`, left by the Owner-tag re-apply,
+# matched neither `tfplan` (exact) nor `*.tfplan` (suffix) and sat one
+# `git add -A` away from the history of a PUBLIC repository.
+tfplan*
 *.tfplan
 .terraform.tfstate.lock.info
 crash.log

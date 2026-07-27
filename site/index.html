@@ -302,7 +302,8 @@
         githubError: null,
         lastGithubOk: null,
         rateRemaining: null,
-        timer: null
+        timer: null,
+        nextGithubAt: 0
       };
 
       // ---- small helpers -----------------------------------------------------
@@ -476,7 +477,22 @@
         if (entry.missing) {
           h += '<p class="why">No <code>status/' + esc(env) + '.json</code> in the bucket. ' +
             'Nothing has reported on this environment yet &mdash; which is not the same as ' +
-            'it being destroyed, and is not rendered as though it were.</p>';
+            'it being destroyed, and is not rendered as though it were.';
+          // "Nothing has reported" is true and, on its own, misleading while a run is
+          // half way through doing exactly that. Naming the run is a statement about
+          // the run, which is the one thing the Actions API is entitled to make - so
+          // the panel makes it, rather than leaving a viewer to wonder whether the
+          // page is broken. The first cycle after this level was built showed the
+          // gap: the panel sat on "nothing has reported" for sixteen minutes while a
+          // deploy was running.
+          if (newest && newest.status !== "completed") {
+            h += ' <b>Run #' + esc(newest.run_number) + ' (' + esc(newest.name || newest.path) +
+              ') is ' + esc(newest.status.replace("_", " ")) + ' and will report when it finishes.</b>';
+          } else if (newest) {
+            h += ' The newest run that would have written it, #' + esc(newest.run_number) +
+              ', finished ' + esc(ago(newest.updated_at)) + ' without doing so.';
+          }
+          h += '</p>';
           return h + "</div>";
         }
         if (entry.error) {
@@ -612,21 +628,43 @@
         scheduleRefresh();
       }
 
-      function scheduleRefresh() {
-        // Only poll while something is actually in flight, and slowly even then:
-        // two API calls every three minutes is 40 an hour against a budget of 60.
-        // A dashboard that exhausts its own rate limit while nobody is watching
-        // would be reporting on nothing.
-        if (state.timer) { clearTimeout(state.timer); state.timer = null; }
+      // TWO SOURCES, TWO CADENCES, because they cost different things. Reading this
+      // bucket is free and unlimited, so the environment panels are refreshed every
+      // 30 seconds and the bucket clock visibly ticks - which is also how a viewer
+      // can tell the page is alive rather than stuck. The GitHub API is 60 anonymous
+      // requests per hour per IP, so it is read every two minutes while a run is in
+      // flight and every five otherwise: 30 an hour at worst, and the page still
+      // notices a cycle that starts while nobody is looking.
+      //
+      // A single 30-second ticker with an absolute deadline for the GitHub read, not
+      // two independent timers: rescheduling both on every bucket poll would push the
+      // GitHub deadline forward each time and it would never fire.
+      var BUCKET_MS = 30000;
+
+      function githubIntervalMs() {
         var run = currentRun();
-        var live = !state.githubError && run && run.status !== "completed";
-        el("autorefresh").textContent = live ? "auto-refreshing every 3 min while a run is in flight" : "";
-        if (live) state.timer = setTimeout(load, 180000);
+        return (!state.githubError && run && run.status !== "completed") ? 120000 : 300000;
       }
 
-      function load() {
-        return Promise.all([readGitHub(), readStatusFiles()]).then(renderAll);
+      function scheduleRefresh() {
+        if (state.timer) { clearTimeout(state.timer); state.timer = null; }
+        var live = !state.githubError && currentRun() && currentRun().status !== "completed";
+        el("autorefresh").textContent = "auto: bucket every 30 s, GitHub every " +
+          (live ? "2 min while a run is in flight" : "5 min");
+        state.timer = setTimeout(function () { tick(false); }, BUCKET_MS);
       }
+
+      function tick(force) {
+        var reads = [readStatusFiles()];
+        var readGh = force || Date.now() >= state.nextGithubAt;
+        if (readGh) reads.push(readGitHub());
+        return Promise.all(reads).then(function () {
+          if (readGh) state.nextGithubAt = Date.now() + githubIntervalMs();
+          renderAll();
+        });
+      }
+
+      function load() { return tick(true); }
 
       el("refresh").addEventListener("click", function () { load(); });
       load();
