@@ -114,6 +114,13 @@
         border-radius: 6px; padding: 0.2rem 0.6rem; cursor: pointer;
       }
       button:hover { border-color: var(--accent); color: var(--accent); }
+      a.review {
+        display: inline-block; margin-top: 0.6rem; text-decoration: none;
+        border: 1px solid var(--warn); color: var(--warn); background: var(--warn-bg);
+        border-radius: 7px; padding: 0.35rem 0.8rem; font-size: 0.9rem; font-weight: 600;
+      }
+      a.review:hover { filter: brightness(1.08); }
+      a.review + .why { margin-top: 0.5rem; }
       .banner {
         border: 1px solid var(--line); border-left: 4px solid var(--warn);
         background: var(--warn-bg); border-radius: 8px;
@@ -535,11 +542,20 @@
           h += '<dt>application</dt><dd><span class="off">app.demo.uveapp.net is a dead name between cycles, by design. ' +
             'Clients negative-cache it, so it can stay unreachable for a while after prod is up again.</span></dd>';
         }
+        // The published report outlives the run that produced it, and the status file
+        // that replaces it says nothing about it - correctly, because a `destroy` run
+        // produces no report and may not claim one. So the run-specific link appears
+        // only when the CURRENT writer produced it, and the stable `latest` path is
+        // offered always: it is a fact about the bucket, not a claim about this run,
+        // and it either resolves or visibly does not.
+        h += '<dt>test report</dt><dd>';
         if (file.report_url) {
-          h += '<dt>test report</dt><dd><a href="' + esc(file.report_url) + '">Playwright report from run #' +
-            esc(file.run && file.run.number) + '</a> &middot; ' +
-            '<a href="reports/' + esc(env) + '/latest/index.html">latest</a></dd>';
+          h += '<a href="' + esc(file.report_url) + '">Playwright report from run #' +
+            esc(file.run && file.run.number) + '</a> &middot; ';
         }
+        h += '<a href="reports/' + esc(env) + '/latest/index.html">latest published</a>' +
+          (file.report_url ? "" : ' <span class="off">&mdash; the run that wrote this file produced no report</span>') +
+          '</dd>';
         if (file.run) {
           h += '<dt>written by</dt><dd><a href="' + esc(file.run.url) + '">' + esc(file.run.workflow) +
             ' #' + esc(file.run.number) + '</a> &middot; job ' + esc(file.run.status) +
@@ -589,6 +605,27 @@
         h += '<p class="why">Started ' + esc(ago(run.run_started_at || run.created_at)) +
           ' &middot; ' + esc(dur(run.run_started_at || run.created_at, run.status === "completed" ? run.updated_at : null)) +
           ' &middot; <a href="' + esc(run.html_url) + '">run log</a></p>';
+
+        // A LINK, NOT A BUTTON THAT APPROVES.
+        //
+        // Approving a deployment is POST /actions/runs/<id>/pending_deployments with
+        // a token that can write to this repository, and the approval is recorded as
+        // the authenticated user. A static page in a public bucket cannot hold such a
+        // token: publishing it would hand repository write access to everyone who
+        // opens this page. It would also put a second road to the approval gate
+        // beside the one GitHub enforces with its own protection rules - and the gate
+        // being GitHub's is exactly what makes it worth showing.
+        //
+        // So the page does the one honest thing it can: it takes you straight to the
+        // run, where GitHub asks who you are. A real in-page approval needs a
+        // browser sign-in and a backend to complete it, which is a phase with an ADR,
+        // not a button (docs/next-phases.md).
+        if (run.status === "waiting") {
+          h += '<a class="review" href="' + esc(run.html_url) + '">Review deployment on GitHub &rarr;</a>' +
+            '<p class="why">This link opens the run; GitHub authenticates the reviewer and records the ' +
+            'approval as theirs. The page holds no credential and cannot approve anything itself &mdash; ' +
+            'which is the property that lets it be public at all.</p>';
+        }
 
         // "could not be read" and "has not happened yet" are different facts, and the
         // page said the first when it meant the second: while promote-prod waited for

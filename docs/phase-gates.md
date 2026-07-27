@@ -20,7 +20,7 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 9     | Prod env, promotion, HTTPS     | ✅ done     | 25d4dab   |
 | 10    | Thin application slice         | ✅ done     | 1bf89ac   |
 | 11.0  | Publish the repository         | ✅ done (pulled forward) | a1c4402 |
-| 11.1  | Public dashboard               | 🟡 11.1a + 11.1b done, 11.1c written, cycle pending | (this patch) |
+| 11.1  | Public dashboard               | ✅ done (11.1a, 11.1b, 11.1c) | (this patch) |
 
 Phases 9-19 are planned in `docs/next-phases.md` (MVP track 9-13, polish
 track 14-19), shaped by ADR-0017. This table tracks only what is done.
@@ -582,7 +582,7 @@ track 14-19), shaped by ADR-0017. This table tracks only what is done.
   at portfolio traffic — a tier, not a guarantee, and the figure to watch is
   requests rather than storage.
 
-#### 11.1c — dashboard content, then a live cycle  [WRITTEN, NOT YET EXERCISED]
+#### 11.1c — dashboard content, then a live cycle  [CLOSED 2026-07-26]
 - The content half of the phase, and the first time the status plumbing written
   in 11.1b runs at all. Everything below is code that has never executed against
   a real run: `observe-environment.sh` and `publish-status.sh` are invoked by
@@ -653,6 +653,83 @@ track 14-19), shaped by ADR-0017. This table tracks only what is done.
   likely failure is a missing IAM read or a shell assumption in
   `observe-environment.sh` against a HALF-torn-down environment — the `partial`
   branch is the one nothing has ever produced.
+
+##### 11.1c — what the cycle actually showed
+
+- **STATUS: CLOSED (2026-07-26).** All five criteria met, in one cycle, with no
+  manual AWS operation anywhere in it:
+```text
+  publish-site  30229498666   8s     apex 200, asserted by the workflow
+  deploy-stage  #21          16m05s  first attempt
+  promote-prod  #4           14m17s  paused for a required reviewer, promoted the
+                                     digest stage tested, no rebuild
+  destroy prod  #12           8m39s  paused for a reviewer, then green
+  destroy stage #13           8m31s  green
+```
+- The state plumbing written in 11.1b executed for the first time and worked on
+  the first attempt in all four runs: `observe-environment.sh` under the deploy
+  role, `publish-status.sh` under the publish role, both under `if: always()`.
+- **The transition was WATCHED, not reconstructed.** stage went
+  `no observation → up`, prod went `no observation → up → unknown → destroyed`,
+  and the panel named the run responsible at each step. The `unknown` in the
+  middle is the two sources disagreeing on purpose: `promote-prod` had reported
+  `up`, a destroy was in flight, and nothing had observed AWS since — so the page
+  refused to render either "up" or "destroyed" and said which run it was waiting
+  for.
+- Promotion by digest is now legible to a reader rather than asserted: stage
+  showed `...app:70bb5d5...` and prod `...app@sha256:094e7838...` at the same
+  time, on the same page.
+- `run-name: destroy <environment>` proved itself in one screen: runs #12 and #13
+  are attributed to `prod` and `stage`, while every destroy before them still
+  reads `stage, prod` — the honest fallback for runs that predate the change.
+- The published report opens from the dashboard with no GitHub account. Traces
+  and screenshots are now recorded for PASSING tests too (this session), because
+  the report is read by people for whom every run is a green one.
+
+**Three defects were found by running it, none of them by review.** All three
+were the same shape — a page saying something it was not in a position to say:
+
+```text
+1. an environment with no status file said "nothing has reported" and stopped,
+   while a deploy was 16 minutes into doing exactly that. It now names the
+   in-flight run.
+2. the step list said "step detail could not be read" while promote-prod waited
+   for its reviewer. GitHub returns a job with an EMPTY step list until the job
+   starts; the page turned an absence into a failed read. It now distinguishes
+   read-failed, queued, and held-at-the-approval-gate, and names the `waiting`
+   status instead of flattening it into "running".
+3. refresh was GitHub-only, every three minutes, which from outside is
+   indistinguishable from a dead page. The two sources now run at the speed each
+   one costs: the bucket every 30 s, GitHub paced by the rate-limit headers it
+   returns.
+```
+
+- The prediction this file recorded was **WRONG**, which is now four in a row:
+  the likeliest failure was supposed to be a missing IAM read or the untested
+  `partial` branch of `observe-environment.sh`. Nothing on the AWS side failed at
+  all. Every defect was in the browser, in the half that no fixture had covered
+  because it needs a real run to exist. `partial` remains unproduced by anything:
+  prod WAS partial mid-teardown, and the page could not show it, because only the
+  workflow observes and it observes at the start and at the end.
+- One trap caught in the act, in a command written IN THIS SESSION to check the
+  security posture: `grep -rn 'pull_request_target' .github/ || echo none` was run
+  from the wrong directory and printed `none` — grep exits 1 for "no matches" and
+  2 for "could not look", and `||` cannot tell them apart. An error rendered as a
+  clean result, in the same session that documents that exact failure mode twice.
+  The corrected form prints the exit code so absence and failure are different
+  things on screen.
+- Asked for while approving `destroy prod #12` by hand: an approve button on the
+  dashboard. Shipped as the honest half — a **Review deployment on GitHub →**
+  link, shown while a run is `waiting`. A button that actually approves needs a
+  token that can write to this repository, and this page is a static file in a
+  public bucket: publishing it would hand write access to every visitor, and the
+  approval would be recorded as whoever the token belongs to rather than as a
+  person. The real version needs a browser sign-in and a backend, which is a
+  phase with an ADR; the price is written down in `docs/next-phases.md` so the
+  decision gets made on the price rather than on how small the button looks.
+- Cost of the cycle: one ordinary deploy/promote/destroy. Nothing new is
+  billable; after `destroy stage #13` the only things left are the five permanent
+  levels, and each destroy verified that itself, scoped to its own environment.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

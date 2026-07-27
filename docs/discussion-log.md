@@ -18,10 +18,12 @@ added, 0 destroyed, first attempt, and there is now a FIFTH permanent state
 level in AWS behind https://demo.uveapp.net — which returns 200 and stays up when
 every environment is destroyed. 11.1b is CLOSED: `publish-site` ran green under
 the narrow publish role, and the guard that stops the site sync from deleting the
-published evidence was proven in both directions. Phase 11.1c is WRITTEN and not
-yet exercised: the dashboard has content, and neither it nor the status plumbing
-under it has ever seen a real run. The cycle that proves it is the next thing
-that happens.**
+published evidence was proven in both directions. **Phase 11.1c is CLOSED
+(2026-07-26): the dashboard has content, and a full cycle ran underneath it with
+no manual AWS operation — deploy-stage #21, promote-prod #4 behind a reviewer,
+destroy prod #12 behind a reviewer, destroy stage #13. The environment panels
+were WATCHED going no observation → up → unknown → destroyed. Every defect the
+cycle found was in the browser half; nothing on the AWS side failed.**
 
 The full cycle now runs end-to-end through GitHub Actions with zero manual AWS
 operations for BOTH environments:
@@ -48,6 +50,42 @@ Stage infrastructure is FULLY DESTROYED in AWS — zero billable resources.
 Nothing is billing except the near-zero state bucket. The OIDC provider + deploy
 role from `infra/bootstrap-oidc` are still present (IAM, free) because a stage
 teardown does not touch that state level.
+
+### Phase 11.1c validation (2026-07-26) — what a real cycle did to the page
+
+One cycle, no manual AWS operation: `publish-site`, `deploy-stage #21`,
+`promote-prod #4` paused for a reviewer, `destroy prod #12` paused for a
+reviewer, `destroy stage #13`. The 11.1b plumbing ran for the first time and was
+green in all four runs.
+
+What the page showed, watched rather than reconstructed: stage
+`no observation → up`, prod `no observation → up → unknown → destroyed`, each
+step naming the run responsible. The `unknown` is the design working — the two
+sources disagreeing on purpose while a destroy was in flight and nothing had
+observed AWS since. Promotion by digest became legible instead of asserted: stage
+on `:70bb5d5...` and prod on `@sha256:094e7838...`, side by side. `run-name`
+proved itself in one screen, with #12 and #13 attributed to prod and stage while
+every earlier destroy still reads `stage, prod`.
+
+Three defects, all found by running it and all the same shape — the page saying
+something it was not in a position to say. A panel with no status file claimed
+"nothing has reported" while a deploy was sixteen minutes into reporting. The
+step list called an absence a failed read while a promotion waited for its
+reviewer, because GitHub returns a job with no steps until it starts. And refresh
+was GitHub-only every three minutes, which from outside looks like a dead page;
+the two sources now run at the speed each one costs, with GitHub paced by the
+rate-limit headers it returns.
+
+The recorded prediction was wrong for the fourth time in a row: the AWS side, where
+failure was expected, did not fail once. Everything broke in the browser, in the
+half no fixture could cover because it needs a real run to exist.
+
+And one trap was caught in the act, inside a command written this session:
+`grep -rn 'pull_request_target' .github/ || echo none`, run from the wrong
+directory, printed `none`. grep exits 1 for "no matches" and 2 for "could not
+look", and `||` cannot tell them apart — an error rendered as a clean result, in
+the session that documents that exact failure mode twice. The corrected check
+prints the exit code.
 
 ### Phase 11.1c session (2026-07-26) — the page, before it has ever seen a run
 

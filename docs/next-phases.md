@@ -262,6 +262,41 @@ discussion-log.md to the Claude Project" ritual entirely, with no second working
 copy on any laptop — the clone lives in the ephemeral session sandbox and dies
 with it. Deliberately deferred to here rather than done now (2026-07-25).
 
+### Backlog — approving a deployment from the dashboard
+
+Asked for on 2026-07-26, while approving `destroy prod #12` in the GitHub UI.
+Not scheduled; recorded with its price so the decision is made on the price and
+not on how small the button looks.
+
+11.1c ships the honest cheap half: while a run is `waiting`, the panel shows a
+**Review deployment on GitHub →** link straight to that run. One click from here,
+and GitHub asks who you are.
+
+A button that actually approves is a different thing entirely:
+
+```text
+what it is       POST /actions/runs/<id>/pending_deployments, with a token that
+                 can write to this repository. The approval is recorded as the
+                 AUTHENTICATED USER, so it cannot be done by a shared machine
+                 credential without lying about who approved.
+why not in the   this page is a static file in a PUBLIC bucket. Any token it
+page             carried would be published with it - repository write access for
+                 everyone who opens demo.uveapp.net.
+what it needs    a browser sign-in (GitHub OAuth/device flow) so the approval
+                 belongs to a person, plus a backend to complete the exchange and
+                 hold the client secret: API Gateway + Lambda + Secrets Manager,
+                 i.e. a SIXTH permanent state level and a public entry point that
+                 now has to be defended.
+the real cost    not the money. The approval gate is worth showing precisely
+                 because GitHub enforces it with its own protection rules. A
+                 second road to that gate - even a legitimate one - becomes
+                 another thing that has to be PROVEN not to bypass reviewers,
+                 every time anything near it changes.
+```
+
+If it is ever built, it needs an ADR of its own, and the first thing that ADR has
+to answer is what the demo gains that the deep link does not already give.
+
 ### 11.1 — Build the dashboard
 
 Split into three steps, so that the one that costs money stands alone and can be

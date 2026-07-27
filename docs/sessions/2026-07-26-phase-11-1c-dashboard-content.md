@@ -132,3 +132,95 @@ were: the status steps run under `if: always()` and have never executed, so the
 likeliest failure is a missing IAM read or a shell assumption in
 `observe-environment.sh`. Its `partial` branch is the one no environment has ever
 produced.
+
+---
+
+# What the cycle showed (same session, after the patch landed)
+
+One cycle, no manual AWS operation in it:
+
+```text
+publish-site  30229498666   8s     apex 200, asserted by the workflow
+deploy-stage  #21          16m05s  first attempt
+promote-prod  #4           14m17s  paused for a required reviewer; promoted the
+                                   digest stage tested, no rebuild
+destroy prod  #12           8m39s  paused for a reviewer, then green
+destroy stage #13           8m31s  green
+```
+
+All five closing criteria met. The plumbing written in 11.1b executed for the
+first time and was green in all four runs.
+
+## What was watched rather than reconstructed
+
+```text
+stage   no observation -> up
+prod    no observation -> up -> unknown -> destroyed
+```
+
+Each state named the run responsible. The `unknown` in the middle is the whole
+design in one panel: `promote-prod` had reported `up`, a destroy was in flight,
+and nothing had observed AWS since — so the page rendered neither value and said
+which run it was waiting for.
+
+Promotion by digest stopped being a sentence: stage showed `...app:70bb5d5...`
+and prod `...app@sha256:094e7838...` on the same screen. `run-name` proved itself
+the same way — #12 and #13 read `prod` and `stage`, while every earlier destroy
+still reads `stage, prod`, the honest fallback for runs that predate it.
+
+## Three defects, all found by running it
+
+None would have been found by review, and all three are the same shape: the page
+saying something it was not in a position to say.
+
+```text
+1  a panel with no status file said "nothing has reported" and stopped, while a
+   deploy was sixteen minutes into reporting. It now names the in-flight run.
+2  the step list said "step detail could not be read" while the promotion waited
+   for its reviewer. GitHub returns a job with an EMPTY step list until the job
+   starts; an absence had been turned into a failed read. Read-failed, queued and
+   held-at-the-gate are now three different sentences, and `waiting` is named
+   instead of being flattened into "running".
+3  refresh was GitHub-only, every three minutes - from outside, indistinguishable
+   from a dead page. The bucket is free, so it is read every 30 s; GitHub is 60
+   requests an hour, so the interval is derived from the rate-limit headers it
+   returns.
+```
+
+## The prediction was wrong, for the fourth time in a row
+
+This file predicted a missing IAM read or the untested `partial` branch of
+`observe-environment.sh`. Nothing on the AWS side failed at all. Every defect was
+in the browser, in the half no fixture could cover because it needs a real run to
+exist. `partial` is still produced by nothing: prod WAS partial mid-teardown and
+the page could not show it, because only the workflow observes, and it observes
+at the start and at the end.
+
+The reasoning behind the prediction is kept rather than deleted, as the three
+before it were. But four consecutive misses in the same direction is itself a
+finding: this project has got good at the AWS half and keeps being surprised by
+whatever it built most recently.
+
+## A trap caught in the act
+
+A command written IN THIS SESSION, to check the security posture:
+
+```bash
+grep -rn 'pull_request_target' .github/ || echo none
+```
+
+Run from the wrong directory, it printed `none`. `grep` exits 1 for "no matches"
+and 2 for "could not look", and `||` cannot tell them apart — so a failed check
+rendered exactly like a clean one, in the same session whose documents describe
+that failure mode twice. The corrected form prints the exit code, so an absence
+and a failure are different things on screen. Documenting a trap does not remove
+it; that is now demonstrated rather than asserted.
+
+## What this leaves for later
+
+- `partial` has never been observed by anything.
+- The UI write path against prod is still covered by nothing automated, by
+  design.
+- Actions logs are world-readable on a public repository, so anything a step
+  prints is public. `TF_VAR_budget_email` remains the known item, named in
+  `docs/security-posture.md`.
