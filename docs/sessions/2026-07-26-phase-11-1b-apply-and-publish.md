@@ -124,7 +124,7 @@ the exclusions carry a comment saying so.
 environment is in a state nobody predicted. A status file that appeared only
 after success would report the account as it was the last time things went well.
 
-## What is still owed to close 11.1b
+## What was still owed to close 11.1b (all met, see Validation below)
 
 ```text
 1. four repository variables: SITE_BUCKET, SITE_DISTRIBUTION_ID,
@@ -149,6 +149,70 @@ purpose: only a real cycle exercises them, and that is 11.1c.
 - `docs/session-primer.md` no longer calls the level "not built yet", and its
   DNS trap now distinguishes the two kinds of name: the apex and `www` are always
   up, only `app.` is expected to be dead between cycles.
+
+## Validation — what running it actually showed
+
+`publish-site` 30227614075, dispatched from `main`, **green on the first attempt
+in 18 seconds** (2026-07-27 00:31 UTC). Both assertions were read out of the
+run's log, not claimed afterwards:
+
+```text
+identity   arn:aws:sts::993912191738:assumed-role/
+           aws-devops-sdet-demo-site-publish/GitHubActions
+http       attempt 1: 200 — https://demo.uveapp.net/ over a verified TLS chain
+sync       index.html, 4.3 KiB, then invalidation I50M4NEKBIXSE8W2MFSIB337X4 /*
+```
+
+The identity line is the exhibit of this whole level: a page published by a
+credential that cannot touch infrastructure. It is printed inside the run
+because "the role is narrow" is a claim, and the ARN is an observation.
+
+### The exclusion guard, seen both green and red
+
+A guard that has only ever been seen working is indistinguishable from one that
+cannot fail, so this one was made to demonstrate both halves — and the second
+half was free:
+
+```text
+canary placed at status/canary.json and reports/canary/index.html,
+  then publish-site re-run       -> both survived, index.html re-uploaded
+same sync WITHOUT the excludes   -> (dryrun) delete: reports/canary/index.html
+                                    (dryrun) delete: status/canary.json
+same sync WITH the excludes      -> nothing
+```
+
+So the danger was real: a step named "publish the site" would have deleted every
+environment status file and every published Playwright report. Four gates in this
+project have now been shown red on purpose; this is the fourth.
+
+## The tag divergence this session created and then closed
+
+`infra/public-site` went out with `Owner=uve` while the other six levels carry
+`Owner=UVE`. The lowercase form came from `terraform.tfvars.example`, written in
+11.1a and copied here without question — a shared literal treated as an
+independent knob, which is exactly the failure mode `variables.tf` warns about
+two variables further down for `zone_name`.
+
+It matters because a tag is not decoration: the `Owner` tag is what a cost or
+ownership query filters on, so one level spelling it differently drops that level
+out of every such query, and the query still looks like it worked.
+
+```text
+plan     0 to add, 6 to change, 0 to destroy
+apply    0 added, 4 CHANGED, 0 destroyed
+```
+
+Six versus four is worth noting rather than smoothing over: two of them were
+`aws_iam_policy_document` consumers that Terraform re-reads at apply time and
+therefore cannot prove unchanged in advance. They were unchanged.
+
+Verified afterwards on the resources themselves — `get-bucket-tagging`,
+`list-tags-for-resource`, `list-role-tags` — all three now `UVE`.
+
+And a third value surfaced: `docs/preflight-inventory.md` documented the Owner
+tag as `papers.usher.3m@icloud.com`, which nothing in the account had ever been
+tagged with. That is the budget alert address, recorded in the wrong section, and
+it had been the written answer to "what is the Owner tag" for seven weeks.
 
 ## Cost
 

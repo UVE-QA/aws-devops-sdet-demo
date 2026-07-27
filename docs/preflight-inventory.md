@@ -103,7 +103,12 @@ Status: Phase 0 and Phase 1 completed and confirmed.
 
 ## Resource Tagging
 
-- Owner tag value: papers.usher.3m@icloud.com
+- Owner tag value: `UVE` — the value of the GitHub variable `TF_VAR_OWNER`, and
+  what is actually on every resource in the account. This line previously said
+  `papers.usher.3m@icloud.com`, which nothing had ever been tagged with; that is
+  the budget alert address, and it is recorded under Budget Alerts above. Checked
+  2026-07-26 against `get-bucket-tagging`, `list-tags-for-resource` and
+  `list-role-tags`.
 - Project tag: aws-devops-sdet-demo
 
 ## Terraform Remote State

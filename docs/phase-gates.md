@@ -20,7 +20,7 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 9     | Prod env, promotion, HTTPS     | ✅ done     | 25d4dab   |
 | 10    | Thin application slice         | ✅ done     | 1bf89ac   |
 | 11.0  | Publish the repository         | ✅ done (pulled forward) | a1c4402 |
-| 11.1  | Public dashboard               | 🟡 11.1a done; 11.1b applied, publish run pending | (this patch) |
+| 11.1  | Public dashboard               | 🟡 11.1a + 11.1b done, 11.1c open | (this patch) |
 
 Phases 9-19 are planned in `docs/next-phases.md` (MVP track 9-13, polish
 track 14-19), shaped by ADR-0017. This table tracks only what is done.
@@ -488,7 +488,7 @@ track 14-19), shaped by ADR-0017. This table tracks only what is done.
   over two known-good directories. That is still a proxy, and the next author
   writing HCL without terraform to hand should assume the same budget.
 
-#### 11.1b — apply and publish  [APPLIED 2026-07-26, publish run pending]
+#### 11.1b — apply and publish  [CLOSED 2026-07-26]
 - First billable step of the phase. Local apply under `demo-admin`; CloudFront
   takes 10-15 minutes to propagate, once, not per cycle.
 - **Closing criterion that must not be dropped: the `teardown` skill lists the
@@ -544,6 +544,43 @@ track 14-19), shaped by ADR-0017. This table tracks only what is done.
   this list: they can only be validated by a real cycle, which is 11.1c. Written
   now, proven then — and until then they are code that has never run, which this
   file says out loud rather than implying otherwise.
+- **STATUS: CLOSED (2026-07-26).** All three criteria met, publish run green on
+  the FIRST attempt: `publish-site` 30227614075, 18s, at 2026-07-27 00:31 UTC.
+  The two assertions that matter were read out of the run's own log rather than
+  claimed:
+```text
+  identity   arn:aws:sts::993912191738:assumed-role/
+             aws-devops-sdet-demo-site-publish/GitHubActions
+             — the PUBLISH role, not the deploy role. The scoping is the exhibit,
+             so it is asserted inside the run.
+  http       attempt 1: 200 — https://demo.uveapp.net/ over a verified TLS
+             connection, asserted BY THE WORKFLOW. curl verifies the chain by
+             default, so this is also the machine-checked half of "valid
+             certificate on the apex".
+```
+- **The `--exclude` guard in `publish-site.sh` was proven in BOTH directions**,
+  which is the habit this project keeps being repaid for. A canary was placed at
+  `status/canary.json` and `reports/canary/index.html`, the workflow was re-run,
+  and both survived. Then the counterfactual, free via `--dryrun`: the same sync
+  WITHOUT the excludes printed two `(dryrun) delete:` lines for exactly those
+  keys, and WITH them printed nothing. So "publish the site" would in fact have
+  deleted every status file and every published report, and does not.
+- Follow-on finding, fixed in the same session: **the `Owner` tag diverged.**
+  `infra/public-site` was applied with `Owner=uve` while the other six levels
+  carry `Owner=UVE`, because 11.1a wrote the lowercase form into
+  `terraform.tfvars.example` and 11.1b copied it. A tag is what a cost or
+  ownership query filters on, so one level spelling it differently drops that
+  level out of every such query — invisible until someone trusts the query.
+  Re-applied as **0 added, 4 changed, 0 destroyed** (the plan said 6; two policy
+  documents were no-ops it could not prove in advance), and verified with
+  `get-bucket-tagging`, `list-tags-for-resource` and `list-role-tags`.
+  `docs/preflight-inventory.md` turned out to document a THIRD value —
+  `papers.usher.3m@icloud.com`, which nothing had ever been tagged with. Now
+  corrected to what the account actually shows.
+- Cost now running: one 4 KB object, one PriceClass_100 distribution, a free
+  certificate, six records in an existing zone. Inside the CloudFront free tier
+  at portfolio traffic — a tier, not a guarantee, and the figure to watch is
+  requests rather than storage.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

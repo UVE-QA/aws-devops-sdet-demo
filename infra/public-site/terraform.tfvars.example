@@ -4,7 +4,13 @@
 #
 # No secrets belong in this file. Everything here is an identifier.
 
-owner = "uve"
+# MUST match the GitHub variable TF_VAR_OWNER and the other levels' owner value.
+# This is a shared literal, like the project name, not an independent knob: the
+# Owner tag is what any cost or ownership query filters on, so one level spelling
+# it differently silently drops that level out of every such query. 11.1a wrote
+# it lowercase here, 11.1b applied it, and the divergence was only visible by
+# looking at the GitHub variable next to the tfvars.
+owner = "UVE"
 
 # Globally unique. The account id keeps it so, and keeps it deterministic:
 # the publish workflow builds this name rather than reading Terraform state.

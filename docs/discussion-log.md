@@ -15,8 +15,11 @@ decisions and the scaffold for the public dashboard — is CLOSED (2026-07-26):
 `fmt -check` clean and `tf-validate` green over seven discovered root levels,
 with nothing applied to AWS. Phase 11.1b APPLIED the level on 2026-07-26: 16
 added, 0 destroyed, first attempt, and there is now a FIFTH permanent state
-level in AWS behind https://demo.uveapp.net. The publish plumbing is written but
-has not run yet.**
+level in AWS behind https://demo.uveapp.net — which returns 200 and stays up when
+every environment is destroyed. 11.1b is CLOSED: `publish-site` ran green under
+the narrow publish role, and the guard that stops the site sync from deleting the
+published evidence was proven in both directions.** Next is 11.1c: the dashboard
+content, and a full cycle with the dashboard live.
 
 The full cycle now runs end-to-end through GitHub Actions with zero manual AWS
 operations for BOTH environments:
@@ -69,9 +72,21 @@ and invalidates. Neither is allowed to describe what the other saw. The status
 file also became one object per environment, because destroying prod while stage
 deploys is a normal cycle and S3 has no compare-and-set for a shared file.
 
-None of that has run. The status steps can only be exercised by a real cycle,
-which is 11.1c; `publish-site` can be proven on its own and is the one thing
-still owed to close 11.1b.
+`publish-site` then ran green in 18 seconds, first attempt, and the two things
+worth asserting were read out of its log rather than assumed: the identity was
+the publish role, and the 200 on the apex was asserted by the workflow rather
+than eyeballed. The `--exclude` guard was proven in both directions with a canary
+and a `--dryrun` — without the excludes the sync deletes every status file and
+report, with them it deletes nothing.
+
+The session also closed a tag divergence it had itself created: `Owner=uve` on
+the new level against `Owner=UVE` everywhere else, inherited from the lowercase
+value 11.1a put in the tfvars example. Re-applied, tags only, 0 destroyed. The
+preflight document turned out to name a third value that nothing in the account
+had ever carried.
+
+What remains unrun is the status-file plumbing in the three lifecycle workflows.
+Only a real cycle exercises it, and that is 11.1c.
 
 ### Phase 11.1a session (2026-07-26) — decisions, scaffold, and one direct question
 
