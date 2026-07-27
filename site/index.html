@@ -302,6 +302,7 @@
         githubError: null,
         lastGithubOk: null,
         rateRemaining: null,
+        rateReset: null,
         timer: null,
         nextGithubAt: 0
       };
@@ -334,6 +335,15 @@
         return m + "m " + (s % 60) + "s";
       }
 
+      // GitHub publishes both halves of its own limit in every response, so the page
+      // does not have to guess a polite interval: it can spend exactly what it has.
+      function readBudget(r) {
+        var rem = r.headers.get("x-ratelimit-remaining");
+        var reset = r.headers.get("x-ratelimit-reset");
+        if (rem !== null) state.rateRemaining = Number(rem);
+        if (reset !== null) state.rateReset = Number(reset) * 1000;
+      }
+
       // ---- reading the two sources -------------------------------------------
       function readGitHub() {
         // One list call, and one jobs call for the newest lifecycle run. Anonymous
@@ -342,8 +352,7 @@
         return fetch(API + "/actions/runs?per_page=40", {
           headers: { Accept: "application/vnd.github+json" }
         }).then(function (r) {
-          var rem = r.headers.get("x-ratelimit-remaining");
-          if (rem !== null) state.rateRemaining = rem;
+          readBudget(r);
           if (!r.ok) throw new Error("HTTP " + r.status);
           return r.json();
         }).then(function (data) {
@@ -356,8 +365,7 @@
           return fetch(API + "/actions/runs/" + current.id + "/jobs", {
             headers: { Accept: "application/vnd.github+json" }
           }).then(function (r) {
-            var rem = r.headers.get("x-ratelimit-remaining");
-            if (rem !== null) state.rateRemaining = rem;
+            readBudget(r);
             if (!r.ok) throw new Error("HTTP " + r.status);
             return r.json();
           }).then(function (d) { state.jobs = { runId: current.id, jobs: d.jobs || [] }; });
@@ -565,8 +573,15 @@
           el("cycle").innerHTML = '<div class="card"><p class="why">No lifecycle run found in the 40 most recent runs.</p></div>';
           return;
         }
-        var concl = run.status !== "completed" ? "running" : (run.conclusion || "unknown");
-        var cls = run.status !== "completed" ? "running" : (run.conclusion === "success" ? "up" : "failure");
+        // `waiting` is the approval pause - the one thing in this cycle that exists
+        // because a human has to look at it. Rendering it as "running" would hide the
+        // exhibit; the page names it.
+        var concl = run.status === "waiting" ? "waiting for review"
+          : run.status !== "completed" ? "running"
+          : (run.conclusion || "unknown");
+        var cls = run.status === "waiting" ? "unknown"
+          : run.status !== "completed" ? "running"
+          : (run.conclusion === "success" ? "up" : "failure");
         var h = '<div class="card"><header><h3>' + esc(run.name || run.display_title) +
           ' <small>#' + esc(run.run_number) +
           (run.run_attempt > 1 ? " &middot; attempt " + esc(run.run_attempt) : "") + '</small></h3>' +
@@ -575,14 +590,28 @@
           ' &middot; ' + esc(dur(run.run_started_at || run.created_at, run.status === "completed" ? run.updated_at : null)) +
           ' &middot; <a href="' + esc(run.html_url) + '">run log</a></p>';
 
+        // "could not be read" and "has not happened yet" are different facts, and the
+        // page said the first when it meant the second: while promote-prod waited for
+        // a reviewer, GitHub returned a job with an EMPTY step list - steps appear
+        // only once a job starts - and this panel reported a failed read for two
+        // minutes. Conflating an absence with a failure is the exact habit the rest
+        // of this page exists to avoid.
         var jobs = state.jobs && String(state.jobs.runId) === String(run.id) ? state.jobs.jobs : null;
-        if (!jobs || !jobs.length) {
+        if (!jobs) {
           h += '<p class="why">Step detail could not be read for this run.</p>';
+        } else if (!jobs.length) {
+          h += '<p class="why">' + (run.status === "waiting"
+            ? "No job has started yet: the run is held at the approval gate, waiting for a required reviewer. Steps appear once a reviewer approves it."
+            : "No job has started yet - the run is queued. Steps appear once a runner picks it up.") + '</p>';
         } else {
           jobs.forEach(function (job) {
             h += '<p class="why" style="margin-top:1rem"><b>' + esc(job.name) + '</b> &mdash; ' +
               esc(job.status === "completed" ? (job.conclusion || "") : job.status.replace("_", " ")) +
               (job.started_at ? " &middot; " + esc(dur(job.started_at, job.completed_at)) : "") + '</p>';
+            if (!(job.steps || []).length) {
+              h += '<p class="why">This job has not started, so it reports no steps yet. ' +
+                'That is an absence, not a failed read.</p>';
+            }
             h += '<ol class="steps">';
             (job.steps || []).forEach(function (s) {
               h += '<li class="' + esc(s.status) + '">' + stepMark(s) +
@@ -641,16 +670,32 @@
       // GitHub deadline forward each time and it would never fire.
       var BUCKET_MS = 30000;
 
+      // A fixed two-minute interval was too slow exactly when someone is watching:
+      // the step list lagged by up to two minutes while a run was in flight. Polling
+      // faster by hand is not an option either - 60 anonymous requests an hour is
+      // gone in twenty minutes at 30-second intervals, and then the page reports
+      // nothing at all.
+      //
+      // So the interval is DERIVED from the budget GitHub reports in every response:
+      // spread the remaining requests (keeping six in reserve) evenly over the time
+      // left in the window, two requests per poll. It goes as fast as it can afford
+      // and slows down by itself as the budget runs out, instead of being told a
+      // number that is wrong in one direction or the other.
       function githubIntervalMs() {
         var run = currentRun();
-        return (!state.githubError && run && run.status !== "completed") ? 120000 : 300000;
+        var live = !state.githubError && run && run.status !== "completed";
+        if (!live) return 300000;
+        if (!state.rateRemaining || !state.rateReset) return 90000;
+        var msLeft = Math.max(1000, state.rateReset - Date.now());
+        var polls = Math.max(1, (state.rateRemaining - 6) / 2);
+        return Math.min(180000, Math.max(30000, msLeft / polls));
       }
 
       function scheduleRefresh() {
         if (state.timer) { clearTimeout(state.timer); state.timer = null; }
         var live = !state.githubError && currentRun() && currentRun().status !== "completed";
         el("autorefresh").textContent = "auto: bucket every 30 s, GitHub every " +
-          (live ? "2 min while a run is in flight" : "5 min");
+          Math.round(githubIntervalMs() / 1000) + " s" + (live ? " (paced by the remaining budget)" : "");
         state.timer = setTimeout(function () { tick(false); }, BUCKET_MS);
       }
 
