@@ -201,3 +201,38 @@ jobs:
             echo ""
             echo "prod is billable while it is up. Tear it down with the destroy workflow (environment: prod)."
           } >> "$GITHUB_STEP_SUMMARY"
+
+      # ---------------------------------------------------------------------
+      # Dashboard (ADR-0026). Two steps and TWO ROLES, deliberately: the
+      # observation needs the deploy role's read access to ECS/ALB/RDS, the
+      # upload needs only the narrow publish role. Re-configuring credentials
+      # here also means every step after this point has lost the deploy role,
+      # which is why these are last.
+      #
+      # `if: always()` throughout. A run that died half way is exactly when the
+      # dashboard must be written, because that is when the environment is in a
+      # state nobody would have predicted - and a status file that only ever
+      # appears after success would report the account as whatever it was the
+      # last time things went well.
+      # ---------------------------------------------------------------------
+      - name: Observe what prod has in AWS
+        if: always()
+        env:
+          APP_URL: ${{ steps.tf.outputs.app_url }}
+        run: scripts/observe-environment.sh prod > /tmp/observation.json
+
+      - name: Configure AWS credentials (OIDC, publish role)
+        if: always()
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.SITE_PUBLISH_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Publish status and report to the dashboard
+        if: always()
+        env:
+          SITE_BUCKET: ${{ vars.SITE_BUCKET }}
+          SITE_DISTRIBUTION_ID: ${{ vars.SITE_DISTRIBUTION_ID }}
+          SITE_BASE_URL: ${{ vars.SITE_URL }}
+          JOB_STATUS: ${{ job.status }}
+        run: scripts/publish-status.sh prod /tmp/observation.json tests/playwright/playwright-report

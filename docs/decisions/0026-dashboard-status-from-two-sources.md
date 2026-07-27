@@ -72,6 +72,35 @@ That last property is what makes the two sources worth more together than
 separately: each one is the other's staleness detector, and neither can go
 quietly wrong on its own.
 
+## Implementation note (Phase 11.1b)
+
+`status.json` is written as **one object per environment**, `status/stage.json`
+and `status/prod.json`, rather than the single file this ADR's wording implies.
+
+The reason is concurrency, not taste. Destroying prod while stage is deploying is
+a normal cycle here, and a shared file would need read-modify-write against S3,
+which offers no compare-and-set: the second writer would silently drop the
+first's block. Two independent keys have no race to lose, and the split sharpens
+the rule above rather than bending it — **each file has exactly one writer, and
+that writer observed everything in it.**
+
+The division of labour inside a run follows the same rule, and needs two roles:
+
+```text
+scripts/observe-environment.sh   deploy role, reads ECS/ALB/RDS. Knows only what
+                                 exists in AWS. Says nothing about the run.
+scripts/publish-status.sh        publish role, writes the bucket and invalidates.
+                                 Adds the run id, attempt and job status - facts
+                                 about the workflow, which is the only thing it
+                                 is in a position to observe.
+```
+
+A role that can change infrastructure does not write the page reporting on it.
+Both steps run under `if: always()`, because a run that died half way is exactly
+when the environment is in a state nobody predicted, and a status file that
+appeared only after success would report the account as it was the last time
+things went well.
+
 ## Consequences
 
 - The unauthenticated GitHub REST API is rate-limited to 60 requests per hour

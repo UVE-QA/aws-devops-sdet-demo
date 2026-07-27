@@ -155,3 +155,40 @@ jobs:
             exit 1
           fi
           echo "OK: no billable ${{ inputs.environment }} resources remain (permanent levels intentionally kept)."
+
+      # ---------------------------------------------------------------------
+      # Dashboard (ADR-0026). Two steps and TWO ROLES, deliberately: the
+      # observation needs the deploy role's read access to ECS/ALB/RDS, the
+      # upload needs only the narrow publish role. Re-configuring credentials
+      # here also means every step after this point has lost the deploy role,
+      # which is why these are last.
+      #
+      # `if: always()` throughout. A run that died half way is exactly when the
+      # dashboard must be written, because that is when the environment is in a
+      # state nobody would have predicted - and a status file that only ever
+      # appears after success would report the account as whatever it was the
+      # last time things went well.
+      # ---------------------------------------------------------------------
+      - name: Observe what the environment has in AWS
+        if: always()
+        # No APP_URL is passed, and that is not an omission: this workflow has no
+        # Terraform outputs to read one from, and after a successful destroy there
+        # is no URL to report. The observation records null rather than the last
+        # address the environment happened to have.
+        run: scripts/observe-environment.sh ${{ inputs.environment }} > /tmp/observation.json
+
+      - name: Configure AWS credentials (OIDC, publish role)
+        if: always()
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.SITE_PUBLISH_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Publish status to the dashboard
+        if: always()
+        env:
+          SITE_BUCKET: ${{ vars.SITE_BUCKET }}
+          SITE_DISTRIBUTION_ID: ${{ vars.SITE_DISTRIBUTION_ID }}
+          SITE_BASE_URL: ${{ vars.SITE_URL }}
+          JOB_STATUS: ${{ job.status }}
+        run: scripts/publish-status.sh ${{ inputs.environment }} /tmp/observation.json
