@@ -125,8 +125,31 @@ from nothing.
 4. infra/dns              hosted zone + wildcard certificate
 5. one NS record for the delegated zone, by hand, in the parent zone
    (org-management) - see the DNS section above
-6. GitHub environment variables for stage and prod, and prod's protection rules
+6. infra/public-site    dashboard bucket + CloudFront + us-east-1 certificate
+                        + the narrow publish role (ADR-0027). Needs 4 and 5
+                        done: it reads the hosted zone by name, so the plan
+                        fails outright if the zone is absent.
+7. GitHub environment variables for stage and prod, and prod's protection rules
+8. GitHub REPOSITORY variables for the dashboard, from the infra/public-site
+   outputs - see below
 ```
+
+### Repository variables for the dashboard (Phase 11.1b)
+
+Repository-level, not per environment, because both environments publish to the
+same bucket with the same values. The six variables in step 7 differ per
+environment and stay where they are.
+
+```text
+SITE_BUCKET             aws-devops-sdet-demo-site-<account id>
+SITE_DISTRIBUTION_ID    from `terraform output distribution_id`
+SITE_PUBLISH_ROLE_ARN   from `terraform output publish_role_arn`
+SITE_URL                https://demo.uveapp.net
+```
+
+All four are identifiers, not credentials: the role ARN names a role that can
+only be assumed by a token this repository's workflows produce, and only for
+`environment:stage` or `environment:prod`.
 
 Still outstanding, non-blocking:
 

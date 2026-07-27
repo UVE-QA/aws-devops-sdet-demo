@@ -13,8 +13,10 @@ CLOSED (2026-07-26) — validated against AWS, not only locally. Phase 11.0
 (publish the repository) was pulled forward and is DONE. Phase 11.1a — the
 decisions and the scaffold for the public dashboard — is CLOSED (2026-07-26):
 `fmt -check` clean and `tf-validate` green over seven discovered root levels,
-with nothing applied to AWS.** Next is 11.1b, the first billable step of the
-phase.
+with nothing applied to AWS. Phase 11.1b APPLIED the level on 2026-07-26: 16
+added, 0 destroyed, first attempt, and there is now a FIFTH permanent state
+level in AWS behind https://demo.uveapp.net. The publish plumbing is written but
+has not run yet.**
 
 The full cycle now runs end-to-end through GitHub Actions with zero manual AWS
 operations for BOTH environments:
@@ -41,6 +43,35 @@ Stage infrastructure is FULLY DESTROYED in AWS — zero billable resources.
 Nothing is billing except the near-zero state bucket. The OIDC provider + deploy
 role from `infra/bootstrap-oidc` are still present (IAM, free) because a stage
 teardown does not touch that state level.
+
+### Phase 11.1b session (2026-07-26) — the level exists in AWS
+
+Full write-up: `docs/sessions/2026-07-26-phase-11-1b-apply-and-publish.md`.
+
+The apply was the whole billable content of the step and it was uneventful: 16
+resources added, 0 destroyed, first attempt, roughly four minutes, most of it the
+CloudFront distribution. Verification was done against the AWS CLI and `curl`
+rather than against Terraform state, and returned **403 on all three names with a
+verified certificate** — which is the correct answer while the bucket is empty,
+and the reason the step was worth doing before any content existed: it separates
+"the hosting works" from "the page is right".
+
+Two things the session got for free, both cheaper than the checks that would
+otherwise have been needed. The two data sources resolved at PLAN time, which
+proves `infra/dns` and `infra/bootstrap-oidc` are applied without querying
+either. And the untracked `.terraform.lock.hcl` in the new level turned out to be
+short one hash, because `tf-validate` had written it without ever installing the
+provider — a small, real gap that only a genuine `init` would have closed.
+
+The plumbing written here obeys ADR-0026 by splitting one job across two roles:
+the deploy role observes ECS/ALB/RDS, the narrow publish role writes the bucket
+and invalidates. Neither is allowed to describe what the other saw. The status
+file also became one object per environment, because destroying prod while stage
+deploys is a normal cycle and S3 has no compare-and-set for a shared file.
+
+None of that has run. The status steps can only be exercised by a real cycle,
+which is 11.1c; `publish-site` can be proven on its own and is the one thing
+still owed to close 11.1b.
 
 ### Phase 11.1a session (2026-07-26) — decisions, scaffold, and one direct question
 

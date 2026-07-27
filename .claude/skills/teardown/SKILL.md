@@ -64,7 +64,8 @@ do not leave it running. In a script, assign each result to a variable under
 
 ## What intentionally survives
 
-Destroying an environment must NOT remove any of these. A teardown that takes
+Destroying an environment must NOT remove any of these. There are FIVE of
+them since 2026-07-26; a list that still says four is stale. A teardown that takes
 one of them has taken too much:
 
 - `infra/bootstrap` — the Terraform state bucket. Near-zero cost, needed by the
@@ -80,6 +81,15 @@ one of them has taken too much:
 - `infra/dns` — the hosted zone for `demo.uveapp.net` and the wildcard
   certificate (**ADR-0024**). The alias record pointing at the ALB lives in the
   environment and does go away; the zone does not.
+- `infra/public-site` — the dashboard: S3 + CloudFront + the us-east-1
+  certificate + the apex records + the publish role (**ADR-0027**). Applied
+  2026-07-26. This is the sharpest case of the rule the four above share: the
+  page exists to show, honestly, that both environments are gone, so a teardown
+  able to delete it would destroy the evidence that the teardown works. There is
+  no destroy workflow for this level, and removing it by hand takes two passes
+  because a CloudFront distribution must be disabled before it can be deleted.
+  The site bucket also holds every published Playwright report, which is the
+  only copy an outside reader can open at all.
 
 ## Repeatability check
 

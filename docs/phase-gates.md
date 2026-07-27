@@ -20,7 +20,7 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 9     | Prod env, promotion, HTTPS     | ✅ done     | 25d4dab   |
 | 10    | Thin application slice         | ✅ done     | 1bf89ac   |
 | 11.0  | Publish the repository         | ✅ done (pulled forward) | a1c4402 |
-| 11.1  | Public dashboard               | 🟡 11.1a done, 11.1b not started | (this patch) |
+| 11.1  | Public dashboard               | 🟡 11.1a done; 11.1b applied, publish run pending | (this patch) |
 
 Phases 9-19 are planned in `docs/next-phases.md` (MVP track 9-13, polish
 track 14-19), shaped by ADR-0017. This table tracks only what is done.
@@ -488,13 +488,62 @@ track 14-19), shaped by ADR-0017. This table tracks only what is done.
   over two known-good directories. That is still a proxy, and the next author
   writing HCL without terraform to hand should assume the same budget.
 
-#### 11.1b — apply and publish  [NOT STARTED]
+#### 11.1b — apply and publish  [APPLIED 2026-07-26, publish run pending]
 - First billable step of the phase. Local apply under `demo-admin`; CloudFront
   takes 10-15 minutes to propagate, once, not per cycle.
 - **Closing criterion that must not be dropped: the `teardown` skill lists the
   levels a destroy must not touch, and there will then be FIVE, not four.** It is
   deliberately not edited in 11.1a, because a document here must not describe as
-  existing in AWS something that only exists in git.
+  existing in AWS something that only exists in git. **Done in this patch, after
+  the apply**, together with the apply order in `docs/preflight-inventory.md` and
+  the state-levels block in `docs/session-primer.md`.
+- **APPLY: DONE (2026-07-26).** `terraform apply` of `infra/public-site` under
+  `demo-admin`, green on the FIRST attempt: **16 added, 0 changed, 0 destroyed**,
+  in about 4 minutes, of which the CloudFront distribution took 2m32s and the
+  certificate validated in seconds. What exists now:
+```text
+  bucket        aws-devops-sdet-demo-site-993912191738   private, all four PAB flags true
+  distribution  ED562RSB6XC49 / d1nj4thkcagijn.cloudfront.net   Deployed, OAC EURCBXCK61LAM
+  certificate   us-east-1 ...00cb8629, ISSUED, InUseBy the distribution
+  dns           demo.uveapp.net + www, A and AAAA aliases, resolved authoritatively
+  publish role  aws-devops-sdet-demo-site-publish   this bucket + this distribution only
+```
+- Verified against the **AWS CLI and curl**, not against Terraform state, with
+  `aws sts get-caller-identity` first and every result assigned under `set -e`
+  inside a `bash -c` — the expired-token-reads-as-clean trap from Phase 10.
+  All three URLs answered **403 with `ssl_verify_result=0`**: TLS valid, OAC
+  refusing an object that does not exist yet. A 200 at that point would have been
+  the suspicious result, because nothing had been uploaded.
+- Two predictions this project keeps making were wrong again, and are recorded
+  rather than deleted: a genuinely new AWS path did NOT cost one failed run, and
+  the plan needed no correction. Both data sources (`aws_route53_zone`,
+  `aws_iam_openid_connect_provider`) resolved at PLAN time, which is also the
+  cheapest possible proof that `infra/dns` and `infra/bootstrap-oidc` are applied
+  — had either been missing, the plan would have failed before anything billable
+  was created.
+- Side finding: `infra/public-site/.terraform.lock.hcl` was UNTRACKED, and its
+  hash set was short one `h1:` entry compared with every other level — the
+  `tf-validate` run in 11.1a had written it without ever installing the provider.
+  The real `terraform init` completed it. Committed here, so the new level pins
+  its provider like the other six.
+- Written in this patch, NOT yet exercised: `site/index.html` (placeholder; the
+  dashboard content is 11.1c), `scripts/observe-environment.sh`,
+  `scripts/publish-status.sh`, `scripts/publish-site.sh`,
+  `.github/workflows/publish-site.yml`, and the two-role publish steps appended
+  to `deploy-stage`, `promote-prod` and `destroy`.
+- Criteria to close 11.1b:
+```text
+  1. four repository variables exist (SITE_BUCKET, SITE_DISTRIBUTION_ID,
+     SITE_PUBLISH_ROLE_ARN, SITE_URL) - see docs/preflight-inventory.md
+  2. publish-site runs green and https://demo.uveapp.net/ returns 200, which is
+     the workflow's own assertion and not something eyeballed in a browser
+  3. `aws sts get-caller-identity` inside that run prints the PUBLISH role, not
+     the deploy role - the scoping is the exhibit, so it is asserted
+```
+  The status-file steps in the three lifecycle workflows are deliberately NOT in
+  this list: they can only be validated by a real cycle, which is 11.1c. Written
+  now, proven then — and until then they are code that has never run, which this
+  file says out loud rather than implying otherwise.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

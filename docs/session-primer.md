@@ -322,8 +322,8 @@ Terraform state levels — only the last two are ever destroyed:
   infra/bootstrap-oidc   OIDC provider + deploy roles, permanent
   infra/shared-ecr       container registry, permanent        (ADR-0018)
   infra/dns              hosted zone + ACM certificate, permanent  (ADR-0024)
-  infra/public-site      dashboard S3+CloudFront, permanent   (Phase 11.1,
-                         not built yet; 11.0 publish-the-repo is DONE)
+  infra/public-site      dashboard S3+CloudFront, permanent   (ADR-0027,
+                         APPLIED 2026-07-26; https://demo.uveapp.net)
   infra/envs/stage       workload, destroyed every cycle
   infra/envs/prod        workload, destroyed every cycle
 ```
@@ -370,7 +370,9 @@ obvious once prod runs an image that stage's teardown would delete (ADR-0018).
   Verify prod from a host that has not been asking for the name, and flush before
   a demo: `sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder`.
   Three separate client-side symptoms all accused the application, which was
-  never involved.
+  never involved. Since 2026-07-26 the apex demo.uveapp.net and www are ALWAYS
+  up (the dashboard, CloudFront), so the two kinds of name now behave
+  differently: only app. is expected to be dead between cycles.
 - `aws sso login` on the devbox needs `--use-device-code`. The default flow opens
   a callback on 127.0.0.1 that nothing there can reach. Put the login in the step
   itself; a chat session cannot see whether the token is still alive.
