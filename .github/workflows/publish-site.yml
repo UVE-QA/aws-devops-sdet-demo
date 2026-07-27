@@ -1,0 +1,87 @@
+name: publish-site
+
+# Publishes the static dashboard (site/) to the permanent public level created by
+# infra/public-site. It touches NO workload infrastructure and costs nothing per
+# run: S3 puts and one CloudFront invalidation.
+#
+# WHY IT DECLARES environment: stage
+#
+# Not because publishing is a stage activity. The publish role trusts only
+# `repo:UVE-QA/aws-devops-sdet-demo:environment:stage` and the same for prod, with
+# no branch subject at all (infra/public-site/variables.tf). A job without an
+# `environment:` gets a token whose sub is a branch ref, which that trust policy
+# cannot match - so the environment is what makes authentication possible.
+#
+# Manual only, like every workflow here that touches AWS. That is also what keeps
+# a public repository from being able to start it: dispatch requires write access
+# (docs/security-posture.md).
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: stage
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Configure AWS credentials (OIDC, publish role)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.SITE_PUBLISH_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Show which identity is publishing
+        run: |
+          # The role name is the assertion: if this prints the deploy role, the
+          # scoping this level exists to demonstrate is not what is in effect.
+          aws sts get-caller-identity --query 'Arn' --output text
+
+      - name: Publish site/
+        env:
+          SITE_BUCKET: ${{ vars.SITE_BUCKET }}
+          SITE_DISTRIBUTION_ID: ${{ vars.SITE_DISTRIBUTION_ID }}
+        run: scripts/publish-site.sh site
+
+      - name: Verify the published page answers over HTTPS
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
+        run: |
+          set -euo pipefail
+          # curl verifies the certificate chain by default, so a 200 here is the
+          # machine-checked half of "valid certificate on the apex". The retry
+          # loop is for invalidation propagation, not for the origin: a 403 that
+          # never clears means the bucket policy or the OAC is wrong, and this
+          # step is the only place in the cycle that would notice.
+          for i in $(seq 1 20); do
+            code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "$SITE_URL/" || true)"
+            echo "attempt $i: $code"
+            if [ "$code" = "200" ]; then
+              echo "$SITE_URL/ answered 200 over a verified TLS connection"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::$SITE_URL/ did not answer 200 within ~3 minutes"
+          exit 1
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### publish-site"
+            echo ""
+            echo "| field | value |"
+            echo "| --- | --- |"
+            echo "| url | ${{ vars.SITE_URL }} |"
+            echo "| bucket | ${{ vars.SITE_BUCKET }} |"
+            echo "| distribution | ${{ vars.SITE_DISTRIBUTION_ID }} |"
+            echo ""
+            echo "This level is PERMANENT: no destroy workflow touches it (ADR-0027)."
+          } >> "$GITHUB_STEP_SUMMARY"

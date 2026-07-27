@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<!--
+  PLACEHOLDER, Phase 11.1b. The dashboard content is Phase 11.1c.
+
+  This page exists so that the permanent public level can be proven end to end
+  before there is anything interesting to show: a request reaching it means the
+  origin bucket is private, CloudFront's Origin Access Control works, the
+  us-east-1 certificate is valid, the alias records resolve, and the narrow
+  publish role was able to write here from a workflow.
+
+  It deliberately claims nothing about the state of stage or prod. Neither
+  source of truth for that exists in the bucket yet (ADR-0026), and a page that
+  rendered a plausible-looking "destroyed" from no data would be the exact
+  failure this project keeps rediscovering: a claim standing in for an
+  observation.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>aws-devops-sdet-demo &mdash; public dashboard</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --fg: #16181d;
+        --muted: #5c6370;
+        --bg: #fbfbfc;
+        --line: #d8dbe2;
+        --accent: #1f6feb;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --fg: #e6e8ee;
+          --muted: #9aa2b1;
+          --bg: #14161a;
+          --line: #2b2f38;
+          --accent: #6cb1ff;
+        }
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        padding: 3rem 1.25rem 4rem;
+        background: var(--bg);
+        color: var(--fg);
+        font: 16px/1.6 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      }
+      main { max-width: 46rem; margin: 0 auto; }
+      h1 { font-size: 1.5rem; margin: 0 0 0.25rem; letter-spacing: -0.01em; }
+      .sub { color: var(--muted); margin: 0 0 2rem; }
+      h2 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 2.5rem 0 0.75rem; }
+      ul { padding-left: 1.1rem; margin: 0; }
+      li { margin: 0.35rem 0; }
+      code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.9em; }
+      .card { border: 1px solid var(--line); border-radius: 10px; padding: 1rem 1.25rem; }
+      .pending { color: var(--muted); }
+      a { color: var(--accent); }
+      footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.85rem; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>aws-devops-sdet-demo</h1>
+      <p class="sub">
+        Permanent public surface for a deploy &rarr; test &rarr; approve &rarr;
+        promote &rarr; destroy pipeline on AWS. This page stays online when every
+        workload environment is gone &mdash; which is the point of it.
+      </p>
+
+      <div class="card">
+        <strong>Phase 11.1b.</strong> The hosting level is live; the dashboard
+        content lands in 11.1c. Nothing here reports the state of
+        <code>stage</code> or <code>prod</code> yet, and it says so rather than
+        rendering a value it cannot observe.
+      </div>
+
+      <h2>What reaching this page already proves</h2>
+      <ul>
+        <li>the origin bucket is private &mdash; reads happen only through CloudFront Origin Access Control</li>
+        <li>TLS terminates on a certificate issued in <code>us-east-1</code>, because CloudFront accepts no other region</li>
+        <li>the apex and <code>www</code> alias records resolve to the distribution</li>
+        <li>a workflow wrote these bytes under a role scoped to this bucket and this distribution, and to nothing else</li>
+      </ul>
+
+      <h2>Arriving in 11.1c</h2>
+      <ul class="pending">
+        <li>per-stage status of the current cycle, read anonymously from the public GitHub Actions API</li>
+        <li>the state of each environment in AWS, read from <code>status/&lt;environment&gt;.json</code> in this bucket</li>
+        <li>the published Playwright report &mdash; today it is a GitHub artifact, which needs an account to download</li>
+        <li>the architecture, in the order things actually happen</li>
+      </ul>
+
+      <footer>
+        Source: <a href="https://github.com/UVE-QA/aws-devops-sdet-demo">github.com/UVE-QA/aws-devops-sdet-demo</a>
+        &middot; S3 + CloudFront + OAC + ACM + Route53, applied by Terraform as its own permanent state level.
+      </footer>
+    </main>
+  </body>
+</html>
