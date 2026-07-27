@@ -28,10 +28,29 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   workers: 1,
   reporter: [["html", { open: "never" }], ["list"]],
+  // EVIDENCE FOR THE GREEN RUNS TOO, not only for the red ones.
+  //
+  // `only-on-failure` and `on-first-retry` are the sensible defaults when a
+  // report is something an engineer opens after a failure. Since Phase 11.1c the
+  // report is PUBLISHED - it is the artifact an outside reader opens to check a
+  // claim, and for them every run is a green one. A pass with nothing behind it
+  // is exactly the shape this project distrusts everywhere else: a gate seen only
+  // green is indistinguishable from a gate that cannot fail, and a green tick
+  // with no trace is indistinguishable from a test that asserted nothing.
+  //
+  // So a trace and a screenshot are recorded for EVERY test. The trace opens in
+  // the report's own viewer, with the DOM snapshot, the network log and the
+  // timeline of each step. Video stays failure-only: it is large and shows less
+  // than the trace already does.
+  //
+  // Both are published to a public bucket, so what they capture is public: this
+  // application has no authentication, no tokens and no personal data, and the
+  // ALB name they contain is already in status/<env>.json. That is a property to
+  // RE-CHECK if the app ever grows a login, not a fact that stays true by itself.
   use: {
     baseURL,
-    screenshot: "only-on-failure",
-    trace: "on-first-retry",
+    screenshot: "on",
+    trace: "on",
     video: "retain-on-failure",
   },
   projects: [
