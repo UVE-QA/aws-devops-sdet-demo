@@ -213,16 +213,27 @@ assumption about the base commit is wrong, you find out before anything moves.
 Nothing about this lets the chat commit to `main`. It authors commits; you apply
 and push them, after reading them.
 
-### Expect two patches per session, not one
+### Expect several patches per session, not one
 
 A session writes its closing documents BEFORE its validation runs, because that
 is the order the work happens in: the patch has to reach the devbox before
 anything can be run there. On 2026-07-26 the closing commit said "nothing has
 run against PostgreSQL" — true when written, false twenty minutes later.
 
-So the normal shape is one patch with the work and the documents that can be
+So the minimum shape is one patch with the work and the documents that can be
 written in advance, then a second, small one recording what the validation
 actually showed. Do not try to collapse them by holding the first patch back.
+
+**Two is the floor, not the expectation.** Phase 11.1c took FOUR, and the reason
+generalises: the moment an artifact is exercised by a live cycle, each thing the
+cycle reveals has to land BEFORE the next run, or that run cannot show whether
+the fix worked. Three of that session's four patches existed because a real run
+said something no fixture had said, and each was delivered between workflow runs,
+in minutes.
+
+So the number of patches is not a measure of tidiness — it is how many times
+reality got a word in. Deliver whenever it does. A session that ships one patch
+because that felt neater has usually decided not to look.
 
 ### The layout
 
@@ -246,10 +257,27 @@ For a single file outside a session's patch, `send.sh` still works:
 
 ```text
 ./send.sh <file> <repo/path> ["commit message"]
-    a bare filename is looked up in outbox/
+    ALWAYS pass outbox/<name>, not a bare name — see the trap below
     without a message: delivers and shows git status, you commit after review
     with a message:    delivers, commits, pushes
 ```
+
+**The bare-name lookup shadows exactly the file it matters most for.** It reads
+`[ ! -f "$LOCAL" ] && [ -f "outbox/$LOCAL" ]`, so the CURRENT DIRECTORY wins: a
+bare `session-primer.md` resolves to the stale attach-copy in the buffer root,
+never to the fresh one in `outbox/`. That is the one filename that exists in both
+places, by design, and it is this file. On 2026-07-26 it delivered the old primer,
+the diff was empty, `git commit` found nothing to commit and `set -e` ended the
+script before the word "pushed" — a delivery that looked almost like a success.
+Pass the path explicitly:
+
+```text
+./send.sh outbox/session-primer.md docs/session-primer.md "docs(primer): ..."
+```
+
+The durable fix is in `send.sh` — prefer `outbox/`, or refuse when both exist —
+and it is unwritten because `send.sh` is not in git. Which is the debt below,
+demonstrated rather than described.
 
 **The chat can write into `outbox/` but cannot delete from it.** Removing a
 patch once it is committed is yours to do. A chat that leaves one behind should
