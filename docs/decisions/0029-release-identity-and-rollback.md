@@ -51,6 +51,11 @@ pointer    /aws-devops-sdet-demo/prod/last-good-image-digest = that digest
 Adding a new tag to an existing manifest is permitted under an immutable
 registry; what immutability forbids is repointing a tag that already exists.
 
+The three are written in that order on purpose. The pointer is what a future
+rollback depends on, so it goes first: if the tagging behind it fails, the run
+fails loudly with the next promotion still protected, rather than protecting
+nothing while looking tidy.
+
 ### 2. The registry becomes immutable and `latest` is dropped
 
 `image_tag_mutability = "IMMUTABLE"` on the shared repository, with no

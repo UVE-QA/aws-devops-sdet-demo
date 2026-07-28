@@ -26,7 +26,11 @@ on:
 
 permissions:
   id-token: write
-  contents: read
+  # write, not read: a green prod smoke pushes an annotated release tag
+  # (ADR-0029). This is a widening of the most privileged workflow in the
+  # repository, and it applies to the repository only - the AWS side is
+  # unchanged and still has no static keys.
+  contents: write
 
 jobs:
   promote:
@@ -40,6 +44,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          # The release tag goes on the commit the IMAGE was built from, which
+          # is the dispatched tag, not this workflow's own head. A shallow
+          # checkout cannot name an older commit.
+          fetch-depth: 0
 
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v3
@@ -84,6 +93,31 @@ jobs:
           echo "promoting $url@$digest"
           echo "ref=$url@$digest" >> "$GITHUB_OUTPUT"
 
+      - name: Read the rollback pointer
+        id: pointer
+        shell: bash
+        env:
+          # Deterministic name, duplicated from infra/shared-ecr deliberately
+          # (ADR-0029): a workflow derives it without reading Terraform state,
+          # exactly as it derives the repository URL.
+          PARAM: /aws-devops-sdet-demo/prod/last-good-image-digest
+        run: |
+          set -euo pipefail
+          # Read BEFORE the apply, so "rollback is not armed" is said while it
+          # is still actionable rather than discovered at the moment it matters.
+          value="$(aws ssm get-parameter --region "$AWS_REGION" --name "$PARAM" \
+                     --query 'Parameter.Value' --output text 2>/dev/null || true)"
+          if [ -z "$value" ] || [ "$value" = "None" ]; then
+            echo "::error::rollback pointer $PARAM does not exist - apply infra/shared-ecr first (ADR-0029)"
+            exit 1
+          fi
+          if [ "$value" = "none" ]; then
+            echo "::warning::no previous release recorded - rollback is NOT armed for this run"
+          else
+            echo "rollback target if this release fails: $value"
+          fi
+          echo "digest=$value" >> "$GITHUB_OUTPUT"
+
       - name: Terraform init (S3 backend)
         working-directory: infra/envs/prod
         run: terraform init -input=false
@@ -95,6 +129,7 @@ jobs:
         run: terraform plan -input=false -out=tfplan
 
       - name: Terraform apply
+        id: apply
         working-directory: infra/envs/prod
         run: terraform apply -input=false -auto-approve tfplan
 
@@ -164,6 +199,7 @@ jobs:
           node-version: "20"
 
       - name: Read-only smoke against prod
+        id: smoke
         working-directory: tests/playwright
         env:
           BASE_URL: ${{ steps.tf.outputs.app_url }}
@@ -174,6 +210,136 @@ jobs:
           # survived the first one unchanged. The projects select by directory
           # (ADR-0025), so prod runs tests/smoke/ and nothing else, and
           # `make test-spec-coverage` fails if a spec belongs to no project.
+          npm install
+          npx playwright install --with-deps chromium
+          npx playwright test --project=smoke
+
+      # ----------------------------------------------------------------------
+      # The release is made HERE and nowhere earlier (ADR-0029). A digest
+      # becomes a release at the moment the prod smoke goes green.
+      #
+      # The pointer is written FIRST of the three records, deliberately: it is
+      # the one a future rollback depends on, so if the tagging that follows
+      # fails, the failure is loud and the next promotion is still protected.
+      # ----------------------------------------------------------------------
+      - name: Record this digest as the last good release
+        env:
+          PARAM: /aws-devops-sdet-demo/prod/last-good-image-digest
+          IMAGE_REF: ${{ steps.image.outputs.ref }}
+        run: |
+          set -euo pipefail
+          digest="${IMAGE_REF##*@}"
+          aws ssm put-parameter --region "$AWS_REGION" --name "$PARAM" \
+            --type String --overwrite --value "$digest" >/dev/null
+          echo "last good prod digest is now $digest"
+
+      - name: Tag the release in the registry and in git
+        id: release
+        env:
+          ECR_REPOSITORY: aws-devops-sdet-demo-app
+          IMAGE_REF: ${{ steps.image.outputs.ref }}
+          PROMOTED_SHA: ${{ inputs.image_tag }}
+        run: |
+          set -euo pipefail
+          digest="${IMAGE_REF##*@}"
+          name="release-$(date -u +%Y%m%d-%H%M)-${PROMOTED_SHA:0:7}"
+
+          # Adding a NEW tag to an existing manifest is permitted under an
+          # immutable registry; repointing an existing tag is what is not.
+          # Two calls rather than one joined query: a manifest is JSON and can
+          # carry whitespace, so splitting a joined field is a parse waiting to
+          # go wrong on an image that looks no different from the others.
+          manifest="$(aws ecr batch-get-image --region "$AWS_REGION" \
+                        --repository-name "$ECR_REPOSITORY" \
+                        --image-ids imageDigest="$digest" \
+                        --query 'images[0].imageManifest' --output text)"
+          media="$(aws ecr batch-get-image --region "$AWS_REGION" \
+                     --repository-name "$ECR_REPOSITORY" \
+                     --image-ids imageDigest="$digest" \
+                     --query 'images[0].imageManifestMediaType' --output text)"
+          aws ecr put-image --region "$AWS_REGION" \
+            --repository-name "$ECR_REPOSITORY" \
+            --image-tag "$name" \
+            --image-manifest "$manifest" \
+            --image-manifest-media-type "$media" >/dev/null
+
+          # On the commit the IMAGE was built from - the dispatched tag - not on
+          # this workflow's own head. They are usually the same commit, and the
+          # day they are not is the day an untagged release becomes untraceable.
+          git tag -a "$name" -m "prod release $name, image $digest" "$PROMOTED_SHA"
+          git push origin "$name"
+          echo "released $name -> $digest"
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+
+      # ----------------------------------------------------------------------
+      # Rollback (ADR-0029). Fires when prod was actually changed and then
+      # failed to prove itself healthy: the apply succeeded and something after
+      # it did not - the stability wait, the HTTPS wait, provisioning, or the
+      # smoke. Narrowing this to the smoke alone would leave the most obvious
+      # broken release, the one that never answers at all, with no rollback.
+      #
+      # Nothing below can turn this run green, and that is the intent: a
+      # promotion whose release failed is a failed promotion even when the
+      # recovery worked.
+      # ----------------------------------------------------------------------
+      - name: Resolve the rollback target
+        id: rollback
+        if: failure() && steps.apply.outcome == 'success'
+        env:
+          ECR_REPOSITORY: aws-devops-sdet-demo-app
+          ROLLBACK_DIGEST: ${{ steps.pointer.outputs.digest }}
+        run: |
+          set -euo pipefail
+          if [ "$ROLLBACK_DIGEST" = "none" ]; then
+            echo "::error::this release failed and no previous release exists to roll back to. prod is left standing for inspection - tear it down with the destroy workflow (environment: prod)."
+            exit 1
+          fi
+          # The pointer can outlive the image it names: the lifecycle policy
+          # expires by count and cannot protect a prefix (ADR-0029 s5). Checked
+          # against the registry, not assumed.
+          if ! aws ecr describe-images --region "$AWS_REGION" \
+                 --repository-name "$ECR_REPOSITORY" \
+                 --image-ids imageDigest="$ROLLBACK_DIGEST" >/dev/null 2>&1; then
+            echo "::error::rollback target $ROLLBACK_DIGEST is no longer in $ECR_REPOSITORY - the lifecycle policy expired it. prod is left standing for inspection."
+            exit 1
+          fi
+          url="$(aws ecr describe-repositories --region "$AWS_REGION" \
+                   --repository-names "$ECR_REPOSITORY" \
+                   --query 'repositories[0].repositoryUri' --output text)"
+          echo "rolling prod back to $url@$ROLLBACK_DIGEST"
+          echo "ref=$url@$ROLLBACK_DIGEST" >> "$GITHUB_OUTPUT"
+
+      - name: Apply the rollback
+        id: rollback_apply
+        if: failure() && steps.rollback.outcome == 'success'
+        working-directory: infra/envs/prod
+        env:
+          TF_VAR_app_image: ${{ steps.rollback.outputs.ref }}
+        run: |
+          set -euo pipefail
+          # A second apply, NOT `aws ecs update-service`. update-service would
+          # leave the running revision and the Terraform state disagreeing, and
+          # here the next apply IS the next release - it would quietly undo the
+          # rollback without anyone asking for that.
+          terraform apply -input=false -auto-approve
+          aws ecs wait services-stable \
+            --cluster "$(terraform output -raw ecs_cluster_name)" \
+            --services "$(terraform output -raw ecs_service_name)"
+          # Re-read rather than reuse steps.tf: the outputs step is one of the
+          # things that may have failed on the way here.
+          echo "app_url=$(terraform output -raw app_url)" >> "$GITHUB_OUTPUT"
+
+      - name: Prove the rollback restored a working prod
+        if: failure() && steps.rollback_apply.outcome == 'success'
+        working-directory: tests/playwright
+        env:
+          BASE_URL: ${{ steps.rollback_apply.outputs.app_url }}
+        run: |
+          set -euo pipefail
+          # Without this step "rolled back" is a claim nobody checked, and a
+          # rollback that restored a broken service would report success. The
+          # runner has Node preinstalled, so this does not depend on the setup
+          # step having been reached before the failure.
           npm install
           npx playwright install --with-deps chromium
           npx playwright test --project=smoke
@@ -198,6 +364,9 @@ jobs:
             echo "| tag promoted | ${{ inputs.image_tag }} |"
             echo "| image | ${{ steps.image.outputs.ref }} |"
             echo "| prod URL | ${{ steps.tf.outputs.app_url }} |"
+            echo "| release | ${{ steps.release.outputs.name || '(none - this release did not pass)' }} |"
+            echo "| rollback target | ${{ steps.pointer.outputs.digest }} |"
+            echo "| rollback applied | ${{ steps.rollback_apply.outcome || 'no' }} |"
             echo ""
             echo "prod is billable while it is up. Tear it down with the destroy workflow (environment: prod)."
           } >> "$GITHUB_STEP_SUMMARY"
