@@ -51,11 +51,15 @@ locals {
   # fixed ARN that only exists after an apply.
   secret_arn_prefix = "arn:aws:secretsmanager:${var.region}:${data.aws_caller_identity.current.account_id}:secret"
 
-  # Created by infra/shared-ecr (ADR-0029). Referenced here as a constructed ARN
+  # Created by infra/shared-ecr (ADR-0029). The "release/" segment is required:
+  # SSM reserves every parameter name starting with "aws", and the project name
+  # does. See the comment on the resource itself.
+  #
+  # Referenced here as a constructed ARN
   # rather than via remote state: the name is deterministic on purpose, exactly
   # like repository_name, and a data-source dependency would order two permanent
   # levels against each other for no gain.
-  prod_release_pointer_arn = "arn:aws:ssm:${var.region}:${data.aws_caller_identity.current.account_id}:parameter/${local.project_name}/prod/last-good-image-digest"
+  prod_release_pointer_arn = "arn:aws:ssm:${var.region}:${data.aws_caller_identity.current.account_id}:parameter/release/${local.project_name}/prod/last-good-image-digest"
 }
 
 module "oidc_provider" {

@@ -52,13 +52,21 @@ module "ecr" {
 # does — a rollback target is worth exactly nothing if the teardown that created
 # the need for it also deleted the target.
 #
-# The NAME is deterministic and duplicated in .github/workflows/promote-prod.yml,
-# deliberately, on the same reasoning as repository_name above: a workflow
-# derives it without reading Terraform state. A variable that MUST equal a
-# literal somewhere else is a drift surface, not a knob.
+# The NAME is deterministic and duplicated in .github/workflows/promote-prod.yml
+# and infra/bootstrap-oidc, deliberately, on the same reasoning as
+# repository_name above: a workflow derives it without reading Terraform state.
+# A variable that MUST equal a literal somewhere else is a drift surface, not a
+# knob.
+#
+# THE "/release/" PREFIX IS LOAD-BEARING, not decoration. SSM refuses any
+# parameter name beginning with "aws" or "ssm", case-insensitive, and this
+# project is called aws-devops-sdet-demo — so the natural path
+# /aws-devops-sdet-demo/... is rejected with AccessDeniedException "No access to
+# reserved parameter name", which reads like a permissions problem and is not
+# one. Do not tidy this segment away.
 # ------------------------------------------------------------------------------
 resource "aws_ssm_parameter" "prod_last_good_digest" {
-  name        = "/aws-devops-sdet-demo/prod/last-good-image-digest"
+  name        = "/release/aws-devops-sdet-demo/prod/last-good-image-digest"
   description = "Digest of the last image whose read-only smoke against prod passed. Written by promote-prod; read by its rollback step."
   type        = "String"
   tier        = "Standard" # free

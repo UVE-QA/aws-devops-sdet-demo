@@ -45,7 +45,8 @@ That moment does three things at once, or none of them:
 ```text
 ECR tag    release-<UTC yyyymmdd-hhmm>-<short sha>  added to the promoted digest
 git tag    the same name, annotated, on the promoted commit
-pointer    /aws-devops-sdet-demo/prod/last-good-image-digest = that digest
+pointer    /release/aws-devops-sdet-demo/prod/last-good-image-digest
+           = that digest
 ```
 
 Adding a new tag to an existing manifest is permitted under an immutable
@@ -141,5 +142,13 @@ and cannot protect a prefix, so there is no configuration that removes this case
   under an immutable registry, rebuilding the same name from the same commit
   would produce different bytes under an identical label, which is precisely the
   confusion this ADR exists to remove.
+- **The parameter path carries a `/release/` prefix because SSM reserves names
+  beginning with `aws`**, and this project is named `aws-devops-sdet-demo`. The
+  rejection is an `AccessDeniedException` reading "No access to reserved
+  parameter name", which looks exactly like a missing IAM grant and is not one.
+  Found by an apply, not by review — the prediction that a genuinely new path
+  costs one failed run had been wrong five times running, and this is the sixth
+  where it was right, and the first in a while where the failure was on the AWS
+  side at all.
 - Deleting the parameter is enough to disarm rollback, and would do so
   silently on the next failure — the refusal in §5 is what makes that audible.

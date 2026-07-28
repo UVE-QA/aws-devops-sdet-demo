@@ -100,7 +100,7 @@ jobs:
           # Deterministic name, duplicated from infra/shared-ecr deliberately
           # (ADR-0029): a workflow derives it without reading Terraform state,
           # exactly as it derives the repository URL.
-          PARAM: /aws-devops-sdet-demo/prod/last-good-image-digest
+          PARAM: /release/aws-devops-sdet-demo/prod/last-good-image-digest
         run: |
           set -euo pipefail
           # Read BEFORE the apply, so "rollback is not armed" is said while it
@@ -224,7 +224,7 @@ jobs:
       # ----------------------------------------------------------------------
       - name: Record this digest as the last good release
         env:
-          PARAM: /aws-devops-sdet-demo/prod/last-good-image-digest
+          PARAM: /release/aws-devops-sdet-demo/prod/last-good-image-digest
           IMAGE_REF: ${{ steps.image.outputs.ref }}
         run: |
           set -euo pipefail
