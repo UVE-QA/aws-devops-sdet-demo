@@ -20,7 +20,8 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 9     | Prod env, promotion, HTTPS     | ✅ done     | 25d4dab   |
 | 10    | Thin application slice         | ✅ done     | 1bf89ac   |
 | 11.0  | Publish the repository         | ✅ done (pulled forward) | a1c4402 |
-| 11.1  | Public dashboard               | ✅ done (11.1a, 11.1b, 11.1c) | (this patch) |
+| 11.1  | Public dashboard               | ✅ done (11.1a, 11.1b, 11.1c) | f4fb868   |
+| 12    | Minimum viable documentation   | ✅ done     | sessions/2026-07-27 |
 
 Phases 9-19 are planned in `docs/next-phases.md` (MVP track 9-13, polish
 track 14-19), shaped by ADR-0017. This table tracks only what is done.
@@ -130,7 +131,8 @@ track 14-19), shaped by ADR-0017. This table tracks only what is done.
   - DB-assert bug found & fixed (commit 36ecfba): deploy-stage.yml ran
     python tests/db/assert_seed.py inside the app image, but the image is built
     from context app/ and does not contain tests/. Added app/scripts/assert_seed.py
-    (ships via COPY scripts ./scripts); workflow now runs scripts/assert_seed.py.
+    (ships via COPY scripts ./scripts); the workflow runs it
+    inside the image, where it lives at `/app/scripts/assert_seed.py`.
     tests/db/assert_seed.py stays as the local `make test-db` gate.
   - CloudWatch log stream format is app/app/<task-id> (awslogs-stream-prefix=app),
     not ecs/app/<task-id>.
@@ -733,6 +735,83 @@ were the same shape — a page saying something it was not in a position to say:
 - Cost of the cycle: one ordinary deploy/promote/destroy. Nothing new is
   billable; after `destroy stage #13` the only things left are the five permanent
   levels, and each destroy verified that itself, scoped to its own environment.
+
+### Phase 12 — Minimum viable documentation  [DONE 2026-07-27]
+- Plan: `docs/next-phases.md` Phase 12 (M4). Decision: **ADR-0028**.
+- Delivered:
+```text
+  README.md               the first this repository has ever had. `git log
+                          --all -- README.md` was empty at the base commit;
+                          Phase 8 deliberately left the stale one uncommitted
+                          rather than publish something false.
+  docs/architecture.md    the request path, the seven state levels split five
+                          permanent to two per cycle, and the trade-offs made
+                          on purpose - no NAT and what it costs in teardown
+                          ordering, the ALB first, two certificates two regions.
+  docs/demo-script.md     ten minutes with no waiting in them, because the
+                          cycle starts forty minutes before the call.
+  project-prompt.md       §7 and §10 rewritten from `git ls-files` and from
+                          ADR-0015/0021; the file now says which of its
+                          paragraphs are historical.
+  tf-workflow skill       stopped teaching a validation command that reads
+                          remote state.
+  scripts/send.sh         control-layer tooling brought into git (ADR-0028),
+  docs/transfer-buffer.md with the bare-name lookup bug fixed at last.
+  make docs-check         a new gate, in ci.yml.
+```
+- **The diagrams are Mermaid and were PARSED, not eyeballed**, with mermaid's own
+  parser in the session sandbox. The check was made to fail twice on purpose: on
+  a malformed diagram, and on a file containing no diagram at all - because a
+  documentation check that finds nothing to check is the e1e577a shape again.
+- **`make docs-check` is new and was seen red six times before it shipped**: an
+  unknown make target, a path that does not exist, an undeclared route, a
+  misspelt workflow, a renamed entry in its own living-document list, and a make
+  target inside a code span after the rule was narrowed to code spans. It checks
+  six documents: the three written here plus this file, the primer and
+  `transfer-buffer.md`.
+- Running it is what found the things reading it would not have. Two false
+  positives on the first runs - `app/app/<task-id>` is a CloudWatch log stream,
+  not a directory, and "would make that possible" is English, not a make target -
+  and one true one: this file named the assert-seed script by a path
+  that exists only inside the image (`/app/scripts/assert_seed.py`) as though it
+  were a directory in the repository. All three are fixed; the last had been
+  sitting in the cursor since Phase 6, and the gate caught it again while this
+  very paragraph was being written.
+- The stale-command fix went to EVERY copyable occurrence in the same commit, not
+  only to the skill: project-prompt §11.1 and §14, and the Phase 4 validation
+  block above, which now prints the superseded command marked DO NOT USE beside
+  the current one. `ci.yml` was checked rather than assumed - it runs
+  `make tf-validate`.
+- ADR-0028 closes a question the transfer buffer's own README had left open for
+  an ADR rather than settling by reflex. The argument against was real - moving
+  `send.sh` into git recreates the two-copies problem - and lost on rate of
+  change: the primer goes stale within a single session, `send.sh` has changed
+  once since it was written.
+- **NO CYCLE WAS RUN IN THIS PHASE, and that is a deliberate exception to the
+  standing invariant** that a destroy must pass end-to-end at the end of every
+  phase. This phase changed no HCL, no workflow that touches AWS, and no
+  application code; a cycle would have proven nothing it did not already prove on
+  2026-07-26, at the cost of about 45 minutes and one billable deploy/destroy
+  pair. Recorded here rather than left silent, because an invariant skipped
+  quietly is indistinguishable from one forgotten. Phase 13 is a full
+  empty-to-empty verification run and is the next thing due.
+- Validation (all AWS-free, all run in the session sandbox on this patch's tree):
+```bash
+  make docs-check                      # 6 documents, 0 findings
+  node check.mjs docs/architecture.md  # 3 Mermaid blocks, 0 invalid
+  bash -n scripts/send.sh              # plus all three lookup cases exercised
+```
+- Criteria to close: a reader who has never seen the project can run it and
+  explain it from the repository alone. **MET** as far as this side can assert:
+  every command in the three living documents is checked mechanically by
+  `make docs-check`. What it cannot assert is comprehension - the first genuinely
+  new reader is the test, and Phase 13 performs the run "as if by a stranger".
+- Cost: **$0**. Nothing was applied and nothing was destroyed.
+- The Commit column for this row names the session summary, not a hash. A commit
+  cannot contain its own hash, which is why the 11.1 row said `(this patch)` for
+  a day and had to be repaired here - a placeholder with nothing scheduled to
+  replace it. A filename is stable, and because this file is now in the
+  living set, `make docs-check` fails if that summary stops existing.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

@@ -21,7 +21,14 @@ import re
 import subprocess
 import sys
 
-LIVING = ["README.md", "docs/architecture.md", "docs/demo-script.md"]
+LIVING = [
+    "README.md",
+    "docs/architecture.md",
+    "docs/demo-script.md",
+    "docs/phase-gates.md",
+    "docs/session-primer.md",
+    "docs/transfer-buffer.md",
+]
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
@@ -47,7 +54,13 @@ def main() -> int:
     for doc in LIVING:
         text = (ROOT / doc).read_text()
 
-        for target in re.findall(r"\bmake ([a-z][a-z0-9-]+)", text):
+        # Only inside a code span or a fenced block. In prose, "make that
+        # possible" and "make target" are English, and a checker that reports
+        # them teaches people to ignore it.
+        code = "\n".join(
+            re.findall(r"`([^`\n]+)`", text) + re.findall(r"```[a-z]*\n(.*?)```", text, re.S)
+        )
+        for target in re.findall(r"\bmake ([a-z][a-z0-9-]+)", code):
             if target not in targets:
                 findings.append(f"{doc}: `make {target}` is not a Makefile target")
 

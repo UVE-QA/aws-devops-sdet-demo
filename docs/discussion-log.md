@@ -24,6 +24,15 @@ no manual AWS operation — deploy-stage #21, promote-prod #4 behind a reviewer,
 destroy prod #12 behind a reviewer, destroy stage #13. The environment panels
 were WATCHED going no observation → up → unknown → destroyed. Every defect the
 cycle found was in the browser half; nothing on the AWS side failed.**
+**Phase 12 is CLOSED (2026-07-27), at $0 and without touching AWS: the
+repository has a README for the first time in its history, an architecture
+document, and a demo script; the two known-stale places are corrected; the
+control-layer tooling is in git (ADR-0028); and `make docs-check` now checks the
+six living documents against the repository in CI. No cycle was run — a
+deliberate exception to the end-of-phase destroy invariant, recorded in
+`docs/phase-gates.md` rather than left silent, because the phase changed no
+HCL, no AWS-touching workflow and no application code. Phase 13, the
+empty-to-empty verification run, is next.**
 
 The full cycle now runs end-to-end through GitHub Actions with zero manual AWS
 operations for BOTH environments:
@@ -50,6 +59,37 @@ Stage infrastructure is FULLY DESTROYED in AWS — zero billable resources.
 Nothing is billing except the near-zero state bucket. The OIDC provider + deploy
 role from `infra/bootstrap-oidc` are still present (IAM, free) because a stage
 teardown does not touch that state level.
+
+### Phase 12 (2026-07-27) — the documents, and what running them found
+
+The phase was planned as "rewrite the stale README". One command changed its
+shape: `git log --all -- README.md` came back empty. There was no stale README;
+Phase 8 had deliberately declined to commit a false one, so this was a blank
+page rather than an edit.
+
+Three things were decided rather than assumed. The architecture diagram is drawn
+twice — here in Mermaid and in `site/index.html` — and the document says so, and
+says which artifact wins: neither picture, but the directories under `infra/`. No
+cycle was run, because the phase changed no HCL, no AWS-touching workflow and no
+application code; the exception to the standing invariant is written into the
+cursor rather than left silent. And ADR-0028 finally settled a question the
+transfer buffer's own README had left open for one, moving `send.sh` into git
+and fixing the bare-name lookup that had been delivering the stale primer copy.
+
+What running things found, none of it by review: the Mermaid blocks were parsed
+by mermaid's own parser and the parser was then made to fail twice on purpose;
+`send.sh`'s new lookup passed its third case only through a `set -e` exemption
+and was rewritten as an explicit `if`; and the new `make docs-check` caught a
+false claim in `docs/phase-gates.md` that had been sitting in the cursor since
+Phase 6 — the assert-seed script named by a path that exists only inside the
+image — then caught the same mistake again in the paragraph written to describe
+the catch. The gate was seen red six times before it shipped, once for its own
+list of documents going missing.
+
+The recorded prediction for this phase is that the first genuinely new reader
+finds something true but unusable in the README — an instruction that assumes
+context the writer had. `docs-check` cannot see that class of defect: every
+command exists, and existing is not the same as being enough.
 
 ### Phase 11.1c validation (2026-07-26) — what a real cycle did to the page
 
