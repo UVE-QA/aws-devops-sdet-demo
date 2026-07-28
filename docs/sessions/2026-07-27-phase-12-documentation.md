@@ -121,13 +121,35 @@ defect at all: every command in these documents exists, and existing is not the
 same as being enough. Phase 13 performs the run "as if by a stranger", which is
 the closest thing available to a test of it.
 
+## What the delivery showed
+
+The patch was applied with `git am` onto a clean tree, then validated on the
+devbox before anything was pushed, then observed in CI. In that order, because
+each stage can contradict the one before it:
+
+```text
+git am          five commits, clean, onto 0c6c93e -> 683c655
+make docs-check devbox: 6 documents, 0 findings. First run of this gate on a
+                machine that is not the session sandbox.
+make tf-validate devbox: seven root levels OK. Run because the Makefile was
+                edited, not because Terraform was.
+ci #68          30317752288, green first attempt, 1m53s, both jobs, including
+                the new docs-check step. Green there has one meaning only: the
+                target has no exit-0 path other than six documents present with
+                zero findings.
+```
+
+Nothing contradicted anything, which is worth stating plainly rather than
+implying by silence — three of the last four sessions had at least one stage
+disagree with the previous one.
+
 ## State at the end
 
 ```text
 AWS            untouched. Five permanent levels, both environments destroyed.
-docs-check     6 documents, 0 findings
+docs-check     6 documents, 0 findings   (sandbox, devbox, and CI)
 mermaid        3 blocks, 0 invalid
-git            four commits on top of 0c6c93e
+git            main at 683c655, plus this closing commit
 ```
 
 `docs/session-primer.md` WAS edited this session (the bare-name trap is now

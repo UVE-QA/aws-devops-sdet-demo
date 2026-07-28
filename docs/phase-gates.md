@@ -795,12 +795,28 @@ were the same shape — a page saying something it was not in a position to say:
   pair. Recorded here rather than left silent, because an invariant skipped
   quietly is indistinguishable from one forgotten. Phase 13 is a full
   empty-to-empty verification run and is the next thing due.
-- Validation (all AWS-free, all run in the session sandbox on this patch's tree):
+- Validation (all AWS-free). Written in the session sandbox, then RUN on the
+  devbox and in CI, in that order, because the sandbox is a proxy for both:
 ```bash
-  make docs-check                      # 6 documents, 0 findings
-  node check.mjs docs/architecture.md  # 3 Mermaid blocks, 0 invalid
+  make docs-check                      # 6 documents, 0 findings   sandbox + devbox
+  make tf-validate                     # 7 root levels OK          devbox
+  node check.mjs docs/architecture.md  # 3 Mermaid blocks, 0 invalid   sandbox
   bash -n scripts/send.sh              # plus all three lookup cases exercised
 ```
+- **CI observed, not assumed: `ci` #68 (30317752288) green on the first attempt,
+  1m53s, at 683c655** — both jobs, including the new "The living documents
+  describe things that exist" step in `terraform-checks`. A green
+  `make docs-check` has exactly one meaning: the target exits 0 by no other path
+  than all six living documents being present with zero findings. A missing one
+  refuses out loud rather than passing quietly, which is the property that was
+  tested by deleting one.
+- `make tf-validate` was re-run on the devbox after this patch because the
+  `Makefile` was edited; seven root levels, all OK. The edit added a target, and
+  a target added next to a working one is exactly where a stray tab or a broken
+  `.PHONY` line hides.
+- Not read this session, therefore not claimed: `ci` #68 carries 2 annotation
+  warnings. Earlier notes describe three Node 20 deprecation annotations on every
+  run; whether these are those two, or two of those three, was not checked.
 - Criteria to close: a reader who has never seen the project can run it and
   explain it from the repository alone. **MET** as far as this side can assert:
   every command in the three living documents is checked mechanically by
