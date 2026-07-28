@@ -1,7 +1,9 @@
 name: deploy-stage
 
 # Deploys the stage environment to the demo AWS account via GitHub OIDC.
-# No static AWS keys. AWS values come from repo Variables (vars.*), not Secrets.
+# No static AWS keys. AWS identifiers (region, account id, role ARN, owner) come
+# from environment Variables (vars.*); the budget email is a Secret, because a
+# variable is not masked in the logs of a public repository.
 # Image flow: build+push by commit SHA, then `terraform apply` with
 # TF_VAR_app_image=<ECR_URL>:<SHA> so the service runs exactly that revision
 # (no separate update-service). One-off migrate/seed/db-assert reuse the SAME
@@ -25,7 +27,11 @@ jobs:
     env:
       AWS_REGION: ${{ vars.AWS_REGION }}
       TF_VAR_demo_account_id: ${{ vars.TF_VAR_demo_account_id }}
-      TF_VAR_budget_email: ${{ vars.TF_VAR_budget_email }}
+      # A SECRET, not a variable (Phase 15). GitHub does not mask variables, so
+      # this address was printed in the step env dump of a PUBLIC repository's
+      # logs. It is scoped to the `stage` and `prod` environments, exactly as the
+      # variable it replaces was.
+      TF_VAR_budget_email: ${{ secrets.TF_VAR_BUDGET_EMAIL }}
       TF_VAR_owner: ${{ vars.TF_VAR_owner }}
       # One value, read by the Playwright regression that WRITES it through the
       # browser and by the ECS task that then LOOKS IT UP in RDS. Defined at job

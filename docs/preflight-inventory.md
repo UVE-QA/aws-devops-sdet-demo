@@ -44,7 +44,12 @@ Status: Phase 0 and Phase 1 completed and confirmed.
 - GitHub Actions: enabled
 - GitHub environments: stage, prod. Variables are ENVIRONMENT-scoped and are not
   inherited: prod carries its own AWS_REGION, OIDC_ROLE_ARN (the prod role),
-  TF_VAR_DEMO_ACCOUNT_ID, TF_VAR_BUDGET_EMAIL, TF_VAR_OWNER.
+  TF_VAR_DEMO_ACCOUNT_ID, TF_VAR_OWNER.
+- **TF_VAR_BUDGET_EMAIL is an environment SECRET, not a variable** (Phase 15,
+  2026-07-28), and it is environment-scoped in the same way: it must exist in
+  BOTH `stage` and `prod`, or `terraform plan` fails with "No value for required
+  variable" — loudly, which is the intended failure. A variable is not masked,
+  so as a variable it was printed in the logs of a public repository.
   prod additionally has 2 protection rules — required reviewers (UVE-QA) and
   `main` as the only deployment branch, administrator bypass disabled. That is
   UI state; git cannot assert it.

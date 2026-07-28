@@ -98,6 +98,10 @@ track 14-19), shaped by ADR-0017. This table tracks only what is done.
   - 6 vars live as ENVIRONMENT variables under environment `stage` (not repo-wide):
     AWS_REGION, OIDC_ROLE_ARN, TF_STATE_BUCKET, TF_VAR_BUDGET_EMAIL,
     TF_VAR_DEMO_ACCOUNT_ID, TF_VAR_OWNER. No secrets (OIDC).
+    **Amended in Phase 15 (2026-07-28): TF_VAR_BUDGET_EMAIL is now an
+    environment SECRET, in both `stage` and `prod`. Still no AWS credential of
+    any kind — the one secret this repository has is an email address, moved
+    there so Actions masks it in public logs.**
   - Visible only to jobs with `environment:` set. deploy-stage (environment: stage)
     and destroy (environment: ${{ inputs.environment }}) see them; ci.yml has no
     environment and needs no AWS, so that is fine. A future AWS job WITHOUT an

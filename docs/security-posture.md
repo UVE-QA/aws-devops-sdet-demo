@@ -71,19 +71,39 @@ is the reviewer-gated GitHub Environment (ADR-0021).
   (`infra/bootstrap/main.tf`), so the bucket name being public is inert without
   credentials.
 - No static AWS key exists anywhere. The `vars.*` values are region, account id,
-  owner and a budget email — identifiers, not credentials. Publishing the account
+  owner and role ARNs — identifiers, not credentials. Publishing the account
   id was a decision, not an accident (ADR-0023).
 - gitleaks over the full history, all refs: 81 commits, no findings
   (2026-07-26). The scan was verified capable of failing by running it against a
   throwaway repository containing a fake key.
+- **Since Phase 15 (2026-07-28) that scan is a gate, not a memory.** `ci.yml`
+  runs `make secret-scan` on every push and pull request, over the full history
+  and every ref, with a pinned and checksum-verified gitleaks. The target refuses
+  to run at all if the scanner is missing or the clone is shallow, because both
+  produce the clean-looking empty result this project has been caught by before:
+
+```bash
+  make secret-scan     # needs gitleaks on PATH and a full clone
+```
+
+- Dependabot watches all five dependency manifests (`.github/dependabot.yml`).
+  It configures VERSION updates only; Dependabot **alerts** are a repository UI
+  setting, in the same category as prod's protection rules — real, and invisible
+  to every check in this repository.
 
 ## What is genuinely left, stated rather than hidden
 
 **Actions logs on a public repository are world-readable.** Anything that
-reaches the output of `terraform plan` or `apply` is public. No credential does,
-but `TF_VAR_budget_email` is in the job environment and could surface in plan
-output. It is an email address, not a key. It should stay a conscious choice —
-either accept it, or move that value to a Secret so Actions masks it.
+reaches the output of `terraform plan` or `apply` is public. No credential does.
+
+`TF_VAR_budget_email` used to be the exception, and it was not hypothetical: a
+GitHub *variable* is not masked, so the address appeared in the step environment
+dump of every stage and prod run. **Fixed in Phase 15 (2026-07-28)**: it is an
+environment *secret* in both `stage` and `prod`, referenced as
+`${{ secrets.TF_VAR_BUDGET_EMAIL }}` by `deploy-stage`, `promote-prod` and
+`destroy`, and Actions masks it. The remaining exposure is the shape of the
+value, not the value: a masked field still tells a reader that a budget email
+exists.
 
 **The fork-PR approval setting is UI state, and git cannot assert it.** Same
 category as prod's environment protection rules and the NS record in the parent
