@@ -150,5 +150,12 @@ and cannot protect a prefix, so there is no configuration that removes this case
   costs one failed run had been wrong five times running, and this is the sixth
   where it was right, and the first in a while where the failure was on the AWS
   side at all.
+- **The rollback trigger has to exclude everything after a green smoke.** Stated
+  here because the obvious phrasing - "the apply succeeded and something later
+  failed" - silently includes the release bookkeeping, so a failed git tag would
+  roll back a release that had just passed. The live run on 2026-07-28 hit that
+  case on its first attempt and was saved only by having nothing to roll back
+  to. The condition is therefore "apply succeeded AND the smoke did not pass",
+  with a skipped smoke counting as not passed.
 - Deleting the parameter is enough to disarm rollback, and would do so
   silently on the next failure — the refusal in §5 is what makes that audible.

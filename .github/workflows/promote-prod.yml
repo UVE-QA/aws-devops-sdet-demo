@@ -244,6 +244,12 @@ jobs:
           digest="${IMAGE_REF##*@}"
           name="release-$(date -u +%Y%m%d-%H%M)-${PROMOTED_SHA:0:7}"
 
+          # An annotated tag needs a committer, and a runner has none: without
+          # this git exits 128 with "empty ident name", three seconds into a
+          # step that has already published the ECR half of the release.
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
           # Adding a NEW tag to an existing manifest is permitted under an
           # immutable registry; repointing an existing tag is what is not.
           # Two calls rather than one joined query: a manifest is JSON and can
@@ -273,10 +279,17 @@ jobs:
 
       # ----------------------------------------------------------------------
       # Rollback (ADR-0029). Fires when prod was actually changed and then
-      # failed to prove itself healthy: the apply succeeded and something after
-      # it did not - the stability wait, the HTTPS wait, provisioning, or the
-      # smoke. Narrowing this to the smoke alone would leave the most obvious
-      # broken release, the one that never answers at all, with no rollback.
+      # failed to prove itself healthy: the apply succeeded and the smoke did
+      # NOT pass. A skipped smoke counts - if the stability wait or the HTTPS
+      # wait failed, the release never got far enough to be tested, and that is
+      # the most obvious broken release there is.
+      #
+      # The second half of the condition is not decoration. Without it the
+      # trigger is "something after the apply failed", which includes the
+      # release bookkeeping that runs AFTER a green smoke - so a failed git tag
+      # would roll back a prod that had just proved itself healthy. Found by a
+      # live run on 2026-07-28, where exactly that happened and only an empty
+      # pointer stopped it.
       #
       # Nothing below can turn this run green, and that is the intent: a
       # promotion whose release failed is a failed promotion even when the
@@ -284,7 +297,7 @@ jobs:
       # ----------------------------------------------------------------------
       - name: Resolve the rollback target
         id: rollback
-        if: failure() && steps.apply.outcome == 'success'
+        if: failure() && steps.apply.outcome == 'success' && steps.smoke.outcome != 'success'
         env:
           ECR_REPOSITORY: aws-devops-sdet-demo-app
           ROLLBACK_DIGEST: ${{ steps.pointer.outputs.digest }}
