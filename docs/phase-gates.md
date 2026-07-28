@@ -76,10 +76,13 @@ track 14-19), shaped by ADR-0017. This table tracks only what is done.
   ecr, alb, ecs, rds, iam_github_oidc, observability, budgets); stage filled,
   prod scaffold; outputs without secrets; fmt + validate clean; lockfile
   committed. NO terraform apply/destroy. NO real backend init.
-- Validation:
+- Validation (as run in Phase 4; superseded — see Phase 9.0. Kept for the record,
+  with the current command beside it, because a stale copyable command is what
+  gets copied):
 ```bash
   terraform fmt -recursive -check
-  cd infra/envs/stage && terraform init -backend=false && terraform validate
+  cd infra/envs/stage && terraform init -backend=false && terraform validate   # DO NOT USE
+  make tf-validate                                                             # use this
 ```
 
 ### Phase 5 — GitHub Actions + OIDC

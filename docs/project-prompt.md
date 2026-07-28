@@ -751,114 +751,85 @@ Do not use React/Vite in v0. Use simple static HTML served by FastAPI.
 
 # 7. Repository Structure
 
-Create this structure after Phase 1 is confirmed:
+**Historical note (Phase 12).** What follows was written in Phase 0 as an
+instruction to create a structure. It is now a DESCRIPTION of one that exists,
+corrected to what `git ls-files` actually shows. The original said one bootstrap
+level; there are seven root Terraform levels, and three workflows became five.
+Where this file and the repository disagree, the repository wins.
 
 ```text
 aws-devops-sdet-demo/
-  app/
-    Dockerfile
+  app/                     one container: serves web, runs migrations and seed
+    Dockerfile             python:3.12-slim, psycopg2-binary, non-root
     requirements.txt
     alembic.ini
-    alembic/
-      env.py
-      script.py.mako
-      versions/
-    src/
-      main.py
-      db.py
-      models.py
-      static/
-        index.html
-    scripts/
-      migrate.sh
-      seed.py
+    alembic/versions/      0001 create demo_items, 0002 nullable description
+    src/                   main.py, db.py, models.py, static/index.html
+    scripts/               migrate.sh, seed.py, assert_seed.py,
+                           assert_ui_write.py
 
-  tests/
+  tests/                   WHERE A SPEC LIVES DECIDES WHERE IT RUNS (ADR-0025)
+    api/                   pytest + httpx contract suite, DESTRUCTIVE
+    db/                    assert_seed.py, the standalone seed assertion
     playwright/
-      package.json
-      package-lock.json
-      playwright.config.ts
-      tests/
-        smoke.spec.ts
-    db/
-      requirements.txt
-      assert_seed.py
+      playwright.config.ts projects bound to the two directories below
+      tests/smoke/         read-only - the ONLY suite prod runs
+      tests/regression/    destructive - stage and local only
+      scripts/assert-spec-coverage.sh   a spec in neither directory fails here
 
   infra/
-    bootstrap/
-      main.tf
-      variables.tf
-      outputs.tf
-      README.md
-    modules/
-      network/
-        main.tf
-        variables.tf
-        outputs.tf
-      ecr/
-        main.tf
-        variables.tf
-        outputs.tf
-      alb/
-        main.tf
-        variables.tf
-        outputs.tf
-      ecs/
-        main.tf
-        variables.tf
-        outputs.tf
-      rds/
-        main.tf
-        variables.tf
-        outputs.tf
-      iam_github_oidc/
-        main.tf
-        variables.tf
-        outputs.tf
-      observability/
-        main.tf
-        variables.tf
-        outputs.tf
-      budgets/
-        main.tf
-        variables.tf
-        outputs.tf
-    envs/
-      stage/
-        backend.tf
-        main.tf
-        variables.tf
-        outputs.tf
-        terraform.tfvars.example
-      prod/
-        backend.tf
-        main.tf
-        variables.tf
-        outputs.tf
-        terraform.tfvars.example
+    bootstrap/             S3 state bucket. Local state, applied by hand.
+    bootstrap-oidc/        OIDC provider + ONE DEPLOY ROLE PER ENVIRONMENT
+                           (ADR-0015, ADR-0021)
+    shared-ecr/            the registry prod promotes from (ADR-0018)
+    dns/                   delegated zone + ALB certificate (ADR-0024)
+    public-site/           the dashboard: S3 + CloudFront + OAC + the
+                           us-east-1 certificate + a narrow publish role
+                           (ADR-0027)
+    envs/stage/            per cycle
+    envs/prod/             per cycle, behind an approval gate
+    modules/               network, ecr, alb, ecs, rds, observability, budgets,
+                           iam_github_oidc_provider, iam_github_deploy_role
 
-  .github/
-    workflows/
-      ci.yml
-      deploy-stage.yml
-      destroy.yml
+  scripts/                 ecs-run-task.sh, observe-environment.sh,
+                           publish-status.sh, publish-site.sh, send.sh
+
+  site/index.html          the dashboard itself: one file, no build step
+
+  .github/workflows/       ci.yml, deploy-stage.yml, promote-prod.yml,
+                           destroy.yml, publish-site.yml
+
+  .claude/skills/          nine skills + a registry (ADR-0013)
+  CLAUDE.md                what a Claude Code session on the devbox reads first
 
   docs/
-    architecture.md
-    lightsail-devbox.md
-    demo-script.md
-    cost-control.md
-    next-phases.md
-    interview-talking-points.md
-    phase-gates.md
-    preflight-inventory.md
+    README-level entry points:
+      ../README.md         what it is, how to run it, what it proves
+      architecture.md      the levels, the request path, the trade-offs
+      demo-script.md       the ten-minute walkthrough
+    state and process:
+      phase-gates.md       the cursor - the only file that claims to know
+                           where the project stands
+      next-phases.md       the plan: MVP track 9-13, polish track 14-19
+      discussion-log.md    the narrative
+      session-primer.md    how a session starts; attached to a new chat
+      transfer-buffer.md   how a chat's work reaches git (ADR-0028)
+      sessions/INDEX.md    one row per session
+    reference:
+      decisions/           the ADRs
+      preflight-inventory.md, security-posture.md, skills-structure.md,
+      project-instructions-pointer.md, project-prompt.md (this file)
 
-  docker-compose.yml
-  Makefile
+  docker-compose.yml       postgres 16 (not published) + app:8000
+  Makefile                 the local and CI targets
   README.md
   .gitignore
   .env.example
 ```
+
+Not present, deliberately: `docs/cost-control.md`,
+`docs/interview-talking-points.md` and `docs/lightsail-devbox.md` are Phase 18.
+This file does not list them as if they existed.
 
 ---
 
@@ -1255,16 +1226,35 @@ terraform {
 
 Bootstrap order of the FIRST apply of real infrastructure:
 
+**Corrected in Phase 12.** The paragraph this replaces said the first apply of
+`infra/envs/stage` creates the OIDC provider and the deploy role. That has been
+false since **ADR-0015**: a destroy running under a role whose permissions live
+in the same state deletes those permissions mid-run. The role moved out into its
+own permanent level, and **ADR-0021** then split the account-wide provider from
+the per-environment roles, because AWS allows exactly one OIDC provider per
+issuer per account and a copied module would have died on `EntityAlreadyExists`.
+
+The real order on a fresh account - all of it LOCAL, under
+`AWS_PROFILE=demo-admin`, and all of it permanent:
+
 ```text
-- The iam_github_oidc role is created by Terraform, but GitHub Actions
-  needs that role to authenticate. This is a chicken-and-egg problem.
-- Therefore the FIRST terraform apply of infra/envs/stage MUST be run
-  LOCALLY under AWS_PROFILE=demo-admin, so the OIDC provider and deploy
-  role get created.
-- Only AFTER that can deploy-stage.yml authenticate via OIDC and run
-  subsequent applies.
-- Document this explicitly in README and docs/phase-gates.md.
+1. infra/bootstrap        the S3 state bucket. It cannot be stored in state it
+                          does not yet hold, so this level keeps local state.
+2. infra/bootstrap-oidc   the OIDC provider + one deploy role per environment.
+                          Until this exists, no workflow can authenticate.
+3. infra/shared-ecr       the registry both environments use.
+4. infra/dns              hosted zone + the ALB certificate.
+5. one NS record by hand in the parent zone, in org-management. Untracked by
+   git, and the first thing to check if the name stops resolving.
+6. infra/public-site      the dashboard. Reads the hosted zone by name, so its
+                          plan fails outright if step 4 is missing.
+7. GitHub environment variables, prod's protection rules, and the four
+   repository variables for the dashboard.
 ```
+
+Only after 1-2 can `deploy-stage.yml` authenticate at all. After that the
+environments are applied BY ACTIONS and never by hand; `docs/preflight-inventory.md`
+is the authoritative copy of this list.
 
 Use Terraform with AWS provider.
 
@@ -1612,9 +1602,15 @@ Jobs:
 ```
 
 Do not require AWS credentials for CI. CI validates everything locally
-(Docker Compose) and never touches AWS. Terraform validate must run with
-the S3 backend disabled or via `terraform init -backend=false` so CI needs
-no AWS credentials.
+(Docker Compose) and never touches AWS.
+
+**Corrected in Phase 12.** The sentence that stood here said to run
+`terraform init -backend=false` so CI needs no AWS credentials. That is not what
+the flag does: in a directory already initialized for real it reuses the cached
+S3 configuration in `.terraform/` and reads remote state. It passed in CI only
+because a fresh checkout has no `.terraform/`, and it was false on the devbox.
+Use `make tf-validate`, which isolates `TF_DATA_DIR` per level and discovers
+every root level rather than validating one.
 
 ## 11.2 `.github/workflows/deploy-stage.yml`
 
@@ -2151,7 +2147,9 @@ The generated repository must satisfy:
 - make test-smoke runs Playwright smoke test
 - Docker image builds (psycopg2-binary, no build failure)
 - Terraform fmt passes
-- Terraform validate passes for stage (with -backend=false, no AWS creds)
+- Terraform validate passes for EVERY root level (`make tf-validate`, isolated
+  TF_DATA_DIR, no AWS creds). The original line said "for stage, with
+  -backend=false"; see the correction in 11.1 and Phase 9.0.
 - infra/bootstrap creates the S3 state bucket
 - stage and prod use the S3 backend (backend.tf present)
 - RDS password is generated and stored in Secrets Manager, never in repo/tfvars/outputs
