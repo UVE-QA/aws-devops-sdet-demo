@@ -3,7 +3,7 @@
 
 .PHONY: local-up local-down migrate seed test-smoke test-regression test-api \
         test-db test-ui-db test-spec-coverage docker-build tf-fmt tf-validate \
-        docs-check
+        docs-check secret-scan
 
 # Bring up postgres + app (build app image if needed), detached.
 local-up:
@@ -77,6 +77,29 @@ test-db:
 # what was true when it was written, and a rename must not turn it red.
 docs-check:
 	python3 scripts/check-docs-references.py
+
+# Secret scan over the FULL history, EVERY ref. One definition, two hosts: CI
+# installs a pinned, checksum-verified gitleaks and then calls this target, so
+# what runs in Actions is what runs on the devbox.
+#
+# Two refusals rather than one scan:
+#
+#   gitleaks missing    a scanner that is not installed reports nothing, and
+#                       nothing is what a clean repository also reports.
+#   shallow clone       the same shape. `actions/checkout` defaults to depth 1;
+#                       a scan of one commit is green on a history full of keys.
+#
+# --log-opts="--all" because the default scans HEAD's branch only, and the
+# 2026-07-26 sweep that this replaces covered every ref.
+# --redact because the gate must not publish, in the logs of a public
+# repository, the secret it just found.
+GITLEAKS_REPORT ?= gitleaks-report.json
+secret-scan:
+	@command -v gitleaks >/dev/null 2>&1 || { echo "secret-scan: gitleaks is not on PATH. Refusing to pass without scanning anything."; exit 1; }
+	@[ "$$(git rev-parse --is-shallow-repository)" = "false" ] || { echo "secret-scan: this clone is SHALLOW, so a scan proves nothing about the history. Refusing."; exit 1; }
+	@echo "secret-scan: $$(gitleaks version), $$(git rev-list --all --count) commits across every ref"
+	gitleaks git . --log-opts="--all" --redact --no-banner -v \
+	  --report-format json --report-path $(GITLEAKS_REPORT)
 
 # Build the app image only.
 docker-build:

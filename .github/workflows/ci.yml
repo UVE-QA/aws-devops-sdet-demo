@@ -1,7 +1,8 @@
 name: ci
 
 # Deterministic, AWS-free CI: brings up the local Docker Compose stack and
-# runs the exact same make targets used on the devbox, then Terraform fmt/validate.
+# runs the exact same make targets used on the devbox, then Terraform fmt/validate,
+# then the secret scan.
 # No AWS credentials are used or required anywhere in this workflow.
 
 on:
@@ -112,3 +113,50 @@ jobs:
         # they name is checked against the repository, and the check refuses to
         # pass if the list of documents itself has gone missing.
         run: make docs-check
+
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (full history, every ref)
+        # fetch-depth: 0 is the whole point. The default is a depth-1 checkout,
+        # and scanning one commit reports no leaks on a history full of them -
+        # an empty result that is indistinguishable from a clean one. The
+        # `make secret-scan` target refuses on a shallow clone for that reason,
+        # so if this line is ever removed the job fails rather than passes.
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Install gitleaks (pinned version, checksum verified)
+        # Deliberately NOT gitleaks/gitleaks-action: it requires a
+        # GITLEAKS_LICENSE for organization-owned repositories, and this is the
+        # supply-chain phase - a scanner installed by version and verified by
+        # checksum is the practice the phase is meant to demonstrate. The
+        # version is a literal here so Dependabot cannot bump it silently; it
+        # moves when someone changes it and updates the checksum beside it.
+        env:
+          GITLEAKS_VERSION: "8.30.1"
+          GITLEAKS_SHA256: "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"
+        run: |
+          set -euo pipefail
+          tarball="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          curl -fsSL -o "/tmp/${tarball}" \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/${tarball}"
+          echo "${GITLEAKS_SHA256}  /tmp/${tarball}" | sha256sum -c -
+          tar -xzf "/tmp/${tarball}" -C /tmp gitleaks
+          sudo install -m 0755 /tmp/gitleaks /usr/local/bin/gitleaks
+
+      - name: Secret scan, full history, every ref
+        # The same target the devbox runs. It prints the commit count it is
+        # about to cover, so the log says what was scanned rather than only
+        # that something was.
+        run: make secret-scan
+
+      - name: Upload gitleaks report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitleaks-report
+          path: gitleaks-report.json
+          if-no-files-found: ignore
+          retention-days: 7

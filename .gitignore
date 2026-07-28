@@ -40,3 +40,6 @@ test-results/
 # OS / editor
 .DS_Store
 *.swp
+
+# gitleaks report (written by `make secret-scan`, uploaded by CI)
+gitleaks-report.json
