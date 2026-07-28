@@ -7,8 +7,10 @@ ten minutes contain no waiting.
 **The whole trick is that the cycle starts before the call, not during it.**
 A cycle takes about fifteen minutes to a live prod, most of it RDS creating.
 Measured on 2026-07-26: `deploy-stage` 16m05s, `promote-prod` 14m17s,
-`destroy prod` 8m39s, `destroy stage` 8m31s. Nobody will watch that, and it
-proves nothing that the run log does not prove afterwards.
+`destroy prod` 8m39s, `destroy stage` 8m31s. Repeated 2026-07-28:
+`promote-prod` 14m08s, `destroy prod` 10m06s, `destroy stage` 8m34s. Nobody
+will watch that, and it proves nothing that the run log does not prove
+afterwards.
 
 ## Before you start — T minus 40 minutes
 
@@ -126,7 +128,14 @@ Both environment panels on the dashboard at once.
 
 ### 8:30 — destroy (1 min)
 
-Dispatch `destroy`, environment `prod`, confirm `DESTROY`. Do not wait for it.
+Dispatch `destroy`, environment `prod`, confirm `DESTROY`. It stops at
+`waiting` and asks for the same approval the deploy did — expect that, or it
+reads live as a hung workflow. Approve it, then do not wait for it.
+
+> The protection rule sits on the `prod` environment, not on the workflow, so
+> tearing prod down is exactly as gated as deploying to it. Destroying `stage`
+> does not pause at all. That asymmetry is the point: stage is for iteration,
+> prod is guarded in both directions.
 
 > The ALB is destroyed first, on purpose. Nothing in the configuration links it
 > to the internet gateway, so Terraform destroys them concurrently and AWS
