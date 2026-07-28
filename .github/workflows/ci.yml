@@ -105,3 +105,10 @@ jobs:
 
       - name: Terraform validate (every root level, no backend)
         run: make tf-validate
+
+      - name: The living documents describe things that exist
+        # README, architecture and demo-script are the documents a reader is
+        # expected to ACT on. Every make target, repo path, route and workflow
+        # they name is checked against the repository, and the check refuses to
+        # pass if the list of documents itself has gone missing.
+        run: make docs-check

@@ -2,7 +2,8 @@
 # All container commands run on the Lightsail devbox via docker compose.
 
 .PHONY: local-up local-down migrate seed test-smoke test-regression test-api \
-        test-db test-ui-db test-spec-coverage docker-build tf-fmt tf-validate
+        test-db test-ui-db test-spec-coverage docker-build tf-fmt tf-validate \
+        docs-check
 
 # Bring up postgres + app (build app image if needed), detached.
 local-up:
@@ -70,6 +71,12 @@ test-api:
 # Reuses the app image (has sqlalchemy + psycopg2-binary) and mounts the test.
 test-db:
 	docker compose run --rm -v "$(PWD)/tests/db:/tests-db" app python /tests-db/assert_seed.py
+
+# Every make target, repo path, route and workflow named in the LIVING documents
+# must exist. Historical documents are not checked: a session summary records
+# what was true when it was written, and a rename must not turn it red.
+docs-check:
+	python3 scripts/check-docs-references.py
 
 # Build the app image only.
 docker-build:
