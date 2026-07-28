@@ -1,0 +1,79 @@
+# Dependabot version updates.
+#
+# Scope: this file configures VERSION updates only. Dependabot ALERTS and
+# security updates are repository UI settings, in the same uncheckable category
+# as prod's environment protection rules and the NS record in the parent zone -
+# git cannot assert that they are on.
+#
+# Five ecosystems, because the repository has five dependency manifests and a
+# gate that watches four of them is a gate with a blind spot:
+#
+#   github-actions   .github/workflows/*.yml
+#   pip              app/requirements.txt        the application image
+#   pip              tests/api/requirements.txt  the HTTP contract suite
+#   pip              tests/db/requirements.txt   the database assertion
+#   npm              tests/playwright/           Playwright + its lockfile
+#
+# Updates are GROUPED per ecosystem: five separate weekly streams of one-line
+# bumps is how a review habit dies. One PR per ecosystem per week is readable.
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    commit-message:
+      prefix: "ci(deps)"
+    groups:
+      actions:
+        patterns: ["*"]
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: "pip"
+    directory: "/app"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    commit-message:
+      prefix: "build(deps)"
+    groups:
+      app:
+        patterns: ["*"]
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: "pip"
+    directory: "/tests/api"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    commit-message:
+      prefix: "build(deps)"
+    groups:
+      tests-api:
+        patterns: ["*"]
+    open-pull-requests-limit: 3
+
+  - package-ecosystem: "pip"
+    directory: "/tests/db"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    commit-message:
+      prefix: "build(deps)"
+    groups:
+      tests-db:
+        patterns: ["*"]
+    open-pull-requests-limit: 3
+
+  - package-ecosystem: "npm"
+    directory: "/tests/playwright"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    commit-message:
+      prefix: "build(deps)"
+    groups:
+      playwright:
+        patterns: ["*"]
+    open-pull-requests-limit: 3
