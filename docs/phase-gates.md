@@ -23,6 +23,7 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 11.1  | Public dashboard               | ✅ done (11.1a, 11.1b, 11.1c) | f4fb868   |
 | 12    | Minimum viable documentation   | ✅ done     | sessions/2026-07-27 |
 | 13    | MVP verification gate          | ✅ done     | sessions/2026-07-28 |
+| 14    | Release resilience             | ✅ done     | sessions/2026-07-28-phase-14-release-resilience.md |
 
 Phases 9-19 are planned in `docs/next-phases.md` (MVP track 9-13, polish
 track 14-19), shaped by ADR-0017. This table tracks only what is done.
@@ -890,6 +891,57 @@ were the same shape — a page saying something it was not in a position to say:
   against the AWS CLI.
 - The Commit column names the session summary rather than a hash, for the reason
   given under Phase 12.
+
+### Phase 14 — Release resilience
+- Criteria: a failed prod release rolls back automatically, and a release is
+  identified by something that cannot silently change. **MET**, with the phase's
+  own premise corrected first (ADR-0029): "roll back to the previous task
+  definition" is meaningless in an environment destroyed every cycle, because
+  the previous revision is deregistered and cannot start tasks. The target is a
+  digest pointer at a permanent level instead.
+- **Rollback observed firing, not reasoned about.** `promote-prod` #7 promoted a
+  knowingly broken image (container exits immediately); `services-stable` failed
+  after 9m53s, the four steps between it and the rollback were skipped, prod was
+  re-applied with the pointer's digest and the smoke was RE-RUN and passed. The
+  run stayed red, which is the intent — rollback is damage control, not a pass.
+- **Verified against ECS, not against the run that claims it**: after the
+  rollback, `aws-devops-sdet-demo-prod-app:7` carried
+  `@sha256:b9d47c3f...`, the digest the pointer named.
+- **Both no-target refusals were exercised.** The empty-pointer branch fired
+  live on `promote-prod` #6 and printed its message verbatim. The
+  expired-digest branch was run on the devbox against the real registry using a
+  digest that had genuinely just been deleted — and the same check answered
+  `present` for a live digest in the same command, so it is not a check that
+  only ever refuses.
+- Found here and fixed here, neither visible on review:
+```text
+  the rollback trigger was too broad. "apply succeeded and something later
+  failed" includes the release bookkeeping that runs AFTER a green smoke, so a
+  failed git tag would have rolled back a prod that had just passed. #6 hit
+  exactly that and was saved only by having nothing to roll back to.
+
+  SSM refuses any parameter name beginning with "aws", and this project is
+  called aws-devops-sdet-demo. The apply failed with AccessDeniedException
+  "No access to reserved parameter name", which reads like an IAM problem.
+
+  a runner has no committer identity, so `git tag -a` exits 128 with
+  "empty ident name" - after the ECR half of the release was already published.
+```
+- Validation (AWS-free parts in the sandbox, the rest on the devbox):
+```bash
+  terraform fmt -recursive -check    # clean
+  make tf-validate                   # 7 root levels OK
+  make docs-check                    # 6 documents, 0 findings
+```
+- Teardown verified from the devbox under `demo-admin`, `sts` first and every
+  result assigned under `&&`: alb, rds, ecs, nat and eks all empty — and they
+  had all been non-empty twenty minutes earlier from the same commands.
+- Timings measured: `deploy-stage` #23 16m05s, `promote-prod` #6 14m12s,
+  `promote-prod` #7 (failed release + rollback) 15m00s, `destroy prod` #16
+  10m22s, `destroy stage` #17 9m01s.
+- Cost: one stage cycle and one prod cycle, prod up for about 2h40m across two
+  promotions. Everything billable is gone and the absence was verified against
+  the AWS CLI.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

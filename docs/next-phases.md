@@ -430,7 +430,7 @@ Anything found here gets fixed here. **The MVP is done when this run is clean.**
 Ordered by value, not by dependency — these can be reordered freely once the MVP
 is verified.
 
-## Phase 14 — Release resilience
+## Phase 14 — Release resilience  [DONE 2026-07-28]
 
 ```text
 automatic rollback to the previous task definition when the prod smoke fails
@@ -438,6 +438,12 @@ release versioning/tagging, image immutability by digest
 ```
 
 Strong DevOps talking point, cheap once promotion exists.
+
+Delivered with one correction to its own premise: "the previous task definition"
+does not exist in an environment that is destroyed every cycle, so the rollback
+target is a digest pointer at a permanent level instead (ADR-0029). Exercised by
+promoting a knowingly broken image; see the Phase 14 section of
+`docs/phase-gates.md`.
 
 ## Phase 15 — Supply-chain and IaC security gates
 

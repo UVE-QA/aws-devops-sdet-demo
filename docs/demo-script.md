@@ -126,6 +126,22 @@ Both environment panels on the dashboard at once.
 > tested. Rebuilding the same commit would produce a different artifact and turn
 > "tested in stage" from a fact into an assumption.
 
+> A release is not the promotion. It is the moment the prod smoke goes green,
+> and that moment writes three records or none of them: an immutable tag on the
+> digest in the registry, an annotated tag on the commit in git, and a pointer
+> in Parameter Store naming the last image that passed prod.
+
+> When a release fails after prod has already been changed, the workflow
+> re-applies that pointer's digest, waits for the service, and runs the smoke
+> AGAIN before reporting anything — otherwise "rolled back" is a claim nobody
+> checked. The run still fails: rollback is damage control, not a pass. And
+> when there is nothing to roll back to, it refuses out loud and leaves prod
+> standing for inspection rather than pretending it recovered.
+
+If asked whether that has ever fired: yes, on purpose. A knowingly broken image
+was promoted on 2026-07-28, the service never stabilised, prod was rolled back
+and the re-run smoke proved it healthy — while the run stayed red.
+
 ### 8:30 — destroy (1 min)
 
 Dispatch `destroy`, environment `prod`, confirm `DESTROY`. It stops at
