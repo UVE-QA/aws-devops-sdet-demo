@@ -22,6 +22,7 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 11.0  | Publish the repository         | ✅ done (pulled forward) | a1c4402 |
 | 11.1  | Public dashboard               | ✅ done (11.1a, 11.1b, 11.1c) | f4fb868   |
 | 12    | Minimum viable documentation   | ✅ done     | sessions/2026-07-27 |
+| 13    | MVP verification gate          | ✅ done     | sessions/2026-07-28 |
 
 Phases 9-19 are planned in `docs/next-phases.md` (MVP track 9-13, polish
 track 14-19), shaped by ADR-0017. This table tracks only what is done.
@@ -837,6 +838,58 @@ were the same shape — a page saying something it was not in a position to say:
   a day and had to be repaired here - a placeholder with nothing scheduled to
   replace it. A filename is stable, and because this file is now in the
   living set, `make docs-check` fails if that summary stops existing.
+
+### Phase 13 — MVP verification gate
+- Criteria: one uninterrupted run from an empty account to an empty account,
+  performed as if by a stranger, with anything found fixed here. **MET.** All six
+  steps of the `docs/next-phases.md` definition were exercised on 2026-07-28.
+- **Observed, not inferred: `promote-prod` #5 held in `waiting` with an empty
+  step list** until approved, and `pending_deployments` named the `prod`
+  environment and its reviewer. The gate blocks at dispatch; nothing was applied
+  before approval.
+- **The digest was checked against the registry, not against the page that
+  claims it.** `aws ecr describe-images --image-ids imageTag=a9a2709...` returned
+  the same `sha256:0c27a15...` that the prod task definition carried. The
+  dashboard asserts both halves and therefore cannot witness either.
+- **Teardown was verified from the devbox, before and after, under
+  `demo-admin`** — not from Terraform state and not from the destroy job's own
+  check:
+```bash
+  aws sts get-caller-identity --profile demo-admin   # first, always
+  aws elbv2 describe-load-balancers --profile demo-admin --region us-west-2 \
+    --query 'LoadBalancers[].LoadBalancerName' --output text
+  aws rds describe-db-instances --profile demo-admin --region us-west-2 \
+    --query 'DBInstances[].DBInstanceIdentifier' --output text
+  aws ecs list-clusters --profile demo-admin --region us-west-2 \
+    --query 'clusterArns[]' --output text
+  aws ec2 describe-nat-gateways --profile demo-admin --region us-west-2 \
+    --filter Name=state,Values=available --query 'NatGateways[].NatGatewayId' --output text
+  aws eks list-clusters --profile demo-admin --region us-west-2 --query 'clusters[]' --output text
+```
+  Run once with stage still up, it showed three stage resources and zero prod
+  resources — which is what made the prod teardown a fact. Run again after
+  `destroy stage`, all five were empty. An empty result is only evidence when a
+  non-empty one was seen from the same command minutes earlier.
+- Measured: `promote-prod` 14m08s, `destroy prod` 10m06s, `destroy stage`
+  8m34s, appended alongside the 2026-07-26 figures in `docs/demo-script.md`
+  rather than replacing them.
+- **Found here and fixed here: `destroy` on prod also stops at the approval
+  gate.** The rule sits on the environment, not the workflow, so a teardown is as
+  gated as a deploy; `destroy` on stage does not pause. The demo script had told
+  the presenter not to wait for it (da22d7c).
+- **Found here, recorded, NOT fixed: the UP badge is a snapshot in the present
+  tense.** stage read `UP` for 55 minutes after its last observation. The defect
+  is one-directional — `DESTROYED` cannot go stale, because nothing raises an
+  environment on its own — and the follow-up is in the session summary.
+- Self-approval is permitted (the reviewer is the repository owner and the
+  approval succeeded). Inferred from behaviour, not read from the GitHub UI, and
+  written into the demo script as a thing to say rather than a thing to be caught
+  by.
+- Cost: one prod deploy/destroy pair and one stage destroy. prod was public for
+  about 23 minutes. Everything billable is gone and the absence was verified
+  against the AWS CLI.
+- The Commit column names the session summary rather than a hash, for the reason
+  given under Phase 12.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,
