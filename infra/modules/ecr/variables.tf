@@ -21,3 +21,14 @@ variable "force_delete" {
   type        = bool
   default     = false
 }
+
+variable "image_tag_mutability" {
+  description = "MUTABLE or IMMUTABLE. Immutable by default (ADR-0029): a tag must keep naming the same digest, or \"the image stage tested\" stops being a fact. No exclusion is configured because nothing in this repository reads a floating tag."
+  type        = string
+  default     = "IMMUTABLE"
+
+  validation {
+    condition     = contains(["MUTABLE", "IMMUTABLE"], var.image_tag_mutability)
+    error_message = "image_tag_mutability must be MUTABLE or IMMUTABLE."
+  }
+}

@@ -45,3 +45,33 @@ module "ecr" {
   # per-cycle teardown idempotency (ADR-0011) and has no purpose here.
   force_delete = false
 }
+
+# ------------------------------------------------------------------------------
+# Release pointer (ADR-0029): the digest of the last image whose prod smoke
+# passed. It lives HERE, at a permanent level, for the same reason the registry
+# does — a rollback target is worth exactly nothing if the teardown that created
+# the need for it also deleted the target.
+#
+# The NAME is deterministic and duplicated in .github/workflows/promote-prod.yml,
+# deliberately, on the same reasoning as repository_name above: a workflow
+# derives it without reading Terraform state. A variable that MUST equal a
+# literal somewhere else is a drift surface, not a knob.
+# ------------------------------------------------------------------------------
+resource "aws_ssm_parameter" "prod_last_good_digest" {
+  name        = "/aws-devops-sdet-demo/prod/last-good-image-digest"
+  description = "Digest of the last image whose read-only smoke against prod passed. Written by promote-prod; read by its rollback step."
+  type        = "String"
+  tier        = "Standard" # free
+
+  # Seed value only. "none" is the disarmed state and promote-prod refuses to
+  # roll back to it out loud (ADR-0029 §5).
+  value = "none"
+
+  lifecycle {
+    # WITHOUT THIS, every apply of this level resets the pointer to "none" and
+    # silently disarms rollback until the next green promotion. The value is
+    # owned by the workflow at run time; Terraform owns only the parameter's
+    # existence.
+    ignore_changes = [value]
+  }
+}

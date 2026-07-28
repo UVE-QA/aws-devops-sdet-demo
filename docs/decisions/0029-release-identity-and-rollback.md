@@ -129,5 +129,12 @@ and cannot protect a prefix, so there is no configuration that removes this case
   promotion is unaffected.
 - The pointer is per-environment by path even though only prod writes one today.
   A stage rollback would be a new parameter, not a new design.
+- **Immutability makes a re-run of `deploy-stage` on the same commit fail**, because
+  `:<sha>` already exists. Found while implementing, not while deciding, and it
+  matters because re-running after a flaky failure is routine. The build step now
+  checks for the tag first and reuses the existing image rather than rebuilding:
+  under an immutable registry, rebuilding the same name from the same commit
+  would produce different bytes under an identical label, which is precisely the
+  confusion this ADR exists to remove.
 - Deleting the parameter is enough to disarm rollback, and would do so
   silently on the next failure — the refusal in §5 is what makes that audible.

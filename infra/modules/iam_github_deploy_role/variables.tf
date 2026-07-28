@@ -45,3 +45,9 @@ variable "db_secret_arn_pattern" {
   description = "ARN pattern (wildcard suffix) of the DB credentials secret; the role gets scoped GetSecretValue on it. Wildcard because the secret name carries a per-cycle random suffix (recovery_window=0)."
   type        = string
 }
+
+variable "release_pointer_parameter_arns" {
+  description = "SSM parameter ARNs holding the last-good image digest for this environment (ADR-0029). Empty by default: only the environment that actually rolls back gets the grant, so a stage role stays unable to touch prod's rollback target."
+  type        = list(string)
+  default     = []
+}

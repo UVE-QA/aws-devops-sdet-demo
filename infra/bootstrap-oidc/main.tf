@@ -50,6 +50,12 @@ locals {
   # (recovery_window=0), so a deploy role must be scoped to the pattern, not a
   # fixed ARN that only exists after an apply.
   secret_arn_prefix = "arn:aws:secretsmanager:${var.region}:${data.aws_caller_identity.current.account_id}:secret"
+
+  # Created by infra/shared-ecr (ADR-0029). Referenced here as a constructed ARN
+  # rather than via remote state: the name is deterministic on purpose, exactly
+  # like repository_name, and a data-source dependency would order two permanent
+  # levels against each other for no gain.
+  prod_release_pointer_arn = "arn:aws:ssm:${var.region}:${data.aws_caller_identity.current.account_id}:parameter/${local.project_name}/prod/last-good-image-digest"
 }
 
 module "oidc_provider" {
@@ -95,6 +101,9 @@ module "deploy_role_prod" {
 
   state_bucket_arn      = "arn:aws:s3:::${var.state_bucket_name}"
   db_secret_arn_pattern = "${local.secret_arn_prefix}:${local.prod_name_prefix}-db-credentials-*"
+
+  # Only prod rolls back, so only prod's role can read or write the pointer.
+  release_pointer_parameter_arns = [local.prod_release_pointer_arn]
 }
 
 # ADR-0021 refactor: the provider and the stage role already exist in this

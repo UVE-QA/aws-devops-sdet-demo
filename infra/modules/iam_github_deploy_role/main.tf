@@ -146,6 +146,22 @@ data "aws_iam_policy_document" "deploy" {
     resources = ["*"]
   }
 
+  # Rollback pointer (ADR-0029). Scoped to the exact parameter, and present only
+  # for an environment that was given one — the list is empty for stage, so this
+  # statement does not exist in the stage role at all rather than existing with
+  # a resource nobody uses.
+  #
+  # PutParameter is as narrow as Get here: the workflow overwrites one value on
+  # a green smoke. It cannot create parameters elsewhere in the path.
+  dynamic "statement" {
+    for_each = length(var.release_pointer_parameter_arns) > 0 ? [1] : []
+    content {
+      sid       = "ReleasePointer"
+      actions   = ["ssm:GetParameter", "ssm:PutParameter"]
+      resources = var.release_pointer_parameter_arns
+    }
+  }
+
   # Records inside a hosted zone, never the zone itself. The zone is a permanent
   # level (ADR-0024) whose name servers are referenced from a parent zone in
   # another account: a deploy role able to delete it could break the delegation

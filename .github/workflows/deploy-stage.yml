@@ -76,11 +76,30 @@ jobs:
       - name: Build, tag, and push image
         env:
           ECR_URL: ${{ steps.repo.outputs.ecr_url }}
+          ECR_REPOSITORY: aws-devops-sdet-demo-app
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker build -t "$ECR_URL:$IMAGE_TAG" -t "$ECR_URL:latest" ./app
+          set -euo pipefail
+          # The `:latest` tag is gone (ADR-0029). Nothing ever read it — no
+          # workflow, module, script or make target — and a mutable tag inside
+          # an immutable registry is a pointer that can start lying.
+          #
+          # Because the registry is now IMMUTABLE, re-pushing an existing tag is
+          # an ERROR rather than a no-op, and re-running this workflow on the
+          # same commit is an ordinary thing to do after a flaky failure. When
+          # the tag is already present the bytes for this commit already exist,
+          # so reuse them: rebuilding would produce a different artifact under
+          # the same name, which is the exact confusion immutability exists to
+          # prevent.
+          if aws ecr describe-images --region "$AWS_REGION" \
+               --repository-name "$ECR_REPOSITORY" \
+               --image-ids imageTag="$IMAGE_TAG" >/dev/null 2>&1; then
+            echo "$IMAGE_TAG is already in $ECR_REPOSITORY - reusing it, not rebuilding"
+            exit 0
+          fi
+
+          docker build -t "$ECR_URL:$IMAGE_TAG" ./app
           docker push "$ECR_URL:$IMAGE_TAG"
-          docker push "$ECR_URL:latest"
 
       - name: Terraform plan
         working-directory: infra/envs/stage

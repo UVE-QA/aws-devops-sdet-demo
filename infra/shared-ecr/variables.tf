@@ -16,7 +16,7 @@ variable "repository_name" {
 }
 
 variable "max_image_count" {
-  description = "Tagged images to retain. Bounds storage cost on a level that is never destroyed."
+  description = "Tagged images to retain. Bounds storage cost on a level that is never destroyed. Raised from 10 to 30 in Phase 14: the rollback pointer names a digest that must still exist, and an ECR lifecycle rule can only expire, never protect a prefix (ADR-0029). The cap makes expiry of a last-good release unlikely; the check in promote-prod is what makes it safe."
   type        = number
-  default     = 10
+  default     = 30
 }
