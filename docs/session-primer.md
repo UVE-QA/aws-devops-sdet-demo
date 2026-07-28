@@ -168,11 +168,15 @@ Ops — devbox maintenance
   commit, not only the one being exercised.
 - A gate that has only ever been seen GREEN is indistinguishable from a gate
   that cannot fail. Break each new one on purpose, once, and keep the output.
-  Five have been confirmed this way and none took more than a minute: the
-  tf-validate discovery check, the Playwright spec-coverage guard, the UI-write
-  assertion, `make docs-check` (six ways, including its own document list going
-  missing), and the Mermaid parse check (on a malformed diagram AND on a file
-  containing no diagram at all).
+  Seven have been confirmed this way: the tf-validate discovery check, the
+  Playwright spec-coverage guard, the UI-write assertion, `make docs-check` (six
+  ways, including its own document list going missing), the Mermaid parse check
+  (on a malformed diagram AND on a file containing no diagram at all), the prod
+  rollback itself (fired by promoting a knowingly broken image, and the re-run
+  smoke proved it restored something that works), and its no-target refusal
+  (seen live on an empty pointer, and on the devbox against a digest that had
+  genuinely just been deleted, with the same check answering `present` for a
+  live one in the same command). Only the rollback cost more than a minute.
 - A guarantee stated in a comment is not a guarantee. `promote-prod.yml` said
   "read-only smoke against prod" and ran the whole test directory; it was true
   only while no destructive test existed. When a document and a command
@@ -181,7 +185,11 @@ Ops — devbox maintenance
   had expired printed `ecs :`, `rds :`, `alb :` and six more empty lines, which
   is exactly what success looks like. Put `aws sts get-caller-identity` first and
   assign each result to a variable under `set -e`, so losing credentials aborts
-  instead of rendering green.
+  instead of rendering green. The same shape from a different tool on
+  2026-07-28: `gh run view --log-failed` printed NOTHING for a run with two
+  failed steps, and `--log` printed nothing either — indistinguishable from a
+  run with no failures. The job-level API returned 2202 lines immediately. A
+  tool answering "nothing" is not evidence that there is nothing.
 - THE LIVING DOCUMENTS ARE NOW MACHINE-CHECKED, and this file is one of them.
   `make docs-check` verifies that every `make` target, repository path, HTTP
   route and workflow filename named in README.md, docs/architecture.md,
@@ -444,8 +452,13 @@ obvious once prod runs an image that stage's teardown would delete (ADR-0018).
   policy review finds them. Budget for it instead of being surprised — but note
   the record: this prediction has now been WRONG five times running. Every one of
   those sessions failed somewhere else instead, usually in the half nobody
-  modelled (the browser, a document, a shell assumption). Keep the budget; stop
-  expecting the AWS side to be where it goes wrong.
+  modelled (the browser, a document, a shell assumption). Then on 2026-07-28 it
+  was right: SSM refuses any parameter name beginning with "aws", this project
+  is called aws-devops-sdet-demo, and the first apply of the release pointer
+  died with an AccessDeniedException that reads exactly like a missing IAM
+  grant. Five wrong, then one right. Keep the budget, and stop treating either
+  outcome as the pattern — the point of the budget is that you cannot tell in
+  advance which half it will be.
 ```
 
 ---
