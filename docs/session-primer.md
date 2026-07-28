@@ -195,6 +195,16 @@ Ops — devbox maintenance
   down in one file while eight others still printed the flagless command, and the
   eight were the ones being copied from. A fix goes to every copyable
   occurrence, in the same commit, exactly like a shared invariant.
+- Absence of evidence in the session is not absence in the repository. On
+  2026-07-28 a chat asserted docs/demo-script.md did not exist, on the strength
+  of its name appearing in a "required documents" list, and wrote a replacement.
+  The file existed, ran to 209 lines, and was better; `git am` refused with
+  "already exists in index". A requirements list is evidence that someone wanted
+  the thing, never that it is there. The same chat said no command had ever been
+  run from the Mac, because none appeared in its own context; one had, that
+  morning. Run `ls`, `git log -- <path>`, `grep` before saying something is
+  missing. This is the negative half of "a claim about state is not state", and
+  it is the half that feels like knowledge rather than like trusting a document.
 ```
 
 ## Delivering files from a chat to the repo
