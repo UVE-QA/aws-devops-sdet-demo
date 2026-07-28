@@ -1709,15 +1709,20 @@ aws elbv2 describe-load-balancers
 aws ec2 describe-nat-gateways
 aws eks list-clusters
 aws ec2 describe-addresses           # unattached Elastic IPs
-aws ecr describe-repositories
+aws ecr describe-repositories        # the shared registry is EXPECTED to remain
 ```
 
 ```text
 - Expected after a clean teardown: no ECS service, no RDS instance,
-  no ALB, no NAT gateway, no EKS cluster, no unattached EIP,
-  app ECR repository gone (force_delete).
-- The Terraform state bucket (infra/bootstrap) is intentionally NOT
-  destroyed and is expected to remain.
+  no ALB, no NAT gateway, no EKS cluster, no unattached EIP.
+- The app ECR repository is EXPECTED TO REMAIN. It was destroyed with the
+  environment until ADR-0018 moved it to its own permanent state level, so
+  that it survives a teardown and can still hold the image prod is running.
+  destroy.yml therefore fails only on ENVIRONMENT-PREFIXED repositories.
+- The permanent state levels are intentionally NOT destroyed and are all
+  expected to remain: infra/bootstrap (state bucket), infra/bootstrap-oidc
+  (OIDC provider + deploy roles), infra/shared-ecr, infra/dns (zone + ACM
+  certificate) and infra/public-site (the dashboard).
 - If anything cost-bearing remains, the step should surface it clearly
   (and ideally exit non-zero) so it is not silently left running.
 ```

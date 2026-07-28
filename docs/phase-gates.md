@@ -144,8 +144,17 @@ track 14-19), shaped by ADR-0017. This table tracks only what is done.
 ```bash
   aws ec2 describe-nat-gateways --profile demo-admin --region us-west-2   # none
   aws eks list-clusters --profile demo-admin --region us-west-2           # none
-  aws ecr describe-repositories --profile demo-admin --region us-west-2   # app repo gone
+  aws ecr describe-repositories --profile demo-admin --region us-west-2   # app repo PRESENT
 ```
+  That last line reversed its meaning and this block did not follow. Until
+  **ADR-0018** the registry lived inside the stage state, so its absence proved
+  the teardown had worked. Since ADR-0018 it is a permanent state level and
+  `aws-devops-sdet-demo-app` is EXPECTED to survive every destroy - it holds the
+  image prod may still be running. An empty result here is now a defect, not a
+  pass. `destroy.yml` was corrected in the same ADR (it matches only
+  environment-prefixed repositories); this file and `project-prompt.md` kept
+  printing the old assertion, and they are what a human reads when checking an
+  account by hand. Found in Phase 13 by doing exactly that.
 - STATUS: DONE (2026-06-08). Stage torn down; verified zero billable resources
   (ECS/RDS/ALB/ECR/logs/VPC/secret all empty; no NAT, no EKS, no unattached EIP).
   State bucket aws-devops-sdet-demo-tfstate-993912191738 intentionally remains.
