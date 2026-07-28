@@ -66,6 +66,14 @@ touched by a cycle.
 - **`gh run view --log` and `--log-failed` both returned nothing** for a failed
   run, which is indistinguishable from "no failures". The job-level API
   (`actions/jobs/<id>/logs`) returned 2202 lines immediately.
+- **The two `ci` annotations are finally accounted for**, after three sessions of
+  being carried as unread. Both are the same Node.js 20 deprecation, one for
+  `actions/upload-artifact@v4` and one for `hashicorp/setup-terraform@v3`; the
+  runner forces them onto Node 24. Nothing is broken and both have an expiry
+  date. This also settles the Phase 13 note that could not say whether these
+  were two annotations or two of a previously reported three: there are two.
+  Phase 15's Dependabot for GitHub Actions is the mechanism that would have
+  raised this without anyone remembering to look.
 - **`TF_VAR_budget_email` is a GitHub *variable*, not a secret**, so GitHub does
   not mask it and it appears in the step env dump of a public repository's logs.
   Noticed while reading an unrelated log. Not fixed here; see follow-ups.
@@ -116,7 +124,6 @@ therefore true, and was tested rather than assumed.
 - The Playwright report published by #7 was linked but not opened.
 - prod was never fetched from an outside host this session. Its health rests on
   the workflow's own smoke and on the ECS API, not on a browser.
-- The `ci` annotation warnings were not read, again.
 - The two untagged manifests left in the registry after deleting the broken tag
   were identified only by their push time, which matches the devbox push. What
   they are was not established; the untagged rule expires them in a day.

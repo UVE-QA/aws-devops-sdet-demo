@@ -939,6 +939,9 @@ were the same shape — a page saying something it was not in a position to say:
 - Timings measured: `deploy-stage` #23 16m05s, `promote-prod` #6 14m12s,
   `promote-prod` #7 (failed release + rollback) 15m00s, `destroy prod` #16
   10m22s, `destroy stage` #17 9m01s.
+- The two `ci` annotation warnings, carried as unread since Phase 12, were read
+  here: both are the Node.js 20 deprecation, for `actions/upload-artifact@v4`
+  and `hashicorp/setup-terraform@v3`. Two, not three.
 - Cost: one stage cycle and one prod cycle, prod up for about 2h40m across two
   promotions. Everything billable is gone and the absence was verified against
   the AWS CLI.
