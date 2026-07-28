@@ -151,7 +151,7 @@ Ops — <topic>                   maintenance outside the phases
 
 Phase 9.0 — reconcile prod scaffold
 Phase 11.0 — publish repository
-Phase 12 — README, architecture, demo script
+Phase 13 — MVP verification gate
 Ops — devbox maintenance
 ```
 
@@ -168,9 +168,11 @@ Ops — devbox maintenance
   commit, not only the one being exercised.
 - A gate that has only ever been seen GREEN is indistinguishable from a gate
   that cannot fail. Break each new one on purpose, once, and keep the output.
-  Three have been confirmed this way and each took under a minute: the
-  tf-validate discovery check, the Playwright spec-coverage guard, and the
-  UI-write assertion.
+  Five have been confirmed this way and none took more than a minute: the
+  tf-validate discovery check, the Playwright spec-coverage guard, the UI-write
+  assertion, `make docs-check` (six ways, including its own document list going
+  missing), and the Mermaid parse check (on a malformed diagram AND on a file
+  containing no diagram at all).
 - A guarantee stated in a comment is not a guarantee. `promote-prod.yml` said
   "read-only smoke against prod" and ran the whole test directory; it was true
   only while no destructive test existed. When a document and a command
@@ -180,6 +182,15 @@ Ops — devbox maintenance
   is exactly what success looks like. Put `aws sts get-caller-identity` first and
   assign each result to a variable under `set -e`, so losing credentials aborts
   instead of rendering green.
+- THE LIVING DOCUMENTS ARE NOW MACHINE-CHECKED, and this file is one of them.
+  `make docs-check` verifies that every `make` target, repository path, HTTP
+  route and workflow filename named in README.md, docs/architecture.md,
+  docs/demo-script.md, docs/phase-gates.md, docs/transfer-buffer.md and THIS
+  FILE actually exists, and it runs in `ci.yml`. So a document that invents a
+  path now reddens CI rather than misleading a reader six weeks later. Two
+  consequences for a chat session: run it before delivering a patch that touches
+  any of the six, and write container-internal paths in absolute form
+  (`/app/scripts/...`), because a repo-shaped path is checked as one.
 - Documenting a trap once does not remove it. `--use-device-code` was written
   down in one file while eight others still printed the flagless command, and the
   eight were the ones being copied from. A fix goes to every copyable
@@ -345,6 +356,14 @@ starts a session is the design. Keep it that way.
 
 ## Current shape of the project (structural, changes rarely)
 
+Since Phase 12 the repository explains itself, so a session does not have to
+reconstruct the design from `infra/`: `README.md` (what it is, how to run it),
+`docs/architecture.md` (the levels, the request path, the trade-offs) and
+`docs/demo-script.md` (the ten-minute walkthrough). They are descriptions, not
+plans — `docs/phase-gates.md` remains the only file that claims to know where
+the project stands.
+
+
 ```text
 Browser → ALB → ECS Fargate → RDS PostgreSQL, one FastAPI container.
 Region us-west-2, one dedicated AWS Organizations member account.
@@ -412,7 +431,11 @@ obvious once prod runs an image that stage's teardown would delete (ADR-0018).
   itself; a chat session cannot see whether the token is still alive.
 - a genuinely new path costs one failed run. Both IAM gaps in this project were
   reads a data source makes and the configuration never mentions; no amount of
-  policy review finds them. Budget for it instead of being surprised.
+  policy review finds them. Budget for it instead of being surprised — but note
+  the record: this prediction has now been WRONG five times running. Every one of
+  those sessions failed somewhere else instead, usually in the half nobody
+  modelled (the browser, a document, a shell assumption). Keep the budget; stop
+  expecting the AWS side to be where it goes wrong.
 ```
 
 ---
