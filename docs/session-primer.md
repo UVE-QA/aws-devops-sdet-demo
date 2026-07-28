@@ -238,12 +238,13 @@ because that felt neater has usually decided not to look.
 ### The layout
 
 ```text
-mac      ~/Projects/_claude-transfer/          tooling, permanent:
-                                                send.sh
-                                                README.md
-                                                session-primer.md  <- local COPY,
-                                                  kept in sync; THIS is the file
-                                                  you attach to a new chat
+mac      ~/Projects/_claude-transfer/          permanent, and every file here
+                                              is a COPY of one in the repo:
+                                                send.sh            scripts/send.sh
+                                                README.md          docs/transfer-buffer.md
+                                                session-primer.md  docs/session-primer.md
+                                                  <- THIS is the file you attach
+                                                  to a new chat; keep it in sync
          ~/Projects/_claude-transfer/outbox/   PAYLOAD ONLY.
                                                 empty = everything is committed
 devbox   ~/aws-devops-sdet-demo/               the ONE working copy
@@ -257,27 +258,30 @@ For a single file outside a session's patch, `send.sh` still works:
 
 ```text
 ./send.sh <file> <repo/path> ["commit message"]
-    ALWAYS pass outbox/<name>, not a bare name — see the trap below
+    a bare name is looked up in outbox/ FIRST, and the resolved path is printed
     without a message: delivers and shows git status, you commit after review
     with a message:    delivers, commits, pushes
 ```
 
-**The bare-name lookup shadows exactly the file it matters most for.** It reads
-`[ ! -f "$LOCAL" ] && [ -f "outbox/$LOCAL" ]`, so the CURRENT DIRECTORY wins: a
-bare `session-primer.md` resolves to the stale attach-copy in the buffer root,
+**The bare-name lookup used to shadow exactly the file it mattered most for**, and
+the fix is now in git (**ADR-0028**, Phase 12). The old code read
+`[ ! -f "$LOCAL" ] && [ -f "outbox/$LOCAL" ]`, so the CURRENT DIRECTORY won: a
+bare `session-primer.md` resolved to the stale attach-copy in the buffer root,
 never to the fresh one in `outbox/`. That is the one filename that exists in both
 places, by design, and it is this file. On 2026-07-26 it delivered the old primer,
 the diff was empty, `git commit` found nothing to commit and `set -e` ended the
 script before the word "pushed" — a delivery that looked almost like a success.
-Pass the path explicitly:
+
+`scripts/send.sh` now **refuses** when a bare name matches in both places, and
+names the explicit form to use:
 
 ```text
 ./send.sh outbox/session-primer.md docs/session-primer.md "docs(primer): ..."
 ```
 
-The durable fix is in `send.sh` — prefer `outbox/`, or refuse when both exist —
-and it is unwritten because `send.sh` is not in git. Which is the debt below,
-demonstrated rather than described.
+Refusing rather than silently preferring `outbox/` is deliberate: preferring is
+still a silent choice, and silence was the defect. The refusal was exercised
+before it shipped, alongside both unambiguous cases.
 
 **The chat can write into `outbox/` but cannot delete from it.** Removing a
 patch once it is committed is yours to do. A chat that leaves one behind should
@@ -305,10 +309,12 @@ with the full path already substituted, because you cannot guess it.
 File cards in the chat are for reading the file, not for delivering it. Assuming
 a card lands anywhere by itself costs a round trip every time.
 
-Known debt: `send.sh` and the buffer README exist ONLY on the MacBook. That is
-control-layer tooling outside the source of truth — the same shape as the
-2026-07-25 finding, when `CLAUDE.md` and the skills had never been committed.
-They belong in the repository, with the local copies being copies.
+Paid off in Phase 12 (**ADR-0028**): `send.sh` and the buffer README used to
+exist ONLY on the MacBook — control-layer tooling outside the source of truth,
+the same shape as the 2026-07-25 finding, when `CLAUDE.md` and the skills had
+never been committed. They now live at `scripts/send.sh` and
+`docs/transfer-buffer.md`, and the MacBook copies are copies. Refresh them after
+a push that touches either, exactly as for this file.
 
 ### The local copy of this file
 
