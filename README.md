@@ -77,6 +77,18 @@ halves are given the same probe name at parse time, so they cannot drift apart.
 Every one of these commands also runs in `ci.yml`, on the same Compose stack,
 with no AWS credentials present anywhere in that workflow.
 
+`ci.yml` also runs three scanners on the same push, none of which touch AWS:
+
+```text
+make secret-scan   gitleaks over the full history, every ref
+make iac-scan      Checkov over infra/, decisions recorded in .checkov.yaml
+make docs-check    the living documents describe things that exist
+```
+
+Each one refuses rather than passing when it cannot actually scan — a missing
+scanner, a shallow clone or an empty directory all produce the clean-looking
+nothing this project has been caught by before.
+
 ## Run it in AWS
 
 Nothing here deploys on a push. All three AWS workflows are `workflow_dispatch`

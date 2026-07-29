@@ -98,6 +98,59 @@ is the reviewer-gated GitHub Environment (ADR-0021).
   setting, in the same category as prod's protection rules — real, and invisible
   to every check in this repository.
 
+## The infrastructure is scanned, and the exceptions are decisions
+
+**Since Phase 15b (2026-07-28), `ci.yml` runs Checkov over `infra/` on every
+push and pull request** — `make iac-scan`, the same target the devbox runs.
+
+The first run reported **62 failures across 50 distinct checks**. Four were
+cheap and real, and were fixed rather than skipped:
+
+```text
+CKV_AWS_131   the ALB now drops invalid header fields
+CKV2_AWS_12   the VPC default security group is declared with no rules, which
+              revokes the allow-all pair every VPC ships with
+CKV2_AWS_32   the CloudFront distribution carries the managed security-headers
+              policy (HSTS, nosniff, frame options, referrer policy, a CSP)
+CKV_AWS_21    versioning on the dashboard bucket - status/ and reports/ are
+              written by the workflows and exist nowhere else, not in git
+```
+
+The remaining 46 are listed in `.checkov.yaml` with the reason beside each
+group. They fall into three kinds, and the distinction is the point:
+
+```text
+forbidden by a decision   deletion protection on the ALB and the database
+                          would break the teardown that is this project's
+                          headline claim; the public subnet and the open egress
+                          are the no-NAT design of ADR-0006
+money the demo refuses    WAF, NAT, Multi-AZ, five CMKs, Container Insights,
+                          Performance Insights, flow logs and three kinds of
+                          access log are all metered
+the scanner cannot see    infra/modules/alb terminates TLS only when a
+                          certificate is passed. Checkov scans the module
+                          standalone, cannot evaluate the `dynamic` block, and
+                          reports the HTTP->HTTPS redirect as missing and the
+                          TLS floor as absent on a listener that has no TLS
+```
+
+One skip is neither: RDS IAM authentication is free to enable and nothing here
+would use it. Turning it on so a scanner stops asking would add something that
+*reads* as a security control and is not one.
+
+**The blind spot is stated in the file itself.** These skips are
+repository-wide, so a new resource that violates one of them passes silently.
+That is the price of a reviewable list over 46 inline annotations, and it is
+why each group names the decision it rests on rather than just the check id.
+
+**The gate was made to fail before it was trusted.** A security group opening
+port 22 to the internet was committed into `infra/envs/stage`: three checks
+fired (`CKV_AWS_23`, `CKV_AWS_24`, `CKV2_AWS_5`) and the target exited non-zero.
+All three of its refusals were exercised too — scanner missing, config file
+missing, and zero checks evaluated. The last one is not theoretical: **Checkov
+on a directory containing no Terraform exits 0**, which is exactly the shape of
+the empty-result trap this repository already carries a gitleaks refusal for.
+
 ## What is genuinely left, stated rather than hidden
 
 **Actions logs on a public repository are world-readable.** Anything that
