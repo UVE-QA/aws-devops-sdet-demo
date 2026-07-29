@@ -19,6 +19,14 @@ supposed to make.
                          Without that comparison the edit probe would be
                          indistinguishable from a second create.
 
+                         True for rows created AFTER revision 0003 - which the
+                         probe always is, since the regression creates it in
+                         the same run. Rows that predate the migration were
+                         stamped with the migration's own now(), so they read
+                         as edited without anyone having edited them. That is
+                         cosmetic here and would not be if this check were ever
+                         pointed at an arbitrary row.
+
 Lives under app/scripts/ so it ships in the application image
 (Dockerfile: COPY scripts ./scripts) and can run as a one-off ECS task, which
 is the only way to reach a database in private subnets:

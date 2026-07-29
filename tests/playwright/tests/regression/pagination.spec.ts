@@ -136,10 +136,29 @@ test.describe("pagination (destructive, stage only)", () => {
   }) => {
     // Otherwise the table is empty, the pager says page N of N-1, and the user
     // is looking at a page that no longer exists.
+    //
+    // The fixture is BUILT to put exactly one row on the last page instead of
+    // checking whether this run happens to. The first version of this test
+    // skipped itself when the count did not line up, and on its first run it
+    // did exactly that - a test that decides from ambient data whether to run
+    // is indistinguishable from one that cannot pass, and it reports the same
+    // colour either way.
+    const before = (await (await api.get("/api/items?limit=1")).json()).total;
+    const fillers = (PAGE_SIZE - (before % PAGE_SIZE)) % PAGE_SIZE;
+    for (let i = 0; i < fillers; i++) {
+      const res = await api.post("/api/items", {
+        data: { name: `${prefix}-filler-${String(i).padStart(3, "0")}` },
+      });
+      expect(res.status(), await res.text()).toBe(201);
+      createdIds.push((await res.json()).id);
+    }
+
+    // Created LAST, so it holds the highest id and is alone on the last page.
     const name = `${prefix}-zzz-last-row`;
     const created = await api.post("/api/items", { data: { name } });
-    expect(created.status()).toBe(201);
+    expect(created.status(), await created.text()).toBe(201);
     const id = (await created.json()).id;
+    createdIds.push(id);
 
     await page.goto("/");
     await waitForList(page);
@@ -152,11 +171,10 @@ test.describe("pagination (destructive, stage only)", () => {
     }
 
     const offsetBefore = Number(await table.getAttribute("data-offset"));
-    const countBefore = Number(await table.getAttribute("data-count"));
-    test.skip(
-      countBefore !== 1,
-      "this run's row count does not put exactly one row on the last page"
-    );
+    // Asserted, not assumed: if the arithmetic above is wrong, this fails
+    // loudly here rather than turning the real assertion into a coincidence.
+    await expect(table).toHaveAttribute("data-count", "1");
+    expect(offsetBefore).toBeGreaterThan(0);
 
     await page
       .locator(`[data-testid="delete-item"][data-item-id="${id}"]`)
@@ -165,8 +183,8 @@ test.describe("pagination (destructive, stage only)", () => {
 
     await expect(table).toHaveAttribute(
       "data-offset",
-      String(Math.max(0, offsetBefore - PAGE_SIZE))
+      String(offsetBefore - PAGE_SIZE)
     );
-    await expect(page.getByTestId("item-row")).not.toHaveCount(0);
+    await expect(page.getByTestId("item-row")).toHaveCount(PAGE_SIZE);
   });
 });
