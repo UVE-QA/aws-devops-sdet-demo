@@ -106,6 +106,12 @@
     let offset = 0;
     let page = { items: [], count: 0, total: 0, limit: LIMIT, offset: 0 };
     let editingId = null;
+    // Renders are COUNTED, not flagged. data-loaded is a one-way signal: once
+    // it is "true" it stays true, so a test that waits for it after clicking
+    // Next is told "the list has rendered" by the render that happened before
+    // the click. That is invisible on localhost and reliable through an ALB —
+    // stage failed exactly there, twice, including the retry.
+    let renders = 0;
 
     function say(textContent, isError) {
       message.textContent = textContent;
@@ -240,6 +246,7 @@
       // the same way: a spec asserting on the second page should assert on
       // what the page says it is, not on what it assumes it asked for.
       tbody.dataset.loaded = "true";
+      tbody.dataset.renders = String(++renders);
       tbody.dataset.count = String(page.count);
       tbody.dataset.total = String(page.total);
       tbody.dataset.offset = String(page.offset);
@@ -257,6 +264,9 @@
     // caused by a concurrent write, and retrying that forever is worse than
     // showing a page that is one write out of date.
     async function load(opts = {}) {
+      // Synchronous, before the first await, so it is already false by the
+      // time a click handler returns to the caller.
+      tbody.dataset.loaded = "false";
       try {
         let data = await fetchPage(offset);
         let want = offset;

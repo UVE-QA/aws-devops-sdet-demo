@@ -46,14 +46,26 @@ async function waitForList(page: Page) {
 // after a reload" has to walk to the end, or it is asserting about a page the
 // row was never on. On a small database the two are the same page, which is
 // exactly why this would have gone unnoticed until stage grew.
+// Clicking a pager button and then waiting for `data-loaded` waits for
+// NOTHING: the attribute was already "true" from the render before the click.
+// This waits for the render COUNTER to move, which only a new render can do.
+// Without it the next `isEnabled()` reads the previous page's button state,
+// and the click that follows hangs until the test times out.
+async function clickAndWaitForRender(page: Page, testId: string) {
+  const table = page.getByTestId("items-table");
+  const before = await table.getAttribute("data-renders");
+  await page.getByTestId(testId).click();
+  await expect(table).not.toHaveAttribute("data-renders", before ?? "");
+  await expect(table).toHaveAttribute("data-loaded", "true", { timeout: 30000 });
+}
+
 async function gotoLastPage(page: Page) {
   await waitForList(page);
   const next = page.getByTestId("next-page");
   // Bounded: the loop advances one page per iteration and the button disables
   // at the end. A cap turns a UI bug into a failed test instead of a hang.
   for (let i = 0; i < 50 && (await next.isEnabled()); i++) {
-    await next.click();
-    await waitForList(page);
+    await clickAndWaitForRender(page, "next-page");
   }
 }
 

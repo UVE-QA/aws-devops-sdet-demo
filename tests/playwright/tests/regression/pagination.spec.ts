@@ -45,6 +45,26 @@ async function waitForList(page: Page) {
   return table;
 }
 
+// Clicking a pager button and then waiting for `data-loaded` waits for
+// NOTHING: the attribute was already "true" from the render before the click.
+// This waits for the render COUNTER to move, which only a new render can do.
+// Without it the next `isEnabled()` reads the previous page's button state,
+// and the click that follows hangs until the test times out.
+async function clickAndWaitForRender(page: Page, testId: string) {
+  const table = page.getByTestId("items-table");
+  const before = await table.getAttribute("data-renders");
+  await page.getByTestId(testId).click();
+  await expect(table).not.toHaveAttribute("data-renders", before ?? "");
+  await expect(table).toHaveAttribute("data-loaded", "true", { timeout: 30000 });
+}
+
+async function gotoLastPage(page: Page) {
+  const next = page.getByTestId("next-page");
+  for (let i = 0; i < 50 && (await next.isEnabled()); i++) {
+    await clickAndWaitForRender(page, "next-page");
+  }
+}
+
 test.describe("pagination (destructive, stage only)", () => {
   test("one page is shown, and the page says which one it is", async ({ page }) => {
     await page.goto("/");
@@ -68,8 +88,7 @@ test.describe("pagination (destructive, stage only)", () => {
       rows.map((r) => (r as HTMLElement).dataset.itemId)
     );
 
-    await page.getByTestId("next-page").click();
-    await waitForList(page);
+    await clickAndWaitForRender(page, "next-page");
     await expect(table).toHaveAttribute("data-offset", String(PAGE_SIZE));
     await expect(page.getByTestId("page-label")).toHaveText(/page 2 of /);
     await expect(page.getByTestId("prev-page")).toBeEnabled();
@@ -81,8 +100,7 @@ test.describe("pagination (destructive, stage only)", () => {
     // render two plausible pages, and only this catches it.
     expect(secondPageIds.filter((id) => firstPageIds.includes(id))).toEqual([]);
 
-    await page.getByTestId("prev-page").click();
-    await waitForList(page);
+    await clickAndWaitForRender(page, "prev-page");
     await expect(table).toHaveAttribute("data-offset", "0");
     await expect(page.getByTestId("prev-page")).toBeDisabled();
   });
@@ -91,13 +109,9 @@ test.describe("pagination (destructive, stage only)", () => {
     await page.goto("/");
     const table = await waitForList(page);
 
-    const next = page.getByTestId("next-page");
-    for (let i = 0; i < 50 && (await next.isEnabled()); i++) {
-      await next.click();
-      await waitForList(page);
-    }
+    await gotoLastPage(page);
 
-    await expect(next).toBeDisabled();
+    await expect(page.getByTestId("next-page")).toBeDisabled();
     const offset = Number(await table.getAttribute("data-offset"));
     const count = Number(await table.getAttribute("data-count"));
     const total = Number(await table.getAttribute("data-total"));
@@ -164,11 +178,7 @@ test.describe("pagination (destructive, stage only)", () => {
     await waitForList(page);
     const table = page.getByTestId("items-table");
 
-    const next = page.getByTestId("next-page");
-    for (let i = 0; i < 50 && (await next.isEnabled()); i++) {
-      await next.click();
-      await waitForList(page);
-    }
+    await gotoLastPage(page);
 
     const offsetBefore = Number(await table.getAttribute("data-offset"));
     // Asserted, not assumed: if the arithmetic above is wrong, this fails
@@ -176,9 +186,11 @@ test.describe("pagination (destructive, stage only)", () => {
     await expect(table).toHaveAttribute("data-count", "1");
     expect(offsetBefore).toBeGreaterThan(0);
 
+    const rendersBefore = await table.getAttribute("data-renders");
     await page
       .locator(`[data-testid="delete-item"][data-item-id="${id}"]`)
       .click();
+    await expect(table).not.toHaveAttribute("data-renders", rendersBefore ?? "");
     await waitForList(page);
 
     await expect(table).toHaveAttribute(
