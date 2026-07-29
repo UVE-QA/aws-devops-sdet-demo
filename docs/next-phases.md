@@ -479,12 +479,26 @@ gitleaks 8.30 the AWS rule does not fire on an access key id at all.
 
 ## Phase 16 — Full test depth and application observability
 
+Split on 2026-07-29, for the same reason 15 was: the two halves are different
+kinds of work. 16a is the application contract and the tests that hold it; 16b
+changes HCL.
+
 ```text
-the rest of the CRUD surface: PATCH, GET by id, pagination, 404/422/409 matrix
-the full Playwright regression suite
-structured JSON logs with a request id
-a CloudWatch metric filter on 5xx plus one alarm
+16a  DONE 2026-07-29 (ADR-0031)
+     the rest of the read/update surface: GET by id, PATCH, pagination,
+     the 404/422/409 matrix
+     the Playwright regression suite over the edit control and the pager
+     updated_at, so the database assertion after a UI edit proves an UPDATE
+
+16b  NOT STARTED
+     structured JSON logs with a request id
+     a CloudWatch metric filter on 5xx plus one alarm
 ```
+
+16a closed with a full cycle. Three of its four patches exist because something
+was run rather than reviewed: a test that skipped itself, a break test that
+failed to break because the suite could only see rows it had created itself, and
+two tests that passed on localhost and timed out through an ALB.
 
 ## Phase 17 — Prod data continuity (optional)
 

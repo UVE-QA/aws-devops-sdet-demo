@@ -26,6 +26,7 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 14    | Release resilience             | ✅ done     | sessions/2026-07-28-phase-14-release-resilience.md |
 | 15a   | Dependabot + secret gate       | ✅ done     | sessions/2026-07-28-phase-15a-supply-chain-gates.md |
 | 15b   | Trivy + Checkov + action pins  | ✅ done     | sessions/2026-07-28-phase-15b-scanning-gates.md |
+| 16a   | Contract depth + regression    | ✅ done     | sessions/2026-07-29-phase-16a-contract-depth.md |
 
 Phases 9-19 are planned in `docs/next-phases.md` (MVP track 9-13, polish
 track 14-19), shaped by ADR-0017. This table tracks only what is done.
@@ -1068,6 +1069,59 @@ were the same shape — a page saying something it was not in a position to say:
   `ci` is green on the result across all four jobs, and the Node 20
   deprecation annotations that Phase 14 read and 15a chased are gone.
 - Cost: $0. Nothing was applied to AWS and no environment existed at any point.
+
+### Phase 16a — Contract depth and the regression suite
+- Criteria: the rest of the read/update surface exists with its negatives, the
+  browser suite drives it, and the database assertion says something a 200
+  cannot. **MET**, and closed with a full AWS cycle rather than at code
+  complete.
+- Contract decisions recorded BEFORE the code (**ADR-0031**): the envelope gains
+  `total`/`limit`/`offset` while `count` keeps meaning "items in this response";
+  the limit defaults to 20 and caps at 100; the order stays ascending, so the UI
+  moves to the last page after a create instead of the API changing its order;
+  PATCH is partial via `exclude_unset`, so absent and null are different
+  requests.
+- **The database assertion now proves an UPDATE.** A second probe is created
+  under one name and RENAMED through the browser, and the check requires
+  `updated_at > created_at` — which a row merely created under that name cannot
+  satisfy, because both columns take the same `now()` on insert. On
+  `deploy-stage` #25 it read: updated 0.226s after creation.
+- **A break test that failed to break, and the finding was the suite.**
+  `.offset(offset + 1)` in the list query passed all 50 contract tests. Every
+  pagination assertion was about rows the test had just created — the newest,
+  at the end of an ascending list — while an off-by-one drops the FIRST row.
+  Both walks now count what they collected against the reported `total`; the
+  same break then turns four tests red.
+- **A test that skipped itself on its first run.** The last-page delete test
+  checked whether the last page happened to hold one row. It now builds that
+  arrangement and asserts it before exercising anything.
+- **stage failed where localhost could not.** Two pagination tests timed out
+  against the ALB, twice each including the retry, because `data-loaded` is a
+  one-way flag: a spec that clicked Next and waited for it was answered by the
+  render from before the click, then read a stale button state. The page now
+  counts renders in `data-renders` and clears `data-loaded` at the top of
+  `load()`.
+- Measured: `deploy-stage` #24 17m59s (failed on the two timing tests), #25
+  10m20s, `promote-prod` #8 14m26s, `destroy prod` #18 8m30s, `destroy stage`
+  #19 8m44s.
+- The Phase 15b debt is paid: `setup-terraform` v4 and
+  `configure-aws-credentials` v6 ran in all four dispatch-only workflows for the
+  first time and none of them failed.
+- Validation:
+```bash
+  make test-api            # 50 passed
+  make test-regression     # 12 passed + both probes asserted in the database
+  make test-db             # DB assertion: all checks passed
+  make test-spec-coverage  # 3 spec files, all resolved by a project
+  make docs-check          # 6 documents, 0 findings
+```
+- Teardown verified from the devbox under `demo-admin`, `sts` first, every
+  result assigned under `set -e`, and with a POSITIVE CONTROL in the same
+  command: `alb`, `rds`, `ecs`, `nat` and `eks` all empty while
+  `aws ecr describe-repositories` returned the shared registry. Phases 13 and 14
+  ran this before and after; this session had only an after, so the control
+  stands in for the non-empty reading.
+- Cost: about $0.09 at list prices — stage up ~1h15m, prod ~23m.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

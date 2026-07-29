@@ -104,6 +104,13 @@ If there is one thing to name here, name the database assertion: the regression
 creates a row **through the browser**, and a separate process then looks that
 exact row up in PostgreSQL.
 
+Since Phase 16a there are two probes, and the second is the better story. It is
+created under one name and RENAMED through the edit form, and the assertion
+requires `updated_at > created_at` — which a row merely created under that name
+cannot satisfy, because both columns take the same `now()` on insert. So the
+check distinguishes an UPDATE that reached RDS from an insert that happens to
+have the right name.
+
 ### 6:00 — the approval gate (1.5 min)
 
 Show the promote run pausing, or its log if it has already been approved.

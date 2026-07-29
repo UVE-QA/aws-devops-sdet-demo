@@ -6,6 +6,29 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
+**As of 2026-07-29.** Phase 16 was split on arrival: **16a is CLOSED** — the
+rest of the read/update surface (GET by id, PATCH, pagination, the full negative
+matrix), an inline edit control for Playwright to drive, and `updated_at`, all
+recorded in **ADR-0031** before the code. The database assertion after a UI
+action now proves an UPDATE rather than an insert with the right name: a second
+probe is renamed through the browser and the check requires
+`updated_at > created_at`. 16b — structured logs, a metric filter on 5xx, an
+alarm — has not started.
+
+Three things from 16a are worth carrying, and all three are the same shape. A
+test that skipped itself on its first run reported the same colour as a pass. A
+deliberate off-by-one in the list query passed all 50 contract tests, because
+every pagination assertion was about rows the test had just created — the
+newest — while an off-by-one drops the oldest; the fix was to count the walk
+against the total the API reports. And two tests that passed on localhost timed
+out against the stage ALB, because `data-loaded` is a one-way flag and a spec
+waiting on it after a click was answered by the render from before the click.
+Latency is a path, and it had never been exercised.
+
+The cycle that closed the phase also paid the Phase 15b debt: `setup-terraform`
+v4 and `configure-aws-credentials` v6 ran in all four dispatch-only workflows
+for the first time and none of them failed.
+
 **As of 2026-07-28.** Phase 13 (the empty-to-empty verification run) and Phase
 14 (release resilience, ADR-0029) are CLOSED — see `docs/phase-gates.md`, which
 remains the only file that claims to know where the project stands. Phase 15 was
