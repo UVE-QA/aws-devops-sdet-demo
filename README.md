@@ -48,7 +48,10 @@ GET    /health           liveness, no database
 GET    /api/health       readiness
 GET    /api/db-check     connects to PostgreSQL and says so
 POST   /api/items        201, 409 on a duplicate name, 422 on bad input
-GET    /api/items        list
+GET    /api/items        one page: {items, count, total, limit, offset}
+                         limit 1..100 (default 20), offset >= 0, 422 outside
+GET    /api/items/{id}   200, 404 when absent
+PATCH  /api/items/{id}   200, 404, 409 on a taken name, 422 on an empty patch
 DELETE /api/items/{id}   204, 404 when absent
 GET    /                 a static page that drives the API from the browser
 ```

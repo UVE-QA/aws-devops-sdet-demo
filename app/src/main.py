@@ -6,7 +6,10 @@ Endpoints:
   GET    /api/health        -> API liveness, NO DB
   GET    /api/db-check      -> the ONLY diagnostic endpoint that opens a DB connection
   POST   /api/items         -> 201 / 409 duplicate / 422 invalid
-  GET    /api/items         -> 200, envelope {items, count}, ordered by id
+  GET    /api/items         -> 200, envelope {items, count, total, limit,
+                               offset}, ordered by id, paginated (ADR-0031)
+  GET    /api/items/{id}    -> 200 / 404
+  PATCH  /api/items/{id}    -> 200 / 404 / 409 duplicate / 422 invalid
   DELETE /api/items/{id}    -> 204 / 404
 
 Critical rule (single-container v0): /health and /api/health must never
@@ -18,15 +21,22 @@ import os
 from pathlib import Path
 from typing import Iterator
 
-from fastapi import Depends, FastAPI, HTTPException, Response, status
+from fastapi import Depends, FastAPI, HTTPException, Query, Response, status
 from fastapi.responses import FileResponse, JSONResponse
-from sqlalchemy import select, text
+from sqlalchemy import func, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from src.db import get_sessionmaker
 from src.models import DemoItem
-from src.schemas import ItemCreate, ItemList, ItemRead
+from src.schemas import (
+    DEFAULT_LIMIT,
+    MAX_LIMIT,
+    ItemCreate,
+    ItemList,
+    ItemRead,
+    ItemUpdate,
+)
 
 APP_NAME = os.getenv("APP_NAME", "aws-devops-sdet-demo")
 STATIC_DIR = Path(__file__).parent / "static"
@@ -108,17 +118,91 @@ def create_item(payload: ItemCreate, db: Session = Depends(get_db)) -> DemoItem:
 
 
 @app.get("/api/items", response_model=ItemList)
-def list_items(db: Session = Depends(get_db)) -> ItemList:
-    """List items, oldest first.
+def list_items(
+    limit: int = Query(DEFAULT_LIMIT, ge=1, le=MAX_LIMIT),
+    offset: int = Query(0, ge=0),
+    db: Session = Depends(get_db),
+) -> ItemList:
+    """List items, oldest first, one page at a time.
 
     ORDER BY id is explicit because an unordered SELECT has no guaranteed
     order in PostgreSQL, and a test that asserts on position would then pass
-    or fail depending on physical row layout.
+    or fail depending on physical row layout. LIMIT/OFFSET without ORDER BY is
+    the same defect with a worse symptom: the pages themselves would not be
+    stable between requests.
+
+    The bounds live on the parameters, so `?limit=0`, `?limit=101` and
+    `?offset=-1` are rejected by validation as 422 rather than by hand-written
+    checks that a later edit can forget (ADR-0031).
+
+    `total` is a separate COUNT rather than len() of the page — the whole
+    point is to report what the page does NOT contain.
     """
-    rows = db.scalars(select(DemoItem).order_by(DemoItem.id)).all()
+    total = db.scalar(select(func.count()).select_from(DemoItem)) or 0
+    rows = db.scalars(
+        select(DemoItem).order_by(DemoItem.id).limit(limit).offset(offset)
+    ).all()
     return ItemList(
-        items=[ItemRead.model_validate(row) for row in rows], count=len(rows)
+        items=[ItemRead.model_validate(row) for row in rows],
+        count=len(rows),
+        total=total,
+        limit=limit,
+        offset=offset,
     )
+
+
+@app.get("/api/items/{item_id}", response_model=ItemRead)
+def get_item(item_id: int, db: Session = Depends(get_db)) -> DemoItem:
+    """One item by id. 404 when it does not exist.
+
+    A non-numeric id is a 422 from path validation, not a 404: the request is
+    malformed rather than pointing at something absent, and the suite asserts
+    on the difference.
+    """
+    item = db.get(DemoItem, item_id)
+    if item is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"item {item_id} not found",
+        )
+    return item
+
+
+@app.patch("/api/items/{item_id}", response_model=ItemRead)
+def update_item(
+    item_id: int, payload: ItemUpdate, db: Session = Depends(get_db)
+) -> DemoItem:
+    """Partially update one item.
+
+    `exclude_unset=True` is the entire contract: only fields the client
+    actually sent are applied, so an absent field is untouched and an explicit
+    null clears the description. The refusals — an empty patch, a null name,
+    an unknown field — are declared in ItemUpdate and arrive here as 422s.
+
+    The 409 comes from the unique constraint, exactly as in create_item, and
+    for the same reason: a SELECT to check the new name followed by an UPDATE
+    is a race that answers 500 under concurrency.
+    """
+    item = db.get(DemoItem, item_id)
+    if item is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"item {item_id} not found",
+        )
+
+    for field, value in payload.model_dump(exclude_unset=True).items():
+        setattr(item, field, value)
+
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"item with name '{payload.name}' already exists",
+        )
+    db.refresh(item)
+    return item
 
 
 @app.delete("/api/items/{item_id}", status_code=status.HTTP_204_NO_CONTENT)

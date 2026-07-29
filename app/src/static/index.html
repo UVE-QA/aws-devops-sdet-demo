@@ -16,10 +16,14 @@
     form { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0; }
     input { padding: 6px 8px; border: 1px solid #ccc; border-radius: 4px; font: inherit; }
     button { padding: 6px 12px; border: 1px solid #ccc; border-radius: 4px; background: #f6f6f6; font: inherit; cursor: pointer; }
+    button[disabled] { color: #aaa; cursor: default; }
     table { border-collapse: collapse; width: 100%; }
     th, td { text-align: left; padding: 8px; border-bottom: 1px solid #eee; }
+    td input { width: 100%; box-sizing: border-box; }
     .muted { color: #888; }
     .message { min-height: 1.2em; margin: 8px 0; }
+    .pager { display: flex; gap: 12px; align-items: center; margin: 12px 0; }
+    .actions { display: flex; gap: 6px; }
   </style>
 </head>
 <body>
@@ -39,7 +43,9 @@
 
   <!-- This form exists so Playwright has a real user action to drive: it goes
        browser -> API -> PostgreSQL, which is what makes the DB assertion after
-       a UI action meaningful. No framework on purpose (see next-phases.md). -->
+       a UI action meaningful. No framework on purpose (see next-phases.md).
+       Phase 16a added the same for an EDIT, which is the action that proves a
+       row was rewritten rather than appended. -->
   <form data-testid="create-item-form" autocomplete="off">
     <input data-testid="new-item-name" name="name" placeholder="name" required />
     <input data-testid="new-item-description" name="description" placeholder="description (optional)" />
@@ -54,6 +60,12 @@
     </thead>
     <tbody data-testid="items-table"></tbody>
   </table>
+
+  <div class="pager">
+    <button data-testid="prev-page" type="button">Prev</button>
+    <span data-testid="page-label" class="muted"></span>
+    <button data-testid="next-page" type="button">Next</button>
+  </div>
 
   <script>
     async function check(url, el) {
@@ -80,62 +92,185 @@
     const form = document.querySelector('[data-testid="create-item-form"]');
     const nameInput = document.querySelector('[data-testid="new-item-name"]');
     const descInput = document.querySelector('[data-testid="new-item-description"]');
+    const pageLabel = document.querySelector('[data-testid="page-label"]');
+    const prevButton = document.querySelector('[data-testid="prev-page"]');
+    const nextButton = document.querySelector('[data-testid="next-page"]');
+
+    // The API paginates by default and orders by id ASCENDING, so the newest
+    // item is on the LAST page (ADR-0031). The API keeps one order and the
+    // client decides what to look at: after a create we jump to the page the
+    // new row is on, and after a delete that empties a page we step back one.
+    // Without that, the create form would appear to do nothing as soon as the
+    // table outgrew a single page.
+    const LIMIT = 20;
+    let offset = 0;
+    let page = { items: [], count: 0, total: 0, limit: LIMIT, offset: 0 };
+    let editingId = null;
 
     function say(textContent, isError) {
       message.textContent = textContent;
       message.className = "message " + (isError ? "err" : "ok");
     }
 
-    function render(items) {
-      tbody.replaceChildren();
-      for (const item of items) {
-        const tr = document.createElement("tr");
-        tr.dataset.testid = "item-row";
-        tr.dataset.itemName = item.name;
-
-        const id = document.createElement("td");
-        id.textContent = item.id;
-
-        const name = document.createElement("td");
-        name.dataset.testid = "item-name";
-        // textContent, never innerHTML: the name is user input and goes
-        // straight back onto the page.
-        name.textContent = item.name;
-
-        const description = document.createElement("td");
-        description.dataset.testid = "item-description";
-        if (item.description) {
-          description.textContent = item.description;
-        } else {
-          description.textContent = "—";
-          description.className = "muted";
-        }
-
-        const actions = document.createElement("td");
-        const del = document.createElement("button");
-        del.dataset.testid = "delete-item";
-        del.dataset.itemId = item.id;
-        del.dataset.itemName = item.name;
-        del.type = "button";
-        del.textContent = "Delete";
-        del.addEventListener("click", () => remove(item.id));
-        actions.appendChild(del);
-
-        tr.append(id, name, description, actions);
-        tbody.appendChild(tr);
-      }
-      // Marks "the list finished rendering" for the tests, so a spec waits on
-      // a real signal instead of a sleep.
-      tbody.dataset.loaded = "true";
-      tbody.dataset.count = String(items.length);
+    function lastPageOffset(total) {
+      if (total <= 0) return 0;
+      return Math.floor((total - 1) / LIMIT) * LIMIT;
     }
 
-    async function load() {
+    function textCell(value, testid) {
+      const td = document.createElement("td");
+      td.dataset.testid = testid;
+      if (value) {
+        td.textContent = value;
+      } else {
+        td.textContent = "—";
+        td.className = "muted";
+      }
+      return td;
+    }
+
+    function readOnlyRow(item) {
+      const tr = document.createElement("tr");
+      tr.dataset.testid = "item-row";
+      tr.dataset.itemName = item.name;
+      tr.dataset.itemId = item.id;
+
+      const id = document.createElement("td");
+      id.textContent = item.id;
+
+      const name = document.createElement("td");
+      name.dataset.testid = "item-name";
+      // textContent, never innerHTML: the name is user input and goes
+      // straight back onto the page.
+      name.textContent = item.name;
+
+      const description = textCell(item.description, "item-description");
+
+      const actions = document.createElement("td");
+      const buttons = document.createElement("div");
+      buttons.className = "actions";
+
+      const edit = document.createElement("button");
+      edit.dataset.testid = "edit-item";
+      edit.dataset.itemId = item.id;
+      edit.dataset.itemName = item.name;
+      edit.type = "button";
+      edit.textContent = "Edit";
+      edit.addEventListener("click", () => { editingId = item.id; render(); });
+
+      const del = document.createElement("button");
+      del.dataset.testid = "delete-item";
+      del.dataset.itemId = item.id;
+      del.dataset.itemName = item.name;
+      del.type = "button";
+      del.textContent = "Delete";
+      del.addEventListener("click", () => remove(item.id));
+
+      buttons.append(edit, del);
+      actions.appendChild(buttons);
+
+      tr.append(id, name, description, actions);
+      return tr;
+    }
+
+    function editRow(item) {
+      const tr = document.createElement("tr");
+      tr.dataset.testid = "item-row";
+      tr.dataset.itemName = item.name;
+      tr.dataset.itemId = item.id;
+      tr.dataset.editing = "true";
+
+      const id = document.createElement("td");
+      id.textContent = item.id;
+
+      const nameCell = document.createElement("td");
+      const nameField = document.createElement("input");
+      nameField.dataset.testid = "edit-item-name";
+      nameField.value = item.name;
+      nameCell.appendChild(nameField);
+
+      const descCell = document.createElement("td");
+      const descField = document.createElement("input");
+      descField.dataset.testid = "edit-item-description";
+      descField.value = item.description || "";
+      descCell.appendChild(descField);
+
+      const actions = document.createElement("td");
+      const buttons = document.createElement("div");
+      buttons.className = "actions";
+
+      const save = document.createElement("button");
+      save.dataset.testid = "save-item";
+      save.dataset.itemId = item.id;
+      save.type = "button";
+      save.textContent = "Save";
+      save.addEventListener("click", () =>
+        update(item, nameField.value.trim(), descField.value.trim())
+      );
+
+      const cancel = document.createElement("button");
+      cancel.dataset.testid = "cancel-edit";
+      cancel.type = "button";
+      cancel.textContent = "Cancel";
+      cancel.addEventListener("click", () => { editingId = null; render(); });
+
+      buttons.append(save, cancel);
+      actions.appendChild(buttons);
+
+      tr.append(id, nameCell, descCell, actions);
+      return tr;
+    }
+
+    function render() {
+      tbody.replaceChildren();
+      for (const item of page.items) {
+        tbody.appendChild(item.id === editingId ? editRow(item) : readOnlyRow(item));
+      }
+
+      const pages = Math.max(1, Math.ceil(page.total / LIMIT));
+      const current = Math.floor(page.offset / LIMIT) + 1;
+      pageLabel.textContent = `page ${current} of ${pages} — ${page.total} item(s)`;
+      pageLabel.dataset.page = String(current);
+      pageLabel.dataset.pages = String(pages);
+      prevButton.disabled = page.offset === 0;
+      nextButton.disabled = page.offset + page.count >= page.total;
+
+      // Marks "the list finished rendering" for the tests, so a spec waits on
+      // a real signal instead of a sleep. The pagination values are exposed
+      // the same way: a spec asserting on the second page should assert on
+      // what the page says it is, not on what it assumes it asked for.
+      tbody.dataset.loaded = "true";
+      tbody.dataset.count = String(page.count);
+      tbody.dataset.total = String(page.total);
+      tbody.dataset.offset = String(page.offset);
+      tbody.dataset.limit = String(page.limit);
+    }
+
+    async function fetchPage(at) {
+      const res = await fetch(`/api/items?limit=${LIMIT}&offset=${at}`);
+      if (!res.ok) throw new Error(`list failed with ${res.status}`);
+      return res.json();
+    }
+
+    // At most ONE corrective refetch, never a loop: the correction is computed
+    // from the total the server just reported, so a second one could only be
+    // caused by a concurrent write, and retrying that forever is worse than
+    // showing a page that is one write out of date.
+    async function load(opts = {}) {
       try {
-        const res = await fetch("/api/items");
-        if (!res.ok) { say(`could not load items (${res.status})`, true); return; }
-        const data = await res.json();
-        render(data.items);
+        let data = await fetchPage(offset);
+        let want = offset;
+        if (opts.toLastPage) {
+          want = lastPageOffset(data.total);
+        } else if (data.count === 0 && offset > 0) {
+          want = lastPageOffset(data.total);
+        }
+        if (want !== offset) {
+          offset = want;
+          data = await fetchPage(offset);
+        }
+        page = data;
+        render();
       } catch (e) {
         say("could not load items", true);
       }
@@ -153,7 +288,8 @@
         say(`created '${name}'`, false);
         nameInput.value = "";
         descInput.value = "";
-        await load();
+        editingId = null;
+        await load({ toLastPage: true });
         return;
       }
       if (res.status === 409) { say(`'${name}' already exists`, true); return; }
@@ -161,8 +297,49 @@
       say(`unexpected error (${res.status})`, true);
     }
 
+    // Sends ONLY what the user changed, which is what makes this a PATCH
+    // rather than a replacement. An empty patch is refused by the API with a
+    // 422 on purpose (ADR-0031); the UI does not send one, because "Save with
+    // nothing changed" is a user action, not a client bug.
+    async function update(item, name, description) {
+      const body = {};
+      if (name !== item.name) body.name = name;
+      const before = item.description || "";
+      if (description !== before) body.description = description === "" ? null : description;
+
+      if (Object.keys(body).length === 0) {
+        say(`nothing changed for item ${item.id}`, false);
+        editingId = null;
+        render();
+        return;
+      }
+
+      const res = await fetch(`/api/items/${item.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (res.status === 200) {
+        const saved = await res.json();
+        say(`updated item ${saved.id} to '${saved.name}'`, false);
+        editingId = null;
+        await load();
+        return;
+      }
+      if (res.status === 409) { say(`'${name}' already exists`, true); return; }
+      if (res.status === 422) { say("invalid input", true); return; }
+      if (res.status === 404) {
+        say(`item ${item.id} not found`, true);
+        editingId = null;
+        await load();
+        return;
+      }
+      say(`unexpected error (${res.status})`, true);
+    }
+
     async function remove(id) {
       const res = await fetch(`/api/items/${id}`, { method: "DELETE" });
+      if (id === editingId) editingId = null;
       if (res.status === 204) { say(`deleted item ${id}`, false); await load(); return; }
       if (res.status === 404) { say(`item ${id} not found`, true); await load(); return; }
       say(`unexpected error (${res.status})`, true);
@@ -171,6 +348,20 @@
     form.addEventListener("submit", (event) => {
       event.preventDefault();
       create(nameInput.value.trim(), descInput.value.trim());
+    });
+
+    prevButton.addEventListener("click", () => {
+      if (offset === 0) return;
+      offset = Math.max(0, offset - LIMIT);
+      editingId = null;
+      load();
+    });
+
+    nextButton.addEventListener("click", () => {
+      if (offset + page.count >= page.total) return;
+      offset = offset + LIMIT;
+      editingId = null;
+      load();
     });
 
     load();
