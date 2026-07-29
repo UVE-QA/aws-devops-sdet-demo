@@ -20,21 +20,36 @@ MAX_LIMIT = 100
 
 
 def walk_pages(client):
-    """Every item, page by page.
+    """Every item, page by page — and it must be EVERY item.
 
     Stops on a page that returns nothing, so a server that reports a `total`
-    it will not serve cannot spin this forever. The suite is the only writer
-    against its own rows, but stage is shared with the regression suite, so
-    this asserts on nothing it did not create.
+    it will not serve cannot spin this forever.
+
+    The length check is the point, and it was added because its absence let a
+    deliberate off-by-one pass the whole suite. With `.offset(offset + 1)` in
+    the query, every page is internally consistent and every test that looks
+    for a row it created still passes — because the rows a test creates are
+    the NEWEST, and the row that silently disappears is the FIRST. Comparing
+    what the walk collected against what the API says exists is what notices a
+    row nobody was looking for.
+
+    It assumes no concurrent writer, which holds: the suites run in sequence,
+    and this one only adds rows.
     """
     items = []
     offset = 0
+    total = None
     while True:
         body = client.get(f"/api/items?limit={MAX_LIMIT}&offset={offset}").json()
+        total = body["total"]
         items.extend(body["items"])
-        if body["count"] == 0 or offset + body["count"] >= body["total"]:
+        if body["count"] == 0 or offset + body["count"] >= total:
             break
         offset += body["count"]
+    assert len(items) == total, (
+        f"walking every page collected {len(items)} rows, but the API reports "
+        f"{total} exist. LIMIT/OFFSET is skipping or repeating rows."
+    )
     return items
 
 
@@ -178,6 +193,12 @@ def test_pages_neither_lose_nor_repeat_rows(client, unique_name, created_items):
         offset += 1
 
     assert len(seen) == len(set(seen)), "a row was served on two pages"
+    # Counted against the total, not against this test's own rows. Asserting
+    # only on rows the test created cannot see a row being dropped from the
+    # START of the list, which is exactly what an off-by-one does.
+    assert len(seen) == total, (
+        f"one row per page reached {len(seen)} of {total} rows"
+    )
     mine = [i for i in seen if i in created_items]
     assert len(mine) == 3, "paging one row at a time did not reach every row"
 
