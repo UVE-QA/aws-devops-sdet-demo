@@ -143,15 +143,22 @@ iac-scan:
 #   no image         Compose names no image, or it was never built. Scanning
 #                    nothing is not the same as finding nothing.
 #   empty report     a report with no results at all is a refusal, not a pass.
+# The image name is a LITERAL here and in docker-compose.yml, and the two are
+# checked against each other. It used to be whatever `docker compose config
+# --images app` answered, which is a different answer on different Compose
+# versions: on a GitHub runner it ignored the service filter and the scan was
+# handed postgres:16. That failed loudly only because postgres was not built in
+# that job; where it is, a scan of the wrong image reads exactly like a clean
+# one.
+APP_IMAGE ?= aws-devops-sdet-demo-app:local
 TRIVY_REPORT ?= trivy-report.json
 image-scan:
 	@command -v trivy >/dev/null 2>&1 || { echo "image-scan: trivy is not on PATH. Refusing to pass without scanning anything."; exit 1; }
-	@img=$$(docker compose config --images app 2>/dev/null | head -1); \
-	  [ -n "$$img" ] || { echo "image-scan: docker compose names no image for the app service. Refusing."; exit 1; }; \
-	  docker image inspect "$$img" >/dev/null 2>&1 || { echo "image-scan: $$img has not been built - run make docker-build first. Refusing to scan nothing."; exit 1; }; \
-	  echo "image-scan: trivy $$(trivy --version | head -1 | awk '{print $$2}'), image $$img"; \
-	  trivy image --scanners vuln --severity HIGH,CRITICAL --exit-code 0 \
-	    --format json --output $(TRIVY_REPORT) "$$img"
+	@grep -q "image: $(APP_IMAGE)" docker-compose.yml || { echo "image-scan: docker-compose.yml does not build $(APP_IMAGE). The two names have drifted, so this would scan an image nothing here produces. Refusing."; exit 1; }
+	@docker image inspect "$(APP_IMAGE)" >/dev/null 2>&1 || { echo "image-scan: $(APP_IMAGE) has not been built - run make docker-build first. Refusing to scan nothing."; exit 1; }
+	@echo "image-scan: trivy $$(trivy --version | head -1 | awk '{print $$2}'), image $(APP_IMAGE)"
+	trivy image --scanners vuln --severity HIGH,CRITICAL --exit-code 0 \
+	  --format json --output $(TRIVY_REPORT) "$(APP_IMAGE)"
 	@python3 scripts/summarise-trivy.py $(TRIVY_REPORT)
 
 # Every third-party action is pinned to a commit SHA, and stays that way.

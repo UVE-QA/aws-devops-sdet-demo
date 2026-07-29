@@ -196,10 +196,17 @@ Ops — devbox maintenance
 - A BREAK TEST MEASURED THROUGH A PIPE MEASURES THE PIPE. On 2026-07-28 the
   first Checkov break test printed three red findings and then an exit status of
   zero, which read exactly like 15a's gate that would not break. The gate was
-  fine: `$?` taken after a pipe into `grep` is grep's status, not the target's. One re-measurement with the output
-  redirected to a file settled it in seconds. The reading was indistinguishable
+  fine: `$?` taken after a pipe into `grep` is grep's status, not the target's.
+  One re-measurement with the output redirected to a file settled it in seconds. The reading was indistinguishable
   from a real defect, which is the point - an instrument has to be trusted
   before its verdict means anything, and that includes the shell.
+- ONE DEFINITION, TWO HOSTS PROTECTS THE TARGET, NOT THE TOOL UNDER IT. On
+  2026-07-28 `docker compose config --images app` filtered by service on the
+  devbox and ignored the filter on the GitHub runner, handing the image scan
+  `postgres:16`. The Makefile recipe was byte-identical on both machines. When a
+  target asks a tool to DISCOVER something, the answer is a version-dependent
+  fact, not a definition - prefer a literal that both sides can be checked
+  against.
 - COMMIT BEFORE BREAKING THINGS ON PURPOSE. Restoring a file with `git checkout`
   after a deliberate break discards whatever was uncommitted in it. On
   2026-07-28 a completed pinning edit to `ci.yml` vanished that way, silently,

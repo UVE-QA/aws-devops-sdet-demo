@@ -1032,6 +1032,14 @@ were the same shape — a page saying something it was not in a position to say:
   was on `main`, #1, #2, #3 and #4 all failed on the same three `starlette`
   findings, none of which they introduced. Until #5 landed, none of the four
   carried a readable signal.
+- **The scan was pointed at the wrong image, and the refusal is what found
+  it.** `docker compose config --images app` filters by service on the devbox
+  and did NOT on the GitHub runner, which returned every service; `head -1`
+  took `postgres:16`. It failed loudly only because postgres is not built in
+  that job. In `local-ci`, where it IS pulled, the same logic would have
+  scanned Postgres, printed a plausible verdict and gone green. Fixed at the
+  root: the image name is a literal in the Compose file and in the Makefile,
+  and the target refuses if the two have drifted.
 - Actions pinned by commit SHA, 32 references (**ADR-0030**), SHAs resolved
   with `git ls-remote refs/tags/vX^{}` rather than copied from a page. PR #3
   closed as superseded. `make action-pins` keeps it from decaying.

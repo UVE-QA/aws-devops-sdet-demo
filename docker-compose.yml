@@ -18,6 +18,17 @@ services:
       retries: 10
 
   app:
+    # Named explicitly, and not left to Compose. Without this line the built
+    # image is <project>-app, where <project> is the DIRECTORY NAME - so the
+    # same commit produces a different image name depending on where it was
+    # checked out, and anything that needs to find that image has to ask
+    # Compose what it decided. `docker compose config --images app` answers
+    # that question differently on different Compose versions: on the devbox it
+    # filters by service, on a GitHub runner it returned every service, and the
+    # image scan was handed postgres:16. It refused, because postgres was not
+    # built in that job - but in a job where it IS pulled, the scan would have
+    # reported cleanly on the wrong image.
+    image: aws-devops-sdet-demo-app:local
     build:
       context: ./app
       dockerfile: Dockerfile

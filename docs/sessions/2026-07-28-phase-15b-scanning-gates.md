@@ -125,6 +125,24 @@ of the same versions is the identical upgrade in one commit.
 the four carried a signal about its own contents. Obvious afterwards; it was
 not on the list beforehand.
 
+**The same command answered differently on the two hosts, and it aimed the
+scanner at the wrong image.** `docker compose config --images app` filters by
+service name on the devbox's Compose and ignores the filter on the GitHub
+runner's, returning every service; `head -1` picked `postgres:16`. The gate
+went red with "postgres:16 has not been built", which is the refusal doing its
+job — but only by luck of the job: `local-ci` pulls Postgres, and there the
+same logic would have scanned it, printed a believable verdict and passed. A
+scanner aimed at the wrong target is indistinguishable from a working one.
+
+Fixed at the root rather than at the symptom. The image had no explicit name at
+all: Compose derived it from the directory name, so the question "what is our
+image called" could only be answered by asking Compose. It is now a literal in
+`docker-compose.yml` and in the Makefile, and `make image-scan` refuses if the
+two have drifted apart.
+
+This is a crack in "one definition, two hosts". The make target was identical
+on both; the tool underneath it was not.
+
 **Checkov on a directory with no Terraform exits 0.** Verified rather than
 assumed, and it is the same shape as the gitleaks trap this repository already
 carries a refusal for. `summarise-checkov.py` refuses when nothing was
