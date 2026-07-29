@@ -37,6 +37,11 @@ jobs:
       # browser and by the ECS task that then LOOKS IT UP in RDS. Defined at job
       # level precisely so the two steps cannot drift apart.
       UI_PROBE_NAME: ui-probe-${{ github.run_id }}-${{ github.run_attempt }}
+      # The edit probe, same contract: written by the browser, read by the ECS
+      # task. It is created under a different name and renamed through the UI,
+      # so the assertion can require that the row was UPDATED and not merely
+      # inserted (Phase 16a).
+      UI_EDIT_PROBE_NAME: ui-edit-probe-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -191,13 +196,15 @@ jobs:
           SUBNETS: ${{ steps.tf.outputs.subnets }}
           SG: ${{ steps.tf.outputs.sg }}
         run: |
-          # The regression created UI_PROBE_NAME through the browser and left
-          # it there. This reads the database directly, from a different
-          # process, over a different protocol. RDS is in private subnets, so
-          # the only way in is a task inside the VPC.
+          # The regression created UI_PROBE_NAME and renamed a row to
+          # UI_EDIT_PROBE_NAME through the browser, and left both there. This
+          # reads the database directly, from a different process, over a
+          # different protocol. RDS is in private subnets, so the only way in
+          # is a task inside the VPC.
           scripts/ecs-run-task.sh ui-write-assert \
             '["python","scripts/assert_ui_write.py"]' \
-            "$(jq -nc --arg v "$UI_PROBE_NAME" '[{name:"UI_PROBE_NAME",value:$v}]')"
+            "$(jq -nc --arg v "$UI_PROBE_NAME" --arg e "$UI_EDIT_PROBE_NAME" \
+               '[{name:"UI_PROBE_NAME",value:$v},{name:"UI_EDIT_PROBE_NAME",value:$e}]')"
 
       - name: Upload Playwright report
         if: always()

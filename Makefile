@@ -30,6 +30,9 @@ BASE_URL ?= http://localhost:8000
 # Expanded ONCE, at parse time, so both halves of `test-regression` see the same
 # value — the whole point of the probe is that two processes agree on it.
 UI_PROBE_NAME ?= ui-probe-$(shell date +%s)
+# The second probe (Phase 16a): created under another name and RENAMED through
+# the edit form, so the assertion can require updated_at > created_at.
+UI_EDIT_PROBE_NAME ?= ui-edit-probe-$(shell date +%s)
 
 # Read-only Playwright suite. The ONLY suite prod runs (ADR-0025).
 # Installs node deps + chromium on first run.
@@ -41,13 +44,15 @@ test-smoke:
 # browser's write reached PostgreSQL. Never run against prod.
 test-regression:
 	cd tests/playwright && npm install && npx playwright install --with-deps chromium \
-	  && BASE_URL=$(BASE_URL) UI_PROBE_NAME=$(UI_PROBE_NAME) npx playwright test --project=regression
-	$(MAKE) test-ui-db UI_PROBE_NAME=$(UI_PROBE_NAME)
+	  && BASE_URL=$(BASE_URL) UI_PROBE_NAME=$(UI_PROBE_NAME) UI_EDIT_PROBE_NAME=$(UI_EDIT_PROBE_NAME) \
+	     npx playwright test --project=regression
+	$(MAKE) test-ui-db UI_PROBE_NAME=$(UI_PROBE_NAME) UI_EDIT_PROBE_NAME=$(UI_EDIT_PROBE_NAME)
 
 # Assert that the row the UI created exists in the database. Reuses the app
 # image, which already contains the script and the driver.
 test-ui-db:
-	docker compose run --rm -e UI_PROBE_NAME=$(UI_PROBE_NAME) app python scripts/assert_ui_write.py
+	docker compose run --rm -e UI_PROBE_NAME=$(UI_PROBE_NAME) \
+	  -e UI_EDIT_PROBE_NAME=$(UI_EDIT_PROBE_NAME) app python scripts/assert_ui_write.py
 
 # Every spec file must belong to a project, or it runs in no suite at all.
 test-spec-coverage:
