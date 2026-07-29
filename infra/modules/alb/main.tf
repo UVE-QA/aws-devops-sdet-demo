@@ -59,6 +59,11 @@ resource "aws_lb" "this" {
   security_groups    = [aws_security_group.alb.id]
   subnets            = var.public_subnet_ids
 
+  # Malformed headers are dropped at the load balancer rather than forwarded to
+  # the application. Free, and it removes a request-smuggling shape that the
+  # app would otherwise have to be trusted to handle.
+  drop_invalid_header_fields = true
+
   tags = {
     Name = "${var.name_prefix}-alb"
   }

@@ -103,6 +103,18 @@ resource "aws_s3_bucket_public_access_block" "site" {
   restrict_public_buckets = true
 }
 
+# The dashboard HTML is rebuilt from git, but status/ and reports/ are NOT:
+# they are written by the lifecycle workflows and exist nowhere else. Phase
+# 11.1b already added a guard to stop the site sync deleting them; versioning
+# is the half that survives the guard being wrong.
+resource "aws_s3_bucket_versioning" "site" {
+  bucket = aws_s3_bucket.site.id
+
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
 resource "aws_s3_bucket_server_side_encryption_configuration" "site" {
   bucket = aws_s3_bucket.site.id
 
@@ -166,6 +178,10 @@ resource "aws_acm_certificate_validation" "site" {
 # CloudFront
 # ---------------------------------------------------------------------------
 
+data "aws_cloudfront_response_headers_policy" "security_headers" {
+  name = "Managed-SecurityHeadersPolicy"
+}
+
 resource "aws_cloudfront_origin_access_control" "site" {
   name                              = "${local.name_prefix}-oac"
   description                       = "Origin Access Control for the public dashboard bucket"
@@ -201,6 +217,12 @@ resource "aws_cloudfront_distribution" "site" {
     # publish step (ADR-0026), so caching it aggressively is safe; without that
     # invalidation the page would report a destroyed environment as still up.
     cache_policy_id = "658327ea-f89d-4fab-a63d-7e88639e58f6"
+
+    # HSTS, X-Content-Type-Options, X-Frame-Options, Referrer-Policy and a
+    # default CSP, from the AWS managed policy. Resolved BY NAME rather than by
+    # the GUID above: a wrong name fails at plan time with something readable,
+    # where a wrong GUID fails at apply with an id nobody can look up.
+    response_headers_policy_id = data.aws_cloudfront_response_headers_policy.security_headers.id
   }
 
   restrictions {

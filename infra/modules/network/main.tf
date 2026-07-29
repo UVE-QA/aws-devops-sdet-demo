@@ -21,6 +21,22 @@ resource "aws_vpc" "this" {
   }
 }
 
+# Every VPC ships a default security group that allows all traffic between its
+# members. Nothing here uses it - the ALB, the task and the database each get
+# their own - so it is an open group that exists by accident. Declaring it with
+# no rules revokes them all.
+#
+# This resource ADOPTS an object AWS creates and cannot delete: `terraform
+# destroy` drops it from state and leaves the (now empty) group with the VPC,
+# which is then deleted with the VPC. It adds nothing to the teardown path.
+resource "aws_default_security_group" "this" {
+  vpc_id = aws_vpc.this.id
+
+  tags = {
+    Name = "${var.name_prefix}-default-sg-revoked"
+  }
+}
+
 resource "aws_internet_gateway" "this" {
   vpc_id = aws_vpc.this.id
 
