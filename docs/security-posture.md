@@ -151,6 +151,42 @@ missing, and zero checks evaluated. The last one is not theoretical: **Checkov
 on a directory containing no Terraform exits 0**, which is exactly the shape of
 the empty-result trap this repository already carries a gitleaks refusal for.
 
+## The image is scanned, and the actions are pinned
+
+**Trivy runs over the image this commit builds** — not over a base image named
+in a Dockerfile — in its own `ci.yml` job, with the scanner pinned by version
+and verified by checksum. The gate is deliberately narrower than the report
+(**ADR-0030** covers the pinning; this part is Phase 15b):
+
+```text
+a fix exists     stops the build. Actionable today.
+no fix exists    printed on every run, not gated. A gate nobody can act on is
+                 a gate people learn to ignore - but "not gated" must not
+                 become "not known".
+allowlisted      .trivyignore, reason on the line above the id, echoed back
+                 next to the finding in the output.
+```
+
+**Both directions were observed in CI, on a real vulnerability rather than a
+planted one.** The first run on `main` was RED: three HIGH findings in
+`starlette`, a transitive dependency of FastAPI, fixed in 0.49.1, 1.1.0 and
+1.3.1. Dependabot's PR #5 had independently proposed `fastapi 0.115.6 ->
+0.140.13`, which resolves `starlette 1.3.1` — the version that clears all
+three. Merging it turned the same gate green: `0 fixable, 23 with no fix
+available`. The scanner and the bot arrived at the same fix from opposite
+directions.
+
+Those 23 are the Debian 13.6 base image — perl-base, util-linux, ncurses,
+gzip, libacl1 — and they ship. They are visible in every run and in the
+uploaded report.
+
+**Every third-party action is pinned to a commit SHA** (ADR-0030), because
+`aws-actions/configure-aws-credentials` is the step that turns an OIDC token
+into AWS credentials in every AWS workflow, and it was floating on a mutable
+`@v4` tag. 32 references, each carrying the version as a comment, and
+`make action-pins` fails on any reference that is not a SHA, on any pin
+without a version comment, and on finding no `uses:` lines at all.
+
 ## What is genuinely left, stated rather than hidden
 
 **Actions logs on a public repository are world-readable.** Anything that

@@ -456,19 +456,22 @@ triage.
      gitleaks    secret scan on every push, full history, every ref
      Dependabot  five manifests: pip x3, npm, GitHub Actions
 
-15b  NOT STARTED
-     Trivy       container image scan, fail on HIGH/CRITICAL with an allowlist
-     Checkov     (or tfsec) Terraform scan
-     open question: pin actions by SHA rather than by tag? Dependabot can
-     maintain SHA pins, and 15a showed four actions aging silently.
+15b  DONE 2026-07-28
+     Trivy       image scan in its own ci job, gated on findings that HAVE a
+                 fix, reporting the ones that do not
+     Checkov     46 skip decisions in .checkov.yaml, 4 findings fixed
+     pinning     ANSWERED YES (ADR-0030): 32 references pinned by commit SHA,
+                 with make action-pins keeping them that way. PR #3 closed as
+                 superseded rather than merged.
 ```
 
 Both halves convert "no static keys" from a claim into a demonstrated practice.
 All free, entirely inside `ci.yml`, which stays AWS-free. Cost: **$0**.
 
-15b will produce real findings — a base image with known CVEs, public subnets,
-unencrypted ALB logs — and each one is a fix-or-allowlist decision with a
-written reason. Budget a session for the decisions, not for the wiring.
+15b did produce real findings, and the budget was right: 62 Checkov failures
+and 26 HIGH/CRITICAL container vulnerabilities, of which the decisions took the
+session and the wiring took an hour. The prediction named the findings almost
+exactly — a base image with known CVEs, public subnets, unencrypted ALB logs.
 
 The instruction 11.1a left for this phase — "assert on the AWS rule specifically
 rather than on 'something was found'" — was tried in 15a and RETIRED: in

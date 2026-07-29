@@ -11,7 +11,19 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 remains the only file that claims to know where the project stands. Phase 15 was
 then split: **15a is CLOSED at $0** — Dependabot over five manifests, gitleaks as
 a gate in `ci.yml` over the full history, and the budget email moved from a
-GitHub variable to an environment secret. 15b (Trivy, Checkov) is not started.
+GitHub variable to an environment secret. **15b is CLOSED, also at $0**:
+Checkov over `infra/` with four findings fixed and 46 skip decisions recorded
+beside the checks they skip, Trivy over the image each commit builds, and every
+third-party action pinned to a commit SHA (**ADR-0030**) with a check that keeps
+them pinned. The `ci` workflow now runs five AWS-free checks.
+
+Two things from 15b are worth carrying. The Trivy gate went red and then green
+in CI on a REAL vulnerability: three HIGH findings in `starlette`, and
+Dependabot's PR #5 — `fastapi 0.115.6 -> 0.140.13`, resolving `starlette 1.3.1`
+— turned out to be exactly the fix, arrived at independently from the other
+direction. And a gate on a shared dependency reddens every open pull request:
+the moment `image-scan` was on `main`, the four other Dependabot PRs failed on
+findings none of them introduced.
 
 Two things from 15a are worth carrying rather than filing: the GitHub Actions
 annotation channel was reporting two stale actions out of six, so four had aged

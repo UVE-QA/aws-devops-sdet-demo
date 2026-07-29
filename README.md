@@ -77,13 +77,14 @@ halves are given the same probe name at parse time, so they cannot drift apart.
 Every one of these commands also runs in `ci.yml`, on the same Compose stack,
 with no AWS credentials present anywhere in that workflow.
 
-`ci.yml` also runs four checks on the same push, none of which touch AWS:
+`ci.yml` also runs five checks on the same push, none of which touch AWS:
 
 ```text
 make secret-scan   gitleaks over the full history, every ref
 make iac-scan      Checkov over infra/, decisions recorded in .checkov.yaml
 make image-scan    Trivy over the image this commit builds, allowlist in
                    .trivyignore
+make action-pins   every third-party action is pinned to a commit SHA
 make docs-check    the living documents describe things that exist
 ```
 

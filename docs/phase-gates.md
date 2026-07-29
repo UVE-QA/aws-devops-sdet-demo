@@ -25,7 +25,7 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 13    | MVP verification gate          | ✅ done     | sessions/2026-07-28 |
 | 14    | Release resilience             | ✅ done     | sessions/2026-07-28-phase-14-release-resilience.md |
 | 15a   | Dependabot + secret gate       | ✅ done     | sessions/2026-07-28-phase-15a-supply-chain-gates.md |
-| 15b   | Trivy + Checkov                | ⬜ not started | — |
+| 15b   | Trivy + Checkov + action pins  | ✅ done     | sessions/2026-07-28-phase-15b-scanning-gates.md |
 
 Phases 9-19 are planned in `docs/next-phases.md` (MVP track 9-13, polish
 track 14-19), shaped by ADR-0017. This table tracks only what is done.
@@ -996,6 +996,64 @@ were the same shape — a page saying something it was not in a position to say:
   On `ci` #80 the same job printed both counts — `make` before the scan and
   gitleaks after — and they agreed at 119. Read from the job-level API, because
   `gh run view --log` has printed nothing for a run with failures before.
+- Cost: $0. Nothing was applied to AWS and no environment existed at any point.
+
+### Phase 15b — Trivy, Checkov, and pinned actions
+- Criteria: the infrastructure and the shipped image are scanned by a gate
+  rather than by intention, every exception is a decision with a written
+  reason, and the open question about tag-versus-SHA pinning is answered.
+  **MET**, at $0 and with no AWS API call.
+- **Checkov: 62 failures across 50 distinct checks on the first run.** Four
+  were cheap, real and free, and were fixed rather than skipped: the ALB drops
+  invalid header fields; the VPC default security group is declared with no
+  rules; the CloudFront distribution carries the managed security-headers
+  policy, resolved BY NAME so a wrong one fails at plan time instead of at
+  apply with an unlookup-able GUID; and the dashboard bucket is versioned,
+  because `status/` and `reports/` are written by the workflows and exist
+  nowhere else. The other 46 are in `.checkov.yaml` with the reason beside each
+  group, and the repository-wide blind spot is stated in the file itself.
+- **Four of the 46 are the scanner, not the posture.** `infra/modules/alb`
+  terminates TLS only when a certificate is passed; Checkov scans the module
+  standalone, cannot evaluate the `dynamic` default_action, and reports the
+  HTTP→HTTPS redirect as missing and the TLS floor as absent on a listener that
+  has no TLS to configure. Half of that group is not a false positive: stage
+  really does serve plain HTTP, deliberately (ADR-0017 D3).
+- **Trivy went RED then GREEN in CI, on a real vulnerability.** `ci` #89 failed
+  on three HIGH findings in `starlette`, fixed in 0.49.1, 1.1.0 and 1.3.1.
+  Dependabot's PR #5 had independently proposed `fastapi 0.115.6 → 0.140.13`,
+  which resolves `starlette 1.3.1` — checked by resolving it in a clean
+  virtualenv rather than by reading a version range. Merging it produced
+  `0 fixable, 23 with no fix available` on `ci` #91. The scanner and the bot
+  reached the same fix from opposite directions.
+- The deliberate red was chosen over the tidy order. Merging #5 first would
+  have made the first-ever run of the `image-scan` job green, and a CI job that
+  has only been seen green is indistinguishable from one that cannot fail.
+- **A gate on a shared dependency reddens every open PR.** Once `image-scan`
+  was on `main`, #1, #2, #3 and #4 all failed on the same three `starlette`
+  findings, none of which they introduced. Until #5 landed, none of the four
+  carried a readable signal.
+- Actions pinned by commit SHA, 32 references (**ADR-0030**), SHAs resolved
+  with `git ls-remote refs/tags/vX^{}` rather than copied from a page. PR #3
+  closed as superseded. `make action-pins` keeps it from decaying.
+- **Every new gate was broken on purpose, and the tools were proven able to
+  fail first.** Checkov: a security group opening port 22 (three checks fired),
+  plus all three refusals — scanner missing, config missing, zero checks
+  evaluated. Trivy: all four verdict branches against fixtures before shipping,
+  then the live red and green above. `action-pins`: an unpinned tag, a pin
+  with its version comment removed, and the workflows directory moved away.
+- **`checkov -d` on a directory with no Terraform exits 0** — verified, not
+  assumed. That is the same empty-result shape gitleaks already has a refusal
+  for, and it is why `summarise-checkov.py` refuses when nothing was evaluated.
+- The devbox did not have Checkov installed, and the refusal said so before
+  anything could pass. Same finding as gitleaks in 15a, two days later.
+- Validation (both hosts, identical numbers):
+```bash
+  make iac-scan       # checkov 3.3.8, 46 skipped, 177 passed, 0 failed
+  make image-scan     # 0 fixable, 23 with no fix available
+  make action-pins    # 32 action references, all pinned
+  make docs-check     # 6 documents, 0 findings
+  terraform fmt -check -recursive infra && make tf-validate
+```
 - Cost: $0. Nothing was applied to AWS and no environment existed at any point.
 
 ## Confirmation protocol
