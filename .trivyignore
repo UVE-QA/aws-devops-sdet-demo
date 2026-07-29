@@ -1,0 +1,12 @@
+# Allowlisted container vulnerabilities.
+#
+# An id here means: this HIGH or CRITICAL has a fix available upstream and we
+# are choosing not to take it yet. Write the reason on the line above it, and
+# a date - an allowlist without dates becomes permanent by accident.
+#
+# Findings with NO fix available do not belong here. They are reported by
+# `make image-scan` on every run and are deliberately not gated on, because a
+# gate nobody can act on is a gate people learn to ignore.
+#
+# Format: one id per line. Comment lines directly above an id are read as its
+# reason and printed next to it in the scan output.

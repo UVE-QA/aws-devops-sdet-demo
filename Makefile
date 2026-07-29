@@ -3,7 +3,7 @@
 
 .PHONY: local-up local-down migrate seed test-smoke test-regression test-api \
         test-db test-ui-db test-spec-coverage docker-build tf-fmt tf-validate \
-        docs-check secret-scan iac-scan
+        docs-check secret-scan iac-scan image-scan
 
 # Bring up postgres + app (build app image if needed), detached.
 local-up:
@@ -126,6 +126,33 @@ iac-scan:
 	@checkov --config-file .checkov.yaml -o json > $(CHECKOV_REPORT); status=$$?; \
 	  python3 scripts/summarise-checkov.py $(CHECKOV_REPORT) || exit 1; \
 	  exit $$status
+
+# Vulnerability scan of the image this project actually ships, not of a base
+# image named in a Dockerfile. The image id comes from Compose, so the target
+# scans whatever `make docker-build` just produced.
+#
+# The scan runs with --exit-code 0 and WITHOUT --ignore-unfixed on purpose: the
+# uploaded report then contains every HIGH and CRITICAL, and the decision about
+# which of them should stop a build is made in summarise-trivy.py, where it can
+# be read. Gating only on findings that have a fix keeps the gate actionable;
+# reporting the rest keeps "not gated" from turning into "not known".
+#
+# Three refusals, the same shape as the other two scanners:
+#
+#   trivy missing    a scanner that is not installed finds nothing.
+#   no image         Compose names no image, or it was never built. Scanning
+#                    nothing is not the same as finding nothing.
+#   empty report     a report with no results at all is a refusal, not a pass.
+TRIVY_REPORT ?= trivy-report.json
+image-scan:
+	@command -v trivy >/dev/null 2>&1 || { echo "image-scan: trivy is not on PATH. Refusing to pass without scanning anything."; exit 1; }
+	@img=$$(docker compose config --images app 2>/dev/null | head -1); \
+	  [ -n "$$img" ] || { echo "image-scan: docker compose names no image for the app service. Refusing."; exit 1; }; \
+	  docker image inspect "$$img" >/dev/null 2>&1 || { echo "image-scan: $$img has not been built - run make docker-build first. Refusing to scan nothing."; exit 1; }; \
+	  echo "image-scan: trivy $$(trivy --version | head -1 | awk '{print $$2}'), image $$img"; \
+	  trivy image --scanners vuln --severity HIGH,CRITICAL --exit-code 0 \
+	    --format json --output $(TRIVY_REPORT) "$$img"
+	@python3 scripts/summarise-trivy.py $(TRIVY_REPORT)
 
 # Build the app image only.
 docker-build:

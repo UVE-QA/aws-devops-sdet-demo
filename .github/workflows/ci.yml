@@ -147,6 +147,48 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
+  image-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Install Trivy (pinned version, checksum verified)
+        # Same reasoning as the gitleaks step: a scanner installed by version
+        # and verified by checksum is the practice this phase demonstrates, and
+        # a literal version is one Dependabot cannot bump silently. The
+        # checksum came from the release's own checksums file, verified on the
+        # devbox before it was written here.
+        env:
+          TRIVY_VERSION: "0.72.0"
+          TRIVY_SHA256: "bbb64b9695866ce4a7a8f5c9592002c5961cab378577fa3f8a040df362b9b2ea"
+        run: |
+          set -euo pipefail
+          tarball="trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz"
+          curl -fsSL -o "/tmp/${tarball}" \
+            "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/${tarball}"
+          echo "${TRIVY_SHA256}  /tmp/${tarball}" | sha256sum -c -
+          tar -xzf "/tmp/${tarball}" -C /tmp trivy
+          sudo install -m 0755 /tmp/trivy /usr/local/bin/trivy
+
+      - name: Build the app image
+        # Built here rather than reused from local-ci: a separate job gives the
+        # supply-chain result its own readable check, and the build is under a
+        # minute. The image scanned is therefore the one this commit produces.
+        run: make docker-build
+
+      - name: Scan the image
+        run: make image-scan
+
+      - name: Upload Trivy report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-report
+          path: trivy-report.json
+          if-no-files-found: ignore
+          retention-days: 7
+
   secret-scan:
     runs-on: ubuntu-latest
     steps:
