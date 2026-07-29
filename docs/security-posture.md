@@ -86,6 +86,13 @@ is the reviewer-gated GitHub Environment (ADR-0021).
   make secret-scan     # needs gitleaks on PATH and a full clone
 ```
 
+- **What that scan does and does not catch, measured rather than assumed
+  (2026-07-28).** In gitleaks 8.30 an AWS access key ID on its own — `AKIA…` —
+  is NOT a finding. A planted one scanned green through a real commit. The
+  identifier together with a secret access key IS caught, by `generic-api-key`
+  on entropy, not by `aws-access-token`. So the half that can spend money is
+  caught and the half that cannot is not, which is defensible; what is not
+  defensible is assuming the opposite, which is what everyone does.
 - Dependabot watches all five dependency manifests (`.github/dependabot.yml`).
   It configures VERSION updates only; Dependabot **alerts** are a repository UI
   setting, in the same category as prod's protection rules — real, and invisible

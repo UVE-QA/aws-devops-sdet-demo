@@ -6,6 +6,20 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
+**As of 2026-07-28.** Phase 13 (the empty-to-empty verification run) and Phase
+14 (release resilience, ADR-0029) are CLOSED — see `docs/phase-gates.md`, which
+remains the only file that claims to know where the project stands. Phase 15 was
+then split: **15a is CLOSED at $0** — Dependabot over five manifests, gitleaks as
+a gate in `ci.yml` over the full history, and the budget email moved from a
+GitHub variable to an environment secret. 15b (Trivy, Checkov) is not started.
+
+Two things from 15a are worth carrying rather than filing: the GitHub Actions
+annotation channel was reporting two stale actions out of six, so four had aged
+invisibly including the one that performs every OIDC authentication; and the
+secret gate's break test came back GREEN on a planted AWS access key id, because
+gitleaks 8.30 does not treat an access key id alone as a finding. The gate was
+sound and the assumption was not.
+
 Phase 0–8 = done as far as they go: the Phase 8 lifecycle half is CLOSED, the
 feature half is not started. **Phase 9 is CLOSED (2026-07-26): 9.0
 reconciliation on 07-25, 9.1 prod + promotion + HTTPS on 07-26. Phase 10 is

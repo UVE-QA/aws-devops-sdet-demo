@@ -168,7 +168,7 @@ Ops — devbox maintenance
   commit, not only the one being exercised.
 - A gate that has only ever been seen GREEN is indistinguishable from a gate
   that cannot fail. Break each new one on purpose, once, and keep the output.
-  Seven have been confirmed this way: the tf-validate discovery check, the
+  Eight have been confirmed this way: the tf-validate discovery check, the
   Playwright spec-coverage guard, the UI-write assertion, `make docs-check` (six
   ways, including its own document list going missing), the Mermaid parse check
   (on a malformed diagram AND on a file containing no diagram at all), the prod
@@ -176,7 +176,18 @@ Ops — devbox maintenance
   smoke proved it restored something that works), and its no-target refusal
   (seen live on an empty pointer, and on the devbox against a digest that had
   genuinely just been deleted, with the same check answering `present` for a
-  live one in the same command). Only the rollback cost more than a minute.
+  live one in the same command), and the secret gate (red on a planted key pair,
+  with the secret REDACTED in the log, and both of its refusals fired for real).
+  Only the rollback cost more than a minute.
+- A BREAK TEST THAT FAILS TO BREAK is testing your assumption about the tool,
+  not the tool. On 2026-07-28 a planted AWS access key id was committed and the
+  secret gate scanned it GREEN. The wiring was blameless — 120 commits scanned,
+  the planted one among them; gitleaks 8.30 simply does not treat an `AKIA…`
+  identifier as a finding, and the pair is caught by the entropy rule rather than
+  the AWS one. Two probes separated "the scanner is broken" from "the rule does
+  not match" in under a minute: the tool's OWN documented example secret, which
+  fired, and `--enable-rule <id>`, which proved the rule existed. When a gate
+  stays green on a planted failure, first prove the tool can fail at all.
 - A guarantee stated in a comment is not a guarantee. `promote-prod.yml` said
   "read-only smoke against prod" and ran the whole test directory; it was true
   only while no destructive test existed. When a document and a command

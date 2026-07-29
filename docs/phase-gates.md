@@ -24,6 +24,8 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 12    | Minimum viable documentation   | ✅ done     | sessions/2026-07-27 |
 | 13    | MVP verification gate          | ✅ done     | sessions/2026-07-28 |
 | 14    | Release resilience             | ✅ done     | sessions/2026-07-28-phase-14-release-resilience.md |
+| 15a   | Dependabot + secret gate       | ✅ done     | sessions/2026-07-28-phase-15a-supply-chain-gates.md |
+| 15b   | Trivy + Checkov                | ⬜ not started | — |
 
 Phases 9-19 are planned in `docs/next-phases.md` (MVP track 9-13, polish
 track 14-19), shaped by ADR-0017. This table tracks only what is done.
@@ -949,6 +951,52 @@ were the same shape — a page saying something it was not in a position to say:
 - Cost: one stage cycle and one prod cycle, prod up for about 2h40m across two
   promotions. Everything billable is gone and the absence was verified against
   the AWS CLI.
+
+### Phase 15a — Dependabot and the secret gate
+- Criteria: dependency updates are raised by a mechanism rather than by someone
+  remembering to read a log, and the secret scan is a gate rather than a
+  memory. **MET**, at $0 and with no AWS API call.
+- **Dependabot raised the two known Node 20 deprecations AND four nobody had
+  seen.** Annotations report a runtime deprecation, not staleness, so
+  `actions/checkout`, `setup-python`, `setup-node` and
+  `aws-actions/configure-aws-credentials` had aged silently — the last of them
+  two majors behind, and it authenticates every AWS workflow in the project.
+- **PR #3 is held, not merged.** It changes five workflows; `ci` runs one of
+  them, and the other four are dispatch-only. A green check on that PR would be
+  a statement about `ci.yml` alone. It merges immediately before the next full
+  cycle, so `deploy-stage` exercises it on stage.
+- **The break test did not break the gate, and that was the finding.** A planted
+  AWS access key id scanned GREEN through a real commit. The chain was sound —
+  120 commits scanned, the planted one among them — so four probes were run
+  against the tool instead:
+
+```bash
+  gitleaks stdin -v --no-banner                        # the key alone: no leaks
+  gitleaks dir break-test.txt -v --no-banner           # same, via a path
+  gitleaks stdin --enable-rule aws-access-token        # the rule EXISTS, no leaks
+  # the README's own sidekiq secret: FOUND, exit 1 — the scanner can fail
+```
+  In gitleaks 8.30 an AKIA identifier on its own is not a finding; the identifier
+  plus a secret key is caught by `generic-api-key` on entropy, not by
+  `aws-access-token`. The 11.1a instruction to "assert on the AWS rule
+  specifically" cannot be carried out and is retired here.
+- Re-run with the pair: RuleID `generic-api-key`, `File break-test.txt`,
+  `Secret REDACTED`, exit 1. Red, and redacted — a gate must not publish the
+  secret it just found in the logs of a public repository. The branch was never
+  pushed.
+- **Both refusals fired for real, and the non-refusal was checked too**: the
+  missing-scanner refusal on the devbox, where gitleaks was not installed at all
+  two days after it paid the Phase 11.0 debt; the shallow-clone refusal on a
+  `--depth 1` clone; and a full clone with the scanner present did NOT refuse.
+- Validation:
+```bash
+  make secret-scan     # 119 commits across every ref, no leaks
+  make docs-check      # 6 documents, 0 findings
+```
+  On `ci` #80 the same job printed both counts — `make` before the scan and
+  gitleaks after — and they agreed at 119. Read from the job-level API, because
+  `gh run view --log` has printed nothing for a run with failures before.
+- Cost: $0. Nothing was applied to AWS and no environment existed at any point.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

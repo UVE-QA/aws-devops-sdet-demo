@@ -447,15 +447,32 @@ promoting a knowingly broken image; see the Phase 14 section of
 
 ## Phase 15 — Supply-chain and IaC security gates
 
+Split on 2026-07-28, because the two halves are different kinds of work: 15a is
+deterministic wiring, 15b is triage. Mixing them hides the wiring inside the
+triage.
+
 ```text
-Trivy       container image scan, fail on HIGH/CRITICAL with an allowlist
-Checkov     (or tfsec) Terraform scan
-gitleaks    secret scan on every push
-Dependabot  pip, npm, and GitHub Actions updates
+15a  DONE 2026-07-28
+     gitleaks    secret scan on every push, full history, every ref
+     Dependabot  five manifests: pip x3, npm, GitHub Actions
+
+15b  NOT STARTED
+     Trivy       container image scan, fail on HIGH/CRITICAL with an allowlist
+     Checkov     (or tfsec) Terraform scan
+     open question: pin actions by SHA rather than by tag? Dependabot can
+     maintain SHA pins, and 15a showed four actions aging silently.
 ```
 
-Converts "no static keys" from a claim into a demonstrated practice. All free,
-entirely inside `ci.yml`, which stays AWS-free. Cost: **$0**.
+Both halves convert "no static keys" from a claim into a demonstrated practice.
+All free, entirely inside `ci.yml`, which stays AWS-free. Cost: **$0**.
+
+15b will produce real findings — a base image with known CVEs, public subnets,
+unencrypted ALB logs — and each one is a fix-or-allowlist decision with a
+written reason. Budget a session for the decisions, not for the wiring.
+
+The instruction 11.1a left for this phase — "assert on the AWS rule specifically
+rather than on 'something was found'" — was tried in 15a and RETIRED: in
+gitleaks 8.30 the AWS rule does not fire on an access key id at all.
 
 ## Phase 16 — Full test depth and application observability
 
