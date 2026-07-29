@@ -1,0 +1,156 @@
+# Checkov configuration for the Terraform tree.
+#
+# One definition, two hosts: `make iac-scan` passes this file explicitly, so
+# what runs in Actions is what runs on the devbox.
+#
+# ------------------------------------------------------------------ skipping
+# Every entry below is a DECISION, not a snooze. The rule this repository
+# follows: a check is skipped only when the thing it asks for is either
+# (a) forbidden by a recorded decision, (b) money this demo refuses to spend,
+# or (c) something the scanner cannot evaluate. Anything cheap and real is
+# fixed instead - four were, in the commit that introduced this file.
+#
+# The blind spot, stated rather than left implicit: these skips are
+# REPOSITORY-WIDE. A new resource that violates one of them passes silently.
+# That is the price of a readable list over 46 inline annotations, and it is
+# the reason each group below names the decision it rests on - so a reviewer
+# can ask whether the decision still holds, rather than whether the check does.
+directory:
+  - infra
+framework:
+  - terraform
+compact: true
+quiet: true
+
+# No call to the Prisma Cloud platform for guideline metadata. A scanner in a
+# supply-chain gate should not need a vendor endpoint to be reachable in order
+# to produce the same verdict twice, and the endpoint's absence must not turn
+# into a scan that silently ran with different data.
+skip-download: true
+
+skip-check:
+  # -- (a) v0 network shape: no NAT Gateway, so the task is public ------------
+  # ADR-0006. The Fargate task sits in a public subnet with a public IP and
+  # egresses through the IGW; a NAT Gateway is ~$32/month for a demo that is
+  # destroyed after every cycle. Egress is open because the task pulls its
+  # image from ECR and reaches Secrets Manager; closing it means VPC endpoints,
+  # which cost per hour and per GB. Port 80 from the internet is the ALB, which
+  # is the point of a public ALB.
+  - CKV_AWS_130   # subnets assign public IP by default
+  - CKV_AWS_333   # ECS service assigns public IPs
+  - CKV_AWS_382   # security group allows all egress
+  - CKV_AWS_260   # security group allows ingress on 80 from 0.0.0.0/0
+
+  # -- (a) the teardown IS the exhibit ---------------------------------------
+  # This project's headline claim is a repeatable deploy -> demo -> destroy
+  # lifecycle, verified against the AWS CLI. Deletion protection would break
+  # the thing being demonstrated, and a backup of an environment that keeps no
+  # data between cycles protects nothing.
+  - CKV_AWS_150   # ALB deletion protection
+  - CKV_AWS_293   # RDS deletion protection
+  - CKV_AWS_133   # RDS backup retention
+  - CKV2_AWS_60   # RDS copy tags to snapshots
+
+  # -- (a) prod keeps no data between cycles (ADR-0017 D2a) ------------------
+  # The database exists for the length of a demo. Multi-AZ doubles the cost of
+  # an instance that lives for two hours; a minor-version upgrade window and a
+  # secret rotation schedule are both longer than the resource's lifetime.
+  - CKV_AWS_157   # RDS Multi-AZ
+  - CKV_AWS_226   # RDS automatic minor version upgrades
+  - CKV2_AWS_57   # Secrets Manager automatic rotation
+
+  # -- (a) the credential path is Secrets Manager ----------------------------
+  # RDS IAM authentication is free to switch on and nothing here would use it.
+  # A feature enabled so that a scanner stops asking is worse than an absence
+  # with a reason: it reads as a security control and is not one.
+  - CKV_AWS_161   # RDS IAM database authentication
+
+  # -- (b) observability the demo declines to pay for ------------------------
+  # Container Insights, Performance Insights, enhanced monitoring, flow logs,
+  # RDS log exports and three kinds of access log are all metered. The project
+  # keeps CloudWatch application logs with a short retention and spends the
+  # rest of the budget on running the cycle. Cost control is a phase gate here,
+  # not an afterthought.
+  - CKV_AWS_65    # ECS container insights
+  - CKV_AWS_338   # CloudWatch log retention >= 1 year
+  - CKV_AWS_118   # RDS enhanced monitoring
+  - CKV_AWS_353   # RDS performance insights
+  - CKV_AWS_129   # RDS log exports to CloudWatch
+  - CKV2_AWS_30   # Postgres query logging
+  - CKV2_AWS_11   # VPC flow logs
+  - CKV_AWS_91    # ALB access logging
+  - CKV_AWS_18    # S3 access logging
+  - CKV_AWS_86    # CloudFront access logging
+  - CKV2_AWS_39   # Route53 query logging
+
+  # -- (b) AWS-managed keys instead of customer-managed CMKs -----------------
+  # Five resources want a CMK; a CMK is ~$1/month each before request charges.
+  # Everything below is encrypted at rest with an AWS-managed key. The gap
+  # between the two is key custody and audit granularity, which this demo does
+  # not claim to demonstrate.
+  - CKV_AWS_145   # S3 encrypted with KMS CMK
+  - CKV_AWS_149   # Secrets Manager encrypted with CMK
+  - CKV_AWS_158   # CloudWatch log group encrypted with CMK
+  - CKV_AWS_136   # ECR encrypted with CMK
+
+  # -- (c) the parameter holds a digest, not a secret -------------------------
+  # The release pointer (ADR-0029) stores an image digest that is also printed
+  # in the logs of a public repository. A SecureString would encrypt a value
+  # that is published on purpose.
+  - CKV2_AWS_34   # SSM parameter should be encrypted
+
+  # -- (b) WAF and edge protections, deferred by name ------------------------
+  # WAF is ~$5/month plus per-request charges before a single rule is written,
+  # and it was excluded from v0 in the project prompt rather than forgotten.
+  # Geo restriction and origin failover are protections for a product, not for
+  # a portfolio page served from one bucket.
+  - CKV_AWS_68    # CloudFront WAF
+  - CKV2_AWS_28   # ALB behind WAF
+  - CKV2_AWS_47   # WAFv2 Log4j rule group
+  - CKV_AWS_374   # CloudFront geo restriction
+  - CKV_AWS_310   # CloudFront origin failover
+
+  # -- (b) S3 features with no recovery value here ---------------------------
+  # The dashboard bucket is rebuilt from git on every publish. Cross-region
+  # replication, lifecycle transitions and event notifications each add cost
+  # or moving parts to a few hundred kilobytes of static files. Versioning,
+  # which DOES protect the published evidence, was turned on instead.
+  - CKV_AWS_144   # S3 cross-region replication
+  - CKV2_AWS_61   # S3 lifecycle configuration
+  - CKV2_AWS_62   # S3 event notifications
+
+  # -- (a) least privilege on the deploy roles is a named future phase -------
+  # The two deploy roles assumed over OIDC are broad. Narrowing them is real
+  # work with a real failure mode - both IAM gaps found in this project were
+  # reads a data source makes that the configuration never mentions - and it
+  # is listed as its own phase rather than done badly here. What IS true today
+  # is that no static AWS key exists anywhere, which is the larger claim.
+  - CKV_AWS_107   # IAM policy allows credentials exposure
+  - CKV_AWS_109   # IAM policy allows permissions management without constraint
+  - CKV_AWS_111   # IAM policy allows write access without constraint
+  - CKV_AWS_356   # IAM policy uses "*" as a resource
+
+  # -- (b) DNS ---------------------------------------------------------------
+  # DNSSEC signing needs a KMS asymmetric key and a parent-zone DS record that
+  # lives by hand in the Organizations management account (ADR-0024) - the same
+  # untracked category the NS delegation is already in. The certificate is a
+  # wildcard because the subdomain is delegated to this account and its names
+  # are created and destroyed with every cycle.
+  - CKV2_AWS_38   # Route53 DNSSEC
+  - CKV2_AWS_71   # ACM certificate contains a wildcard
+
+  # -- (c) the scanner cannot see through the conditional HTTPS --------------
+  # infra/modules/alb terminates TLS only when a certificate is passed
+  # (local.https_enabled). With one, :80 becomes a 301 to :443 and the 443
+  # listener carries ELBSecurityPolicy-TLS13-1-2-2021-06. Checkov evaluates the
+  # module standalone, sees a `dynamic` default_action and a `count`-ed HTTPS
+  # listener, and reports the redirect as missing and the TLS floor as absent
+  # on a listener that has no TLS to configure.
+  #
+  # The half that is NOT a false positive: stage really does serve plain HTTP,
+  # deliberately (ADR-0017 D3). It has no public name and no certificate; prod
+  # is the environment with the HTTPS story.
+  - CKV_AWS_2     # ALB protocol is HTTPS
+  - CKV_AWS_103   # load balancer uses at least TLS 1.2
+  - CKV_AWS_378   # target group uses HTTP
+  - CKV2_AWS_20   # ALB redirects HTTP to HTTPS

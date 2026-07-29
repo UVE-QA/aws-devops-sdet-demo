@@ -3,7 +3,7 @@
 
 .PHONY: local-up local-down migrate seed test-smoke test-regression test-api \
         test-db test-ui-db test-spec-coverage docker-build tf-fmt tf-validate \
-        docs-check secret-scan
+        docs-check secret-scan iac-scan
 
 # Bring up postgres + app (build app image if needed), detached.
 local-up:
@@ -100,6 +100,32 @@ secret-scan:
 	@echo "secret-scan: $$(gitleaks version), $$(git rev-list --all --count) commits across every ref"
 	gitleaks git . --log-opts="--all" --redact --no-banner -v \
 	  --report-format json --report-path $(GITLEAKS_REPORT)
+
+# Static analysis of the Terraform tree. Same shape as secret-scan: one
+# definition, two hosts, and refusals rather than a scan that proves nothing.
+#
+# Three refusals:
+#
+#   checkov missing     a scanner that is not installed reports no findings,
+#                       and no findings is what a clean tree also reports.
+#   config missing      .checkov.yaml carries BOTH the directory list and the
+#                       46 skip decisions. Without it the command would scan
+#                       the wrong thing and call it a pass.
+#   zero checks         checkov exits 0 on a directory containing no Terraform.
+#                       summarise-checkov.py refuses when nothing was evaluated,
+#                       which is the specific way this gate would rot silently
+#                       if infra/ were ever moved.
+#
+# The line it prints names the skip count, because a gate that does not say
+# what it declined to check is a gate you cannot review.
+CHECKOV_REPORT ?= checkov-report.json
+iac-scan:
+	@command -v checkov >/dev/null 2>&1 || { echo "iac-scan: checkov is not on PATH. Refusing to pass without scanning anything."; exit 1; }
+	@[ -f .checkov.yaml ] || { echo "iac-scan: .checkov.yaml is missing, so both the directory list and the skip decisions are gone. Refusing."; exit 1; }
+	@echo "iac-scan: checkov $$(checkov --version), $$(grep -c '^  - CKV' .checkov.yaml) checks skipped by decision"
+	@checkov --config-file .checkov.yaml -o json > $(CHECKOV_REPORT); status=$$?; \
+	  python3 scripts/summarise-checkov.py $(CHECKOV_REPORT) || exit 1; \
+	  exit $$status
 
 # Build the app image only.
 docker-build:

@@ -114,6 +114,39 @@ jobs:
         # pass if the list of documents itself has gone missing.
         run: make docs-check
 
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install Checkov (pinned version)
+        # A literal, for the same reason the gitleaks version is one: a scanner
+        # that Dependabot can bump silently changes what the gate means without
+        # anyone deciding to. It moves when someone edits this line.
+        #
+        # Weaker than the gitleaks step, and worth saying so: this is a pinned
+        # version over TLS, not a checksum. Hash-pinning a pip install means
+        # hash-pinning its whole dependency tree, which is a requirements file
+        # nobody would maintain for one tool.
+        env:
+          CHECKOV_VERSION: "3.3.8"
+        run: pip install --quiet "checkov==${CHECKOV_VERSION}"
+
+      - name: IaC scan (Checkov)
+        # The decisions are in .checkov.yaml, next to the checks they skip.
+        # The target refuses if that file, the scanner, or the Terraform it is
+        # meant to be scanning has gone missing.
+        run: make iac-scan
+
+      - name: Upload Checkov report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: checkov-report
+          path: checkov-report.json
+          if-no-files-found: ignore
+          retention-days: 7
+
   secret-scan:
     runs-on: ubuntu-latest
     steps:

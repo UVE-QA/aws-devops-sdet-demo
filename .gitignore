@@ -43,3 +43,7 @@ test-results/
 
 # gitleaks report (written by `make secret-scan`, uploaded by CI)
 gitleaks-report.json
+
+# Scanner reports (written by `make iac-scan` / `make image-scan`, uploaded by CI)
+checkov-report.json
+trivy-report.json
