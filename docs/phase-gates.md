@@ -1062,6 +1062,11 @@ were the same shape — a page saying something it was not in a position to say:
   make docs-check     # 6 documents, 0 findings
   terraform fmt -check -recursive infra && make tf-validate
 ```
+- All five Dependabot pull requests are resolved rather than left open: #5
+  merged as the Trivy fix, #3 closed as superseded by ADR-0030 (Dependabot
+  closed it itself once the versions were in `main`), #1, #2 and #4 merged.
+  `ci` is green on the result across all four jobs, and the Node 20
+  deprecation annotations that Phase 14 read and 15a chased are gone.
 - Cost: $0. Nothing was applied to AWS and no environment existed at any point.
 
 ## Confirmation protocol

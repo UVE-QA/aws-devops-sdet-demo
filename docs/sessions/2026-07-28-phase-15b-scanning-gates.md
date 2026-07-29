@@ -165,6 +165,24 @@ work.** A pinning edit to `ci.yml` was silently reverted mid-session, because
 the file's pins were not committed yet. Commit before breaking things on
 purpose.
 
+## Every open pull request is now resolved, with a reason each
+
+The session opened on five open Dependabot PRs, only one of which had a
+recorded reason for being open. All five are closed out:
+
+```text
+#5  MERGED   fastapi 0.115.6 -> 0.140.13, which is the Trivy gate's fix
+#3  CLOSED   superseded by ADR-0030. Dependabot closed it ITSELF once the
+             versions it proposed were already in main - the explicit
+             `gh pr close` came back with "already closed"
+#1  MERGED   @playwright/test 1.49.1 -> 1.62.0
+#2  MERGED   pytest 8.3.4 -> 9.1.1, a major
+#4  MERGED   tests-db group
+```
+
+`ci` on the result is green in all four jobs, including the destructive
+Playwright suite and the API contract tests under pytest 9.
+
 ## Validation
 
 Identical numbers on both hosts, which is the property `make` targets are
@@ -186,9 +204,8 @@ make tf-validate
   setup-terraform v3->v4 and configure-aws-credentials v4->v6 are proven only
   by the next full cycle. If it breaks, the version bump is the suspect; the
   pin half is inert by construction.
-- PRs #1, #2 and #4 are green and merge whenever convenient - they touch test
-  manifests that ci exercises fully.
-- the Node 20 deprecation annotations should be gone after patch C. Check.
+- the Node 20 deprecation annotations are GONE, confirmed on the first run
+  after the pins landed. That run carried no annotations at all.
 - Checkov on the devbox lives in a venv symlinked into /usr/local/bin. That
   install is not recorded anywhere a rebuild would find it; it belongs in
   docs/lightsail-devbox.md when Phase 18 writes it.
