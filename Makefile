@@ -3,7 +3,7 @@
 
 .PHONY: local-up local-down migrate seed test-smoke test-regression test-api \
         test-db test-ui-db test-spec-coverage docker-build tf-fmt tf-validate \
-        docs-check secret-scan iac-scan image-scan
+        docs-check secret-scan iac-scan image-scan action-pins
 
 # Bring up postgres + app (build app image if needed), detached.
 local-up:
@@ -153,6 +153,12 @@ image-scan:
 	  trivy image --scanners vuln --severity HIGH,CRITICAL --exit-code 0 \
 	    --format json --output $(TRIVY_REPORT) "$$img"
 	@python3 scripts/summarise-trivy.py $(TRIVY_REPORT)
+
+# Every third-party action is pinned to a commit SHA, and stays that way.
+# A tag is mutable and several jobs here hold id-token: write, so the code
+# behind a tag sits inside the trust boundary the OIDC story rests on.
+action-pins:
+	python3 scripts/check-action-pins.py
 
 # Build the app image only.
 docker-build:

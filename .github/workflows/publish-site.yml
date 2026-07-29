@@ -29,10 +29,10 @@ jobs:
     environment: stage
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Configure AWS credentials (OIDC, publish role)
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
         with:
           role-to-assume: ${{ vars.SITE_PUBLISH_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
