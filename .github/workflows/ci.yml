@@ -32,6 +32,12 @@ jobs:
         working-directory: app
         run: python -c "import src.main; print('app imports OK')"
 
+      # Before the stack is up, deliberately: this suite needs no database and
+      # no container, and it is the only place the shape of the log line the
+      # 5xx alarm reads can be asserted at all (ADR-0032).
+      - name: In-process tests (log shape, request id)
+        run: make test-unit
+
       - name: Build app image
         run: make docker-build
 

@@ -2,8 +2,8 @@
 # All container commands run on the Lightsail devbox via docker compose.
 
 .PHONY: local-up local-down migrate seed test-smoke test-regression test-api \
-        test-db test-ui-db test-spec-coverage docker-build tf-fmt tf-validate \
-        docs-check secret-scan iac-scan image-scan action-pins
+        test-unit test-db test-ui-db test-spec-coverage docker-build tf-fmt \
+        tf-validate docs-check secret-scan iac-scan image-scan action-pins
 
 # Bring up postgres + app (build app image if needed), detached.
 local-up:
@@ -71,6 +71,18 @@ test-api:
 	@$(API_VENV)/bin/pip install -q --upgrade pip
 	$(API_VENV)/bin/pip install -q -r tests/api/requirements.txt
 	BASE_URL=$(BASE_URL) $(API_VENV)/bin/pytest tests/api -q
+
+# In-process tests: things no HTTP client can observe from outside, which today
+# means the SHAPE of the JSON access line the 5xx alarm reads (ADR-0032). No
+# network, no database, no running stack — so this is the one suite that can run
+# before `make local-up`.
+UNIT_VENV := .venv-unit
+test-unit:
+	@python3 -m venv $(UNIT_VENV) 2>/dev/null || { \
+	  echo "could not create a virtualenv - install python3-venv (apt install python3-venv)"; exit 1; }
+	@$(UNIT_VENV)/bin/pip install -q --upgrade pip
+	$(UNIT_VENV)/bin/pip install -q -r tests/unit/requirements.txt
+	PYTHONPATH=app $(UNIT_VENV)/bin/pytest tests/unit -q
 
 # Run the standalone seed DB assertion against postgres, on the compose network.
 # Reuses the app image (has sqlalchemy + psycopg2-binary) and mounts the test.
