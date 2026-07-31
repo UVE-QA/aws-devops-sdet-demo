@@ -1,7 +1,15 @@
 # ADR-0032: The 5xx signal is derived from the application's own JSON log
 
 ## Status
-Accepted (Phase 16b).
+Accepted (Phase 16b). **Amended the same session, by measurement**: the first
+implementation set `default_value = 0` on the metric transformation while this
+document claimed the metric does not exist until the first 5xx. Both could not
+be true, and the command won — `get-metric-statistics` returned a flat line of
+0.0 datapoints minutes before anything had failed, because the ALB health-checks
+the service every 30 seconds and a non-matching event emits the default. The
+same run showed the alarm holding ALARM for exactly sixty seconds. Sections 4
+and 5 below are as amended; what was wrong is recorded here rather than edited
+away.
 
 ## Context
 
@@ -82,9 +90,16 @@ exception.
 
 ```text
 namespace     aws-devops-sdet-demo/<env>     one per environment, no dimensions
-metric        AppHttp5xx                     published only when a 5xx occurs
-alarm         Sum >= 1 over one 60s period
+metric        AppHttp5xx                     published only when a 5xx occurs,
+                                             so NO default_value on the filter
+alarm         Sum >= 1, 1 datapoint out of 5 60s periods
 ```
+
+The alarm spans five periods rather than one because a single period was
+measured to hold ALARM for exactly sixty seconds — `20:09:09` to `20:10:09` —
+and this alarm notifies nobody, so a state that brief survives only in
+`describe-alarm-history`. A signal that has to be looked at in the right minute
+is not a signal. 1-of-5 reads "a 5xx in any of the last five minutes".
 
 The namespace carries the environment instead of a dimension because a
 dimension value is a billable custom metric of its own and buys nothing here:

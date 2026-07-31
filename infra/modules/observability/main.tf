@@ -31,11 +31,14 @@ resource "aws_cloudwatch_log_metric_filter" "http_5xx" {
     namespace = var.metric_namespace
     value     = "1"
 
-    # Without this the metric has no value to report for a period in which
-    # nothing matched — which is fine for the alarm below, but makes the metric
-    # unreadable on a graph. It does NOT cause a zero to be published when no
-    # log line arrives at all; only when the log group is written to.
-    default_value = 0
+    # NO default_value, deliberately. It emits a 0 for every log event that does
+    # NOT match, and the ALB health-checks this service every 30 seconds - so
+    # the metric existed, and was billable, from the first health check onwards.
+    # The first implementation of this module had `default_value = 0` and an ADR
+    # claiming the metric does not exist until the first 5xx. Both could not be
+    # true; the flat line of 0.0 datapoints in get-metric-statistics settled it.
+    # Without it, a period with no 5xx has no datapoint at all, which is exactly
+    # what treat_missing_data below is configured for.
   }
 }
 
@@ -46,6 +49,13 @@ resource "aws_cloudwatch_log_metric_filter" "http_5xx" {
 # produces a metric with no data points and the default ("missing") leaves this
 # alarm in INSUFFICIENT_DATA for its entire life. That state is
 # indistinguishable, at a glance, from an alarm that was configured wrongly.
+#
+# 1 datapoint out of 5, not 1 out of 1. With a single evaluation period the
+# alarm was measured living for exactly sixty seconds - ALARM at 20:09:09,
+# back to OK at 20:10:09 - and since it notifies nobody, the only surviving
+# record was describe-alarm-history. A signal that has to be looked for in the
+# right minute is not a signal. 1-of-5 reads "a 5xx in any of the last five
+# minutes" and keeps the state visible long enough for a human to arrive.
 #
 # No alarm_actions. An SNS email subscription must be confirmed by clicking a
 # link, and this environment is destroyed every cycle: a topic beside it would
@@ -60,7 +70,8 @@ resource "aws_cloudwatch_metric_alarm" "http_5xx" {
   metric_name         = var.metric_name
   statistic           = "Sum"
   period              = 60
-  evaluation_periods  = 1
+  evaluation_periods  = 5
+  datapoints_to_alarm = 1
   threshold           = 1
   comparison_operator = "GreaterThanOrEqualToThreshold"
   treat_missing_data  = "notBreaching"

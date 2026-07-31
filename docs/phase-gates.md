@@ -1165,18 +1165,44 @@ were the same shape — a page saying something it was not in a position to say:
 - The ECS task definition gained an `environment` block, which it had never had:
   every non-secret value until now was baked into the image. `APP_ENV` goes to
   **stage and prod in the same commit**, per the shared-invariant rule.
-- Owed before this phase can be marked done:
-```bash
-  make tf-fmt              # terraform is not installable in a chat sandbox
-  make tf-validate         # both env directories, HCL never machine-checked yet
-  make test-unit           # 6 passed
-  make test-api            # 52 expected (50 from 16a + 2 request-id cases)
-  make iac-scan            # Checkov sees two new resources
+- Validated on the devbox before the cycle: `terraform fmt -check` clean on the
+  first attempt (the HCL was aligned by hand — terraform cannot be installed in
+  a chat sandbox, 403), `make tf-validate` OK on all seven levels, `make
+  test-unit` 7 passed, `make test-api` 52 passed, `make iac-scan` 178 passed /
+  0 failed, `make docs-check` 0 findings, and `ci.yml` green in all four jobs
+  including the new in-process step.
+- **The AWS half of the break test, joined to the local half by a literal.** The
+  line the local fault actually produced — `/api/db-check` with PostgreSQL
+  stopped, `"status":503` — was put into the stage log group with exactly one
+  field changed, `env` from `local` to `stage`. Measured in this order, with the
+  positive control taken BEFORE anything was injected:
+```text
+  sts get-caller-identity   993912191738
+  alarm state               OK, "no datapoints were received ... treated as
+                            [NonBreaching]" - CloudWatch stating decision 5 of
+                            ADR-0032 in its own words
+  { $.status >= 500 }       no events
+  { $.status = 200 }        real stage lines, env "stage" - the same filter
+                            grammar as the metric filter, against live traffic,
+                            so the empty result above means something
+  after injection           the metric read 1.0 at 20:08
+  alarm history             OK -> ALARM 20:09:09, ALARM -> OK 20:10:09
 ```
-- Then a full cycle, and the AWS half of the break test: stop nothing, take the
-  LINE the local fault actually produced, put it into the stage log group, and
-  watch the metric and the alarm move. The two halves are joined by a literal,
-  not by an assumed shape.
+- **Two findings, both a document disagreeing with a command.**
+  `default_value = 0` on the metric transformation emits a zero for every
+  NON-matching event, and the ALB health-checks the service every 30 seconds —
+  so the metric existed and was billable from the first health check, while
+  ADR-0032 claimed it does not exist until the first 5xx. Neither was found by
+  review; a flat line of 0.0 datapoints minutes before any failure settled it.
+  And the alarm held ALARM for exactly sixty seconds — with no notification
+  action, the only surviving record was `describe-alarm-history`. A signal that
+  has to be looked at in the right minute is not a signal.
+- Both fixed in the same patch: the `default_value` removed, so the ADR's cost
+  claim becomes true, and the alarm widened to 1 datapoint out of 5 periods.
+- Owed before this phase can be marked done: re-run `deploy-stage` so the
+  amended module is applied, repeat the injection and confirm the ALARM state is
+  still readable minutes later, then `promote-prod` and `destroy` both, verified
+  against the AWS CLI with a positive control in the same command.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

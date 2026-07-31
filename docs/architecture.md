@@ -154,8 +154,9 @@ The application writes **one JSON object per request** to stdout, which the
  "method":"GET","path":"/api/items/{item_id}","status":200,"duration_ms":12.4}
 ```
 
-A metric filter over that group, `{ $.status >= 500 }`, feeds one alarm. Three
-properties of the line are load-bearing rather than cosmetic (**ADR-0032**):
+A metric filter over that group, `{ $.status >= 500 }`, feeds one alarm that
+fires on a 5xx in any of the last five minutes. Three properties of the line are
+load-bearing rather than cosmetic (**ADR-0032**):
 
 ```text
 status is a NUMBER      the filter compares numerically; a quoted status makes
@@ -188,6 +189,14 @@ outlive what it reports on, which puts it at a permanent level.
 filter that matches nothing publishes **nothing**, not a zero. The default would
 leave the alarm in INSUFFICIENT_DATA for its entire life — indistinguishable, on
 sight, from an alarm nobody configured properly.
+
+Two numbers here were set by measurement rather than by judgement. The filter
+carries **no** `default_value`, because one emits a zero for every non-matching
+event and the ALB health-checks this service every 30 seconds — the metric would
+exist, and bill, from the first health check. And the alarm spans **five**
+periods with one datapoint needed, because a single period was watched holding
+ALARM for exactly sixty seconds; with no notification action, a state that brief
+survives only in `describe-alarm-history`.
 
 ## Trade-offs made on purpose
 
