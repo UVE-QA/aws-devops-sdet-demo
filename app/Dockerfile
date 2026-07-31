@@ -36,4 +36,7 @@ EXPOSE 8000
 # migrate/seed are run by overriding this command:
 #   docker compose run --rm app alembic upgrade head
 #   docker compose run --rm app python scripts/seed.py
-CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# --no-access-log: the application writes its own access line as JSON
+# (ADR-0032). uvicorn's would be a second, unparseable line per request,
+# and the metric filter behind the 5xx alarm would read half the traffic.
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--no-access-log"]

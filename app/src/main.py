@@ -17,17 +17,25 @@ touch the DB, otherwise ECS cannot reach steady state before the migrate
 task runs — a deadlock. The items endpoints DO use the DB; they are not
 health checks and are not wired to any container health check.
 """
+import logging
 import os
+import time
 from pathlib import Path
 from typing import Iterator
 
-from fastapi import Depends, FastAPI, HTTPException, Query, Response, status
+from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response, status
 from fastapi.responses import FileResponse, JSONResponse
 from sqlalchemy import func, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from src.db import get_sessionmaker
+from src.logging_config import (
+    configure_logging,
+    new_request_id,
+    request_id_var,
+    trace_id_var,
+)
 from src.models import DemoItem
 from src.schemas import (
     DEFAULT_LIMIT,
@@ -42,6 +50,62 @@ APP_NAME = os.getenv("APP_NAME", "aws-devops-sdet-demo")
 STATIC_DIR = Path(__file__).parent / "static"
 
 app = FastAPI(title=APP_NAME)
+
+configure_logging()
+access_logger = logging.getLogger("app.access")
+
+REQUEST_ID_HEADER = "X-Request-Id"
+TRACE_ID_HEADER = "X-Amzn-Trace-Id"
+
+
+def _access_fields(request: Request, status_code: int, started: float) -> dict:
+    """The fields the metric filter and a human both need.
+
+    `path` is the route TEMPLATE where one matched: a query string can carry
+    values a public log should not keep, and `/api/items/{item_id}` is the
+    useful grouping anyway. An unmatched path has no route and falls back to
+    the request path, without its query string.
+    """
+    route = request.scope.get("route")
+    return {
+        "method": request.method,
+        "path": getattr(route, "path", None) or request.url.path,
+        "status": int(status_code),
+        "duration_ms": round((time.perf_counter() - started) * 1000, 1),
+    }
+
+
+@app.middleware("http")
+async def access_log(request: Request, call_next):
+    """Exactly one JSON line per request, including the ones that raise.
+
+    The request id is taken from the caller when supplied, so a test can name
+    the line it is about to cause, and generated otherwise. It goes into a
+    context variable BEFORE anything else runs, so any log line written during
+    this request carries it too.
+    """
+    request_id = request.headers.get(REQUEST_ID_HEADER) or new_request_id()
+    request_id_var.set(request_id)
+    trace_id_var.set(request.headers.get(TRACE_ID_HEADER, ""))
+
+    started = time.perf_counter()
+    try:
+        response = await call_next(request)
+    except Exception:
+        # An unhandled exception never reaches the line below, and it is the
+        # single most valuable 5xx there is: log the 500 the client is about to
+        # receive, then re-raise so the framework still builds that response.
+        # That response is built ABOVE this middleware, so it carries no
+        # X-Request-Id header — the id is in the log, which is where it is
+        # needed. ADR-0032.
+        access_logger.exception("request", extra=_access_fields(request, 500, started))
+        raise
+
+    access_logger.info(
+        "request", extra=_access_fields(request, response.status_code, started)
+    )
+    response.headers[REQUEST_ID_HEADER] = request_id
+    return response
 
 
 def get_db() -> Iterator[Session]:

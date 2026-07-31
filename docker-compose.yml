@@ -35,6 +35,10 @@ services:
     environment:
       # Matches the docker-compose service name "postgres" as host.
       DATABASE_URL: postgresql+psycopg2://demo:demo@postgres:5432/demo
+      # Tags every log line with where it was produced (ADR-0032). The AWS
+      # environments pass "stage"/"prod" through the task definition, so a line
+      # can never be mistaken for one from another environment.
+      APP_ENV: local
     ports:
       - "8000:8000"
     depends_on:
