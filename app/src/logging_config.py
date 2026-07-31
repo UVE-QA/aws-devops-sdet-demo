@@ -37,6 +37,13 @@ _RESERVED = frozenset(
     logging.LogRecord("", 0, "", 0, "", None, None).__dict__.keys()
 ) | {"message", "asctime", "taskName"}
 
+# Fields that arrive via `extra=` and are decoration rather than data.
+# uvicorn attaches `color_message` to its startup lines: the same message again,
+# wrapped in ANSI escape sequences for a terminal. Promoting it would put
+# \u001b[36m into CloudWatch and duplicate every line it appears on. Found by
+# reading what the container actually printed, not by a fixture.
+_DROPPED = frozenset({"color_message"})
+
 
 def new_request_id() -> str:
     return uuid.uuid4().hex
@@ -63,8 +70,9 @@ class JsonFormatter(logging.Formatter):
             payload["trace_id"] = trace_id
 
         for key, value in record.__dict__.items():
-            if key not in _RESERVED and not key.startswith("_"):
-                payload[key] = value
+            if key in _RESERVED or key in _DROPPED or key.startswith("_"):
+                continue
+            payload[key] = value
 
         if record.exc_info:
             payload["exc"] = self.formatException(record.exc_info)

@@ -113,3 +113,21 @@ def test_a_line_written_outside_a_request_still_has_the_field(log_lines):
     logging.getLogger("app.test").info("not in a request")
 
     assert log_lines[0]["request_id"] == "-"
+
+
+def test_terminal_decoration_does_not_reach_the_log(log_lines):
+    """uvicorn attaches a second, ANSI-coloured copy of its own startup lines.
+
+    Every `extra=` field is promoted to the top level, which is how `status`
+    becomes a number the metric filter can compare — and, until this was seen in
+    a real container, how `\x1b[36m` would have reached CloudWatch alongside a
+    duplicate of the message.
+    """
+    logging.getLogger("app.test").info(
+        "Started server process [1]",
+        extra={"color_message": "Started server process [\x1b[36m%d\x1b[0m]"},
+    )
+
+    line = log_lines[0]
+    assert "color_message" not in line
+    assert "\x1b" not in json.dumps(line)

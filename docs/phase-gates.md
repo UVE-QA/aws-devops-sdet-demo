@@ -1148,6 +1148,13 @@ were the same shape — a page saying something it was not in a position to say:
   exception path — the naive middleware that logs only successful responses —
   turned the unhandled-exception test red with *"expected exactly one access
   line, got 0"*. Both were restored and the suite returned to 6 passed.
+- **A defect no fixture had shown, found in the first real container.** uvicorn
+  attaches `color_message` to its own startup lines via `extra=` — the same
+  message again, wrapped in ANSI escapes for a terminal. The formatter promotes
+  every `extra=` field to the top level, which is exactly how `status` becomes a
+  comparable number, so `\u001b[36m` and a duplicate of each startup line were
+  on their way to CloudWatch. A named drop-list fixes it; the new assertion was
+  broken on purpose by removing that list.
 - A new suite directory, `tests/unit/`, for the same reason ADR-0025 split the
   Playwright suites: where a spec lives decides what it can see. Both properties
   above are invisible to every HTTP client, so no existing suite could hold them.
