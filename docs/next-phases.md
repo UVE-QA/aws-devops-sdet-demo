@@ -490,7 +490,7 @@ changes HCL.
      the Playwright regression suite over the edit control and the pager
      updated_at, so the database assertion after a UI edit proves an UPDATE
 
-16b  NOT STARTED
+16b  IN PROGRESS (ADR-0032)
      structured JSON logs with a request id
      a CloudWatch metric filter on 5xx plus one alarm
 ```

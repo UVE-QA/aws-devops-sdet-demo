@@ -143,6 +143,52 @@ No static AWS access key exists in this repository, in GitHub Secrets, or on the
 devbox. `docs/security-posture.md` records what a *public* repository does and
 does not expose here, with the command to re-check each claim.
 
+## What a 5xx looks like, and who notices
+
+The application writes **one JSON object per request** to stdout, which the
+`awslogs` driver puts into the environment's CloudWatch log group:
+
+```json
+{"ts":"2026-07-31T10:50:00.123Z","level":"info","msg":"request",
+ "service":"aws-devops-sdet-demo","env":"stage","request_id":"3f2a...",
+ "method":"GET","path":"/api/items/{item_id}","status":200,"duration_ms":12.4}
+```
+
+A metric filter over that group, `{ $.status >= 500 }`, feeds one alarm. Three
+properties of the line are load-bearing rather than cosmetic (**ADR-0032**):
+
+```text
+status is a NUMBER      the filter compares numerically; a quoted status makes
+                        it a string comparison that matches nothing, forever,
+                        while the alarm still looks configured
+path is the TEMPLATE    /api/items/{item_id}, not the raw URL - a query string
+                        can carry values a public log should not keep
+one line per request    including the requests that RAISE. The middleware logs
+                        status 500 and re-raises; an unhandled exception is the
+                        most valuable 5xx there is and never reaches the
+                        success path
+```
+
+The request id is taken from an inbound `X-Request-Id` when there is one and
+generated otherwise, held in a context variable so anything logged during that
+request carries it, and returned in the response header. A test can therefore
+name the line it is about to cause. `X-Amzn-Trace-Id` is recorded alongside it,
+never instead: it is the only value that ties a line to the ALB's own view, and
+it does not exist locally, where most of the suite runs.
+
+**This alarm reports the application, not the load balancer.** An ALB answering
+503 because no target is healthy writes no application log line and will not
+raise it — that is `HTTPCode_ELB_5XX_Count`, a second alarm that has not been
+bought yet. And the alarm has no notification action: an SNS email subscription
+must be confirmed by clicking a link, and an environment that is destroyed every
+cycle would ask for that click every cycle. A notification channel has to
+outlive what it reports on, which puts it at a permanent level.
+
+`treat_missing_data` is `notBreaching` for a reason worth knowing: a metric
+filter that matches nothing publishes **nothing**, not a zero. The default would
+leave the alarm in INSUFFICIENT_DATA for its entire life — indistinguishable, on
+sight, from an alarm nobody configured properly.
+
 ## Trade-offs made on purpose
 
 ### Why there is no NAT Gateway

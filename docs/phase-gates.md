@@ -27,6 +27,7 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 15a   | Dependabot + secret gate       | ✅ done     | sessions/2026-07-28-phase-15a-supply-chain-gates.md |
 | 15b   | Trivy + Checkov + action pins  | ✅ done     | sessions/2026-07-28-phase-15b-scanning-gates.md |
 | 16a   | Contract depth + regression    | ✅ done     | sessions/2026-07-29-phase-16a-contract-depth.md |
+| 16b   | Structured logs + 5xx alarm    | 🟡 code complete, cycle owed | (this session) |
 
 Phases 9-19 are planned in `docs/next-phases.md` (MVP track 9-13, polish
 track 14-19), shaped by ADR-0017. This table tracks only what is done.
@@ -1122,6 +1123,53 @@ were the same shape — a page saying something it was not in a position to say:
   ran this before and after; this session had only an after, so the control
   stands in for the non-empty reading.
 - Cost: about $0.09 at list prices — stage up ~1h15m, prod ~23m.
+
+### Phase 16b — Structured logs and the 5xx alarm
+- Criteria: the application writes structured logs carrying a request id, a
+  CloudWatch metric filter counts 5xx from those logs, and one alarm reads that
+  metric. **NOT YET MET** — the code is written and the local half is verified;
+  the AWS half is owed. This section is written before the cycle runs, as usual,
+  and a second patch records what the run actually showed.
+- Structural decisions recorded BEFORE the code (**ADR-0032**): the signal comes
+  from the application's own log rather than from the ALB's free
+  `HTTPCode_Target_5XX_Count`, because the log line names the path and the
+  request id and the metric is therefore the same artifact as the evidence; the
+  environment is carried by the metric NAMESPACE rather than by a dimension,
+  since a dimension value is a billable custom metric of its own; and the alarm
+  is created with **no notification action**, because an SNS email subscription
+  needs a confirmation click and a topic beside a per-cycle environment would
+  ask for one every cycle. The channel has to outlive what it reports on — the
+  fifth arrival at the ADR-0027 rule, and the first from something other than
+  state.
+- **Two break tests, both fired, both before delivery.** `status` serialised as
+  a string turned the shape assertion red with the message that names the
+  consequence — *"status serialised as str; the metric filter compares it
+  numerically and would match nothing"*. Removing the logging call from the
+  exception path — the naive middleware that logs only successful responses —
+  turned the unhandled-exception test red with *"expected exactly one access
+  line, got 0"*. Both were restored and the suite returned to 6 passed.
+- A new suite directory, `tests/unit/`, for the same reason ADR-0025 split the
+  Playwright suites: where a spec lives decides what it can see. Both properties
+  above are invisible to every HTTP client, so no existing suite could hold them.
+- `make docs-check` refused the first draft of the README change with
+  *"`tests/unit` is neither a tracked file nor a directory"* — the gate checks
+  `git ls-files`, and the directory had not been added yet. Working as designed,
+  and worth knowing before it appears in CI.
+- The ECS task definition gained an `environment` block, which it had never had:
+  every non-secret value until now was baked into the image. `APP_ENV` goes to
+  **stage and prod in the same commit**, per the shared-invariant rule.
+- Owed before this phase can be marked done:
+```bash
+  make tf-fmt              # terraform is not installable in a chat sandbox
+  make tf-validate         # both env directories, HCL never machine-checked yet
+  make test-unit           # 6 passed
+  make test-api            # 52 expected (50 from 16a + 2 request-id cases)
+  make iac-scan            # Checkov sees two new resources
+```
+- Then a full cycle, and the AWS half of the break test: stop nothing, take the
+  LINE the local fault actually produced, put it into the stage log group, and
+  watch the metric and the alarm move. The two halves are joined by a literal,
+  not by an assumed shape.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

@@ -66,8 +66,9 @@ make local-up                       # postgres + app, builds the image
 curl -s http://localhost:8000/health
 curl -s http://localhost:8000/api/db-check
 make migrate && make seed           # Alembic to head, then an idempotent seed
+make test-unit                      # in-process: the shape of the JSON log line
 make test-db                        # the seed row is really in the database
-make test-api                       # 19 HTTP contract cases (pytest + httpx)
+make test-api                       # 52 HTTP contract cases (pytest + httpx)
 make test-smoke                     # read-only Playwright
 make test-regression                # destructive, then asserts the UI write in RDS
 make local-down
@@ -145,11 +146,19 @@ and why the ALB has to be destroyed before the internet gateway.
 Where a spec lives decides where it runs (**ADR-0025**):
 
 ```text
+tests/unit/                         in-process, no network       ci + local
 tests/api/                          HTTP contract, DESTRUCTIVE   stage + local
 tests/playwright/tests/smoke/       read-only     the ONLY suite prod runs
 tests/playwright/tests/regression/  DESTRUCTIVE                  stage + local
 tests/db/                           seed assertion, run as an ECS task in AWS
 ```
+
+`tests/unit/` is the only suite that runs against imported code rather than
+against a URL, and it exists for one reason: the 5xx alarm reads the
+application's own log, so the SHAPE of that log is a contract. Whether `status`
+is a number and whether an unhandled exception is logged at all are invisible
+to every other suite here — and both have a failure mode where the alarm simply
+never fires while looking correct (**ADR-0032**).
 
 A spec outside those directories belongs to no Playwright project, would run in
 no suite, and would be reported by nothing. `make test-spec-coverage` fails on
