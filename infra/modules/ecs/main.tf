@@ -115,6 +115,15 @@ resource "aws_ecs_task_definition" "app" {
           protocol      = "tcp"
         }
       ]
+      # Non-secret configuration. APP_ENV tags every JSON log line with the
+      # environment that produced it (ADR-0032), so a line lifted out of
+      # CloudWatch cannot be mistaken for one from the other environment.
+      environment = [
+        {
+          name  = "APP_ENV"
+          value = var.app_env
+        }
+      ]
       # DB credentials come from Secrets Manager (valueFrom), not plaintext env.
       secrets = [
         {

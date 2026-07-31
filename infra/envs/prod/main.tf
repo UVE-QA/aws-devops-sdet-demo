@@ -69,8 +69,13 @@ module "network" {
 module "observability" {
   source = "../../modules/observability"
 
+  name_prefix        = local.name_prefix
   log_group_name     = "/aws-devops-sdet-demo/${var.environment}/app"
   log_retention_days = var.log_retention_days
+
+  # The environment lives in the NAMESPACE, not in a dimension: a dimension
+  # value is a billable custom metric of its own (ADR-0032).
+  metric_namespace = "aws-devops-sdet-demo/${var.environment}"
 }
 
 module "alb" {
@@ -107,6 +112,7 @@ module "ecs" {
   source = "../../modules/ecs"
 
   name_prefix           = local.name_prefix
+  app_env               = var.environment
   region                = var.region
   vpc_id                = module.network.vpc_id
   public_subnet_ids     = module.network.public_subnet_ids

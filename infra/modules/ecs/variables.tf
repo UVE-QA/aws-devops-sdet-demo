@@ -66,3 +66,8 @@ variable "desired_count" {
   type        = number
   default     = 1
 }
+
+variable "app_env" {
+  description = "Value of APP_ENV inside the container: the environment name, e.g. stage or prod."
+  type        = string
+}
