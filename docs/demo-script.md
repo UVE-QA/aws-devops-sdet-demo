@@ -84,9 +84,11 @@ infrastructure as a side effect, and that is why it no longer triggers on push.
 ### 4:30 — what "tests green" means (1.5 min)
 
 ```text
+tests/unit/                         in-process, no network  ci + local
 tests/api/                          contract, destructive   stage + local
 tests/playwright/tests/smoke/       read-only    the ONLY suite prod runs
 tests/playwright/tests/regression/  destructive             stage + local
+tests/db/                           seed assertion, an ECS task in AWS
 ```
 
 > Suites are bound to directories, so where a spec lives decides where it runs.
@@ -110,6 +112,12 @@ requires `updated_at > created_at` — which a row merely created under that nam
 cannot satisfy, because both columns take the same `now()` on insert. So the
 check distinguishes an UPDATE that reached RDS from an insert that happens to
 have the right name.
+
+`tests/unit/` is worth one sentence if the question comes up: it runs against
+imported code rather than a URL, and it exists because the 5xx alarm reads the
+application's own log — so whether `status` is a JSON **number**, and whether an
+unhandled exception is logged at all, are contract properties no HTTP client can
+observe (ADR-0032).
 
 ### 6:00 — the approval gate (1.5 min)
 
@@ -198,6 +206,28 @@ What is not tested?     The UI write path against PROD is covered by nothing
                         suites. Say it before being asked.
 Where is the state?     S3 with the native lockfile, one key per level, no
                         DynamoDB.
+How would you know      The app writes ONE JSON line per request; a metric
+it broke?               filter `{ $.status >= 500 }` over the log group feeds
+                        one alarm, on a 5xx in any of the last five minutes.
+                        The line carries the request id, so the alarm and the
+                        evidence are the same artifact (ADR-0032). Then say
+                        both limits before being asked: it reports the
+                        APPLICATION, so an ALB answering 503 with no healthy
+                        target raises nothing, and it notifies NOBODY yet -
+                        an SNS subscription needs a confirmation click and a
+                        topic beside a per-cycle environment would ask for one
+                        every cycle, so the channel belongs at a permanent
+                        level and has not been built.
+```
+
+A live 5xx is not worth demonstrating: it needs the database stopped, which is
+a minute of setup for a state the alarm history already records. If asked to
+prove it, show the history instead — `OK -> ALARM` and back, with the timestamps
+from the run that verified it.
+
+```bash
+aws cloudwatch describe-alarm-history --profile demo-admin --region us-west-2 \
+  --alarm-name aws-devops-sdet-demo-stage-http-5xx --history-item-type StateUpdate
 ```
 
 ## Traps — each one has already cost time

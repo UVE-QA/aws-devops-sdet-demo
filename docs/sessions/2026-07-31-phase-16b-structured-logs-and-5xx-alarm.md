@@ -148,6 +148,13 @@ lives in `.claude/skills/test-dev`, the make-target list in
 four went in one commit, per the rule that a fix reaches every copyable
 occurrence.
 
+`docs/demo-script.md` was the fourth copy of that same suite list, and the miss
+was self-inflicted twice over: ADR-0032's own Consequences section says "the
+demo script and the architecture document say what the line looks like", and
+only the architecture document had been made to say it. An ADR that names a
+consequence and does not produce it is a claim about the repository, which is
+the thing this project trusts least.
+
 `docs/discussion-log.md` was the miss that mattered: its "Current state" block —
 the narrative a new session reads — still said 16b had not started, while the
 cursor said it was done. Two documents in the same repository disagreeing about
