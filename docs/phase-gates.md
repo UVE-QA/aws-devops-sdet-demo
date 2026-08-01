@@ -27,7 +27,7 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 15a   | Dependabot + secret gate       | ✅ done     | sessions/2026-07-28-phase-15a-supply-chain-gates.md |
 | 15b   | Trivy + Checkov + action pins  | ✅ done     | sessions/2026-07-28-phase-15b-scanning-gates.md |
 | 16a   | Contract depth + regression    | ✅ done     | sessions/2026-07-29-phase-16a-contract-depth.md |
-| 16b   | Structured logs + 5xx alarm    | 🟡 code complete, cycle owed | (this session) |
+| 16b   | Structured logs + 5xx alarm    | ✅ done     | sessions/2026-07-31-phase-16b-structured-logs-and-5xx-alarm.md |
 
 Phases 9-19 are planned in `docs/next-phases.md` (MVP track 9-13, polish
 track 14-19), shaped by ADR-0017. This table tracks only what is done.
@@ -1127,9 +1127,7 @@ were the same shape — a page saying something it was not in a position to say:
 ### Phase 16b — Structured logs and the 5xx alarm
 - Criteria: the application writes structured logs carrying a request id, a
   CloudWatch metric filter counts 5xx from those logs, and one alarm reads that
-  metric. **NOT YET MET** — the code is written and the local half is verified;
-  the AWS half is owed. This section is written before the cycle runs, as usual,
-  and a second patch records what the run actually showed.
+  metric. **MET**, and closed with a full cycle rather than at code complete.
 - Structural decisions recorded BEFORE the code (**ADR-0032**): the signal comes
   from the application's own log rather than from the ALB's free
   `HTTPCode_Target_5XX_Count`, because the log line names the path and the
@@ -1199,10 +1197,24 @@ were the same shape — a page saying something it was not in a position to say:
   has to be looked at in the right minute is not a signal.
 - Both fixed in the same patch: the `default_value` removed, so the ADR's cost
   claim becomes true, and the alarm widened to 1 datapoint out of 5 periods.
-- Owed before this phase can be marked done: re-run `deploy-stage` so the
-  amended module is applied, repeat the injection and confirm the ALARM state is
-  still readable minutes later, then `promote-prod` and `destroy` both, verified
-  against the AWS CLI with a positive control in the same command.
+- After the amendment: `deploy-stage` re-run applied it in 8m54s reusing the
+  image, the metric read EMPTY for the five minutes before the second injection
+  — proving `default_value` gone, while the ALB was health-checking throughout —
+  and the alarm read ALARM at +2.5 minutes and still ALARM at +5.
+- prod was exercised on purpose, not taken on trust: the change is in a SHARED
+  module, and prod once kept a broken shape here for seven weeks because a
+  shared fix was only ever run in stage. Its alarm reads `OK 5 1 notBreaching
+  aws-devops-sdet-demo/prod`, its metric is empty, and its log group is live —
+  the positive control that makes the empty metric mean something. No line was
+  injected into prod; the signal was already proven and prod was publicly
+  answering at the time.
+- Measured: `deploy-stage` #26 17m59s→17m41s (RDS created), #27 8m54s,
+  `promote-prod` #9 14m32s, `destroy prod` #20 9m47s, `destroy stage` #21 8m38s.
+- Teardown verified from the devbox under `demo-admin`, `sts` first, every
+  result under `set -e`, with a POSITIVE CONTROL in the same command: `alb`,
+  `rds`, `ecs`, `nat`, `eks` and `alarms` all empty while `ecr` returned the
+  shared registry.
+- Cost: about $0.17 at list prices — stage up ~2h across two applies, prod ~40m.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

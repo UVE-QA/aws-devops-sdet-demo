@@ -490,10 +490,17 @@ changes HCL.
      the Playwright regression suite over the edit control and the pager
      updated_at, so the database assertion after a UI edit proves an UPDATE
 
-16b  IN PROGRESS (ADR-0032)
+16b  DONE 2026-07-31 (ADR-0032)
      structured JSON logs with a request id
      a CloudWatch metric filter on 5xx plus one alarm
 ```
+
+16b closed with a full cycle too, and produced the same species of finding as
+16a: two of its four patches exist because a command disagreed with a document —
+a metric that was billable from the first health check while the ADR said it did
+not exist yet, and an alarm whose ALARM state lasted exactly sixty seconds and
+notified nobody. Neither was reachable by review. What it deliberately did NOT
+buy is an SNS topic at a permanent level, priced in ADR-0032.
 
 16a closed with a full cycle. Three of its four patches exist because something
 was run rather than reviewed: a test that skipped itself, a break test that
