@@ -22,6 +22,10 @@ and hands off here; this skill makes the suite match the new reality.
 ## What lives here
 
 ```text
+tests/unit/                         IN-PROCESS. No network, no database.
+                                    Holds the shape of the JSON access line the
+                                    5xx alarm reads (ADR-0032) - properties no
+                                    HTTP client can observe. make test-unit.
 tests/api/                          HTTP contract tests (pytest + httpx).
                                     DESTRUCTIVE. stage and local only.
 tests/playwright/tests/smoke/       READ-ONLY. project "smoke".

@@ -132,3 +132,24 @@ about two hours across two applies, prod about forty minutes.
 An SNS topic at a permanent level, so the alarm can notify. Priced in ADR-0032
 and deliberately not built here. `HTTPCode_ELB_5XX_Count` is the second alarm
 that would close the gap this one does not cover.
+
+## Documents this session edited outside its own phase
+
+`docs/session-primer.md` was changed, so **the copy in the transfer buffer had
+to be refreshed** — done, and verified by comparing it against the pushed
+version rather than by assuming the `scp` landed.
+
+The primer's suite list did not mention `tests/unit`, which meant the first file
+every session reads described a test layout that no longer existed. Fixing it
+there and stopping would have repeated the defect it was fixing: the same list
+lives in `.claude/skills/test-dev`, the make-target list in
+`.claude/skills/local-dev`, and the teardown verification in
+`.claude/skills/teardown` had no idea an environment now creates an alarm. All
+four went in one commit, per the rule that a fix reaches every copyable
+occurrence.
+
+`docs/discussion-log.md` was the miss that mattered: its "Current state" block —
+the narrative a new session reads — still said 16b had not started, while the
+cursor said it was done. Two documents in the same repository disagreeing about
+the present is exactly what the cursor exists to prevent, and it only prevents
+it if everything else defers to it.

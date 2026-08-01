@@ -47,6 +47,8 @@ curl -s localhost:8000/api/db-check   # now reports connected
 ## Run the existing suites
 
 ```bash
+make test-unit          # in-process: the shape of the JSON log line. Needs
+                        # no stack, so it can run before make local-up
 make test-spec-coverage # every spec belongs to a Playwright project
 make test-api           # HTTP contract tests (pytest+httpx), DESTRUCTIVE
 make test-smoke         # Playwright read-only suite against BASE_URL

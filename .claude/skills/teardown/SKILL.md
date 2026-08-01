@@ -56,9 +56,16 @@ aws ec2 describe-addresses        --query 'Addresses[?AssociationId==null].Publi
 aws ec2 describe-vpcs             --filters Name=isDefault,Values=false
 aws logs describe-log-groups      --query 'logGroups[].logGroupName'
 aws secretsmanager list-secrets   --query 'SecretList[].Name'
+aws cloudwatch describe-alarms    --query 'MetricAlarms[].AlarmName'
 ```
 
-Expected: all nine empty. If anything cost-bearing remains, surface it loudly —
+Since Phase 16b an environment also creates a metric filter and an alarm
+(ADR-0032). They cost nothing on their own, but an alarm left behind after a
+teardown is a claim about an environment that no longer exists — and the alarm
+disappears with its log group only if Terraform owns both, which is the point of
+checking rather than assuming.
+
+Expected: all ten empty. If anything cost-bearing remains, surface it loudly —
 do not leave it running. In a script, assign each result to a variable under
 `set -e` so a failed call aborts instead of printing an empty line.
 

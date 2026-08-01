@@ -6,24 +6,42 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
-**As of 2026-07-29.** Phase 16 was split on arrival: **16a is CLOSED** — the
-rest of the read/update surface (GET by id, PATCH, pagination, the full negative
-matrix), an inline edit control for Playwright to drive, and `updated_at`, all
-recorded in **ADR-0031** before the code. The database assertion after a UI
-action now proves an UPDATE rather than an insert with the right name: a second
-probe is renamed through the browser and the check requires
-`updated_at > created_at`. 16b — structured logs, a metric filter on 5xx, an
-alarm — has not started.
+**As of 2026-07-31.** Phase 16 was split on arrival, and both halves are now
+CLOSED. **16a** added the rest of the read/update surface (GET by id, PATCH,
+pagination, the full negative matrix), an inline edit control for Playwright to
+drive, and `updated_at`, all recorded in **ADR-0031** before the code; the
+database assertion after a UI action proves an UPDATE rather than an insert with
+the right name. **16b** added structured JSON logs with a request id, a
+CloudWatch metric filter on 5xx and one alarm, recorded in **ADR-0032**.
 
-Three things from 16a are worth carrying, and all three are the same shape. A
-test that skipped itself on its first run reported the same colour as a pass. A
-deliberate off-by-one in the list query passed all 50 contract tests, because
-every pagination assertion was about rows the test had just created — the
-newest — while an off-by-one drops the oldest; the fix was to count the walk
-against the total the API reports. And two tests that passed on localhost timed
-out against the stage ALB, because `data-loaded` is a one-way flag and a spec
-waiting on it after a click was answered by the render from before the click.
-Latency is a path, and it had never been exercised.
+16b's central point is that its two halves are one decision: the metric filter
+READS the log, so the shape of the log decides whether the alarm can exist at
+all. `status` has to be a JSON number or the filter compares strings and matches
+nothing forever; the exception path has to be logged or the most valuable 5xx is
+invisible. Neither property can be seen by an HTTP client, which is why
+`tests/unit/` exists — a fourth suite, in-process, holding the log's shape as a
+contract.
+
+The signal comes from the application's own log rather than the ALB's free
+`HTTPCode_Target_5XX_Count`, because the line names the path and the request id,
+so the alarm and the evidence are one artifact. What that choice cannot see is
+written down: an ALB answering 503 with no healthy target raises nothing here.
+And the alarm ships with no notification, because an SNS email subscription
+needs a confirmation click and a topic beside a per-cycle environment would ask
+for one every cycle — a notification channel has to outlive what it reports on,
+the fifth arrival at the ADR-0027 rule.
+
+What both halves have in common is worth carrying. From 16a: a test that skipped
+itself on its first run reported the same colour as a pass; a deliberate
+off-by-one passed all 50 contract tests because every pagination assertion was
+about the newest rows while an off-by-one drops the oldest; and two tests that
+passed on localhost timed out against the stage ALB, because latency is a path
+and it had never been exercised. From 16b: `default_value = 0` made the metric
+billable from the first ALB health check while ADR-0032 claimed it did not exist
+until the first 5xx, and the alarm held ALARM for exactly sixty seconds while
+notifying nobody. Both were found in one command's output and neither was
+reachable by review — a document and a command disagreeing, with the command
+right.
 
 The cycle that closed the phase also paid the Phase 15b debt: `setup-terraform`
 v4 and `configure-aws-credentials` v6 ran in all four dispatch-only workflows
