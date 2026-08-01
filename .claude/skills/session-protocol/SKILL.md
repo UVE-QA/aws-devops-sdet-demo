@@ -20,6 +20,9 @@ change, always read), the phase cursor (where we are), and session summaries
 
 ## On session entry
 
+**`make session-open` first.** It does 1, 5 and most of 2 below, and refuses
+rather than reminding (ADR-0033).
+
 1. `git pull` — get the current source of truth before touching anything.
 2. Read `docs/phase-gates.md` — current phase, last validated step, next allowed action.
 3. Skim `docs/decisions/` — the "why" behind the architecture. Cheap to read.
@@ -38,6 +41,11 @@ bucket bootstrapped, next is the network module") before doing work.
 - Reach for `git diff` / `git log` instead of re-explaining code changes.
 
 ## On session exit
+
+**`make session-close` first, and again at the very end.** It checks 3, 4 and 6
+below plus the things sessions actually forget - INDEX in both directions and in
+order, the narrative's date, an unpushed HEAD - and prints the Consequences of
+any ADR added (ADR-0033).
 
 1. Run the validation relevant to what you did (the operational skill says which).
 2. If the phase status changed, update `docs/phase-gates.md`.

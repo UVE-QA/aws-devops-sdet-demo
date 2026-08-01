@@ -53,6 +53,16 @@ for everything that needs thinking, planning, or judgement first.
 What must never happen: the chat inventing state instead of loading it, or a
 document reaching the repo without going through git.
 
+## A0. On the devbox, before anything else
+
+```text
+make session-open
+```
+
+It refuses to start on a working copy that is not what it claims to be, and
+prints the current phase FROM THE CURSOR rather than from memory (ADR-0033).
+The rest of this file is what it cannot do — including making you read it.
+
 ## A. Loading state — chat session
 
 **The repository is public.** Clone it into the session sandbox over HTTPS, with
@@ -95,6 +105,19 @@ Then STOP and state the phase, the next allowed step, and any blocker before
 touching anything.
 
 ## C. Closing a session
+
+```text
+make session-close
+```
+
+It fails rather than reminding: docs-check, a summary dated today linked from
+INDEX both ways, INDEX in chronological order, the narrative's date matching the
+newest session, a clean tree, a pushed HEAD, and a printout of the Consequences
+of any ADR this session added. Phase 16b was closed four times, each time
+reported complete (ADR-0033).
+
+What it cannot see is the transfer buffer — that is on the MacBook — and whether
+a summary is honest as opposed to present:
 
 ```text
 - run the relevant validation

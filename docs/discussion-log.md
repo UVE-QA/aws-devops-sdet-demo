@@ -6,13 +6,23 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
-**As of 2026-07-31.** Phase 16 was split on arrival, and both halves are now
+**As of 2026-08-01.** Phase 16 was split on arrival, and both halves are now
 CLOSED. **16a** added the rest of the read/update surface (GET by id, PATCH,
 pagination, the full negative matrix), an inline edit control for Playwright to
 drive, and `updated_at`, all recorded in **ADR-0031** before the code; the
 database assertion after a UI action proves an UPDATE rather than an insert with
 the right name. **16b** added structured JSON logs with a request id, a
 CloudWatch metric filter on 5xx and one alarm, recorded in **ADR-0032**.
+
+Since then one Ops session, **ADR-0033**. 16b closed four times, each time
+reported complete, and the exit checklist was never the problem — it lives in
+four documents and three of them were read. Prose does not run, so the two ends
+of a session became commands: `make session-open` refuses to start on a working
+copy that is not what it claims to be and prints the phase from the cursor,
+`make session-close` checks the record of the session and prints the
+Consequences of any ADR it added. Running them found that `INDEX.md` had stopped
+being chronological, which had already made the entry command report the wrong
+session.
 
 16b's central point is that its two halves are one decision: the metric filter
 READS the log, so the shape of the log decides whether the alarm can exist at

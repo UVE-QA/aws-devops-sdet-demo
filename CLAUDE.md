@@ -22,6 +22,10 @@ Key infra invariants (full detail in `docs/decisions/`):
 
 ## Start of every session (do this first)
 
+**Run `make session-open`.** It refuses on a dirty tree, an unpushed previous
+session or the wrong branch, pulls fast-forward only, and prints the current
+phase from the cursor. The steps below are what it cannot do (ADR-0033).
+
 0. Read `docs/session-primer.md` — reading order, working agreements and
    the traps that are currently live. It is a pointer, not a summary.
 1. `git pull` to get the current source of truth.
@@ -53,6 +57,12 @@ at `.claude/skills/README.md` as the map. Quick routing:
 If unsure which skill fits, read `.claude/skills/README.md` before guessing.
 
 ## End of every session (do this last)
+
+**Run `make session-close`.** It checks docs-check, that a summary dated today
+exists and is linked from INDEX in both directions, that INDEX is in
+chronological order, that the narrative's date matches the newest session, and
+that nothing is left uncommitted or unpushed - then prints the Consequences of
+any ADR this session added. The steps below are what it cannot do.
 
 1. Run the relevant validation (see the skill you used).
 2. Update `docs/phase-gates.md` if the phase status changed.

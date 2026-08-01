@@ -95,6 +95,15 @@ test-db:
 docs-check:
 	python3 scripts/check-docs-references.py
 
+# The two ends of a session, as commands rather than as prose in four documents
+# (ADR-0033). Local only: on a CI checkout the tree is always clean and HEAD
+# always matches, so the interesting checks could not fail there.
+session-open:
+	./scripts/session-open.sh
+
+session-close:
+	./scripts/session-close.sh
+
 # Secret scan over the FULL history, EVERY ref. One definition, two hosts: CI
 # installs a pinned, checksum-verified gitleaks and then calls this target, so
 # what runs in Actions is what runs on the devbox.
