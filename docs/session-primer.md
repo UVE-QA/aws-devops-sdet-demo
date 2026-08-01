@@ -168,7 +168,7 @@ Ops — devbox maintenance
   commit, not only the one being exercised.
 - A gate that has only ever been seen GREEN is indistinguishable from a gate
   that cannot fail. Break each new one on purpose, once, and keep the output.
-  Eleven have been confirmed this way: the tf-validate discovery check, the
+  Fifteen have been confirmed this way: the tf-validate discovery check, the
   Playwright spec-coverage guard, the UI-write assertion, `make docs-check` (six
   ways, including its own document list going missing), the Mermaid parse check
   (on a malformed diagram AND on a file containing no diagram at all), the prod
@@ -183,7 +183,14 @@ Ops — devbox maintenance
   (all four verdict branches on fixtures, THEN red and green in CI on a real
   starlette CVE rather than a planted one) and `make action-pins` (a tag instead
   of a SHA, a pin with its version comment removed, and the workflows directory
-  moved away). Only the rollback cost more than a minute.
+  moved away), and Phase 16b's four: the JSON access line with `status`
+  serialised as a STRING (which is how the 5xx metric filter silently matches
+  nothing forever), the naive middleware that logs only successful responses
+  (`expected exactly one access line, got 0`), the formatter's drop-list removed
+  so uvicorn's ANSI-coloured `color_message` reaches the payload, and one nobody
+  planned — `make docs-check` refusing a README change because `tests/unit` was
+  not yet tracked, the gate reading `git ls-files` and being right. Only the
+  rollback cost more than a minute.
 - A BREAK TEST THAT FAILS TO BREAK is testing your assumption about the tool,
   not the tool. On 2026-07-28 a planted AWS access key id was committed and the
   secret gate scanned it GREEN. The wiring was blameless — 120 commits scanned,
@@ -442,10 +449,18 @@ Test suites are split by DIRECTORY and bound to Playwright projects (ADR-0025).
 Where a spec lives decides where it runs:
 
 ```text
+tests/unit/                         in-process, no network — ci + local only
 tests/api/                          HTTP contract, DESTRUCTIVE, stage + local
 tests/playwright/tests/smoke/       read-only — the only suite prod runs
 tests/playwright/tests/regression/  DESTRUCTIVE — stage + local only
+tests/db/                           seed assertion, run as an ECS task in AWS
 ```
+
+`tests/unit/` (Phase 16b) is the only one that runs against IMPORTED code rather
+than a URL. It exists because the 5xx alarm reads the application's own log, so
+the shape of that log is a contract — and whether `status` is a number, or
+whether an unhandled exception is logged at all, is invisible to every HTTP
+client here (**ADR-0032**).
 
 Anything that must survive a teardown — including the artifact that PROVES the
 teardown works — belongs above the env levels. The container registry was the
