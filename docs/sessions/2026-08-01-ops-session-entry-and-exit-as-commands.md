@@ -84,3 +84,13 @@ line.
 container. The primer already says such paths must be absolute (`/app/scripts/...`)
 precisely so a repo-shaped path is not mistaken for one. Left for a session that
 is about the skills, rather than widening this one again.
+
+## The stop condition
+
+Added after this session ran long for the same reason 16b closed four times:
+nothing declared an END. The script said "the session is not over" when red and
+nothing said the green case was over, so each answer invited one more audit.
+
+`session-close: clean` is now stated, in the primer and in the `phase-gate`
+skill, as the definition of closed. Something the command cannot check is a
+reason to add a check in a LATER session, not a reason to extend this one.

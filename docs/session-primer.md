@@ -116,6 +116,12 @@ newest session, a clean tree, a pushed HEAD, and a printout of the Consequences
 of any ADR this session added. Phase 16b was closed four times, each time
 reported complete (ADR-0033).
 
+**`session-close: clean` IS the definition of closed. Stop there.** Not "keep
+looking for what else might have been missed" - that search has no stop
+condition, and its absence is what turned one phase close into four and an Ops
+session into two. Something the command cannot check is a reason to add a check,
+in a later session, not a reason to extend this one.
+
 What it cannot see is the transfer buffer — that is on the MacBook — and whether
 a summary is honest as opposed to present:
 

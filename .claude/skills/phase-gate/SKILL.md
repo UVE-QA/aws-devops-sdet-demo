@@ -52,3 +52,8 @@ Anything ambiguous → treat as not confirmed, ask again.
 Update `docs/phase-gates.md` (current phase, validated step) and have
 `session-protocol` commit the summary. The gate is the natural place to
 checkpoint into git.
+
+Then run `make session-close` (ADR-0033). **Green is the end of the session.**
+Do not keep auditing for something that might also have been missed - that is
+what the command is for, and a search with no stop condition is how Phase 16b
+took four closings and an Ops session took two.
