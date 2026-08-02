@@ -6,6 +6,36 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
+**As of 2026-08-02.** Phase 19 has its decisions and does not yet have a line
+of its code. **ADR-0034** puts the trigger on a Lambda Function URL and a GitHub
+App at a new permanent level, and says the thing the phase makes true: the
+button reverses this project's one direction of trust. Everywhere else GitHub
+authenticates to AWS over OIDC and no static AWS key exists; here AWS must
+authenticate to GitHub, where no OIDC exists, so a long-lived GitHub credential
+enters the project and the claim becomes "no static AWS keys anywhere, and
+exactly one static GitHub credential, in Secrets Manager, readable by one Lambda
+role". The lock, the day counter and the kill switch are state ABOUT a cycle, so
+they live above the environments - the sixth arrival at the ADR-0027 rule. The
+public path reaches stage and cannot reach prod by IAM rather than by an input,
+and the nonce is written down as a speed bump rather than as authorization,
+because the design goal is not that only the right people can press the button
+but that it does not matter who does.
+
+**ADR-0035** is the five refusals, with numbers instead of adjectives: TTL 90
+minutes, three launches a day, about $0.30/day worst case against the $0.09 and
+$0.17 cycles already measured. The cap fails CLOSED, since an unreadable counter
+is not zero launches today - the same sentence as the expired SSO token that
+printed nine empty lines that looked exactly like a clean account. And one
+finding, which amends the plan rather than implementing it: the out-of-band
+watchdog cannot be a cron on the Lightsail devbox. A cron has no human, the
+devbox reaches AWS through a device code somebody types, and unattended
+therefore means a static credential on disk. The domain actually distrusted is
+GitHub Actions rather than AWS - and a watchdog independent of AWS could not act
+during an AWS outage anyway - so EventBridge Scheduler plus a Lambda buys the
+same independence at no credential. Phase 19 is now 19a (scaffold, $0), 19b
+(apply and prove four refusals without a cycle) and 19c (one live launch, the
+TTL proven by killing it, and the blunt teardown path broken on purpose).
+
 **As of 2026-08-02.** Phase 18 (remaining documentation) is CLOSED, pulled
 forward of Phases 17 and 19 for the same reason Phase 12 was pulled forward of
 13 in the MVP track: it changes no infrastructure and the phases after it
