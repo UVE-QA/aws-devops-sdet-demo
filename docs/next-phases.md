@@ -538,23 +538,88 @@ application code.
 Per ADR-0017 D4. Last, deliberately: it is the only phase that hands a stranger
 the ability to spend money.
 
+Split into three on arrival, in the 19a/19b/19c shape Phase 11.1 used, because
+the parts have different costs and only the last one can be trusted:
+19a decides and scaffolds at $0, 19b applies and proves the refusals without a
+cycle, 19c is the only part that spends.
+
+**Decided ahead of 19a, in a session that built nothing: ADR-0034** (the
+trigger path) and **ADR-0035** (the guardrails). Read those rather than this
+summary — this section is the schedule; they are the reasoning. Deciding first
+and separately is deliberate here: this is the one phase where the expensive
+mistake is a design that cannot refuse, not an implementation that is wrong.
+
 ```text
-trigger     dashboard button → Lambda Function URL → one-time expiring token →
-            GitHub App → workflow_dispatch
-guardrails  MANDATORY, not optional:
-            - single-run concurrency group
-            - a per-day run cap
-            - a hard TTL auto-destroy after 60-90 minutes regardless of outcome
-            - a reaction to the budget alarm
-            - an OUT-OF-BAND watchdog: a cron on the Lightsail devbox that
-              independently tears down anything running past its TTL. Its value
-              is the separate failure domain — if Actions itself is broken or a
-              workflow dies before its destroy step, the money still stops.
-results     the run's report is published to the dashboard automatically
+trigger     dashboard button -> Lambda Function URL -> one-time nonce ->
+            GitHub App installation token -> workflow_dispatch, stage only
+guardrails  MANDATORY, and each one is a REFUSAL with a break test:
+            - one run at a time, refused by the Lambda (Actions only queues)
+            - a per-day cap that FAILS CLOSED when its store is unreadable
+            - a hard TTL auto-destroy, in-band and out-of-band
+            - a kill switch flipped by the budget alarm - a slow backstop,
+              and honest about being one
+            - an out-of-band watchdog, on EventBridge rather than on the
+              devbox: see the amendment below
+results     the run's report is published to the dashboard automatically,
+            by the machinery that already publishes status.json (ADR-0026)
 ```
 
-A self-service ephemeral environment with cost controls is essentially a
-miniature internal developer platform — a strong exhibit in its own right.
+**Amendment to this plan, made in 19a and recorded as ADR-0035 §5.** This
+section previously specified the watchdog as a cron on the Lightsail devbox. The
+requirement — a failure domain separate from GitHub Actions — is right; the
+mechanism is not. A cron has no human, and the devbox reaches AWS through IAM
+Identity Center with a device code somebody types, so an unattended path from
+that machine means a static credential on disk. The project's loudest invariant
+is that none exists. Since the domain actually distrusted is Actions rather than
+AWS, EventBridge Scheduler plus a Lambda buys the same independence and needs no
+credential that outlives a request.
+
+### 19a — scaffold  [$0, nothing applied]
+
+The decisions are already made (ADR-0034, ADR-0035). What is left is code that
+nobody has run:
+
+```text
+infra/self-service/          the new permanent level, written not applied
+.github/workflows/self-service.yml
+the Lambda handler, with its refusal logic in tests/unit/ - the precedent
+  is Phase 16b: a property no HTTP client can see belongs in-process
+the dashboard button, behind a flag, pointing at nothing yet
+```
+
+Closes when it is written, validated statically (`make tf-validate`,
+`make test-unit`, `make iac-scan`, `make docs-check`) and nothing has been
+applied.
+
+### 19b — apply the level, and prove every refusal without a cycle
+
+```text
+apply infra/self-service under demo-admin
+create the GitHub App by hand, install it, paste the key into Secrets Manager
+  - out-of-git state, documented beside the NS record and the protection rules
+break tests 1, 2 and 4: the lock, the cap (both ways, including the store
+  being unreadable), and the kill switch
+```
+
+Four of the five refusals can be shown without ever creating an environment,
+which is why they come before the cycle rather than during it. Closes when each
+has been seen refusing, with the output kept.
+
+### 19c — one live launch, and the TTL proven by killing it
+
+```text
+press the button as an anonymous visitor, from a machine that has never held
+  a credential for this account
+let the cycle run to completion; the dashboard reports it
+then a SECOND launch, cancelled mid-deploy, to prove break test 3
+then the blunt path of break test 5, against a real environment, with the
+  AWS CLI as the witness
+```
+
+The blunt path is the one that never runs in a normal cycle, and therefore the
+one this project has learned to distrust. Closes when the account is verified
+empty from the devbox, with a positive control in the same command, and the
+measured cost is recorded.
 
 ---
 

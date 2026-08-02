@@ -29,12 +29,18 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 16a   | Contract depth + regression    | ✅ done     | sessions/2026-07-29-phase-16a-contract-depth.md |
 | 16b   | Structured logs + 5xx alarm    | ✅ done     | sessions/2026-07-31-phase-16b-structured-logs-and-5xx-alarm.md |
 | 18    | Remaining documentation        | ✅ done     | sessions/2026-08-02-phase-18-documentation.md |
+| 19.0  | Self-service: decisions + plan | ✅ done (19a-c open) | sessions/2026-08-02-phase-19-0-decisions-and-plan.md |
 
-Phase 17 (prod data continuity) and Phase 19 (guarded self-service launch) are
-still open, in `docs/next-phases.md`. Phase 18 was pulled forward of them
-because it changes no infrastructure and both remaining phases benefit from it
-existing first - 19 in particular needs the FinOps talking points and the
-measured per-cycle cost this phase records.
+Phase 17 (prod data continuity) is still open and still optional, in
+`docs/next-phases.md`. Phase 18 was pulled forward of both remaining phases
+because it changes no infrastructure and both draw on it - 19 in particular
+needs the FinOps talking points and the measured per-cycle cost it records.
+
+Phase 19 is now SPLIT into 19a (scaffold, $0), 19b (apply and prove the
+refusals without a cycle) and 19c (one live launch, and the TTL proven by
+killing it). Its two decisions were made ahead of all three, in the session
+recorded above: **ADR-0034** for the trigger path and **ADR-0035** for the
+guardrails. Nothing has been built or applied.
 
 Phases 9-19 are planned in `docs/next-phases.md` (MVP track 9-13, polish
 track 14-19), shaped by ADR-0017. This table tracks only what is done.
@@ -1271,6 +1277,49 @@ were the same shape — a page saying something it was not in a position to say:
   applying the Phase 12 standard): the documents describe what is actually
   built, every command and path in them checked rather than assumed, and
   nothing in them describes a later phase as though it were done. **MET.**
+- Cost: **$0**.
+
+### Phase 19.0 — Self-service: decisions and plan  [DONE 2026-08-02]
+- Plan: `docs/next-phases.md` Phase 19, which this session amended. Two ADRs,
+  no code, nothing applied. Deliberately decisions-only: Phase 19 is the one
+  phase where the expensive mistake is a design that cannot refuse.
+- **ADR-0034 — the trigger path.** A Lambda Function URL and a GitHub App, at
+  a new permanent state level. The button reverses this project's one direction
+  of trust: everywhere else GitHub authenticates to AWS through OIDC, and here
+  AWS has to authenticate to GitHub, where no OIDC exists. So the claim "no
+  static keys anywhere" becomes "no static AWS keys anywhere, and exactly one
+  static GitHub credential in Secrets Manager, readable by one Lambda role".
+  Stated rather than discovered at interview.
+- **The sixth arrival at the ADR-0027 rule.** The lock, the day counter and the
+  kill switch are state ABOUT a cycle, so a control living inside the
+  environment it controls is destroyed by the thing it is controlling.
+  Registry, hosted zone, dashboard, release pointer, notification channel, and
+  now a spend control.
+- **The public path cannot reach prod, by IAM rather than by an input.** The
+  launch workflow resolves the stage deploy role only and declares no prod
+  environment, so no value of any input produces a prod credential.
+- **The nonce is a speed bump and is labelled as one.** Whoever can read the
+  page can get one; it is not authorization. The design goal is not "only the
+  right people can press it" but "it does not matter who presses it", which is
+  why the cost bound has to hold under an adversary.
+- **ADR-0035 — five guardrails, five refusals, five break tests**, with real
+  numbers rather than adjectives: TTL 90 minutes, three launches a day, worst
+  case about $0.30/day against the $0.09 and $0.17 cycles already measured.
+  The cap FAILS CLOSED - an unreadable counter is not zero launches today,
+  the same sentence as the expired SSO token that printed nine empty lines.
+- **One finding, and it amends the plan rather than implementing it.** The
+  out-of-band watchdog was specified as a cron on the Lightsail devbox. A cron
+  has no human, and the devbox reaches AWS through IAM Identity Center with a
+  device code somebody types - so an unattended path from there means a static
+  credential on disk, against the project's loudest invariant. The domain
+  actually distrusted is GitHub Actions, not AWS, and a watchdog independent of
+  Actions need not be independent of AWS - one that were could not act anyway.
+  EventBridge Scheduler plus a Lambda buys the same independence at no
+  credential. Recorded as ADR-0035 §5 and amended in `docs/next-phases.md`.
+- Criteria to close: the two decisions recorded before anything is built, the
+  plan split into fundable pieces, and the one place the plan contradicted an
+  invariant found and corrected. **MET.** Nothing was applied; no AWS API was
+  called this session.
 - Cost: **$0**.
 
 ## Confirmation protocol
