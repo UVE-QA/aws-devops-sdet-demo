@@ -518,7 +518,7 @@ Aurora Serverless v2 with scale-to-zero                — data survives idle,
                                                          storage-only cost
 ```
 
-## Phase 18 — Remaining documentation
+## Phase 18 — Remaining documentation  [DONE 2026-08-02]
 
 ```text
 docs/cost-control.md              real per-cycle cost, the budget alarm,
@@ -527,6 +527,11 @@ docs/interview-talking-points.md  per role: DevOps / Cloud / SDET / Security / F
 docs/lightsail-devbox.md          devbox setup, SSH, the browser-SSH gotchas,
                                   and its role in the architecture
 ```
+
+Delivered as written above, no scope change. See `docs/phase-gates.md` Phase 18
+and `docs/sessions/2026-08-02-phase-18-documentation.md`. No cycle run, the same
+deliberate exception as Phase 12 — nothing here touches HCL, a workflow, or
+application code.
 
 ## Phase 19 — Guarded self-service launch (external access, Wave B)
 

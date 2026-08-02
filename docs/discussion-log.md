@@ -6,6 +6,21 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
+**As of 2026-08-02.** Phase 18 (remaining documentation) is CLOSED, pulled
+forward of Phases 17 and 19 for the same reason Phase 12 was pulled forward of
+13 in the MVP track: it changes no infrastructure and the phases after it
+benefit from it existing first. Three documents: `docs/cost-control.md` (the
+permanent-vs-per-cycle cost split, and the two cycle costs already measured
+closing 16a and 16b, cited rather than re-derived), `docs/interview-talking-points.md`
+(five roles, every point traced to an ADR or a session summary), and
+`docs/lightsail-devbox.md` (the devbox's role versus the AWS deploy target, the
+SSH tunnel, and the two non-default login flags this project has needed since
+Phase 1). No ADR — no structural decision, nothing to record beyond the phase
+gate itself. None of the three joins the LIVING set `docs-check` enforces; every
+ADR number, `make` target and repository path they cite was checked by hand
+against the working copy instead, the same four kinds of claim the mechanical
+check makes for the narrower living set.
+
 **As of 2026-08-01.** Phase 16 was split on arrival, and both halves are now
 CLOSED. **16a** added the rest of the read/update surface (GET by id, PATCH,
 pagination, the full negative matrix), an inline edit control for Playwright to

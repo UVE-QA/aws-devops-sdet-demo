@@ -28,6 +28,13 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 15b   | Trivy + Checkov + action pins  | ✅ done     | sessions/2026-07-28-phase-15b-scanning-gates.md |
 | 16a   | Contract depth + regression    | ✅ done     | sessions/2026-07-29-phase-16a-contract-depth.md |
 | 16b   | Structured logs + 5xx alarm    | ✅ done     | sessions/2026-07-31-phase-16b-structured-logs-and-5xx-alarm.md |
+| 18    | Remaining documentation        | ✅ done     | sessions/2026-08-02-phase-18-documentation.md |
+
+Phase 17 (prod data continuity) and Phase 19 (guarded self-service launch) are
+still open, in `docs/next-phases.md`. Phase 18 was pulled forward of them
+because it changes no infrastructure and both remaining phases benefit from it
+existing first - 19 in particular needs the FinOps talking points and the
+measured per-cycle cost this phase records.
 
 Phases 9-19 are planned in `docs/next-phases.md` (MVP track 9-13, polish
 track 14-19), shaped by ADR-0017. This table tracks only what is done.
@@ -1215,6 +1222,56 @@ were the same shape — a page saying something it was not in a position to say:
   `rds`, `ecs`, `nat`, `eks` and `alarms` all empty while `ecr` returned the
   shared registry.
 - Cost: about $0.17 at list prices — stage up ~2h across two applies, prod ~40m.
+
+### Phase 18 — Remaining documentation  [DONE 2026-08-02]
+- Plan: `docs/next-phases.md` Phase 18. No ADR — pure documentation, no new
+  structural decision, no invariant introduced.
+- Delivered:
+```text
+  docs/cost-control.md              the permanent vs per-cycle split, real
+                                    Terraform defaults, the two measured
+                                    cycle costs already on record (16a
+                                    $0.09, 16b $0.17), the budget alarm
+                                    config, and the "always destroy" rule
+  docs/interview-talking-points.md  DevOps / Cloud / QA-SDET / Security /
+                                    FinOps, each point traced to an ADR or
+                                    a session summary rather than to what
+                                    the project was supposed to become
+  docs/lightsail-devbox.md          the devbox's role versus the AWS
+                                    deploy target, the SSH tunnel, both
+                                    non-default login flags and why each
+                                    is needed, session-open's place in it
+```
+- **None of the three joins the LIVING set** `scripts/check-docs-references.py`
+  enforces (README.md, architecture, demo-script, phase-gates, session-primer,
+  transfer-buffer) — that list is deliberately narrow, and widening it is a
+  separate decision this phase did not make. Every `make <target>`, ADR number,
+  and repository path the three documents cite was still checked by hand against
+  this working copy before this patch, the same four kinds of claim
+  `docs-check` verifies mechanically for the living set:
+```bash
+  grep -ohE 'ADR-[0-9]{4}' docs/cost-control.md docs/interview-talking-points.md \
+    docs/lightsail-devbox.md | sort -u    # 12 references, all resolve under
+                                          # docs/decisions/
+  grep -ohE 'make [a-zA-Z0-9_.-]+' <same three files>   # 2 references
+                                          # (session-open, tf-validate),
+                                          # both real Makefile targets
+  <every infra/, docs/, tests/, .github/ path cited>    # all exist
+```
+  Zero findings on all three kinds. `make docs-check` itself was also re-run
+  unchanged, to confirm this phase did not regress the living set:
+```bash
+  make docs-check   # 6 documents, 0 findings
+```
+- **No cycle was run, same deliberate exception as Phase 12**: no HCL, no
+  AWS-touching workflow and no application code changed. The cost figures in
+  `docs/cost-control.md` are the ones already measured and recorded closing
+  16a and 16b, cited rather than re-derived.
+- Criteria to close (`docs/next-phases.md` Phase 18 has none written explicitly;
+  applying the Phase 12 standard): the documents describe what is actually
+  built, every command and path in them checked rather than assumed, and
+  nothing in them describes a later phase as though it were done. **MET.**
+- Cost: **$0**.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,
