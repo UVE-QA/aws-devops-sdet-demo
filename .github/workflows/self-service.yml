@@ -1,0 +1,352 @@
+name: self-service
+
+# The run has to name itself. The dashboard reads this repository's runs
+# ANONYMOUSLY, and the anonymous API does not expose workflow_dispatch inputs -
+# so without the launch id in the run's NAME, a visitor cannot be told that the
+# run they are watching is the run they started (ADR-0026, ADR-0034).
+run-name: self-service launch ${{ inputs.launch_id }}
+
+# A public launch. Dispatched by the Lambda behind the dashboard button, never
+# by a push. Everything that decides WHETHER this may run has already happened
+# before the dispatch: the kill switch, the nonce, the lock and the day counter
+# are all evaluated in the Lambda, against a store at a permanent level
+# (ADR-0035). By the time this file executes, the launch has been permitted.
+#
+# WHAT THIS WORKFLOW GUARANTEES ON ITS OWN
+#
+#   - it deploys STAGE and only stage. There is no environment input, and it
+#     declares no prod environment, so no value of anything here resolves a prod
+#     credential (ADR-0034)
+#   - it destroys what it created, `if: always()`, including when the tests fail
+#   - it finishes inside its own timeout, which is strictly LESS than the TTL,
+#     so a hung run reaches its own destroy before the deadline it is held to
+#   - it releases the lock in a final job that also runs `if: always()`
+#
+# WHAT IT CANNOT GUARANTEE, WHICH IS WHY THE WATCHDOG EXISTS
+#
+# `if: always()` is a promise made by the thing that might not be there. A
+# force-cancelled run, a dead runner, or GitHub being unavailable all skip it.
+# EventBridge Scheduler plus a Lambda cover that case, out of band (ADR-0035).
+
+on:
+  workflow_dispatch:
+    inputs:
+      launch_id:
+        description: "Id issued by the launch endpoint. Appears in the run name."
+        required: true
+        type: string
+      ttl_minutes:
+        description: "Hard deadline for this environment, in minutes. Written into the ExpiresAt tag the watchdog reads."
+        required: true
+        type: string
+
+# A SECOND layer, not the guardrail. GitHub's concurrency does not refuse: it
+# queues, or it cancels. `cancel-in-progress: true` would cancel a run
+# mid-deploy, which is exactly how an environment is left half-created with
+# nothing left to destroy it. The refusal that matters is in the Lambda; this
+# only covers the race between its check and its dispatch.
+concurrency:
+  group: self-service
+  cancel-in-progress: false
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  launch:
+    runs-on: ubuntu-latest
+    environment: stage
+    # Strictly below the 90-minute TTL (ADR-0035 guardrail 3): a hung run has to
+    # reach its own destroy job before the deadline it is being held to. These
+    # two numbers are coupled - changing var.ttl_minutes without changing these
+    # breaks the in-band half of the guarantee.
+    timeout-minutes: 45
+    outputs:
+      alb_url: ${{ steps.tf.outputs.alb_url }}
+      expires_at: ${{ steps.deadline.outputs.expires_at }}
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      TF_VAR_demo_account_id: ${{ vars.TF_VAR_demo_account_id }}
+      TF_VAR_budget_email: ${{ secrets.TF_VAR_BUDGET_EMAIL }}
+      TF_VAR_owner: ${{ vars.TF_VAR_owner }}
+      TF_VAR_launch_id: ${{ inputs.launch_id }}
+    steps:
+      - name: Compute the deadline this environment carries
+        id: deadline
+        run: |
+          set -euo pipefail
+          # The tag is the watchdog's key, and it is written here rather than
+          # passed in by the Lambda so that the deadline and the resources are
+          # created by the same operation. A resource that exists without one is
+          # treated as EXPIRED, never as exempt.
+          ttl="${{ inputs.ttl_minutes }}"
+          case "$ttl" in ''|*[!0-9]*) echo "::error::ttl_minutes must be a positive integer"; exit 1;; esac
+          echo "expires_at=$(date -u -d "+${ttl} minutes" +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: "1.15.5"
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
+        with:
+          role-to-assume: ${{ vars.OIDC_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@d539f0932e70871a027e9d5a9d8fc38589180a64 # v2.1.6
+
+      - name: Terraform init (S3 backend)
+        working-directory: infra/envs/stage
+        run: terraform init -input=false
+
+      - name: Resolve shared ECR repository URL
+        id: repo
+        shell: bash
+        env:
+          ECR_REPOSITORY: aws-devops-sdet-demo-app
+        run: |
+          set -euo pipefail
+          url="$(aws ecr describe-repositories \
+                   --region "$AWS_REGION" \
+                   --repository-names "$ECR_REPOSITORY" \
+                   --query 'repositories[0].repositoryUri' --output text 2>/dev/null || true)"
+          if [ -z "$url" ] || [ "$url" = "None" ]; then
+            echo "::error::shared ECR repository $ECR_REPOSITORY not found — apply infra/shared-ecr first (ADR-0018)"
+            exit 1
+          fi
+          echo "ecr_url=$url" >> "$GITHUB_OUTPUT"
+
+      - name: Build, tag, and push image
+        env:
+          ECR_URL: ${{ steps.repo.outputs.ecr_url }}
+          ECR_REPOSITORY: aws-devops-sdet-demo-app
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          # The registry is IMMUTABLE (ADR-0029), so an existing tag is reused
+          # rather than rebuilt. On the public path that is also the common case:
+          # every launch runs the same commit.
+          if aws ecr describe-images --region "$AWS_REGION" \
+               --repository-name "$ECR_REPOSITORY" \
+               --image-ids imageTag="$IMAGE_TAG" >/dev/null 2>&1; then
+            echo "$IMAGE_TAG is already in $ECR_REPOSITORY - reusing it, not rebuilding"
+            exit 0
+          fi
+          docker build -t "$ECR_URL:$IMAGE_TAG" ./app
+          docker push "$ECR_URL:$IMAGE_TAG"
+
+      - name: Terraform apply
+        working-directory: infra/envs/stage
+        env:
+          TF_VAR_app_image: ${{ steps.repo.outputs.ecr_url }}:${{ github.sha }}
+          TF_VAR_expires_at: ${{ steps.deadline.outputs.expires_at }}
+        run: |
+          terraform plan -input=false -out=tfplan
+          terraform apply -input=false -auto-approve tfplan
+
+      - name: Read stage outputs
+        id: tf
+        working-directory: infra/envs/stage
+        run: |
+          {
+            echo "cluster=$(terraform output -raw ecs_cluster_name)"
+            echo "service=$(terraform output -raw ecs_service_name)"
+            echo "task_def=$(terraform output -raw task_definition_arn)"
+            echo "container=$(terraform output -raw container_name)"
+            echo "sg=$(terraform output -raw ecs_app_security_group_id)"
+            echo "alb_url=$(terraform output -raw alb_url)"
+            echo "subnets=$(terraform output -json public_subnet_ids | jq -r 'join(",")')"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Wait for ECS service to be stable
+        run: |
+          aws ecs wait services-stable \
+            --cluster "${{ steps.tf.outputs.cluster }}" \
+            --services "${{ steps.tf.outputs.service }}"
+
+      - name: Run one-off tasks (migrate, seed, db-assert)
+        env:
+          CLUSTER: ${{ steps.tf.outputs.cluster }}
+          TASK_DEF: ${{ steps.tf.outputs.task_def }}
+          CONTAINER: ${{ steps.tf.outputs.container }}
+          SUBNETS: ${{ steps.tf.outputs.subnets }}
+          SG: ${{ steps.tf.outputs.sg }}
+        run: |
+          scripts/ecs-run-task.sh migrate   '["alembic","upgrade","head"]'
+          scripts/ecs-run-task.sh seed      '["python","scripts/seed.py"]'
+          scripts/ecs-run-task.sh db-assert '["python","scripts/assert_seed.py"]'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "20"
+
+      - name: Playwright smoke against the ALB
+        working-directory: tests/playwright
+        env:
+          BASE_URL: ${{ steps.tf.outputs.alb_url }}
+        run: |
+          # SMOKE ONLY, and the project is named explicitly. The destructive
+          # regression suite belongs on stage and is deliberately left out here:
+          # a public launch is a demonstration under a deadline, and the visitor
+          # gets a working environment rather than one a test suite has been
+          # writing to. A bare `playwright test` would silently adopt both.
+          npm install
+          npx playwright install --with-deps chromium
+          npx playwright test --project=smoke
+
+      - name: Observe what stage has in AWS
+        if: always()
+        env:
+          APP_URL: ${{ steps.tf.outputs.alb_url }}
+        run: scripts/observe-environment.sh stage > /tmp/observation.json
+
+      - name: Configure AWS credentials (OIDC, publish role)
+        if: always()
+        uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
+        with:
+          role-to-assume: ${{ vars.SITE_PUBLISH_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Publish status to the dashboard
+        if: always()
+        env:
+          SITE_BUCKET: ${{ vars.SITE_BUCKET }}
+          SITE_DISTRIBUTION_ID: ${{ vars.SITE_DISTRIBUTION_ID }}
+          SITE_BASE_URL: ${{ vars.SITE_URL }}
+          JOB_STATUS: ${{ job.status }}
+        run: scripts/publish-status.sh stage /tmp/observation.json
+
+  # The in-band half of guardrail 3. `if: always()` so a failed deploy, a failed
+  # smoke and a cancelled test step all still tear the environment down.
+  destroy:
+    needs: launch
+    if: always()
+    runs-on: ubuntu-latest
+    environment: stage
+    timeout-minutes: 30
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      TF_VAR_demo_account_id: ${{ vars.TF_VAR_demo_account_id }}
+      TF_VAR_budget_email: ${{ secrets.TF_VAR_BUDGET_EMAIL }}
+      TF_VAR_owner: ${{ vars.TF_VAR_owner }}
+      TF_VAR_launch_id: ${{ inputs.launch_id }}
+      TF_VAR_expires_at: ${{ needs.launch.outputs.expires_at }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: "1.15.5"
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
+        with:
+          role-to-assume: ${{ vars.OIDC_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Terraform init
+        working-directory: infra/envs/stage
+        run: terraform init -input=false
+
+      - name: Destroy ALB first (release ENIs before the IGW)
+        working-directory: infra/envs/stage
+        run: terraform destroy -input=false -auto-approve -target=module.alb
+
+      - name: Terraform destroy
+        working-directory: infra/envs/stage
+        run: terraform destroy -input=false -auto-approve
+
+      - name: Verify no billable stage resources remain
+        run: |
+          set -euo pipefail
+          # `sts` FIRST and every result assigned under `set -e`. A check whose
+          # credentials have expired prints empty lines, and empty lines are
+          # exactly what a clean account looks like.
+          aws sts get-caller-identity --query Account --output text
+          REGION="${{ vars.AWS_REGION }}"
+          PREFIX="aws-devops-sdet-demo-stage"
+          leftovers=0
+          ecs=$(aws ecs list-clusters --region "$REGION" --query "clusterArns[?contains(@, '$PREFIX')]" --output text)
+          rds=$(aws rds describe-db-instances --region "$REGION" --query "DBInstances[?starts_with(DBInstanceIdentifier, '$PREFIX')].DBInstanceIdentifier" --output text)
+          alb=$(aws elbv2 describe-load-balancers --region "$REGION" --query "LoadBalancers[?starts_with(LoadBalancerName, '$PREFIX')].LoadBalancerName" --output text)
+          echo "ecs: ${ecs:-<none>}"; [ -n "$ecs" ] && leftovers=$((leftovers+1))
+          echo "rds: ${rds:-<none>}"; [ -n "$rds" ] && leftovers=$((leftovers+1))
+          echo "alb: ${alb:-<none>}"; [ -n "$alb" ] && leftovers=$((leftovers+1))
+          if [ "$leftovers" -ne 0 ]; then
+            echo "::error::$leftovers resource group(s) still present after a public launch"
+            exit 1
+          fi
+          echo "OK: nothing billable remains from launch ${{ inputs.launch_id }}"
+
+      - name: Observe the destroyed environment
+        if: always()
+        run: scripts/observe-environment.sh stage > /tmp/observation.json
+
+      - name: Configure AWS credentials (OIDC, publish role)
+        if: always()
+        uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
+        with:
+          role-to-assume: ${{ vars.SITE_PUBLISH_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Publish status to the dashboard
+        if: always()
+        env:
+          SITE_BUCKET: ${{ vars.SITE_BUCKET }}
+          SITE_DISTRIBUTION_ID: ${{ vars.SITE_DISTRIBUTION_ID }}
+          SITE_BASE_URL: ${{ vars.SITE_URL }}
+          JOB_STATUS: ${{ job.status }}
+        run: scripts/publish-status.sh stage /tmp/observation.json
+
+  # Guardrail 1's other half: the lock is taken by the Lambda and released here.
+  #
+  # Its own GitHub Environment, and its own role, which can delete exactly one
+  # item in one table and do nothing else in the account. The stage deploy role
+  # is not used for this on purpose - releasing a lock is not a deploy, and the
+  # narrower credential is the one that can be described in a sentence.
+  #
+  # If this job never runs, nothing is stuck forever: the lock's expiry IS the
+  # TTL, and an expired lock can be taken over.
+  release-lock:
+    needs: [launch, destroy]
+    if: always()
+    runs-on: ubuntu-latest
+    environment: self-service
+    timeout-minutes: 5
+    steps:
+      - name: Configure AWS credentials (OIDC, callback role)
+        uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
+        with:
+          role-to-assume: ${{ vars.SELF_SERVICE_CALLBACK_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Release the launch lock
+        env:
+          TABLE: ${{ vars.SELF_SERVICE_TABLE }}
+          LAUNCH_ID: ${{ inputs.launch_id }}
+        run: |
+          set -euo pipefail
+          aws sts get-caller-identity --query Arn --output text
+          # Conditional: only THIS launch's lock. A run that overran its TTL and
+          # was superseded must not delete the lock of the launch that replaced
+          # it - the second one is still running, and would then be joined by a
+          # third.
+          if aws dynamodb delete-item \
+               --table-name "$TABLE" \
+               --key '{"pk":{"S":"lock"}}' \
+               --condition-expression 'launch_id = :id' \
+               --expression-attribute-values "{\":id\":{\"S\":\"$LAUNCH_ID\"}}" 2>/dev/null; then
+            echo "released the lock held by $LAUNCH_ID"
+          else
+            echo "the lock is not ours (superseded, or already released). Left alone."
+          fi

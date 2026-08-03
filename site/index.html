@@ -207,6 +207,19 @@
 
       <div id="banners"></div>
 
+      <!-- The button, behind a flag and pointing at nothing until 19b applies
+           infra/self-service. Hidden entirely while disabled: a control that is
+           visible and inert is worse than one that is absent, because a visitor
+           cannot tell it apart from one that is broken. -->
+      <div id="launch" hidden>
+        <h2>Launch it yourself <span class="note">&mdash; stage only, on a deadline</span></h2>
+        <div class="card">
+          <p class="why" id="launch-why"></p>
+          <button id="launch-button" type="button">Launch a stage environment</button>
+          <p class="why" id="launch-result"></p>
+        </div>
+      </div>
+
       <h2>Environments <span class="note">&mdash; observed in AWS, not inferred from a green run</span></h2>
       <div class="grid" id="environments">
         <div class="card"><p class="why">Reading <code>status/stage.json</code> and <code>status/prod.json</code>&hellip;</p></div>
@@ -297,7 +310,30 @@
       var WRITERS = {
         ".github/workflows/deploy-stage.yml": ["stage"],
         ".github/workflows/promote-prod.yml": ["prod"],
+        // A public launch deploys AND destroys stage, so it writes stage's
+        // status file exactly as deploy-stage does. Leaving it out would make a
+        // visitor's own launch unable to keep the panel it is updating fresh.
+        ".github/workflows/self-service.yml": ["stage"],
         ".github/workflows/destroy.yml": null // resolved from the run name, see below
+      };
+
+      // Phase 19a: WRITTEN, NOT WIRED. The endpoint does not exist yet - the
+      // level that creates it has not been applied. `enabled` becomes true in
+      // 19b, when there is a URL to put here.
+      //
+      // What this control is NOT: authorization. The nonce it fetches is a speed
+      // bump (ADR-0034) - whoever can read this page can get one. The cost bound
+      // is the five refusals in ADR-0035, all of which live server-side, because
+      // anything enforced in this file is enforced by the visitor's browser.
+      //
+      // And what the page says about a launch still comes from the runs API and
+      // status.json, never from the endpoint's own answer (ADR-0026). The reply
+      // below is an acknowledgement, not a report.
+      var SELF_SERVICE = {
+        enabled: false,
+        endpoint: "",
+        ttlMinutes: 90,
+        dailyCap: 3
       };
 
       var state = {
@@ -685,9 +721,65 @@
         el("history").innerHTML = h + "</tbody></table>";
       }
 
+      // ---- the launch control ------------------------------------------------
+      function renderLaunch() {
+        if (!SELF_SERVICE.enabled || !SELF_SERVICE.endpoint) return;
+        el("launch").hidden = false;
+        el("launch-why").textContent =
+          "Starts one stage environment, destroys it after " + SELF_SERVICE.ttlMinutes +
+          " minutes whatever happens, and allows " + SELF_SERVICE.dailyCap +
+          " launches a day. One at a time. Everything below is reported by the " +
+          "Actions API and by the environment itself, not by the button.";
+      }
+
+      function launchResult(text) { el("launch-result").textContent = text; }
+
+      // Two calls, because the nonce is single-use and issued per press. Every
+      // refusal has a `code` and a `message` written to be read by whoever
+      // pressed the button, so they are rendered as-is rather than replaced by
+      // something friendlier that says less.
+      function launch() {
+        var button = el("launch-button");
+        button.disabled = true;
+        launchResult("asking for a slot\u2026");
+
+        fetch(SELF_SERVICE.endpoint, { method: "GET" })
+          .then(function (r) { return r.json(); })
+          .then(function (issued) {
+            return fetch(SELF_SERVICE.endpoint, {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({ nonce: issued.nonce, launch_id: issued.launch_id })
+            }).then(function (r) {
+              return r.json().then(function (body) { return { ok: r.ok, body: body }; });
+            });
+          })
+          .then(function (result) {
+            if (!result.ok) {
+              launchResult("refused (" + esc(result.body.code) + "): " + esc(result.body.message));
+              return;
+            }
+            launchResult(
+              "started. Look for the run named \u201c" + esc(result.body.run_name) +
+              "\u201d below \u2014 that name is how this page knows it is yours."
+            );
+            load();
+          })
+          .catch(function (err) {
+            // A failed fetch says nothing about whether a launch started. Saying
+            // so beats guessing in either direction.
+            launchResult(
+              "the endpoint could not be reached: " + esc(err.message || String(err)) +
+              ". Check the runs below before pressing again."
+            );
+          })
+          .then(function () { button.disabled = false; });
+      }
+
       function renderAll() {
         renderClocks();
         renderBanners();
+        renderLaunch();
         renderEnvironments();
         renderCycle();
         renderHistory();
@@ -749,6 +841,7 @@
       function load() { return tick(true); }
 
       el("refresh").addEventListener("click", function () { load(); });
+      el("launch-button").addEventListener("click", function () { launch(); });
       load();
     </script>
   </body>
