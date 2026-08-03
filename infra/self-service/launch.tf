@@ -33,7 +33,7 @@ resource "aws_iam_role" "launch" {
 
 data "aws_iam_policy_document" "launch" {
   statement {
-    sid     = "ControlStore"
+    sid = "ControlStore"
     actions = [
       "dynamodb:GetItem",
       "dynamodb:PutItem",

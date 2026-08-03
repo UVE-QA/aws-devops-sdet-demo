@@ -30,7 +30,7 @@ resource "aws_iam_role" "watchdog" {
 
 data "aws_iam_policy_document" "watchdog" {
   statement {
-    sid     = "ControlStore"
+    sid = "ControlStore"
     actions = [
       "dynamodb:GetItem",
       "dynamodb:PutItem",
@@ -49,7 +49,7 @@ data "aws_iam_policy_document" "watchdog" {
   # Reads. None of these APIs supports resource-level permissions, so the
   # scoping that matters is on the DELETES below.
   statement {
-    sid     = "ObserveTheEnvironment"
+    sid = "ObserveTheEnvironment"
     actions = [
       "ecs:ListClusters",
       "ecs:ListServices",
@@ -80,7 +80,7 @@ data "aws_iam_policy_document" "watchdog" {
   # NO Launch tag at all, a StringNotEquals condition evaluates TRUE, which is
   # the sort of quiet default that turns a policy into decoration.
   statement {
-    sid     = "BluntTeardownOfPublicLaunchesInStageOnly"
+    sid = "BluntTeardownOfPublicLaunchesInStageOnly"
     actions = [
       "ecs:UpdateService",
       "ecs:DeleteService",
@@ -168,7 +168,7 @@ resource "aws_iam_role" "scheduler" {
   name = "${local.name_prefix}-scheduler"
 
   assume_role_policy = jsonencode({
-    Version   = "2012-10-17"
+    Version = "2012-10-17"
     Statement = [{
       Effect    = "Allow"
       Action    = "sts:AssumeRole"
@@ -189,7 +189,7 @@ resource "aws_iam_role_policy" "scheduler" {
   role = aws_iam_role.scheduler.id
 
   policy = jsonencode({
-    Version   = "2012-10-17"
+    Version = "2012-10-17"
     Statement = [{
       Effect   = "Allow"
       Action   = "lambda:InvokeFunction"
