@@ -57,8 +57,10 @@ logs         CloudWatch, stream `app/app/<task-id>`. The prefix is `app`, so the
 
 ## The seven state levels
 
-Five permanent, two per cycle. This split is the single most important line in
-the design.
+Six permanent, two per cycle. This split is the single most important line in
+the design. The sixth, `infra/self-service`, is written and **not applied** -
+Phase 19a; it is drawn below because `make tf-validate` discovers it and CI
+validates it, not because anything in AWS answers for it yet.
 
 ```mermaid
 flowchart TB
@@ -69,6 +71,7 @@ flowchart TB
     e[shared-ecr<br/>the registry prod<br/>promotes from]
     d[dns<br/>delegated zone<br/>ALB certificate]
     s[public-site<br/>dashboard S3 + CloudFront<br/>us-east-1 certificate]
+    ss[self-service<br/>launch endpoint + refusals<br/>WRITTEN, NOT APPLIED]
   end
   subgraph C[Per cycle - created and destroyed every time]
     direction LR
@@ -89,7 +92,19 @@ dns          ADR-0024. The hosted zone and the certificate outlive any
              because it points at an ALB that is rebuilt every cycle.
 public-site  ADR-0027. A dashboard inside envs/* would be deleted by the very
              teardown it exists to report on.
+self-service ADR-0034. The lock, the day counter and the kill switch are state
+             ABOUT a cycle, so a control living inside the environment it
+             controls is destroyed by the thing it is controlling. Sixth
+             arrival at the same rule, and the first from a spend control
+             rather than from an artifact, a name or a pointer.
 ```
+
+`infra/self-service` also holds the one long-lived credential in the project.
+The claim elsewhere in these documents is "no static keys"; since ADR-0034 the
+accurate version is **no static AWS keys anywhere, and exactly one static GitHub
+credential** - a GitHub App private key in Secrets Manager, readable by one
+Lambda execution role - because a button on a static page has to authenticate to
+GitHub, and there is no OIDC in that direction.
 
 Each level has its own remote state in the same S3 bucket, with
 `use_lockfile = true` and no DynamoDB table. Root levels are **discovered**, not

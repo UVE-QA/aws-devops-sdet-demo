@@ -11,6 +11,13 @@ built and deployed entirely by GitHub Actions using short-lived OIDC
 credentials. There are no static AWS keys anywhere in this repository or in its
 GitHub configuration.
 
+That claim gained a qualifier in Phase 19a and is more interesting with it. The
+self-service level (**ADR-0034**, written but **not applied**) reverses the one
+direction of trust: everywhere else GitHub authenticates to AWS over OIDC, and
+there AWS must authenticate to GitHub, where no OIDC exists. So the honest
+sentence is *no static AWS keys anywhere, and exactly one static GitHub
+credential, in Secrets Manager, readable by one Lambda role.*
+
 ```text
 build image → apply stage → migrate + seed → API, smoke and regression suites →
 a human approves → the tested DIGEST is promoted to prod at
@@ -31,7 +38,8 @@ Cloud           a dedicated AWS Organizations member account, IAM Identity
 QA / SDET       suites split by DIRECTORY so the destructive ones cannot reach
                 prod, an assertion that a browser action reached RDS, a guard
                 that fails when a spec belongs to no suite
-Security        no static keys, prod's deploy role trusts no branch, a database
+Security        no static AWS keys (see the qualifier above), prod's deploy
+                role trusts no branch, a database
                 that is not publicly accessible, a private site bucket behind
                 CloudFront with Origin Access Control
 FinOps          no NAT, no EKS, nothing always-on except cents of permanent
@@ -119,9 +127,9 @@ SSO session, in the order given in `docs/preflight-inventory.md`. On this
 account they are all applied already, so a cycle starts straight at
 `deploy-stage`.
 
-## The seven state levels
+## The eight state levels
 
-Five permanent, two per-cycle. The split is the design, not an accident of
+Six permanent, two per-cycle. The split is the design, not an accident of
 layout: **the exhibit cannot be destroyed by the thing it exhibits.**
 
 ```text
@@ -130,9 +138,16 @@ infra/bootstrap-oidc   OIDC provider + one deploy role per env    permanent
 infra/shared-ecr       the registry prod promotes from            permanent
 infra/dns              delegated zone + ALB certificate           permanent
 infra/public-site      the dashboard: S3 + CloudFront + OAC       permanent
+infra/self-service     the public launch button and its refusals  permanent
+                                                                  NOT APPLIED
 infra/envs/stage       VPC, ALB, ECS, RDS                         per cycle
 infra/envs/prod        the same, behind an approval gate          per cycle
 ```
+
+`infra/self-service` is written and validated and **has never been applied**.
+Every refusal it makes has to be broken on purpose first (**ADR-0035**), in
+Phases 19b and 19c. Until then the button does not exist and the dashboard
+control that would press it is hidden behind a flag.
 
 Anything that must survive a teardown lives above the environments — including
 the container registry, whose image prod is running, and the dashboard, which is

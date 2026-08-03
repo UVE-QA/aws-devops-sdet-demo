@@ -9,22 +9,34 @@ what gets said out loud about it, too.
 The one-line framing, for whoever asks "what is this":
 
 > A production-like AWS delivery platform for a minimal FastAPI app —
-> Organizations-aware account isolation, Terraform across five state levels,
-> GitHub Actions with OIDC and no static keys, ECS Fargate behind an ALB, RDS
-> Postgres, structured logging with a real CloudWatch alarm, Playwright test
+> Organizations-aware account isolation, Terraform across six state levels,
+> GitHub Actions with OIDC and no static AWS keys, ECS Fargate behind an ALB,
+> RDS Postgres, structured logging with a real CloudWatch alarm, Playwright test
 > depth split by blast radius, and a teardown that is verified, not assumed.
 
 ## DevOps
 
 ```text
-- Terraform split into FIVE state levels, only two of which are ever
-  destroyed (docs/architecture.md). The split exists because the container
+- Terraform split into SIX state levels, only two of which are ever
+  destroyed (docs/architecture.md). The sixth is written and not applied
+  (Phase 19a); five are live. The split exists because the container
   registry almost went the other way (ADR-0018): if it lived at the
   per-cycle level, a teardown would delete the image that PROVES the
   teardown works.
 - GitHub Actions OIDC end to end, no static AWS keys anywhere - not
   "rotated regularly," not present at all. Verifiable in one grep
   (docs/security-posture.md §1-4).
+- The qualifier, and it is a BETTER answer than the unqualified one
+  (ADR-0034, Phase 19a, written not applied). A public button on a static
+  page reverses the one direction of trust: everywhere else GitHub
+  authenticates to AWS over OIDC, and there AWS has to authenticate to
+  GitHub, where no OIDC exists. So a long-lived GitHub credential enters
+  the project, and the honest sentence becomes "no static AWS keys
+  anywhere, and exactly one static GitHub credential, in Secrets Manager,
+  readable by one Lambda role". The interesting part is not that none
+  exists - it is that the one that does is scoped to a single permission
+  on a single installation, rotated by a paste, and named in the design
+  rather than found at interview.
 - ECS Fargate, digest-based releases with automatic rollback (Phase 14,
   ADR-0029). The interesting correction: "roll back to the previous task
   definition" is meaningless in an environment destroyed every cycle - the

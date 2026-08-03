@@ -112,6 +112,22 @@ the chat, which then issues one command at a time, each labelled `[mac]` or
   repository clone lives at /home/ubuntu/aws-devops-sdet-demo.
 ```
 
+## What it deliberately does NOT do, and one that was nearly added
+
+Nothing unattended runs here that touches AWS. The devbox reaches the demo
+account through IAM Identity Center, with `aws sso login --use-device-code` and
+a device code somebody types - so there is no unattended path from this machine
+into the account that is not a static credential on disk, and the loudest
+invariant in this project is that no such credential exists.
+
+`docs/next-phases.md` specified the Phase 19 TTL watchdog as a **cron on this
+machine**, for a good reason: a failure domain separate from GitHub Actions. The
+requirement was right and the mechanism was not, and it was caught while writing
+ADR-0035 rather than while installing it. The domain actually distrusted is
+Actions, not AWS - and a watchdog independent of AWS could not act during an AWS
+outage anyway - so the watchdog is EventBridge Scheduler plus a Lambda, in the
+account, at a permanent level. This machine has no part in it.
+
 ## Its role in the architecture, stated once
 
 The devbox is a fixed-cost, always-on development host — the one thing in this

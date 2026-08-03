@@ -142,6 +142,33 @@ from nothing.
 7. GitHub environment variables for stage and prod, and prod's protection rules
 8. GitHub REPOSITORY variables for the dashboard, from the infra/public-site
    outputs - see below
+9. infra/self-service   the public launch endpoint and its refusals (ADR-0034).
+                        LAST, and optional: everything above works without it,
+                        and it is the only level that holds a long-lived
+                        credential. Needs `make self-service-package` first.
+                        NOT APPLIED in any account today - Phase 19b.
+```
+
+### The out-of-git state step 9 depends on (Phase 19b)
+
+Same category as the NS record in step 5 and prod's protection rules in step 7 -
+real state git cannot assert, listed here because that is where someone rebuilding
+will look:
+
+```text
+the GitHub App, with `actions: write` on this repository and nothing else
+its installation on UVE-QA/aws-devops-sdet-demo
+its private key, pasted BY HAND into the Secrets Manager secret the level
+  creates. Terraform makes the container and never holds the key.
+```
+
+If a launch ever returns 401, check those three before anything else. The
+repository variables the launch workflow's release job needs come from that
+level's outputs, and are identifiers like the four above:
+
+```text
+SELF_SERVICE_CALLBACK_ROLE_ARN   from `terraform output callback_role_arn`
+SELF_SERVICE_TABLE               from `terraform output control_table_name`
 ```
 
 ### Repository variables for the dashboard (Phase 11.1b)

@@ -115,6 +115,32 @@ prone to: an environment brought up, then forgotten. AWS Budgets itself is
 free; the cost of running it is zero and the cost of not running it is
 unbounded.
 
+## Worst case if the button is ever public (Phase 19, NOT BUILT)
+
+Until now nobody but the owner could start a run, so this document has never
+needed a number for what a stranger could spend. **ADR-0035** decides one, and
+it is a real number rather than an adjective:
+
+```text
+TTL per launch     90 minutes, enforced in-band by the workflow's own destroy
+                   job and out-of-band by an EventBridge-scheduled Lambda
+per-day cap        3 launches, counted by UTC date, and the counter FAILS
+                   CLOSED - an unreadable count refuses rather than allows
+worst case         ~$0.30/day, i.e. under $10/month if somebody presses it to
+                   the limit every single day, against the $0.09 and $0.17
+                   cycles measured above
+reaches            stage only, by IAM rather than by an input
+```
+
+The permanent cost of the machinery itself is one Secrets Manager secret at
+$0.40/month, a DynamoDB table holding four items, and three Lambdas invoked a
+handful of times a day - cents, fixed, the same trade ADR-0027 made for the
+dashboard.
+
+None of this is running. The level is written and unapplied, and the numbers
+above are what it is designed to bound, not what has been observed. The first
+measured public cycle is Phase 19c's closing figure.
+
 ## Idempotency and the "always destroy" rule
 
 ```text

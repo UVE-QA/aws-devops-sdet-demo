@@ -29,18 +29,20 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 16a   | Contract depth + regression    | ✅ done     | sessions/2026-07-29-phase-16a-contract-depth.md |
 | 16b   | Structured logs + 5xx alarm    | ✅ done     | sessions/2026-07-31-phase-16b-structured-logs-and-5xx-alarm.md |
 | 18    | Remaining documentation        | ✅ done     | sessions/2026-08-02-phase-18-documentation.md |
-| 19.0  | Self-service: decisions + plan | ✅ done (19a-c open) | sessions/2026-08-02-phase-19-0-decisions-and-plan.md |
+| 19.0  | Self-service: decisions + plan | ✅ done     | sessions/2026-08-02-phase-19-0-decisions-and-plan.md |
+| 19a   | Self-service scaffold          | ✅ done (nothing applied) | sessions/2026-08-02-phase-19a-scaffold.md |
 
 Phase 17 (prod data continuity) is still open and still optional, in
 `docs/next-phases.md`. Phase 18 was pulled forward of both remaining phases
 because it changes no infrastructure and both draw on it - 19 in particular
 needs the FinOps talking points and the measured per-cycle cost it records.
 
-Phase 19 is now SPLIT into 19a (scaffold, $0), 19b (apply and prove the
-refusals without a cycle) and 19c (one live launch, and the TTL proven by
-killing it). Its two decisions were made ahead of all three, in the session
-recorded above: **ADR-0034** for the trigger path and **ADR-0035** for the
-guardrails. Nothing has been built or applied.
+Phase 19 is SPLIT into 19a (scaffold, $0), 19b (apply and prove the refusals
+without a cycle) and 19c (one live launch, and the TTL proven by killing it).
+Its two decisions were made ahead of all three: **ADR-0034** for the trigger
+path and **ADR-0035** for the guardrails. 19a is now written and validated;
+**nothing has been applied**, no AWS API has been called for it, and the button
+does not exist.
 
 Phases 9-19 are planned in `docs/next-phases.md` (MVP track 9-13, polish
 track 14-19), shaped by ADR-0017. This table tracks only what is done.
@@ -1321,6 +1323,58 @@ were the same shape — a page saying something it was not in a position to say:
   invariant found and corrected. **MET.** Nothing was applied; no AWS API was
   called this session.
 - Cost: **$0**.
+
+### Phase 19a — Self-service scaffold  [DONE 2026-08-02, nothing applied]
+- Plan: `docs/next-phases.md` Phase 19a. No new ADR: **ADR-0034** and
+  **ADR-0035** were recorded in 19.0, ahead of the code, which is the whole
+  reason this phase had nothing to decide and only something to write.
+- Delivered:
+```text
+  infra/self-service/          the sixth permanent level: control store,
+                               launch Lambda + Function URL, watchdog Lambda +
+                               EventBridge schedule, kill-switch Lambda + SNS
+                               topic, the secret CONTAINER, and the narrow
+                               callback role the workflow releases the lock with
+  infra/self-service/src/      three handlers plus control.py, which imports no
+                               AWS SDK at all
+  .github/workflows/self-service.yml   launch -> destroy (if: always()) ->
+                               release-lock (if: always()), stage only
+  tests/unit/test_launch_refusals.py   21 assertions over every refusal
+  make self-service-package    vendors PyJWT + cryptography, refuses on an
+                               empty package
+  the dashboard button         behind a flag, pointing at nothing
+```
+- **The public path cannot reach prod, and now cannot reach the OWNER's stage
+  either.** The workflow declares no prod environment and resolves only the
+  stage deploy role, per ADR-0034. The watchdog's blunt teardown adds a second
+  guarantee in IAM: every delete is conditioned on `Project`, on
+  `Environment=stage`, AND on a `Launch` tag that is present and non-empty.
+- **The finding this phase produced, and it is a guardrail eating its owner.**
+  ADR-0035 says a resource with a missing deadline is expired rather than
+  exempt. Applied literally, that rule deletes the owner's own stage
+  environment: an owner-run cycle carries no deadline, because no deadline is
+  exactly what "a human is watching this one" looks like. The fix is the
+  `Launch` tag - empty for an owner cycle, set by the launch workflow - and it
+  goes to **stage and prod in the same commit**, per the shared-invariant rule,
+  even though nothing public can reach prod.
+- **The runtime has no crypto, which the plan did not say.** Minting a GitHub
+  App installation token means signing an RS256 JWT, and the Lambda Python
+  runtime ships boto3 and nothing else this needs. `make self-service-package`
+  vendors PyJWT and cryptography for the runtime's platform, refuses when pip is
+  missing or when nothing was vendored, and Terraform additionally refuses to
+  apply a package under 500 KB - an empty zip deploys happily and fails at the
+  first request, in a place nothing is watching.
+- Criteria to close: written, validated statically, nothing applied. Validation
+  is on the devbox, since terraform, checkov and a Lambda-platform pip are not
+  installable in a chat sandbox:
+```bash
+  make tf-validate     # eight root levels now, infra/self-service among them
+  make test-unit       # 28: 7 access-log + 21 launch refusals
+  make iac-scan        # 55 checks skipped by decision, 9 of them new
+  make docs-check      # 6 documents, 0 findings
+  make action-pins     # 43 references, all SHAs
+```
+- Cost: **$0**. No AWS API was called for this phase.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

@@ -6,6 +6,40 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
+**As of 2026-08-02.** Phase 19a is WRITTEN and NOT APPLIED. The sixth permanent
+level exists in git - control store, launch Lambda behind a Function URL, an
+EventBridge-scheduled watchdog, a kill-switch Lambda on an SNS topic, and a
+callback role that can delete exactly one item in one table - together with the
+launch workflow (launch -> destroy `if: always()` -> release-lock
+`if: always()`, stage only), 21 in-process assertions over every refusal, and
+the dashboard button behind a flag pointing at an empty string. No AWS API was
+called and nothing was applied, so the button does not exist.
+
+The finding is a guardrail that would have eaten its owner. ADR-0035 says a
+resource with a missing deadline is EXPIRED rather than exempt; applied
+literally, that rule destroys the owner's own stage environment, which carries
+no deadline because no deadline is exactly what "a human is watching this one"
+looks like. The rule is not wrong - its SCOPE was unstated, and ADR-0035 already
+says the guardrails do not apply to the owner's own runs. The cost of that
+sentence in code is a `Launch` tag, empty for an owner cycle and set by the
+public launch workflow: the watchdog acts only where it is non-empty, and inside
+that scope a missing deadline is still expired. It is enforced twice, because a
+filter in a handler is a claim and an IAM condition is a fact - and the `Null`
+test in that condition is NOT redundant with the `StringNotEquals`, because for
+a resource with no tag at all a `StringNotEquals` evaluates TRUE, which is the
+quiet default that turns a policy into decoration.
+
+The plan also did not know the Lambda runtime ships no crypto: minting a GitHub
+App installation token means signing an RS256 JWT, so PyJWT and cryptography are
+vendored by `make self-service-package`, which refuses when pip is missing and
+when nothing was vendored, and Terraform refuses a package under 500 KB - an
+empty zip deploys happily and fails at the first request, where nothing is
+watching. Four break tests fired locally (a store failure read as zero launches,
+the kill switch read after the nonce, the cap refusal keeping its lock, a
+missing deadline read as permission), each restored from a copy taken first.
+None of the five refusals has yet been proven against the real table, which is
+19b.
+
 **As of 2026-08-02.** Phase 19 has its decisions and does not yet have a line
 of its code. **ADR-0034** puts the trigger on a Lambda Function URL and a GitHub
 App at a new permanent level, and says the thing the phase makes true: the

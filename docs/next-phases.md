@@ -574,21 +574,36 @@ is that none exists. Since the domain actually distrusted is Actions rather than
 AWS, EventBridge Scheduler plus a Lambda buys the same independence and needs no
 credential that outlives a request.
 
-### 19a — scaffold  [$0, nothing applied]
+### 19a — scaffold  [$0, nothing applied]  **DONE 2026-08-02**
 
-The decisions are already made (ADR-0034, ADR-0035). What is left is code that
-nobody has run:
+The decisions were already made (ADR-0034, ADR-0035). What was left was code
+that nobody has run, and all of it now exists:
 
 ```text
 infra/self-service/          the new permanent level, written not applied
 .github/workflows/self-service.yml
-the Lambda handler, with its refusal logic in tests/unit/ - the precedent
-  is Phase 16b: a property no HTTP client can see belongs in-process
+the Lambda handlers, with the refusal logic in control.py and every refusal
+  driven from tests/unit/ - the precedent is Phase 16b: a property no HTTP
+  client can see belongs in-process
 the dashboard button, behind a flag, pointing at nothing yet
 ```
 
-Closes when it is written, validated statically (`make tf-validate`,
-`make test-unit`, `make iac-scan`, `make docs-check`) and nothing has been
+Two things the plan did not name and the writing produced anyway:
+
+```text
+make self-service-package   the runtime ships no crypto, and an RS256 JWT is
+                            how a GitHub App installation token is minted. The
+                            target refuses rather than shipping an empty zip.
+the Launch tag              scoping the watchdog by deadline ALONE would have
+                            let it tear down the owner's own stage cycle, which
+                            carries no deadline. Guardrails are on the public
+                            path, not on the project - so the watchdog acts only
+                            on resources tagged with a launch id, and its IAM
+                            policy carries the same condition.
+```
+
+Closed when it was written, validated statically (`make tf-validate`,
+`make test-unit`, `make iac-scan`, `make docs-check`) and nothing had been
 applied.
 
 ### 19b — apply the level, and prove every refusal without a cycle
