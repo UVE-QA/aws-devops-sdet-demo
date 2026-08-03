@@ -172,17 +172,37 @@ Russian   live discussion in chat only.
 ## Session naming
 
 Auto-generated chat titles are derived from content and cannot be relied on.
-Rename the chat manually right after the first reply.
+Rename the chat manually — TWICE, because a session learns what it is by the
+end of it.
 
 ```text
-Phase <N>[.<sub>] — <topic>     phase work
-Ops — <topic>                   maintenance outside the phases
+after the first reply   WORKING name, taken from the cursor:
+                        Phase <N>[.<sub>] — <topic>
+                        Ops — <topic>
+at session-close        FINAL name, taken from what the session turned out to
+                        be. Rename even when the working name still reads
+                        plausibly; plausible is how a wrong name survives.
 
 Phase 9.0 — reconcile prod scaffold
 Phase 11.0 — publish repository
 Phase 13 — MVP verification gate
 Ops — devbox maintenance
 ```
+
+The working name is a prediction, and the record says predictions here are
+routinely wrong: 19.0 split its phase into three while it ran, 16 split into
+16a/16b on arrival, and the Ops session of 2026-08-01 opened by building a
+documentation linter instead of the thing it was asked for. The final name is
+the only one written with the evidence in hand.
+
+Set the working name anyway, immediately. A session that dies halfway still
+has to be findable, and that is exactly the session that never reaches its
+second rename.
+
+Making this a check in `make session-close` was considered and DEFERRED. The
+title lives in the chat client, where git cannot see it, so the check would
+have to ask rather than verify — and a new gate needs its own break test
+before it means anything. Decided closing Phase 19a.
 
 ## Verification habits that keep paying off
 
