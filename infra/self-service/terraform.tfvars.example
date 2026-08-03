@@ -22,6 +22,17 @@ owner = "UVE"
 github_app_id              = ""
 github_app_installation_id = ""
 
+# Concurrency reservations are the ONE place the defaults are NOT the decided
+# numbers. ADR-0034 decided 2 for the launch function and 1 for each internal
+# one; AWS refuses every reservation while this account's Lambda `Concurrent
+# executions` quota is 10, because the unreserved pool may not drop below 10.
+# The quota is adjustable and this project deliberately does not ask: three
+# rarely-invoked functions do not need it, and until it is raised the account
+# ceiling of 10 is itself the bound. Raise the quota and these two lines become
+# the decided design again:
+# reserved_concurrency          = 2
+# internal_reserved_concurrency = 1
+
 # Defaults are the DECIDED numbers (ADR-0035), listed to show what exists:
 # ttl_minutes               = 90     # the launch workflow's timeout must stay below it
 # daily_cap                 = 3      # ~$0.30/day worst case

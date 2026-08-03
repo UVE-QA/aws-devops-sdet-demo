@@ -64,9 +64,15 @@ variable "nonce_ttl_seconds" {
 }
 
 variable "reserved_concurrency" {
-  description = "Reserved concurrency on the launch function. Bounds what an unauthenticated endpoint can cost BY ITSELF, independently of every guardrail in ADR-0035, and is the only control here that does not depend on the store being readable."
+  description = "Reserved concurrency on the launch function. It was decided as 2 (ADR-0034) to bound what an unauthenticated endpoint can cost BY ITSELF, independently of every guardrail in ADR-0035 and of the store being readable. It is -1 (no reservation) because AWS REFUSES any reservation while this account's Lambda `Concurrent executions` quota is 10: a reservation may not take the unreserved pool below 10, and 10 is all there is. Found by applying, in Phase 19b - no static check can see it. While the quota stays at 10 the ACCOUNT is the bound: an account-wide ceiling of 10 concurrent executions, which is weaker per function and stronger in that nothing inside the account can raise it. Set this to 2 once the quota is raised, and see terraform.tfvars.example."
   type        = number
-  default     = 2
+  default     = -1
+}
+
+variable "internal_reserved_concurrency" {
+  description = "Reserved concurrency on the watchdog and the kill switch. Decided as 1, and for a different reason than the launch function: single-flight, not spend. Two watchdogs would each read the other's half-finished teardown; a flag that is already set needs no second writer. Same account quota, same -1, and the exposure is smaller than it looks - the watchdog's 120s timeout is well under its 300s interval, so an overlap needs a FAILED invocation that EventBridge Scheduler then retries."
+  type        = number
+  default     = -1
 }
 
 variable "allowed_origin" {

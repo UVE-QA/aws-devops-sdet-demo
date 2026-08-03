@@ -29,6 +29,14 @@ GitHub App installation token means signing an RS256 JWT. The apply has a
 precondition on the package size: an empty archive is what a forgotten build
 step looks like, and Lambda accepts one happily.
 
+## The account quota this level cannot satisfy
+
+`reserved_concurrent_executions` is `-1` on all three functions, and the
+decided numbers (2, 1, 1) are commented in `terraform.tfvars.example`. AWS
+refuses any reservation while the account's Lambda `Concurrent executions`
+quota is 10, since the unreserved pool may not fall below 10. Found by applying
+in 19b; amended in ADR-0034. The account ceiling is the bound meanwhile.
+
 ## What is NOT in git, and never will be
 
 Same category as the NS delegation in the parent zone and prod's protection

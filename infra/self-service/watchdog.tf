@@ -140,7 +140,8 @@ resource "aws_lambda_function" "watchdog" {
 
   # One at a time. Two watchdogs observing the same environment would each see
   # the other's half-finished teardown and decide the blunt path was needed.
-  reserved_concurrent_executions = 1
+  # -1 while the account's concurrency quota is 10 - see the variable.
+  reserved_concurrent_executions = var.internal_reserved_concurrency
 
   environment {
     variables = {
@@ -271,7 +272,8 @@ resource "aws_lambda_function" "killswitch" {
   source_code_hash = data.archive_file.package.output_base64sha256
 
   # A flag that is already set does not need a second writer.
-  reserved_concurrent_executions = 1
+  # -1 while the account's concurrency quota is 10 - see the variable.
+  reserved_concurrent_executions = var.internal_reserved_concurrency
 
   environment {
     variables = {

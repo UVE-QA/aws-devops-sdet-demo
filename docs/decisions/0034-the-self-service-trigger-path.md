@@ -70,6 +70,32 @@ only contribution here is a nicer hostname. Reserved concurrency on the function
 bounds what an unauthenticated endpoint can cost by itself, independently of
 everything in ADR-0035.
 
+**Amended in Phase 19b (2026-08-02): the reservation could not be applied, and
+the account is the bound instead.** The first apply of this level failed on all
+three functions with `InvalidParameterValueException: Specified
+ReservedConcurrentExecutions for function decreases account's
+UnreservedConcurrentExecution below its minimum value of [10]`. This account's
+Lambda `Concurrent executions` quota is 10 — the default for a new account — and
+a reservation may not take the unreserved pool below 10, so at that quota NO
+reservation of any size is possible, for any function.
+
+The quota is adjustable and this project deliberately does not ask for an
+increase: three rarely-invoked functions do not need one, and a demo account
+asking for raised limits it does not use is a worse trade than the weaker bound.
+So the reservations are `-1` and the ACCOUNT ceiling of 10 concurrent executions
+stands in their place — numerically weaker (about $3/day rather than $0.7/day
+under a sustained flood of a handler that refuses in milliseconds), and stronger
+in one respect: it is account-wide and nothing inside the account can raise it.
+
+Two things worth keeping. First, only ONE of the three reservations was ever a
+guardrail — the launch function's. The watchdog's and the kill switch's were
+single-flight, a correctness property, and the watchdog's 120s timeout against
+its 300s interval already makes an overlap need a failed invocation that
+EventBridge Scheduler retries. Second, this is the shape of failure the project
+keeps meeting: `make tf-validate`, `make iac-scan` and 21 in-process assertions
+all passed on this code, and none of them talks to an account. A quota is not a
+property of the configuration.
+
 ### The credential: a GitHub App, its private key in Secrets Manager
 
 The Lambda reads the App's private key from Secrets Manager, mints an
