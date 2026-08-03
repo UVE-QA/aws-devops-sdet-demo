@@ -94,3 +94,21 @@ variable "budget_forecast_threshold" {
   type        = number
   default     = 100
 }
+
+variable "expires_at" {
+  description = "RFC3339 deadline after which this environment may be destroyed by the out-of-band watchdog (ADR-0035 guardrail 3). Empty for an owner-run cycle, which is deliberate: an empty deadline plus an empty launch_id is what says 'a human is watching this one'. Set by the self-service launch workflow, never by hand."
+  type        = string
+  default     = ""
+}
+
+variable "launch_id" {
+  description = "Id of the public launch that created this environment, or empty for an owner-run cycle. It is the tag the watchdog and its IAM policy both key off: a resource with an EMPTY launch_id cannot be deleted by the watchdog at all, which is what keeps a guardrail for strangers from tearing down a cycle the owner is in the middle of."
+  type        = string
+  default     = ""
+}
+
+variable "budget_topic_arns" {
+  description = "SNS topics the budget notifications also publish to. `terraform output budget_topic_arn` from infra/self-service. Empty by default: the budget must keep working in an account that has never had the button (ADR-0035)."
+  type        = list(string)
+  default     = []
+}

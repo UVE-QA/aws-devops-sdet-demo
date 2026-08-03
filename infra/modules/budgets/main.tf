@@ -3,6 +3,11 @@
 # trigger an alert. AWS Budgets itself is free. Two notifications: ACTUAL spend
 # crossing actual_threshold, and FORECASTED spend crossing forecast_threshold.
 # The budget can be disabled cleanly via enabled = false, but stage defaults on.
+#
+# Since ADR-0035 a notification can ALSO reach an SNS topic, which is how the
+# kill switch gets flipped: an email tells a human, and a human is exactly what
+# a guardrail against a stranger's button cannot depend on. The list defaults
+# empty, so an account without infra/self-service applied behaves as before.
 
 resource "aws_budgets_budget" "monthly" {
   count = var.enabled ? 1 : 0
@@ -19,6 +24,7 @@ resource "aws_budgets_budget" "monthly" {
     threshold_type             = "PERCENTAGE"
     notification_type          = "ACTUAL"
     subscriber_email_addresses = [var.budget_email]
+    subscriber_sns_topic_arns  = var.notification_topic_arns
   }
 
   notification {
@@ -27,5 +33,6 @@ resource "aws_budgets_budget" "monthly" {
     threshold_type             = "PERCENTAGE"
     notification_type          = "FORECASTED"
     subscriber_email_addresses = [var.budget_email]
+    subscriber_sns_topic_arns  = var.notification_topic_arns
   }
 }

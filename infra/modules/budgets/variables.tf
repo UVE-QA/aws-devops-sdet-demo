@@ -31,3 +31,9 @@ variable "forecast_threshold" {
   type        = number
   default     = 100
 }
+
+variable "notification_topic_arns" {
+  description = "SNS topics both notifications also publish to. Empty by default. The self-service level owns the topic and the Lambda that flips the kill switch when a message arrives (ADR-0035 guardrail 4); an email subscription cannot flip anything, and needs a confirmation click besides."
+  type        = list(string)
+  default     = []
+}

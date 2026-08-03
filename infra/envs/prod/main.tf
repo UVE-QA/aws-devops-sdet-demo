@@ -33,6 +33,14 @@ provider "aws" {
       ManagedBy    = "terraform"
       Owner        = var.owner
       AccountModel = "aws-organizations-member-account"
+
+      # The TTL pair (ADR-0035). Both are EMPTY for an owner-run cycle and both
+      # are set by the self-service launch workflow. They go to stage AND prod
+      # in the same commit even though nothing public can reach prod: the last
+      # time a shared fix was applied to one environment only, prod kept the
+      # broken shape for seven weeks.
+      ExpiresAt = var.expires_at
+      Launch    = var.launch_id
     }
   }
 }
@@ -148,4 +156,8 @@ module "budgets" {
   budget_email         = var.budget_email
   actual_threshold     = var.budget_actual_threshold
   forecast_threshold   = var.budget_forecast_threshold
+
+  # Where the kill switch listens (ADR-0035 guardrail 4). Empty until
+  # infra/self-service is applied and its topic ARN is wired in.
+  notification_topic_arns = var.budget_topic_arns
 }
