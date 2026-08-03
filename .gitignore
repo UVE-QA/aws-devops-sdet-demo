@@ -47,3 +47,10 @@ gitleaks-report.json
 # Scanner reports (written by `make iac-scan` / `make image-scan`, uploaded by CI)
 checkov-report.json
 trivy-report.json
+
+# The Lambda deployment package for infra/self-service, built by
+# `make self-service-package`. A vendored cryptography wheel is megabytes of
+# third-party binary that git has no reason to carry, and its ONLY correct
+# version is the one the build produces for the Lambda runtime — a committed
+# copy would be a second, staler answer to the same question.
+infra/self-service/build/

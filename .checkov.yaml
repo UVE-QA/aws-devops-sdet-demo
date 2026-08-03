@@ -154,3 +154,39 @@ skip-check:
   - CKV_AWS_103   # load balancer uses at least TLS 1.2
   - CKV_AWS_378   # target group uses HTTP
   - CKV2_AWS_20   # ALB redirects HTTP to HTTPS
+
+  # -- (a)(b)(c) the self-service level, ADR-0034 and ADR-0035 ---------------
+  # The public endpoint is UNAUTHENTICATED, and that is the decision rather
+  # than an oversight: the button is public, nothing here authenticates the
+  # visitor, and the design goal is not "only the right people can press it"
+  # but "it does not matter who does". What bounds the cost is the five
+  # refusals in ADR-0035 and the reserved concurrency on the function. A
+  # scanner cannot see either, so it sees only the missing authorizer.
+  - CKV_AWS_258   # Lambda Function URL AuthType is NONE
+
+  # Money, on things that hold a counter, a lock and a flag. A customer-managed
+  # KMS key is ~$1/month EACH for the table, the secret, the topic and the
+  # functions' environment variables - more than the whole level costs, and
+  # more than every cycle this project has ever run. AWS-owned encryption is on
+  # for all four; the item this protects is the number 2.
+  - CKV_AWS_119   # DynamoDB encrypted with a customer-managed CMK
+  - CKV_AWS_149   # Secrets Manager encrypted with a customer-managed CMK
+  - CKV_AWS_173   # Lambda environment variables encrypted with a CMK
+
+  # Rotation of the GitHub App key is a PASTE, by a human, into a secret only
+  # one role can read (ADR-0034). Automatic rotation needs a rotation Lambda
+  # that can mint GitHub credentials - a second thing holding the credential,
+  # to avoid touching the first one twice a year.
+  - CKV2_AWS_57   # Secrets Manager automatic rotation
+
+  # Operational features with nothing here to operate. These functions run for
+  # seconds, a handful of times a day, and log every decision they make as JSON
+  # in their own log group. X-Ray would trace two calls; a DLQ would hold a
+  # retry of an idempotent refusal; a VPC would need endpoints for DynamoDB,
+  # Secrets Manager and the internet, which is a NAT-Gateway-shaped bill in a
+  # project that refuses one (ADR-0006). Code signing needs a signing profile
+  # and a build pipeline for a package `make self-service-package` produces.
+  - CKV_AWS_50    # Lambda X-Ray tracing
+  - CKV_AWS_116   # Lambda dead letter queue
+  - CKV_AWS_117   # Lambda inside a VPC
+  - CKV_AWS_272   # Lambda code signing

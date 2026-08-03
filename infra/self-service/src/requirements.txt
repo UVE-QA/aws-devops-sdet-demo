@@ -1,0 +1,5 @@
+# Vendored into the Lambda deployment package by `make self-service-package`.
+# The Python runtime provides boto3 and botocore; it provides no crypto, and
+# minting a GitHub App installation token means signing an RS256 JWT.
+PyJWT==2.10.1
+cryptography==46.0.3

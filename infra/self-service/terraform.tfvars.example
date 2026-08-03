@@ -1,0 +1,34 @@
+# Copy to terraform.tfvars and fill in. This level is applied LOCALLY under
+# AWS_PROFILE=demo-admin, once per account, after infra/public-site. It is never
+# applied by a workflow, and destroy.yml never names it.
+#
+# No secrets belong in this file. Everything here is an identifier. The GitHub
+# App's private key is pasted BY HAND into the Secrets Manager secret this level
+# creates - see `terraform output github_app_secret_name` (ADR-0034).
+#
+# Before the first apply:
+#   make self-service-package
+# It vendors PyJWT and cryptography into infra/self-service/build/package/.
+# The Lambda runtime ships neither, and minting a GitHub App installation token
+# means signing an RS256 JWT. The apply REFUSES on an empty package rather than
+# shipping a function that cannot sign.
+
+# MUST match the GitHub variable TF_VAR_OWNER and every other level.
+owner = "UVE"
+
+# Filled in during 19b, after the App exists and is installed. Both are
+# identifiers and neither is a credential; until they are set, the endpoint
+# refuses every launch with a message naming the missing configuration.
+github_app_id              = ""
+github_app_installation_id = ""
+
+# Defaults are the DECIDED numbers (ADR-0035), listed to show what exists:
+# ttl_minutes               = 90     # the launch workflow's timeout must stay below it
+# daily_cap                 = 3      # ~$0.30/day worst case
+# lock_grace_minutes        = 15
+# watchdog_interval_minutes = 5
+# nonce_ttl_seconds         = 300
+# reserved_concurrency      = 2
+# allowed_origin            = "https://demo.uveapp.net"
+# stage_environment         = "stage"
+# region                    = "us-west-2"

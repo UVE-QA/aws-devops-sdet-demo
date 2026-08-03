@@ -3,7 +3,8 @@
 
 .PHONY: local-up local-down migrate seed test-smoke test-regression test-api \
         test-unit test-db test-ui-db test-spec-coverage docker-build tf-fmt \
-        tf-validate docs-check secret-scan iac-scan image-scan action-pins
+        tf-validate docs-check secret-scan iac-scan image-scan action-pins \
+        self-service-package
 
 # Bring up postgres + app (build app image if needed), detached.
 local-up:
@@ -72,17 +73,53 @@ test-api:
 	$(API_VENV)/bin/pip install -q -r tests/api/requirements.txt
 	BASE_URL=$(BASE_URL) $(API_VENV)/bin/pytest tests/api -q
 
-# In-process tests: things no HTTP client can observe from outside, which today
-# means the SHAPE of the JSON access line the 5xx alarm reads (ADR-0032). No
-# network, no database, no running stack — so this is the one suite that can run
-# before `make local-up`.
+# In-process tests: things no HTTP client can observe from outside. Today that
+# is the SHAPE of the JSON access line the 5xx alarm reads (ADR-0032), and the
+# REFUSALS the public launch endpoint makes when its control store fails
+# (ADR-0035) — an endpoint refusing correctly and one refusing because its store
+# is broken look identical from outside, and only one of them is a guardrail.
+# No network, no database, no running stack — so this is the one suite that can
+# run before `make local-up`.
+#
+# Two source roots on PYTHONPATH, because the two subjects live in two places:
+# the application in app/, the launch refusals in infra/self-service/src/, which
+# is deliberately the same directory Terraform packages for the Lambda.
 UNIT_VENV := .venv-unit
 test-unit:
 	@python3 -m venv $(UNIT_VENV) 2>/dev/null || { \
 	  echo "could not create a virtualenv - install python3-venv (apt install python3-venv)"; exit 1; }
 	@$(UNIT_VENV)/bin/pip install -q --upgrade pip
 	$(UNIT_VENV)/bin/pip install -q -r tests/unit/requirements.txt
-	PYTHONPATH=app $(UNIT_VENV)/bin/pytest tests/unit -q
+	PYTHONPATH=app:infra/self-service/src $(UNIT_VENV)/bin/pytest tests/unit -q
+
+# Build the Lambda deployment package for infra/self-service.
+#
+# The Python runtime provides boto3 and nothing else this needs; minting a
+# GitHub App installation token means signing an RS256 JWT, so PyJWT and
+# cryptography are vendored. --platform + --only-binary because the wheel has to
+# match the Lambda runtime, not the machine that runs this - a devbox-built
+# cryptography would import fine here and fail in AWS with a symbol error.
+#
+# Two refusals, the same shape as the scanners:
+#
+#   pip missing      an empty package deploys happily and fails at the first
+#                    request, in a place nothing is watching.
+#   nothing vendored a directory containing only the handlers is what a
+#                    half-finished build looks like, and Terraform's size
+#                    precondition would then be the only thing between it and
+#                    a function that cannot sign a JWT.
+SELF_SERVICE_SRC := infra/self-service/src
+SELF_SERVICE_BUILD := infra/self-service/build/package
+self-service-package:
+	@command -v pip3 >/dev/null 2>&1 || { echo "self-service-package: pip3 is not on PATH. Refusing to build an empty package."; exit 1; }
+	rm -rf $(SELF_SERVICE_BUILD)
+	mkdir -p $(SELF_SERVICE_BUILD)
+	pip3 install -q -r $(SELF_SERVICE_SRC)/requirements.txt \
+	  --platform manylinux2014_x86_64 --implementation cp --python-version 3.12 \
+	  --only-binary=:all: --upgrade --target $(SELF_SERVICE_BUILD)
+	cp $(SELF_SERVICE_SRC)/*.py $(SELF_SERVICE_BUILD)/
+	@[ -d $(SELF_SERVICE_BUILD)/jwt ] || { echo "self-service-package: PyJWT is not in the package, so the function could not sign a JWT. Refusing."; exit 1; }
+	@echo "self-service-package: $$(du -sh $(SELF_SERVICE_BUILD) | cut -f1) in $(SELF_SERVICE_BUILD)"
 
 # Run the standalone seed DB assertion against postgres, on the compose network.
 # Reuses the app image (has sqlalchemy + psycopg2-binary) and mounts the test.
