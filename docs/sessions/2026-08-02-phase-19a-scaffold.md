@@ -1,7 +1,8 @@
 # 2026-08-02 — Phase 19a: the self-service scaffold
 
 **Written, validated statically, and NOT APPLIED.** No AWS API was called for
-this phase. No workflow was run. The button does not exist: the level that would
+this phase. No deploy workflow was run; `ci.yml` ran on the push, as it does for
+any commit, and was green in all four jobs. The button does not exist: the level that would
 create it has never been applied, and the dashboard control that would press it
 is hidden behind a flag pointing at an empty string.
 
@@ -118,33 +119,44 @@ guardrail: whether DynamoDB's conditional expressions mean what
 `store_dynamodb.py` thinks they mean. Every one of the five refusals is still
 unproven against the real table. That is 19b, with the output kept.
 
-## Validation
+## Validation, and the two things running it corrected
 
-In the sandbox (no terraform, no checkov, no Lambda-platform pip):
+In the sandbox first (no terraform, no checkov, no Lambda-platform pip): 21
+refusal tests passed, every handler compiled, `check-docs-references.py` and
+`check-action-pins.py` clean, and the HCL aligned by hand plus an approximate
+`terraform fmt` checker written for this session.
+
+Then on the devbox, where two of those answers turned out to be wrong.
+
+**`terraform fmt -check` was red, and the checker was the reason.** A multi-line
+value ENDS the alignment group and is not part of the preceding one, so `sid`
+before a multi-line `actions = [` stands alone, and so does `Version` before
+`Statement = [{`. The sandbox checker aligned both to neighbours terraform does
+not consider neighbours — so it measured an assumption about the tool rather
+than the tool, which is the same shape as the break test that failed to break
+and as the Compose command that answered differently on two hosts. Twelve lines,
+whitespace only, confirmed by `git diff --ignore-all-space` being empty before
+the fix was committed.
+
+**Checkov found a tenth decision the skip list had not predicted.**
+`CKV_AWS_297`, EventBridge Scheduler without a customer-managed key. Four CMK
+skips were written from reading the resources and were right; the fifth was
+invisible from the code, and the same arithmetic settles it — about $1/month to
+encrypt a fixed instruction to invoke a named function every five minutes, which
+is already public in this repository. That is the difference between a skip list
+written and a skip list run.
 
 ```text
-pytest tests/unit/test_launch_refusals.py    21 passed
-python3 -m py_compile (all handlers)         clean
-scripts/check-docs-references.py             6 documents, 0 findings
-scripts/check-action-pins.py                 43 references, all SHAs
-HCL alignment                                by hand, plus an approximate
-                                             terraform-fmt checker written for
-                                             this session
+terraform fmt -check   clean, after the fix
+make tf-validate       eight root levels, infra/self-service OK first time
+make test-unit         28 passed = 7 access-log + 21 launch refusals
+make iac-scan          290 passed, 0 failed, 56 skipped by decision
+make docs-check        6 documents, 0 findings
+make action-pins       43 references, all SHAs
+ci.yml on push         green in all four jobs, run 30779260262
 ```
 
-Owed on the devbox before this phase can be called validated — `terraform fmt
--check` in particular, because the checker above is an approximation and not the
-tool:
-
-```bash
-terraform fmt -check -recursive infra
-make tf-validate    # eight root levels now
-make test-unit      # 28 = 7 access-log + 21 launch refusals
-make iac-scan       # 55 skipped by decision, 9 of them new
-make docs-check
-```
-
-The nine new Checkov skips are decisions, not snoozes, and the loudest is
+The ten new Checkov skips are decisions, not snoozes, and the loudest is
 `CKV_AWS_258` — the Function URL's AuthType is NONE. That is the design: the
 button is public, nothing authenticates the visitor, and the goal is not that
 only the right people can press it but that it does not matter who does. A

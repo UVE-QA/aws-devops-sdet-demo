@@ -1364,15 +1364,26 @@ were the same shape — a page saying something it was not in a position to say:
   missing or when nothing was vendored, and Terraform additionally refuses to
   apply a package under 500 KB - an empty zip deploys happily and fails at the
   first request, in a place nothing is watching.
-- Criteria to close: written, validated statically, nothing applied. Validation
-  is on the devbox, since terraform, checkov and a Lambda-platform pip are not
+- **Two corrections came from running the validation, and both were about a
+  tool rather than about the code.** `terraform fmt -check` was red because a
+  multi-line value ENDS the alignment group: `sid` before `actions = [` stands
+  alone, and so does `Version` before `Statement = [{`. The approximate checker
+  written in the sandbox measured that assumption instead of the tool — the same
+  shape as a break test that fails to break. Twelve lines, whitespace only,
+  `git diff --ignore-all-space` empty before it was committed. And Checkov found
+  `CKV_AWS_297` (EventBridge Scheduler without a CMK), a tenth decision the skip
+  list had not predicted from reading the resources.
+- Criteria to close: written, validated statically, nothing applied. **MET**,
+  on the devbox, since terraform, checkov and a Lambda-platform pip are not
   installable in a chat sandbox:
-```bash
-  make tf-validate     # eight root levels now, infra/self-service among them
-  make test-unit       # 28: 7 access-log + 21 launch refusals
-  make iac-scan        # 55 checks skipped by decision, 9 of them new
-  make docs-check      # 6 documents, 0 findings
-  make action-pins     # 43 references, all SHAs
+```text
+  terraform fmt -check   clean, after the fix
+  make tf-validate       eight root levels, infra/self-service OK first time
+  make test-unit         28 passed
+  make iac-scan          290 passed, 0 failed, 56 skipped by decision
+  make docs-check        6 documents, 0 findings
+  make action-pins       43 references, all SHAs
+  ci.yml on push         green in all four jobs, run 30779260262
 ```
 - Cost: **$0**. No AWS API was called for this phase.
 

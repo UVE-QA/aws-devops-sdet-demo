@@ -40,6 +40,19 @@ missing deadline read as permission), each restored from a copy taken first.
 None of the five refusals has yet been proven against the real table, which is
 19b.
 
+Running the validation corrected the chat twice, and both corrections were about
+a TOOL rather than about the code. `terraform fmt` does not align across a
+multi-line value - `sid` before `actions = [` stands alone, and so does `Version`
+before `Statement = [{` - so the approximate fmt checker written in the sandbox
+measured an assumption about the tool instead of the tool, which is the same
+shape as a break test that fails to break and as `docker compose config` giving
+two answers on two hosts. And Checkov found CKV_AWS_297, EventBridge Scheduler
+without a customer-managed key: four CMK skips were predicted correctly from
+reading the resources and the fifth was invisible from the code, which is the
+difference between a skip list written and a skip list run. Everything else was
+green first time, including `infra/self-service` under `make tf-validate` and
+all four CI jobs on the push.
+
 **As of 2026-08-02.** Phase 19 has its decisions and does not yet have a line
 of its code. **ADR-0034** puts the trigger on a Lambda Function URL and a GitHub
 App at a new permanent level, and says the thing the phase makes true: the
