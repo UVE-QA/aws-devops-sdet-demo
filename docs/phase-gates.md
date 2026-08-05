@@ -31,6 +31,7 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 18    | Remaining documentation        | ✅ done     | sessions/2026-08-02-phase-18-documentation.md |
 | 19.0  | Self-service: decisions + plan | ✅ done     | sessions/2026-08-02-phase-19-0-decisions-and-plan.md |
 | 19a   | Self-service scaffold          | ✅ done (nothing applied) | sessions/2026-08-02-phase-19a-scaffold.md |
+| 19b   | Self-service applied + refusals | ✅ done (no cycle run) | sessions/2026-08-05-phase-19b-apply-and-refusals.md |
 
 Phase 17 (prod data continuity) is still open and still optional, in
 `docs/next-phases.md`. Phase 18 was pulled forward of both remaining phases
@@ -39,6 +40,8 @@ needs the FinOps talking points and the measured per-cycle cost it records.
 
 Phase 19 is SPLIT into 19a (scaffold, $0), 19b (apply and prove the refusals
 without a cycle) and 19c (one live launch, and the TTL proven by killing it).
+19a and 19b are done; the button EXISTS and is deliberately parked behind its
+own kill switch until 19c presses it on purpose.
 Its two decisions were made ahead of all three: **ADR-0034** for the trigger
 path and **ADR-0035** for the guardrails. 19a is now written and validated;
 **nothing has been applied**, no AWS API has been called for it, and the button
@@ -1386,6 +1389,47 @@ were the same shape — a page saying something it was not in a position to say:
   ci.yml on push         green in all four jobs, run 30779260262
 ```
 - Cost: **$0**. No AWS API was called for this phase.
+
+### Phase 19b — Self-service applied, and the refusals proven  [DONE 2026-08-05]
+- Plan: `docs/next-phases.md` Phase 19b. No new ADR; **ADR-0034** gained two
+  amendments, both written beside the sentences they correct.
+- Applied: `infra/self-service`, 25 resources, about **$0.45/month permanent**
+  (the Secrets Manager secret is $0.40 of it). The GitHub App was created by
+  hand, installed on one repository with `actions: read-write`, and its private
+  key pasted into the secret by the owner - out-of-git state, now listed in
+  `docs/preflight-inventory.md` beside the NS record and the protection rules.
+- **Two defects found by applying, both green the day before.** The concurrency
+  reservations cannot be applied while the account's Lambda `Concurrent
+  executions` quota is 10, because a reservation may not take the unreserved
+  pool below 10 - so they are `-1` and the account ceiling is the bound; no
+  quota increase was requested. And a public function URL has required BOTH
+  `lambda:InvokeFunctionUrl` and `lambda:InvokeFunction` since October 2025,
+  while the provider creates only the first: every request, anonymous and signed
+  alike, was refused `403` with the function never invoked. Fixed with provider
+  `~> 6.0` on this level alone, which introduced zero drift.
+- **A third came from using a guardrail rather than testing it.** Nothing in the
+  repository turns the kill switch off - no `disengage`, no target, no line in
+  any document - and its refusal names the budget alarm whichever way it was
+  engaged. Recorded in `infra/self-service/README.md`; the message is 19c's.
+- Criteria to close: every refusal this phase owns seen firing, with the output
+  kept, and no environment created. **MET.**
+```text
+  not_configured     503   store proven readable: the kill switch is read first
+  kill_switch        503   real Budgets message shape; refusal CHANGED, reason
+                           stored verbatim, and it releases when the item is
+                           deleted
+  store_unavailable  503   both halves named the store: issue_nonce on the GET,
+                           get_flag(killswitch) on the POST
+  locked             409   named the holder AND its run_url; `gh run list`
+                           showed nothing queued, with a positive control
+  daily_cap          429   refused, AND the lock was released - two assertions
+```
+- Not provable without a cycle, and therefore 19c: the takeover of an EXPIRED
+  lock, the TTL, and the watchdog's blunt path. `TF_VAR_budget_topic_arns` is
+  now set on both environments - wired, and unverified until a deploy runs.
+- The endpoint is left **parked**: the kill switch is engaged by hand, with a
+  reason recorded that says it is not a budget event. 19c starts by clearing it.
+- Cost: **$0** per cycle, no cycle run; about **$0.45/month** standing from now.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

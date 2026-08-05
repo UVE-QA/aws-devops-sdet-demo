@@ -25,7 +25,12 @@ Status: Phase 0 and Phase 1 completed and confirmed.
 - SSO start URL: https://d-90661cc65d.awsapps.com/start
 - Initial setup principal: admin-temp
 - Permission sets:
-  - AdministratorAccess  -> assigned to admin-temp on the demo account (initial build)
+  - AdministratorAccess  -> assigned to admin-temp on the demo account AND on
+                            the management account. The second assignment was
+                            not written down until Phase 19b needed it to read
+                            the organization's policy types; a document that
+                            understates access is how a session concludes it has
+                            none.
   - AutomationAccess     -> intended for Terraform / CI
   - ReadOnlyAccess       -> read-only inspection
 - AWS CLI profile: demo-admin (SSO, region us-west-2, output json)
@@ -135,6 +140,17 @@ from nothing.
 4. infra/dns              hosted zone + wildcard certificate
 5. one NS record for the delegated zone, by hand, in the parent zone
    (org-management) - see the DNS section above
+6a. infra/self-service  the button: control store, three Lambdas, Function URL,
+                        EventBridge schedule, SNS topic, secret CONTAINER.
+                        Run `make self-service-package` FIRST - the apply
+                        refuses a package under 500 KB. Needs provider ~> 6.0,
+                        which only this level uses (ADR-0034, Phase 19b).
+6b. the GitHub App       created by hand, installed on the repository with
+                        `actions: read-write`, private key pasted into the
+                        secret created by 6a. App id and installation id go in
+                        infra/self-service/terraform.tfvars; the key never
+                        touches git or a chat session. Until both ids are set,
+                        the endpoint refuses every launch with `not_configured`.
 6. infra/public-site    dashboard bucket + CloudFront + us-east-1 certificate
                         + the narrow publish role (ADR-0027). Needs 4 and 5
                         done: it reads the hosted zone by name, so the plan

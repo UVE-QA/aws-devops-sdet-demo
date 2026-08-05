@@ -6,6 +6,60 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
+**As of 2026-08-05.** Phase 19b is CLOSED: the sixth permanent level is
+APPLIED, the button exists, and it is deliberately parked behind its own kill
+switch until 19c presses it on purpose. Twenty-five resources, about $0.45 a
+month standing, of which $0.40 is the one Secrets Manager secret that holds the
+GitHub App's private key - the single static credential this project now admits
+to, pasted by hand and readable by one role.
+
+Every refusal 19b owns was seen firing against the real table: the kill switch
+from a message shaped like the one AWS Budgets actually sends, restored by
+deleting the item so it releases rather than sticks; `store_unavailable` from
+BOTH halves, naming `issue_nonce` on the GET and `get_flag(killswitch)` on the
+POST; `locked` naming its holder and its run_url, with `gh run list` showing
+nothing queued and a positive control in the same command; and `daily_cap` with
+two assertions rather than one, because the cap is evaluated after the lock is
+taken and a refusal that kept the lock would wedge the button until its
+deadline. What could not be shown is exactly what ends in a dispatch - the
+takeover of an expired lock, the TTL, the watchdog's blunt path - and that is
+19c.
+
+Two defects were found by APPLYING, and both had been green the day before under
+`make tf-validate`, `make iac-scan` and 21 in-process assertions. The
+concurrency reservation ADR-0034 called the endpoint's independent cost bound
+cannot be applied at all while the account's Lambda quota is 10, because a
+reservation may not take the unreserved pool below 10; no quota increase was
+asked for, since three rarely-invoked functions do not need one and the account
+ceiling is then the bound. And a public function URL has required TWO policy
+statements since October 2025 - `InvokeFunctionUrl` AND `InvokeFunction` - while
+the provider writes only the first, so every request was refused 403 with the
+function never invoked, and the missing half was the half nobody wrote. The fix
+took provider `~> 6.0` on this level alone and produced zero drift.
+
+The two dead ends are worth more than the fix. An organization policy was
+"ruled out" using `AvailablePolicyTypes`, a field AWS documents as unreliable,
+and only later ruled out properly with `list-roots`. And a throwaway function
+with its own URL reproduced the 403 exactly, which read as proof that the
+account was at fault - it was not, because the same single statement had been
+added to it by hand. **A control that reproduces the defect is not a control**,
+which is the 15a lesson arriving from the other side.
+
+A third finding came from USING a guardrail rather than testing it: nothing in
+this repository turns the kill switch off, and its refusal names the budget
+alarm however it was engaged. And `CKV_AWS_301` fired for the first time only
+because the fix made the public grant visible to Checkov at all - the provider's
+half was never in the code - which became the repository's first inline skip,
+scoped to one resource so that any OTHER public Lambda still fails.
+
+Open and deliberately undecided: whether the button should be anonymous. The
+owner asked twice whether a stranger should be able to spend his money and
+proposed an approval-by-email or an on/off window instead; the answer was build
+as designed, then decide. Nothing changed, so there is no ADR - but the cheapest
+form, if it is taken up, is inverting the default of the kill switch that
+already exists, with a deadline the code compares against rather than a DynamoDB
+TTL, whose deletion is best-effort and can lag two days.
+
 **As of 2026-08-02.** Phase 19a is WRITTEN and NOT APPLIED. The sixth permanent
 level exists in git - control store, launch Lambda behind a Function URL, an
 EventBridge-scheduled watchdog, a kill-switch Lambda on an SNS topic, and a
