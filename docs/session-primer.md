@@ -249,6 +249,25 @@ before it means anything. Decided closing Phase 19a.
   not match" in under a minute: the tool's OWN documented example secret, which
   fired, and `--enable-rule <id>`, which proved the rule existed. When a gate
   stays green on a planted failure, first prove the tool can fail at all.
+- A CONTROL THAT REPRODUCES THE DEFECT IS NOT A CONTROL. On 2026-08-05 a live
+  Function URL returned 403 to everyone, and a throwaway function with its own
+  URL was created to separate "this function is broken" from "function URLs do
+  not work in this account". It was refused identically, which read as proof of
+  the second - and proved nothing, because its permission had been added by hand
+  with the SAME missing statement. The control inherited the defect from the
+  person building it, which is the sibling of the break test that fails to
+  break: there the tool was not what you assumed, here the reference sample was
+  not. Before believing a control, name the one thing that must DIFFER between it
+  and the suspect, then check that the difference is actually in it.
+- A FIELD THE VENDOR DOCUMENTS AS UNRELIABLE IS NOT EVIDENCE. The same 403 was
+  blamed on an organization policy, and the hypothesis was CLOSED using
+  `DescribeOrganization`'s `AvailablePolicyTypes`, which AWS documents in the
+  same breath as "do not use - this field is deprecated and doesn't provide
+  complete information". `list-roots` answered properly a few minutes later.
+  This is worse than the empty result that looks clean, because an empty result
+  at least looks suspicious: a populated field looks like an answer. When an API
+  has two ways to tell you something, find out which one the vendor stands
+  behind.
 - A BREAK TEST MEASURED THROUGH A PIPE MEASURES THE PIPE. On 2026-07-28 the
   first Checkov break test printed three red findings and then an exit status of
   zero, which read exactly like 15a's gate that would not break. The gate was
@@ -547,6 +566,16 @@ obvious once prod runs an image that stage's teardown would delete (ADR-0018).
   never involved. Since 2026-07-26 the apex demo.uveapp.net and www are ALWAYS
   up (the dashboard, CloudFront), so the two kinds of name now behave
   differently: only app. is expected to be dead between cycles.
+- this account's Lambda `Concurrent executions` quota is 10, the default for a
+  new account, and a reservation may not take the unreserved pool below 10 - so
+  `reserved_concurrent_executions` cannot be set to ANY value, on any function,
+  and an apply that tries dies after creating the function. No increase has been
+  requested, deliberately. A quota is not a property of the configuration, and
+  no static check in this repository can see one.
+- a public Lambda function URL needs TWO resource-policy statements since
+  October 2025, and the Terraform provider writes only the first. The second is
+  `invoked_via_function_url`, which exists in provider 6.x and not in 5.x, which
+  is why `infra/self-service` is the one level pinned `~> 6.0`.
 - `aws sso login` on the devbox needs `--use-device-code`. The default flow opens
   a callback on 127.0.0.1 that nothing there can reach. Put the login in the step
   itself; a chat session cannot see whether the token is still alive.
