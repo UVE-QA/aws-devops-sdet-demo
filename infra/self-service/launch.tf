@@ -125,6 +125,7 @@ resource "aws_lambda_function" "launch" {
 # applying rather than by reading: the configuration says NONE, the account
 # says Forbidden, and nothing in between says why.
 resource "aws_lambda_permission" "launch_url_invoke" {
+  # checkov:skip=CKV_AWS_301: This function is publicly accessible BY DECISION (ADR-0034). What bounds it is ADR-0035 - the kill switch, the day counter, the lock and the TTL - not the absence of a public principal. Skipped INLINE rather than in .checkov.yaml so that any OTHER publicly accessible Lambda in this repository still fails the scan. Worth noting what the check could see: the InvokeFunctionUrl half is created by the provider and is invisible to Checkov, so this resource is the first thing that ever made the public grant scannable.
   statement_id             = "FunctionURLInvokeAllowPublicAccess"
   action                   = "lambda:InvokeFunction"
   function_name            = aws_lambda_function.launch.function_name

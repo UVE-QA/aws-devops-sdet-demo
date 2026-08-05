@@ -15,6 +15,15 @@
 # That is the price of a readable list over 46 inline annotations, and it is
 # the reason each group below names the decision it rests on - so a reviewer
 # can ask whether the decision still holds, rather than whether the check does.
+#
+# ONE check is skipped INLINE instead of here, and the exception is deliberate:
+# CKV_AWS_301 (Lambda publicly accessible) on
+# `aws_lambda_permission.launch_url_invoke` in infra/self-service/launch.tf.
+# That endpoint is public by decision (ADR-0034), but public Lambda access is
+# exactly the property this phase exists to bound - so skipping it
+# repository-wide would silence the alarm precisely where it is wanted. The
+# reason lives beside the resource; `make iac-scan` reports inline skips on
+# their own line, so the count here stays honest.
 directory:
   - infra
 framework:
