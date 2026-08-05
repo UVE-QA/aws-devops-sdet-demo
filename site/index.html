@@ -207,10 +207,10 @@
 
       <div id="banners"></div>
 
-      <!-- The button, behind a flag and pointing at nothing until 19b applies
-           infra/self-service. Hidden entirely while disabled: a control that is
-           visible and inert is worse than one that is absent, because a visitor
-           cannot tell it apart from one that is broken. -->
+      <!-- The button. Hidden entirely while disabled: a control that is visible
+           and inert is worse than one that is absent, because a visitor cannot
+           tell it apart from one that is broken. That is still the behaviour if
+           the flag below is turned off. -->
       <div id="launch" hidden>
         <h2>Launch it yourself <span class="note">&mdash; stage only, on a deadline</span></h2>
         <div class="card">
@@ -317,9 +317,15 @@
         ".github/workflows/destroy.yml": null // resolved from the run name, see below
       };
 
-      // Phase 19a: WRITTEN, NOT WIRED. The endpoint does not exist yet - the
-      // level that creates it has not been applied. `enabled` becomes true in
-      // 19b, when there is a URL to put here.
+      // WIRED in 19c. The endpoint is the `launch_url` output of
+      // infra/self-service, applied in 19b - which created it and then left this
+      // page pointing at an empty string, so the button existed in AWS and
+      // nowhere a visitor could reach it.
+      //
+      // Turning `enabled` off here hides the control but does NOT disarm it: the
+      // endpoint stays public and answers whoever calls it directly. The switch
+      // that actually refuses is the kill switch in the control table, which is
+      // server-side for exactly this reason.
       //
       // What this control is NOT: authorization. The nonce it fetches is a speed
       // bump (ADR-0034) - whoever can read this page can get one. The cost bound
@@ -330,8 +336,8 @@
       // status.json, never from the endpoint's own answer (ADR-0026). The reply
       // below is an acknowledgement, not a report.
       var SELF_SERVICE = {
-        enabled: false,
-        endpoint: "",
+        enabled: true,
+        endpoint: "https://4jyufh67fx22vm55gmkurohdzm0lxnft.lambda-url.us-west-2.on.aws/",
         ttlMinutes: 90,
         dailyCap: 3
       };
