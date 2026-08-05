@@ -6,6 +6,49 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
+**As of 2026-08-05 (later that day).** Phase 19c RAN and is NOT closed. The
+button was pressed anonymously from a browser for the first time, a full cycle
+deployed and destroyed itself, the dashboard reported it while it ran, and the
+90-minute TTL was read out of the lock the code writes rather than out of a
+document. Both watchdog paths fired against real environments, including the
+blunt one, which deleted a live ECS service, ALB and RDS instance in that order
+with the AWS CLI as the witness rather than the function's own answer.
+
+Three defects were fixed on the way, and all three had survived because nothing
+that could see them had ever looked. The reply carried `access-control-allow-origin`
+TWICE - once from the handler, once from the Function URL's cors block - which
+is invalid, and which the browser is the only client able to notice: the CORS
+layer only joins in when a request carries an `Origin`, so curl without one
+looks healthy, and preflight is answered by the Lambda service instead of the
+function, so it cannot show the pair either. Both probes run that morning were
+built so they could not see it. `release-lock` had never worked at all: all
+three repository variables it reads were absent, two of them written down in
+preflight-inventory since 19b and never created, and a missing `vars.X` expands
+to an empty string rather than an error, so the failure surfaced three jobs
+away from the omission. And the page had been left pointing at an empty
+endpoint by 19b itself.
+
+What keeps the phase open is not a defect but a state. A run cancelled mid-apply
+leaves an S3 state lock AND resources that never reached state; `destroy` dies on
+the lock, `release-lock` releases anyway because it never asks how destroy went,
+and the watchdog's `dispatch_destroy` skips its own record when the lock is gone -
+so the grace period never starts and the blunt path cannot engage in exactly the
+case it was written for. The log shows it re-dispatching every five minutes while
+an ALB and an RDS billed. Getting out took force-unlock and deleting three
+unmanaged orphans by hand; the recovery the watchdog documents - "re-run destroy" -
+burned two full fifteen-minute timeouts failing. That needs a decision, not a
+patch, and it is 19d.
+
+Also true and worth keeping: `run_url` in the `locked` refusal can never be
+filled, because the lock is taken before the dispatch and `workflow_dispatch`
+returns no run id - 19b proved that refusal against a hand-seeded item carrying a
+field the real writer never writes. And the kill switch does not stop a GET: with
+it engaged the endpoint still issues a nonce, while `infra/self-service/README.md`
+says it "refuses every request".
+
+The endpoint is parked again, by hand, with the honest reason in the store. The
+account is empty, verified with a positive control in the same command.
+
 **As of 2026-08-05.** Phase 19b is CLOSED: the sixth permanent level is
 APPLIED, the button exists, and it is deliberately parked behind its own kill
 switch until 19c presses it on purpose. Twenty-five resources, about $0.45 a

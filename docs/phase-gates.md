@@ -32,6 +32,7 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 19.0  | Self-service: decisions + plan | ✅ done     | sessions/2026-08-02-phase-19-0-decisions-and-plan.md |
 | 19a   | Self-service scaffold          | ✅ done (nothing applied) | sessions/2026-08-02-phase-19a-scaffold.md |
 | 19b   | Self-service applied + refusals | ✅ done (no cycle run) | sessions/2026-08-05-phase-19b-apply-and-refusals.md |
+| 19c   | Live launch, TTL, both watchdog paths | 🟡 proven, NOT closed | sessions/2026-08-05-phase-19c-live-launch-and-teardown.md |
 
 Phase 17 (prod data continuity) is still open and still optional, in
 `docs/next-phases.md`. Phase 18 was pulled forward of both remaining phases
@@ -40,12 +41,14 @@ needs the FinOps talking points and the measured per-cycle cost it records.
 
 Phase 19 is SPLIT into 19a (scaffold, $0), 19b (apply and prove the refusals
 without a cycle) and 19c (one live launch, and the TTL proven by killing it).
-19a and 19b are done; the button EXISTS and is deliberately parked behind its
-own kill switch until 19c presses it on purpose.
+19a and 19b are done. 19c RAN on 2026-08-05: the button was wired to the applied
+endpoint, pressed anonymously from a browser, and a full cycle completed; the TTL
+and BOTH watchdog paths were exercised against real environments. It is NOT
+closed, because it found a state its guardrails cannot leave on their own - see
+the 19c section below. The endpoint is parked again, by hand.
 Its two decisions were made ahead of all three: **ADR-0034** for the trigger
-path and **ADR-0035** for the guardrails. 19a is now written and validated;
-**nothing has been applied**, no AWS API has been called for it, and the button
-does not exist.
+path and **ADR-0035** for the guardrails; 19c is the first evidence about
+whether they hold, and the answer is mostly yes with one structural gap.
 
 Phases 9-19 are planned in `docs/next-phases.md` (MVP track 9-13, polish
 track 14-19), shaped by ADR-0017. This table tracks only what is done.
@@ -1430,6 +1433,50 @@ were the same shape — a page saying something it was not in a position to say:
 - The endpoint is left **parked**: the kill switch is engaged by hand, with a
   reason recorded that says it is not a budget event. 19c starts by clearing it.
 - Cost: **$0** per cycle, no cycle run; about **$0.45/month** standing from now.
+
+### Phase 19c — One live launch, the TTL, and both watchdog paths  [NOT CLOSED 2026-08-05]
+- Plan: `docs/next-phases.md` 19c. No new ADR - the finding below needs a
+  DECISION, and that decision is 19d.
+- Wired first: 19b applied the level and left `site/index.html` at
+  `enabled: false, endpoint: ""`. The button existed in AWS and nowhere a
+  visitor could reach it. The panel hides itself while disabled, so nothing
+  looked wrong.
+- **Proven, each against something real:**
+```text
+  anonymous press -> dispatch    browser, no AWS credential in the path; the run
+                                 is attributed to the GitHub App, not a human
+  full cycle                     deploy 14m32s, destroy 8m31s, dashboard
+                                 reported it and greyed its stale values
+  TTL 90 minutes                 expires_at - acquired_at = 5400, from the lock
+                                 the code wrote
+  ExpiresAt / Launch tags        on the resources, so the deadline survives the
+                                 loss of both the lock and Actions
+  `locked`                       409 against a REAL lock, not a seeded one
+  always() after cancellation    destroy AND release-lock both ran
+  watchdog path 1                dispatched destroy.yml by itself, twice
+  watchdog path 2 (blunt)        deleted a real ECS service, ALB and RDS, in
+                                 that order, witnessed by the AWS CLI
+```
+- **Three defects fixed, each found by running:** two `access-control-allow-origin`
+  headers on every reply, which only a browser could see (`make
+  self-service-cors-check` now asserts exactly one, and fails on zero as loudly
+  as on two - seen red on the real defect, then green); all three repository
+  variables `release-lock` reads missing, so that job had never once worked; and
+  the page pointing at an empty endpoint.
+- **The finding that keeps this phase open.** A run cancelled mid-apply leaves an
+  S3 state lock AND resources that never reached state. `destroy` then dies on the
+  lock, `release-lock` releases anyway because it never asks how destroy went, and
+  the watchdog's `dispatch_destroy` skips its own record when `lock is None` - so
+  `dispatched_at` stays 0, the grace period never starts, and the blunt path
+  cannot engage in the one case it exists for. Seen in the log: two
+  `dispatched_destroy` five minutes apart with no `waiting_for_destroy` between.
+  Recovery took `force-unlock` plus deleting three unmanaged orphans by hand;
+  "re-run destroy", the recovery the watchdog documents, spent two full
+  fifteen-minute timeouts failing.
+- Criteria to close: that gap decided and fixed, and a cancelled run cleaned up
+  by the system rather than by hand. **NOT MET.**
+- Account verified empty afterwards, positive control in the same command.
+  Endpoint parked. 2 of 3 daily launches used.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,
