@@ -39,17 +39,27 @@ REF = os.environ.get("GITHUB_REF_NAME", "main")
 TTL_MINUTES = int(os.environ.get("TTL_MINUTES", "90"))
 DAILY_CAP = int(os.environ.get("DAILY_CAP", "3"))
 NONCE_TTL = int(os.environ.get("NONCE_TTL_SECONDS", "300"))
-ORIGIN = os.environ.get("ALLOWED_ORIGIN", "*")
 
 _secrets = boto3.client("secretsmanager")
 
 
 def _response(status: int, body: dict) -> dict:
+    # NO access-control-allow-origin here. The Function URL's cors{} block sets
+    # it, and a header set in BOTH places arrives twice: browsers reject
+    # `Access-Control-Allow-Origin` with more than one value, so the function
+    # answers 200, the browser discards the reply, and the caller sees a bare
+    # network error naming nothing.
+    #
+    # It survived to the first real press because nothing here could see it. The
+    # CORS layer only joins in when the request carries an Origin, so curl
+    # without one shows a single correct header, and OPTIONS is answered by the
+    # Lambda service instead of the function, so preflight never shows the pair
+    # either. Only a browser puts the two together. `make self-service-cors-check`
+    # is the check that does, and it fails on zero as loudly as on two.
     return {
         "statusCode": status,
         "headers": {
             "content-type": "application/json",
-            "access-control-allow-origin": ORIGIN,
             "cache-control": "no-store",
         },
         "body": json.dumps(body),

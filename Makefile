@@ -4,7 +4,7 @@
 .PHONY: local-up local-down migrate seed test-smoke test-regression test-api \
         test-unit test-db test-ui-db test-spec-coverage docker-build tf-fmt \
         tf-validate docs-check secret-scan iac-scan image-scan action-pins \
-        self-service-package
+        self-service-package self-service-cors-check
 
 # Bring up postgres + app (build app image if needed), detached.
 local-up:
@@ -120,6 +120,24 @@ self-service-package:
 	cp $(SELF_SERVICE_SRC)/*.py $(SELF_SERVICE_BUILD)/
 	@[ -d $(SELF_SERVICE_BUILD)/jwt ] || { echo "self-service-package: PyJWT is not in the package, so the function could not sign a JWT. Refusing."; exit 1; }
 	@echo "self-service-package: $$(du -sh $(SELF_SERVICE_BUILD) | cut -f1) in $(SELF_SERVICE_BUILD)"
+
+# Exactly ONE Access-Control-Allow-Origin header on a real cross-origin request.
+#
+# Both numbers are failures. TWO means the handler sets the header AND the
+# Function URL's cors{} block sets it, which is invalid per the Fetch spec and
+# is what broke the button on its first press in 19c - the function answered 200
+# every time and the browser threw the response away. ZERO means the cors{} block
+# is gone and the page cannot read the reply either.
+#
+# It has to be asked WITH an Origin header. Without one the Function URL's CORS
+# layer stays out of it and only the handler answers, which is a request no
+# browser makes and the one shape in which this defect is invisible - that is
+# exactly how it was missed. Preflight is no good for this either: OPTIONS is
+# answered by the Lambda service instead of the function, so the two never meet.
+self-service-cors-check:
+	@test -n "$(LAUNCH_URL)" || { echo "self-service-cors-check: set LAUNCH_URL (terraform -chdir=infra/self-service output -raw launch_url). Refusing to check nothing."; exit 1; }
+	@test -n "$(ALLOWED_ORIGIN)" || { echo "self-service-cors-check: set ALLOWED_ORIGIN. Refusing to guess the origin the check depends on."; exit 1; }
+	@n=$$(curl -sS -i -H "Origin: $(ALLOWED_ORIGIN)" "$(LAUNCH_URL)" | grep -ci '^access-control-allow-origin:' || true); 	 echo "access-control-allow-origin headers: $$n"; 	 [ "$$n" = "1" ] || { echo "self-service-cors-check: expected exactly 1, got $$n - a browser will refuse this response."; exit 1; }; 	 echo "self-service-cors-check: ok"
 
 # Run the standalone seed DB assertion against postgres, on the compose network.
 # Reuses the app image (has sqlalchemy + psycopg2-binary) and mounts the test.

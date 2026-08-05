@@ -90,7 +90,6 @@ resource "aws_lambda_function" "launch" {
       TTL_MINUTES       = tostring(var.ttl_minutes)
       DAILY_CAP         = tostring(var.daily_cap)
       NONCE_TTL_SECONDS = tostring(var.nonce_ttl_seconds)
-      ALLOWED_ORIGIN    = var.allowed_origin
     }
   }
 
@@ -137,6 +136,9 @@ resource "aws_lambda_function_url" "launch" {
   function_name      = aws_lambda_function.launch.function_name
   authorization_type = "NONE"
 
+  # The ONLY place CORS is set. The handler used to add its own
+  # access-control-allow-origin as well, which is invalid the moment both fire
+  # on the same response - see the comment in src/launch_handler.py.
   cors {
     allow_origins = [var.allowed_origin]
     allow_methods = ["GET", "POST"]
