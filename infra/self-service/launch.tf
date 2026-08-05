@@ -115,6 +115,23 @@ resource "aws_lambda_function" "launch" {
 # because the button is public. Nothing here authenticates the visitor and
 # nothing pretends to (ADR-0034). What bounds the cost is ADR-0035, and the
 # reserved concurrency above.
+# Since October 2025 a NONE-auth function URL needs BOTH statements in the
+# resource policy: lambda:InvokeFunctionUrl AND lambda:InvokeFunction. Missing
+# the second one returns 403 Forbidden with no invocation and no log line -
+# indistinguishable, from the outside, from a policy that is absent entirely.
+#
+# The provider creates the first statement itself when authorization_type is
+# NONE; it does not create the second. That asymmetry is why this was found by
+# applying rather than by reading: the configuration says NONE, the account
+# says Forbidden, and nothing in between says why.
+resource "aws_lambda_permission" "launch_url_invoke" {
+  statement_id             = "FunctionURLInvokeAllowPublicAccess"
+  action                   = "lambda:InvokeFunction"
+  function_name            = aws_lambda_function.launch.function_name
+  principal                = "*"
+  invoked_via_function_url = true
+}
+
 resource "aws_lambda_function_url" "launch" {
   function_name      = aws_lambda_function.launch.function_name
   authorization_type = "NONE"

@@ -64,6 +64,36 @@ as the registry (ADR-0018), the hosted zone (ADR-0024), the dashboard
 (ADR-0032), reached this time from a spend control rather than from an artifact,
 a name or a pointer.
 
+**Amended in Phase 19b (2026-08-02): a public function URL takes TWO policy
+statements, and this one had one.** The first apply produced a live URL that
+answered every request - anonymous and SigV4-signed alike - with
+`403 Forbidden`, while `AuthType` read `NONE`, the function read `Active`, and
+the resource policy held exactly the statement the AWS documentation shows as
+the default for NONE. The function was never invoked: zero log streams, against
+a watchdog with one, in the same command.
+
+The cause is a behaviour change dated October 2025 and stated in the first line
+of the page the error message links to: a function URL now requires
+`lambda:InvokeFunctionUrl` AND `lambda:InvokeFunction`. The Terraform provider
+creates the first statement on its own when `authorization_type = "NONE"`, and
+does not create the second, so the gap is invisible in the configuration - the
+missing half is the half nobody wrote.
+
+Two dead ends worth recording, because each looked like the answer. An
+organization-level policy would explain an account-wide refusal, and the
+organization has no RCPs at all - checked with `list-roots`, after first
+"checking" with `AvailablePolicyTypes`, a field AWS documents as unreliable.
+And a throwaway function with its own URL was refused identically, which read
+as proof that the account was at fault; it was not, because the same single
+statement had been added to it by hand. **A control that reproduces the defect
+is not a control.**
+
+The fix needs provider `~> 6.0` on this level alone: `invoked_via_function_url`
+does not exist in the v5 schema, the API rejects `FunctionUrlAuthType` on
+`InvokeFunction`, and the only v5-expressible alternative - `InvokeFunction` to
+`"*"` with no condition - would let any AWS principal invoke the function
+directly, bypassing the URL and every guardrail in ADR-0035.
+
 **A Function URL rather than API Gateway.** One route, no authorizer to
 configure, no custom domain requirement. API Gateway would add a resource whose
 only contribution here is a nicer hostname. Reserved concurrency on the function

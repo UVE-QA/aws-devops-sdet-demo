@@ -28,9 +28,17 @@
 terraform {
   required_version = ">= 1.5"
   required_providers {
+    # ~> 6.0 HERE and ~> 5.0 everywhere else, for one argument. Since October
+    # 2025 a function URL needs TWO resource-policy statements, and the second
+    # one - lambda:InvokeFunction conditioned on lambda:InvokedViaFunctionUrl -
+    # is only expressible as `invoked_via_function_url`, which does not exist in
+    # the v5 schema. The API refuses the alternatives: FunctionUrlAuthType is
+    # rejected on InvokeFunction, and granting InvokeFunction to "*" with no
+    # condition would let any AWS principal invoke this function directly,
+    # bypassing the URL and every guardrail attached to it. See launch.tf.
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 5.0"
+      version = "~> 6.0"
     }
     archive = {
       source  = "hashicorp/archive"
