@@ -183,9 +183,25 @@ repository variables the launch workflow's release job needs come from that
 level's outputs, and are identifiers like the four above:
 
 ```text
+AWS_REGION                       us-west-2
 SELF_SERVICE_CALLBACK_ROLE_ARN   from `terraform output callback_role_arn`
 SELF_SERVICE_TABLE               from `terraform output control_table_name`
 ```
+
+All three were created on 2026-08-05, in Phase 19c, AFTER the first real cycle
+failed on the last of its three jobs. The two below the region had been written
+down here since 19b and never actually set: a list of what something needs is
+evidence that someone wanted it, never that it is there.
+
+`AWS_REGION` is the addition, and the reason it was not predicted is worth more
+than the value. It already existed on the `stage` and `prod` environments, which
+is where every other job reads it. The release job is the only one that declares
+`environment: self-service` - an environment GitHub creates by itself on the
+workflow's first run, empty - so it read the variable from a scope that had
+nothing in it and got the empty string. A missing variable is not an error, so
+the failure surfaced in `configure-aws-credentials` as a missing input, three
+jobs and twenty-three minutes away from the omission. `self-service.yml` now
+checks all three up front and names every one that is absent.
 
 ### Repository variables for the dashboard (Phase 11.1b)
 

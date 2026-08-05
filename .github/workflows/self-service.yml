@@ -324,6 +324,36 @@ jobs:
     environment: self-service
     timeout-minutes: 5
     steps:
+      # A missing `vars.X` expands to an EMPTY STRING, not an error. Nothing
+      # fails where the mistake is; the first thing to USE the value fails
+      # instead, and it names only itself. On 2026-08-05 all three of these were
+      # absent, this job died on "Input required and not supplied: aws-region",
+      # and fixing that one would have bought the next failure rather than a
+      # working job.
+      #
+      # This job is the only one outside `environment: stage`, so it is the only
+      # one that reads variables from an environment GitHub created ITSELF, on
+      # this workflow's first run, with nothing in it. The other jobs were never
+      # going to notice.
+      #
+      # Named together, so one run reports the whole gap.
+      - name: Every identifier this job needs is present
+        env:
+          REGION: ${{ vars.AWS_REGION }}
+          ROLE: ${{ vars.SELF_SERVICE_CALLBACK_ROLE_ARN }}
+          TABLE: ${{ vars.SELF_SERVICE_TABLE }}
+        run: |
+          set -euo pipefail
+          missing=""
+          [ -n "$REGION" ] || missing="$missing AWS_REGION"
+          [ -n "$ROLE" ]   || missing="$missing SELF_SERVICE_CALLBACK_ROLE_ARN"
+          [ -n "$TABLE" ]  || missing="$missing SELF_SERVICE_TABLE"
+          if [ -n "$missing" ]; then
+            echo "::error::repository variables not set:$missing - the lock will not be released and the button stays blocked until the deadline. See docs/preflight-inventory.md."
+            exit 1
+          fi
+          echo "region, callback role and table are all set"
+
       - name: Configure AWS credentials (OIDC, callback role)
         uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
         with:
