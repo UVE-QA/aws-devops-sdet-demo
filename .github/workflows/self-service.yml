@@ -52,6 +52,10 @@ concurrency:
 permissions:
   id-token: write
   contents: read
+  # Added in 19d for one thing only: `scripts/break-stale-state-lock.sh` refuses
+  # to break a state lock while any other run of this repository is in progress,
+  # and it has to be able to ask (ADR-0036 D3).
+  actions: read
 
 jobs:
   launch:
@@ -258,6 +262,16 @@ jobs:
         working-directory: infra/envs/stage
         run: terraform init -input=false
 
+      # The step that makes a cancelled run recoverable without a human. It is a
+      # no-op on every normal cycle - and that no-op branch running every time is
+      # the point: the branch that must never do anything is exercised
+      # continuously. `init` does not take the state lock, so this sits between
+      # init and the first operation that does.
+      - name: Break a state lock left behind by a cancelled run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/break-stale-state-lock.sh stage
+
       - name: Destroy ALB first (release ENIs before the IGW)
         working-directory: infra/envs/stage
         run: terraform destroy -input=false -auto-approve -target=module.alb
@@ -308,7 +322,8 @@ jobs:
           JOB_STATUS: ${{ job.status }}
         run: scripts/publish-status.sh stage /tmp/observation.json
 
-  # Guardrail 1's other half: the lock is taken by the Lambda and released here.
+  # Guardrail 1's other half: the lock is taken by the Lambda and released here -
+  # but only when `destroy` actually succeeded (ADR-0036 D2).
   #
   # Its own GitHub Environment, and its own role, which can delete exactly one
   # item in one table and do nothing else in the account. The stage deploy role
@@ -364,9 +379,25 @@ jobs:
         env:
           TABLE: ${{ vars.SELF_SERVICE_TABLE }}
           LAUNCH_ID: ${{ inputs.launch_id }}
+          DESTROY_RESULT: ${{ needs.destroy.result }}
         run: |
           set -euo pipefail
           aws sts get-caller-identity --query Arn --output text
+
+          # ADR-0036 D2. This job used to release the lock without ever asking
+          # how `destroy` went, which is how a cancelled run ended up with an
+          # environment alive, no lock, and a button that let the next visitor
+          # spend one of the day's three launches on an apply guaranteed to die
+          # on the same state lock. A destroy that did not succeed means
+          # something is still there.
+          #
+          # Nothing is wedged by keeping it: the lock carries the TTL, an
+          # expired lock can be taken over, and the watchdog releases it after
+          # the blunt path.
+          if [ "$DESTROY_RESULT" != "success" ]; then
+            echo "::notice::destroy finished as '$DESTROY_RESULT', so the lock is DELIBERATELY NOT released. The button stays shut until the watchdog has dealt with what is still running, or until the lock expires."
+            exit 0
+          fi
           # Conditional: only THIS launch's lock. A run that overran its TTL and
           # was superseded must not delete the lock of the launch that replaced
           # it - the second one is still running, and would then be joined by a
