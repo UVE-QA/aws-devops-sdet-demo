@@ -5,6 +5,11 @@ GitHub Actions except the account. It exists for the cases `if: always()` cannot
 cover: a force-cancelled run, a dead runner, GitHub being unavailable. A promise
 made by the thing that might not be there is not a guarantee.
 
+This file OBSERVES and EXECUTES. It does not decide: since 19d the decision is
+`sweep.decide_sweep`, which imports no AWS SDK and is driven branch by branch in
+`tests/unit` (ADR-0036 D1). What is left here is the part that genuinely needs
+boto3.
+
 TWO KEYS, because either one alone has a blind spot
 
     the resources   ECS service, ALB and RDS instance under the stage prefix,
@@ -15,6 +20,15 @@ TWO KEYS, because either one alone has a blind spot
                     deadline. Present even if the deploy died before it created
                     a single resource.
 
+AND ONE RECORD OF ITS OWN
+
+`pk = "watchdog"`, written and deleted by this function alone. It holds when we
+last asked Actions to destroy, and the launch ids we asked about. Before 19d that
+lived on the LOCK, which belongs to the launch - so a cancelled run whose
+`release-lock` deleted the lock also deleted the watchdog's memory, and the
+grace period could never start. The blunt path was unreachable in exactly the
+situation it was written for (ADR-0036).
+
 WHAT IT WILL NOT TOUCH, AND WHY THAT IS NOT A LOOPHOLE
 
 Only resources whose `Launch` tag is NON-EMPTY, i.e. created by the public
@@ -22,12 +36,6 @@ button. An owner-run stage cycle carries `Launch=""` and is invisible here -
 and unreachable, because the IAM policy carries the same condition. Guardrails
 are on the public path, not on the project (ADR-0035). prod is excluded twice
 over: by the name prefix here, and by `Environment=stage` in the policy.
-
-A MISSING DEADLINE IS NOT PERMISSION TO RUN FOREVER
-
-Within that scope, a resource with no `ExpiresAt`, an unparseable one, or a
-launch with no lock at all counts as EXPIRED, not as exempt. The absence is
-itself a symptom of the exact failure this exists for.
 
 TWO PATHS, AND THE BLUNT ONE MUST BE BROKEN ON PURPOSE
 
@@ -37,9 +45,13 @@ TWO PATHS, AND THE BLUNT ONE MUST BE BROKEN ON PURPOSE
        directly: ECS service, then ALB, then RDS, for the ENI/IGW ordering
        reason ADR-0016 already records.
 
-After path 2 the Terraform state is stale. The recovery is written down in
-advance rather than discovered under pressure: re-run destroy, which reconciles
-what is already gone.
+After path 2 the Terraform state is stale, and the recovery is to re-run
+destroy, which reconciles what is already gone. That sentence used to stop
+there, and it was false for the case that matters: a run cancelled mid-apply
+also leaves the S3 state LOCK held, and re-running destroy waits for a lock
+nobody will ever release. Since 19d the teardown workflows run
+`scripts/break-stale-state-lock.sh` in front of the destroy, which breaks a lock
+left by a finished runner and refuses in every other case (ADR-0036 D3).
 """
 from __future__ import annotations
 
@@ -47,12 +59,12 @@ import json
 import logging
 import os
 import time
-from datetime import datetime, timezone
 
 import boto3
 
 import control
 import github
+import sweep
 from store_dynamodb import DynamoDbControlStore
 
 log = logging.getLogger()
@@ -82,6 +94,7 @@ def handler(_event=None, _context=None):
 
     try:
         lock = store.read_lock()
+        record = store.read_sweep()
     except control.StoreUnavailable as exc:
         # Doing nothing is the SAFE failure here - unlike the launch path, where
         # doing nothing means spending money. Raised rather than swallowed, so
@@ -91,53 +104,43 @@ def handler(_event=None, _context=None):
         raise
 
     alive = observe()
-    deadline_passed = any(_expired(r, now) for r in alive)
-    lock_expired = control.lock_is_expired(lock, now)
+    decision = sweep.decide_sweep(
+        alive=alive, lock=lock, record=record, now=now, grace=GRACE
+    )
 
-    if not alive:
-        if lock_expired:
-            # The deadline passed and there is nothing left to delete. Release
-            # the lock so the button works again: a run that died AFTER its own
-            # teardown must not wedge the endpoint until someone notices.
-            control._release_quietly(store)
-            log.info(json.dumps({"msg": "watchdog", "action": "released_stale_lock"}))
-            return {"action": "released_stale_lock"}
-        log.info(json.dumps({"msg": "watchdog", "action": "none", "alive": 0}))
-        return {"action": "none"}
+    result: dict = {"action": decision.action}
+    if decision.alive:
+        result["alive"] = list(decision.alive)
+    if decision.action == sweep.WAIT:
+        result["dispatched_s_ago"] = decision.dispatched_s_ago
 
-    summary = [r["id"] for r in alive]
+    if decision.action == sweep.DISPATCH:
+        dispatch_destroy(now)
 
-    if not (deadline_passed or lock_expired or lock is None):
-        log.info(
-            json.dumps({"msg": "watchdog", "action": "within_deadline", "alive": summary})
-        )
-        return {"action": "within_deadline", "alive": summary}
+    if decision.note_dispatch:
+        # NOT best-effort, and not swallowed. This record is the whole fix: a
+        # dispatch that is not recorded is a dispatch that will be made again in
+        # five minutes, forever, while the meter runs. If it cannot be written,
+        # the invocation fails and says so.
+        store.note_sweep(decision.scope, now, now + sweep.RECORD_TTL_SECONDS)
 
-    dispatched_at = int((lock or {}).get("destroy_dispatched_at") or 0)
-
-    if not dispatched_at:
-        dispatch_destroy(store, now, lock)
-        return {"action": "dispatched_destroy", "alive": summary}
-
-    if now - dispatched_at < GRACE:
-        log.info(
+    if decision.action == sweep.BLUNT:
+        log.warning(
             json.dumps(
-                {
-                    "msg": "watchdog",
-                    "action": "waiting_for_destroy",
-                    "dispatched_s_ago": now - dispatched_at,
-                    "alive": summary,
-                }
+                {"msg": "watchdog", "action": sweep.BLUNT, "alive": list(decision.alive)}
             )
         )
-        return {"action": "waiting_for_destroy", "alive": summary}
+        result["deleted"] = blunt_teardown(alive)
 
-    log.warning(
-        json.dumps({"msg": "watchdog", "action": "blunt_teardown", "alive": summary})
-    )
-    deleted = blunt_teardown(alive)
-    control._release_quietly(store)
-    return {"action": "blunt_teardown", "deleted": deleted}
+    # Order matters: the records are dropped only after the thing they were
+    # guarding has been dealt with.
+    if decision.release_lock:
+        control._release_quietly(store)
+    if decision.clear_record:
+        _clear_record_quietly(store)
+
+    log.info(json.dumps({"msg": "watchdog", **result}))
+    return result
 
 
 # ---------------------------------------------------------------------------
@@ -199,30 +202,13 @@ def _tags(pairs, key_field: str, value_field: str) -> dict:
     return {p[key_field]: p[value_field] for p in pairs or []}
 
 
-def _expired(resource: dict, now: int) -> bool:
-    """A missing or unparseable deadline counts as expired, not as exempt."""
-    raw = resource["tags"].get("ExpiresAt", "")
-    if not raw:
-        return True
-    try:
-        moment = datetime.fromisoformat(raw.replace("Z", "+00:00"))
-    except ValueError:
-        log.warning("unparseable ExpiresAt %r on %s; treating as expired", raw, resource["id"])
-        return True
-    if moment.tzinfo is None:
-        moment = moment.replace(tzinfo=timezone.utc)
-    return moment.timestamp() <= now
+def dispatch_destroy(now: int) -> None:
+    """Path 1: ask Actions to do it properly.
 
-
-def dispatch_destroy(store, now: int, lock: dict | None) -> None:
-    """Path 1: ask Actions to do it properly, and record that we asked.
-
-    The record goes ON THE LOCK, so the next invocation five minutes later can
-    tell "asked and waiting" from "never asked" without keeping state a Lambda
-    does not have. If there is no lock to write on - the case where the launch
-    lost its own record - the write is skipped and the next invocation dispatches
-    again, which is idempotent: destroy.yml on an already-destroyed environment
-    is the reconciliation step this project already relies on.
+    Recording that we asked is the CALLER's job now, and it happens whether this
+    succeeds or not: if GitHub cannot be reached, that IS the case the blunt path
+    exists for, and not recording the attempt would leave the watchdog retrying
+    an unreachable thing forever while the meter runs.
     """
     try:
         pem = secrets_manager.get_secret_value(SecretId=SECRET_NAME)["SecretString"]
@@ -237,17 +223,18 @@ def dispatch_destroy(store, now: int, lock: dict | None) -> None:
         )
         log.info(json.dumps({"msg": "watchdog", "action": "dispatched_destroy"}))
     except Exception:  # noqa: BLE001
-        # Recorded anyway. If GitHub cannot be reached, that IS the case the
-        # blunt path exists for, and not recording the attempt would leave this
-        # retrying an unreachable thing forever while the meter runs.
-        log.exception("destroy dispatch failed; the blunt path takes over after the grace period")
+        log.exception(
+            "destroy dispatch failed; the blunt path takes over after the grace period"
+        )
 
-    if lock is None:
-        return
+
+def _clear_record_quietly(store) -> None:
+    """Best effort, and safe to lose: the record also carries a DynamoDB ttl,
+    and a record whose scope no longer matches is ignored anyway."""
     try:
-        store.note_on_lock({"destroy_dispatched_at": str(now)})
+        store.clear_sweep()
     except Exception:  # noqa: BLE001
-        log.exception("could not record the dispatch attempt")
+        log.exception("could not clear the watchdog record")
 
 
 def blunt_teardown(alive: list[dict]) -> dict:

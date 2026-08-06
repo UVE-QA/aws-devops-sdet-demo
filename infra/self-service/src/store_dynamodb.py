@@ -12,6 +12,7 @@ import boto3
 from botocore.exceptions import ClientError
 
 from control import CapReached, ControlStore, LockHeld, StoreUnavailable
+from sweep import RECORD_KEY as SWEEP_KEY
 
 CONDITIONAL = "ConditionalCheckFailedException"
 
@@ -116,28 +117,53 @@ class DynamoDbControlStore(ControlStore):
         except Exception as exc:  # noqa: BLE001
             raise StoreUnavailable("release_lock") from exc
 
-    def note_on_lock(self, fields: dict) -> None:
-        """Attach the run to the lock, so a later refusal can name what holds it."""
-        names = {f"#k{i}": k for i, k in enumerate(fields)}
-        values = {f":v{i}": {"S": str(v)} for i, v in enumerate(fields.values())}
-        expression = "SET " + ", ".join(
-            f"{n} = {v}" for n, v in zip(names, values, strict=True)
-        )
+    # -- the watchdog's own record ------------------------------------------
+    #
+    # `note_on_lock` used to live here, and the watchdog wrote its dispatch onto
+    # the LOCK with it. That is the defect ADR-0036 D1 removes: the lock belongs
+    # to the launch, and the case the watchdog exists for is the case where the
+    # launch's records are gone. These three touch one item that nothing else
+    # writes, reads or deletes.
+    def read_sweep(self) -> dict | None:
         try:
-            self._client.update_item(
+            item = self._client.get_item(
                 TableName=self._table,
-                Key={"pk": {"S": "lock"}},
-                UpdateExpression=expression,
-                ExpressionAttributeNames=names,
-                ExpressionAttributeValues=values,
-                ConditionExpression="attribute_exists(pk)",
-            )
-        except ClientError as exc:
-            if exc.response.get("Error", {}).get("Code") == CONDITIONAL:
-                return
-            raise StoreUnavailable("note_on_lock") from exc
+                Key={"pk": {"S": SWEEP_KEY}},
+                ConsistentRead=True,
+            ).get("Item")
         except Exception as exc:  # noqa: BLE001
-            raise StoreUnavailable("note_on_lock") from exc
+            raise StoreUnavailable("read_sweep") from exc
+        return _plain(item)
+
+    def note_sweep(self, scope: str, dispatched_at: int, ttl: int) -> None:
+        """A whole-item PUT, not an update: this record has one writer.
+
+        Unlike the lock, it carries a DynamoDB `ttl`. Losing it late is
+        harmless - by then whatever it described is long finished - while
+        keeping it forever is not: a stale `dispatched_at` inherited by a fresh
+        launch is a blunt teardown nobody asked for. The scope check is the
+        first defence; this is the second.
+        """
+        try:
+            self._client.put_item(
+                TableName=self._table,
+                Item={
+                    "pk": {"S": SWEEP_KEY},
+                    "scope": {"S": scope},
+                    "dispatched_at": {"N": str(dispatched_at)},
+                    "ttl": {"N": str(ttl)},
+                },
+            )
+        except Exception as exc:  # noqa: BLE001
+            raise StoreUnavailable("note_sweep") from exc
+
+    def clear_sweep(self) -> None:
+        try:
+            self._client.delete_item(
+                TableName=self._table, Key={"pk": {"S": SWEEP_KEY}}
+            )
+        except Exception as exc:  # noqa: BLE001
+            raise StoreUnavailable("clear_sweep") from exc
 
     # -- the day counter ----------------------------------------------------
     def increment_day(self, day: str, cap: int) -> int:
@@ -168,7 +194,16 @@ class DynamoDbControlStore(ControlStore):
         except Exception as exc:  # noqa: BLE001
             raise StoreUnavailable("increment_day") from exc
 
-    def engage_kill_switch(self, reason: str, now: int) -> None:
+    def engage_kill_switch(self, reason: str, now: int, source: str = "budget-alarm") -> None:
+        """`source` is what the refusal is allowed to say out loud.
+
+        The reason is an SNS message, and the refusal goes to the public
+        internet - so the reason stays here and in the log, and the endpoint
+        reports only where the switch came from (ADR-0036, and the same rule
+        that made the budget email a secret in Phase 15). A switch thrown by
+        hand writes `manual`, and the refusal stops claiming a budget alarm
+        that never fired.
+        """
         try:
             self._client.put_item(
                 TableName=self._table,
@@ -176,6 +211,7 @@ class DynamoDbControlStore(ControlStore):
                     "pk": {"S": "killswitch"},
                     "engaged": {"BOOL": True},
                     "engaged_at": {"N": str(now)},
+                    "source": {"S": source},
                     "reason": {"S": reason[:1000]},
                 },
             )

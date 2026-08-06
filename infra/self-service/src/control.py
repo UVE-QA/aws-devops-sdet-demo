@@ -8,7 +8,8 @@ client can observe belongs in a test that does not use HTTP.
 
 The five refusals (ADR-0035), in the order they are evaluated:
 
-    1. kill switch   flipped by the budget alarm, read before anything else
+    1. kill switch   thrown by the budget alarm OR by hand, read before
+                     anything else, and applied to GET as well as to POST
     2. configured    no App id, no installation - refuse rather than 500 later
     3. nonce         single-use, and a speed bump rather than authorization
     4. lock          one run at a time, refused HERE because Actions only queues
@@ -83,6 +84,19 @@ class ControlStore:
     def increment_day(self, day: str, cap: int) -> int:
         raise NotImplementedError
 
+    # The watchdog's own record (ADR-0036 D1). It is on this interface rather
+    # than on the DynamoDB class alone so `tests/unit` can break it in the same
+    # ways as everything else - and because the fake store implements THIS, not
+    # a recording of AWS.
+    def read_sweep(self) -> dict | None:
+        raise NotImplementedError
+
+    def note_sweep(self, scope: str, dispatched_at: int, ttl: int) -> None:
+        raise NotImplementedError
+
+    def clear_sweep(self) -> None:
+        raise NotImplementedError
+
 
 @dataclass(frozen=True)
 class Decision:
@@ -131,21 +145,9 @@ def decide_launch(
         )
 
     # 1. The kill switch, before anything else (ADR-0035 guardrail 4).
-    try:
-        flag = store.get_flag(KILL_SWITCH_KEY)
-    except StoreUnavailable as exc:
-        return _store_refusal(exc)
-
-    if flag and flag.get("engaged"):
-        return Decision(
-            False,
-            "kill_switch",
-            "launches are disabled: the account budget alarm has fired. "
-            "This is a backstop and it is slow by design - it stops the next "
-            "run, not the one that spent the money.",
-            status=503,
-            detail={"since": flag.get("engaged_at")},
-        )
+    refusal = kill_switch_refusal(store)
+    if refusal is not None:
+        return refusal
 
     # 2. Configuration. Refusing here beats a 500 from GitHub two calls later,
     #    and this is the state the endpoint is in between 19b's apply and the
@@ -187,9 +189,15 @@ def decide_launch(
             "a launch is already running. Watch it on the dashboard; the "
             "button unlocks when it finishes, and in any case at its deadline.",
             status=409,
+            # No `run_url`. It was read here and written NOWHERE, because the
+            # lock is taken BEFORE the dispatch and `workflow_dispatch` returns
+            # no run id - there is no moment at which this code knows the URL.
+            # 19b proved the refusal against a hand-seeded item carrying a field
+            # the real writer never writes, which is how a key that could only
+            # ever be null survived a break test. The dashboard is where a
+            # visitor watches a run (ADR-0026); it does not need this.
             detail={
                 "launch_id": held.holder.get("launch_id"),
-                "run_url": held.holder.get("run_url"),
                 "expires_at": held.holder.get("expires_at"),
             },
         )
@@ -221,6 +229,55 @@ def decide_launch(
             "launch_id": launch_id,
             "expires_at": expires_at,
             "launches_today": count,
+        },
+    )
+
+
+def kill_switch_refusal(store: ControlStore) -> Decision | None:
+    """The kill switch, evaluated in ONE place and applied to BOTH methods.
+
+    Two corrections from 19c, both of the same family - the endpoint saying
+    something that is not true:
+
+    It used to name the budget alarm whichever way the switch was thrown, and
+    the switch is thrown by hand at least as often as by Budgets. It now reports
+    the SOURCE, which the writer records.
+
+    And it used to refuse only `POST`, while `infra/self-service/README.md` said
+    it "refuses every request" - so a parked endpoint went on issuing nonces and
+    writing an item to the store for anyone who asked. `GET` is refused too now,
+    and the README is the thing that was right.
+
+    What it deliberately does NOT return is the recorded reason. The budget
+    path's reason is an SNS message with the account's budget in it, and this
+    reply goes to the public internet; the reason stays in the store and in the
+    log. That is the same rule that moved the budget email out of a GitHub
+    variable in Phase 15.
+    """
+    try:
+        flag = store.get_flag(KILL_SWITCH_KEY)
+    except StoreUnavailable as exc:
+        return _store_refusal(exc)
+
+    if not (flag and flag.get("engaged")):
+        return None
+
+    by_budget = str(flag.get("source", "")) == "budget-alarm"
+    why = (
+        "The account budget alarm fired. This is a backstop and it is slow by "
+        "design - it stops the next run, not the one that spent the money."
+        if by_budget
+        else "They were switched off deliberately. The reason is recorded where "
+        "the switch was thrown, not here."
+    )
+    return Decision(
+        False,
+        "kill_switch",
+        f"launches are disabled. {why}",
+        status=503,
+        detail={
+            "since": flag.get("engaged_at"),
+            "source": flag.get("source") or "manual",
         },
     )
 
