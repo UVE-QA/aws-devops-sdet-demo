@@ -34,7 +34,7 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 19b   | Self-service applied + refusals | ✅ done (no cycle run) | sessions/2026-08-05-phase-19b-apply-and-refusals.md |
 | 19c   | Live launch, TTL, both watchdog paths | ✅ closed by 19e | sessions/2026-08-05-phase-19c-live-launch-and-teardown.md |
 | 19d   | The record, the lock, the state lock | ✅ witnessed live 2026-08-06 | sessions/2026-08-05-phase-19d-cancelled-run-recovery.md |
-| 19e   | Break test; teardown claim narrowed | ✅ done | sessions/2026-08-06-phase-19e-break-test.md |
+| 19e   | Break test; teardown claim narrowed | ✅ done | sessions/2026-08-06-phase-19e-break-test-and-teardown-gap.md |
 | 19f   | Teardown that finishes on its own | ⬜ next (ADR-0037 D2-D4) | next-phases.md |
 
 Phase 17 (prod data continuity) is still open and still optional, in

@@ -46,5 +46,5 @@ Until D2-D4 ship, the honest claim is narrower than the README's: the system
 removes the billable resources of a cancelled launch without a human; the
 remainder can still require manual AWS calls.
 
-Evidence: docs/evidence-19e-watch.log; runs 31062941544, 31067248809,
+Evidence: docs/sessions/2026-08-06-phase-19e-watch.log; runs 31062941544, 31067248809,
 31073407958, 31074438477, 31075646661, 31075831511.
