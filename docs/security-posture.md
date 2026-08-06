@@ -23,6 +23,12 @@ This was not always true. `deploy-stage.yml` used to trigger on push to `main`,
 so every push raised billable infrastructure as a side effect. Removed in
 6944229, before the repository was published.
 
+`publish-site` is the one exception: it also triggers on `push` to `main` limited
+to `site/**` and its own workflow file. That is deliberate — it creates no
+billable infrastructure (S3 puts and one CloudFront invalidation), and pushing to
+`main` requires the same **write** permission that dispatch does. There is no
+`pull_request` trigger, so a fork cannot reach it.
+
 ## 2. `pull_request_target` does not appear anywhere
 
 ```bash

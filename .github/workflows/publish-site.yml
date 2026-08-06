@@ -12,12 +12,21 @@ name: publish-site
 # `environment:` gets a token whose sub is a branch ref, which that trust policy
 # cannot match - so the environment is what makes authentication possible.
 #
-# Manual only, like every workflow here that touches AWS. That is also what keeps
-# a public repository from being able to start it: dispatch requires write access
-# (docs/security-posture.md).
+# Runs on push to main for site/ changes, plus manual dispatch. Neither path is
+# reachable from a public fork: pushing to main and dispatching both require write
+# access, and there is no pull_request trigger (docs/security-posture.md).
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'site/**'
+      - '.github/workflows/publish-site.yml'
+
+concurrency:
+  group: publish-site
+  cancel-in-progress: true
 
 permissions:
   id-token: write
