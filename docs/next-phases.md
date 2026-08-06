@@ -636,6 +636,28 @@ one this project has learned to distrust. Closes when the account is verified
 empty from the devbox, with a positive control in the same command, and the
 measured cost is recorded.
 
+### 19d — the state a cancelled run leaves, cleaned up by the system
+
+19c did everything above and did not close, because cancelling a run left
+something no single component could see: an environment alive, its lock deleted
+by a `release-lock` that never asked how destroy went, and a Terraform state
+lock nobody would ever release. Recovery took a human with an AWS credential.
+
+```text
+the watchdog keeps its OWN record, so it cannot forget a dispatch when the
+  lock goes missing - which is the case it exists for (ADR-0036 D1)
+release-lock releases only what destroy actually finished (D2)
+a state lock left by a finished runner is broken by the system, and refused
+  in every ambiguous case (D3)
+then the batched "the endpoint says something untrue" fixes: the kill switch's
+  message and its exemption for GET, the run_url that is read and never
+  written, and the two limits the dashboard hardcodes
+```
+
+Closes when a cancelled run is cleaned up with nobody in the loop, and the
+account is verified empty afterwards with a positive control in the same
+command. That is also the remaining criterion of 19c, which closes with it.
+
 ---
 
 ## Deliberately out of scope

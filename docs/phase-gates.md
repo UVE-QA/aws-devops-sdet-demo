@@ -33,6 +33,7 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 19a   | Self-service scaffold          | ✅ done (nothing applied) | sessions/2026-08-02-phase-19a-scaffold.md |
 | 19b   | Self-service applied + refusals | ✅ done (no cycle run) | sessions/2026-08-05-phase-19b-apply-and-refusals.md |
 | 19c   | Live launch, TTL, both watchdog paths | 🟡 proven, NOT closed | sessions/2026-08-05-phase-19c-live-launch-and-teardown.md |
+| 19d   | The record, the lock, the state lock | 🟡 written, not witnessed | sessions/2026-08-05-phase-19d-cancelled-run-recovery.md |
 
 Phase 17 (prod data continuity) is still open and still optional, in
 `docs/next-phases.md`. Phase 18 was pulled forward of both remaining phases
@@ -1474,9 +1475,52 @@ were the same shape — a page saying something it was not in a position to say:
   "re-run destroy", the recovery the watchdog documents, spent two full
   fifteen-minute timeouts failing.
 - Criteria to close: that gap decided and fixed, and a cancelled run cleaned up
-  by the system rather than by hand. **NOT MET.**
+  by the system rather than by hand. **NOT MET.** Decided and fixed in 19d; the
+  live half is what both phases now wait on.
 - Account verified empty afterwards, positive control in the same command.
   Endpoint parked. 2 of 3 daily launches used.
+
+### Phase 19d — The record, the lock and the state lock  [IN PROGRESS 2026-08-05]
+- Plan: `docs/next-phases.md` 19d. **ADR-0036**, which amends ADR-0035
+  guardrails 1 and 5 and is written against a STATE rather than a defect: three
+  things that were each green in isolation combined into one from which the only
+  exit was a human.
+- Written, and not yet witnessed against AWS:
+```text
+  D1  the watchdog's record moves off the LOCK onto an item of its own, scoped
+      by the launch ids it acted on and carrying a ttl. `note_on_lock` goes
+      with it, and the decision moves to `infra/self-service/src/sweep.py`,
+      which imports no AWS SDK and is driven branch by branch in tests/unit
+  D2  `release-lock` reads `needs.destroy.result` and releases only on success.
+      A destroy that failed means something is still alive, and the button has
+      to stay shut
+  D3  `scripts/break-stale-state-lock.sh`, a preflight in destroy.yml AND in
+      the self-service destroy job, on stage and prod in the same commit. It
+      breaks a lock whose holder is this job's own runner user when no other
+      run is in progress, and refuses otherwise
+```
+- Batched with it, all four from 19c's "did not settle" list: the kill switch
+  reports the `source` it was thrown with instead of always naming the budget
+  alarm, and now refuses `GET` as well as `POST` — which is what
+  `infra/self-service/README.md` always claimed; `run_url` is removed from the
+  `locked` refusal, because the lock is taken before the dispatch and there is
+  no moment at which the code knows a run URL; and the dashboard adopts
+  `ttl_minutes` and `daily_cap` from the endpoint's reply rather than
+  hardcoding them.
+- **Four findings while writing it, three from running rather than reading:**
+  the first version of the D1 assertion asserted `dispatched_destroy` where the
+  code correctly answered `within_deadline` — the test modelled a cancelled run
+  that was already past its deadline, which is not what a cancellation leaves,
+  so it measured the author's assumption rather than the code; the preflight
+  aborted with `GITHUB_REPOSITORY: unbound variable` under `set -u` when run
+  outside Actions, which is the right exit code for the wrong reason and the
+  message names a shell variable instead of the refusal; and its positive
+  branch was first measured through a pipe into `tail`, which reported `exit=0`
+  over a `terraform: command not found` — the same instrument error the primer
+  has recorded since 2026-07-28.
+- Criteria to close: a cancelled run cleaned up with nobody in the loop, and the
+  account verified empty afterwards with a positive control in the same command.
+  It is the same criterion 19c is still holding.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,
