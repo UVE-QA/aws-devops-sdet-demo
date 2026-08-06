@@ -102,9 +102,17 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: scripts/break-stale-state-lock.sh ${{ inputs.environment }}
 
+      # The TARGET is the load balancer, not the module. Destroying
+      # `module.alb` includes `aws_security_group.alb`, which cannot be
+      # deleted while the app SG's ingress rule still references it: AWS
+      # answers DependencyViolation, Terraform retries for 15 minutes, and
+      # the main destroy below never runs. Observed 2026-08-06 on a run
+      # cancelled mid-apply. The LB alone releases the ENIs, which is all
+      # this step is for; the SG leaves with the full destroy, together
+      # with the rule that points at it.
       - name: Destroy ALB first (release ENIs before the IGW)
         working-directory: infra/envs/${{ inputs.environment }}
-        run: terraform destroy -input=false -auto-approve -target=module.alb
+        run: terraform destroy -input=false -auto-approve -target=module.alb.aws_lb.this
 
       - name: Terraform destroy
         working-directory: infra/envs/${{ inputs.environment }}
