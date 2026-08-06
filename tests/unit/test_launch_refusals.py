@@ -279,3 +279,52 @@ def test_a_lock_with_no_deadline_counts_as_expired():
 def test_the_day_key_is_utc_so_the_reset_time_is_the_same_everywhere():
     assert control.utc_day(NOW) == "2026-07-25"
     assert 0 < control.seconds_until_utc_midnight(NOW) <= 86400
+
+
+# ------------------------------- what the kill switch is allowed to say (19d)
+def test_the_kill_switch_reports_how_it_was_actually_thrown():
+    """It named the budget alarm whichever way it was engaged, and the switch is
+    thrown by hand at least as often as by Budgets - including every time this
+    project parks the endpoint between phases."""
+    by_hand = FakeStore()
+    by_hand.flag = {"engaged": True, "engaged_at": NOW - 10}
+    by_budget = FakeStore()
+    by_budget.flag = {"engaged": True, "engaged_at": NOW - 10, "source": "budget-alarm"}
+
+    manual = decide(by_hand)
+    budget = decide(by_budget)
+
+    assert manual.detail["source"] == "manual"
+    assert "budget" not in manual.message.lower(), "no alarm fired; do not say one did"
+    assert budget.detail["source"] == "budget-alarm"
+    assert "budget" in budget.message.lower()
+
+
+def test_the_refusal_does_not_republish_the_recorded_reason():
+    """The budget path's reason is an SNS message with the account's budget in
+    it, and this reply goes to the public internet. Phase 15 moved the budget
+    email out of a GitHub variable for the same reason."""
+    store = FakeStore()
+    store.flag = {
+        "engaged": True,
+        "engaged_at": NOW,
+        "source": "budget-alarm",
+        "reason": "AWS Budgets: demo-monthly exceeded USD 12.34 in 993912191738",
+    }
+
+    decision = decide(store)
+
+    assert "reason" not in (decision.detail or {})
+    assert "12.34" not in decision.message
+
+
+def test_the_kill_switch_is_evaluated_for_the_nonce_too():
+    """`GET` used to be exempt, while the README said the switch "refuses every
+    request" - so a parked endpoint went on writing a store item per press for
+    anyone who asked. Of the two, the README was right."""
+    engaged = FakeStore()
+    engaged.flag = {"engaged": True, "engaged_at": NOW}
+
+    assert control.kill_switch_refusal(engaged).code == "kill_switch"
+    assert control.kill_switch_refusal(FakeStore()) is None, "and it lets a live one through"
+    assert control.kill_switch_refusal(FakeStore(get_flag=True)).code == "store_unavailable"

@@ -335,6 +335,13 @@
       // And what the page says about a launch still comes from the runs API and
       // status.json, never from the endpoint's own answer (ADR-0026). The reply
       // below is an acknowledgement, not a report.
+      // The two numbers below are what this page SAYS before it has asked. They
+      // are not the numbers that are enforced: `var.ttl_minutes` and
+      // `var.daily_cap` are, in infra/self-service, and until 19d they were
+      // hardcoded here as well - one definition on two hosts, of the kind that
+      // has already bitten this project through a Makefile. The endpoint reports
+      // both in its GET reply now, and the sentence is rewritten from that reply
+      // the first time anyone presses the button.
       var SELF_SERVICE = {
         enabled: true,
         endpoint: "https://4jyufh67fx22vm55gmkurohdzm0lxnft.lambda-url.us-west-2.on.aws/",
@@ -740,6 +747,21 @@
 
       function launchResult(text) { el("launch-result").textContent = text; }
 
+      // What the endpoint says its own limits are beats what this file was
+      // shipped believing. Numbers only: an endpoint that answers something
+      // unexpected must not be able to blank the sentence.
+      function adoptLimits(issued) {
+        if (!issued) return;
+        var changed = false;
+        if (typeof issued.ttl_minutes === "number" && issued.ttl_minutes !== SELF_SERVICE.ttlMinutes) {
+          SELF_SERVICE.ttlMinutes = issued.ttl_minutes; changed = true;
+        }
+        if (typeof issued.daily_cap === "number" && issued.daily_cap !== SELF_SERVICE.dailyCap) {
+          SELF_SERVICE.dailyCap = issued.daily_cap; changed = true;
+        }
+        if (changed) renderLaunch();
+      }
+
       // Two calls, because the nonce is single-use and issued per press. Every
       // refusal has a `code` and a `message` written to be read by whoever
       // pressed the button, so they are rendered as-is rather than replaced by
@@ -752,6 +774,19 @@
         fetch(SELF_SERVICE.endpoint, { method: "GET" })
           .then(function (r) { return r.json(); })
           .then(function (issued) {
+            // The endpoint's numbers win over this page's. It is one-way and
+            // deliberately so: the page never tells the endpoint anything.
+            adoptLimits(issued);
+            // A refused GET carries no nonce. Since 19d the kill switch refuses
+            // GET as well as POST, so this is the ordinary shape of a parked
+            // endpoint - and posting an undefined nonce would report `nonce` as
+            // the reason for a refusal that was really the kill switch.
+            if (!issued || !issued.nonce) {
+              return { ok: false, body: {
+                code: (issued && issued.code) || "refused",
+                message: (issued && issued.message) || "the endpoint issued no nonce"
+              } };
+            }
             return fetch(SELF_SERVICE.endpoint, {
               method: "POST",
               headers: { "content-type": "application/json" },

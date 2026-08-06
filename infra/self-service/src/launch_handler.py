@@ -85,11 +85,24 @@ def handler(event, _context=None):
 
 
 def _issue(store, now: int) -> dict:
-    """A nonce and a launch id in one read-free call.
+    """A nonce and a launch id, refused when the switch is off.
 
     The launch id is generated HERE rather than accepted from the caller, so the
     string that ends up in a public run name cannot be chosen by a stranger.
+
+    The kill-switch check is the one thing here that costs a read, and it was
+    missing until 19d: a parked endpoint went on handing out nonces and WRITING
+    an item for each one, while the README said it "refuses every request". Of
+    the two, the README was right - a switch that still lets strangers write to
+    the control store is not off.
     """
+    refusal = control.kill_switch_refusal(store)
+    if refusal is not None:
+        return _response(
+            refusal.status,
+            {"code": refusal.code, "message": refusal.message, "detail": refusal.detail},
+        )
+
     nonce = secrets.token_urlsafe(24)
     launch_id = f"ss-{secrets.token_hex(8)}"
     try:
@@ -104,7 +117,12 @@ def _issue(store, now: int) -> dict:
             "nonce": nonce,
             "launch_id": launch_id,
             "expires_in": NONCE_TTL,
+            # The two numbers the page states in its own sentence. It hardcoded
+            # both until 19d, which is one definition on two hosts: changing
+            # var.ttl_minutes would have left the dashboard telling visitors 90
+            # while the environment carried something else.
             "ttl_minutes": TTL_MINUTES,
+            "daily_cap": DAILY_CAP,
             "note": "this nonce is a speed bump, not authorization",
         },
     )
