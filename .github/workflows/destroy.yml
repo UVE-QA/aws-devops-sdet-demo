@@ -36,6 +36,10 @@ on:
 permissions:
   id-token: write
   contents: read
+  # For `scripts/break-stale-state-lock.sh` only: it refuses to break a state
+  # lock while any other run of this repository is in progress, and it has to be
+  # able to ask (ADR-0036 D3).
+  actions: read
 
 jobs:
   destroy:
@@ -81,6 +85,22 @@ jobs:
       - name: Terraform init
         working-directory: infra/envs/${{ inputs.environment }}
         run: terraform init -input=false
+
+      # A cancelled apply leaves the state lock held, and this workflow is what
+      # the watchdog dispatches to clean up after one - so without this step the
+      # dispatched destroy dies on the lock and the recovery needs a human with
+      # an AWS credential (ADR-0036 D3). It refuses in every case where the
+      # answer is not certain, and does nothing at all when no lock is held,
+      # which is every ordinary teardown.
+      #
+      # It goes to BOTH environments in the same commit. prod cannot be reached
+      # from the public button, so it will meet a stale lock far more rarely -
+      # and the last time a shared fix went to one environment only, prod kept
+      # the broken shape for seven weeks.
+      - name: Break a state lock left behind by a cancelled run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/break-stale-state-lock.sh ${{ inputs.environment }}
 
       - name: Destroy ALB first (release ENIs before the IGW)
         working-directory: infra/envs/${{ inputs.environment }}
