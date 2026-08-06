@@ -660,6 +660,26 @@ command. That is also the remaining criterion of 19c, which closes with it.
 
 ---
 
+### 19e — the break test  **DONE 2026-08-06**
+
+A launch cancelled mid-apply on purpose, through the public endpoint. Confirmed
+ADR-0036 D1/D2/D3 on live evidence: the lock was kept, the stale state lock was
+broken by the preflight in 6s, and the watchdog wrote its own record and removed
+the billable resources with no human. Disproved the wider claim: the remainder
+took four manual AWS calls. Root cause and decisions in ADR-0037.
+
+### 19f — teardown that finishes on its own  (ADR-0037 D2-D4)
+
+    D2  revoke cross-SG rules in a teardown preflight, so no security group
+        deletion is impossible by construction
+    D3  `if: always()` on "Verify no billable resources remain", so a failed
+        teardown still states what is alive
+    D4  orphan sweep: project-tagged resources absent from Terraform state
+        fail the run
+
+Cost: $0 until the verifying break test, which is ~40 minutes of ALB + RDS.
+Done when a cancelled launch is reclaimed with ZERO manual AWS calls.
+
 ## Deliberately out of scope
 
 Not "someday" — considered and excluded, with reasons. Being able to explain why

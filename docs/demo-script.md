@@ -81,6 +81,13 @@ Say plainly that no human runs an AWS command during a cycle, and that all three
 AWS workflows are dispatch-only: a push to `main` used to deploy billable
 infrastructure as a side effect, and that is why it no longer triggers on push.
 
+If asked what happens when a run is cancelled: the BILLABLE resources are
+reclaimed without a human - the watchdog dispatches destroy on its own record
+(ADR-0036, proven by a live cancellation on 2026-08-06). The remainder can still
+need manual AWS calls until ADR-0037 D2-D4 ship. `publish-site` is the one
+AWS-touching workflow that does trigger on push, limited to `site/**`; it creates
+nothing billable.
+
 ### 4:30 — what "tests green" means (1.5 min)
 
 ```text

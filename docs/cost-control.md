@@ -148,10 +148,12 @@ measured public cycle is Phase 19c's closing figure.
   tags are gone (registry made immutable, Phase 14) in favour of digests,
   so re-running deploy-stage against an unchanged image REUSES it rather
   than colliding with its own tag.
-- destroy.yml tears down the ALB in a targeted pass before the rest of the
-  network (ADR-0016) - required for the teardown to complete at all, not
-  an optimization. Skipping it is how a destroy used to fail after ~20
-  minutes on a DependencyViolation.
+- destroy.yml tears down the LOAD BALANCER in a targeted pass before the
+  rest of the network (ADR-0016, narrowed by ADR-0037) - required for the
+  teardown to complete at all, not an optimization. The target is
+  `module.alb.aws_lb.this`, NOT `module.alb`: the module also holds the ALB
+  security group, which AWS refuses to delete while the app SG still
+  references it, and Terraform retries that for 15 minutes before failing.
 - teardown is verified against the AWS CLI, not against Terraform state
   (docs/session-primer.md verification habits) - ecs, rds, alb, nat, eks
   all empty, ecr still returning the shared (permanent) registry as a
@@ -159,9 +161,12 @@ measured public cycle is Phase 19c's closing figure.
 - the rule that follows from all of this: an environment is not left up
   between sessions or after a demo. Nothing in this project defends against
   "up and forgotten" except the humans running it and the budget alarm
-  above - there is no scheduled teardown backstop (deliberately; see
-  docs/next-phases.md, "Deliberately out of scope" - superseded by Phase
-  19's per-run TTL and watchdog if that phase is ever built).
+  above. The one exception is the SELF-SERVICE path: a public launch carries
+  a per-run TTL and an EventBridge/Lambda watchdog that dispatches destroy on
+  its own record (Phase 19, ADR-0035/0036; proven by a live cancellation on
+  2026-08-06). It reclaims the BILLABLE resources without a human, not
+  necessarily the whole environment - see ADR-0037. An environment brought up
+  by `deploy-stage` has no such backstop and is still the operator's to remove.
 ```
 
 ## What would change this document

@@ -1216,3 +1216,7 @@ explain why something was NOT built is itself an interview asset.
 - **Prefer a checked-in patch script over a long interactive heredoc** for
   surgical edits to long docs: it fails loudly, changes nothing on mismatch, and
   is reviewable before it runs.
+- `gh run view --log` returns nothing for some runs; the API path
+  `repos/:owner/:repo/actions/jobs/<id>/logs` worked every time.
+- The devbox clock is UTC, the GitHub UI renders PDT (-7). State times in UTC
+  or the deadline you quote will be wrong by seven hours.
