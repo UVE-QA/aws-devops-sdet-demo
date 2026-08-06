@@ -128,6 +128,8 @@ a summary is honest as opposed to present:
 ```text
 - run the relevant validation
 - update docs/phase-gates.md if the phase status changed
+- name the session file after what the session ESTABLISHED, not after the
+  method used: `break-test-and-teardown-gap`, not `break-test`
 - write a summary in docs/sessions/ and add a row to INDEX.md
 - record new structural decisions as ADRs
 - commit and push; work is only shared once pushed
