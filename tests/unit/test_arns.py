@@ -51,6 +51,11 @@ SAMPLES = {
     "elasticloadbalancing:targetgroup": (
         f"arn:aws:elasticloadbalancing:us-west-2:{ACCOUNT}:targetgroup/demo-tg/73e2d6bc"
     ),
+    "elasticloadbalancing:listener": (
+        f"arn:aws:elasticloadbalancing:us-west-2:{ACCOUNT}"
+        ":listener/app/demo-alb/9e6accf78976708a/6070fae5a667a395"
+    ),
+    "cloudwatch:alarm": f"arn:aws:cloudwatch:us-west-2:{ACCOUNT}:alarm:demo-http-5xx",
     "logs:log-group": f"arn:aws:logs:us-west-2:{ACCOUNT}:log-group:/aws-devops-sdet-demo/stage/app",
     "secretsmanager:secret": (
         f"arn:aws:secretsmanager:us-west-2:{ACCOUNT}:secret:demo-db-credentials-AbCdEf"
@@ -128,7 +133,15 @@ def case_arms() -> list[str]:
 
 def test_the_sweep_still_has_arms_to_check():
     """A positive control. An empty list would pass the test below silently."""
-    assert len(case_arms()) >= 13
+    assert len(case_arms()) >= 15
+
+
+def test_the_kinds_a_live_environment_has():
+    """Both were seen `unconfirmed` on 2026-08-07, in the first sweep that ever
+    ran against a live environment rather than the remains of one."""
+    assert arns.parse(SAMPLES["cloudwatch:alarm"])[:2] == ("cloudwatch", "alarm")
+    assert name(SAMPLES["cloudwatch:alarm"]) == "demo-http-5xx"
+    assert arns.parse(SAMPLES["elasticloadbalancing:listener"])[1] == "listener"
 
 
 def test_every_case_arm_in_the_sweep_is_reachable():

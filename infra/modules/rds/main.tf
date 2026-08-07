@@ -90,6 +90,23 @@ resource "aws_secretsmanager_secret" "db" {
   }
 }
 
+locals {
+  # An instance that is still `creating` HAS NO ENDPOINT ADDRESS, and a null in
+  # a string template is a hard error Terraform raises while evaluating the
+  # configuration - during a DESTROY as much as during an apply.
+  #
+  # That state used to be unreachable: an apply waits for the instance, so the
+  # address was always there by the time anything read it. Since ADR-0038 a
+  # teardown IMPORTS an instance a cancelled apply left behind, and on
+  # 2026-08-07 it imported one that was three minutes old. The adoption
+  # succeeded, and the destroy then died evaluating this line - the failure
+  # moved rather than went away.
+  #
+  # `jsonencode` accepts null happily, so `host` below needs nothing. Only the
+  # template does.
+  db_address = aws_db_instance.this.address != null ? aws_db_instance.this.address : ""
+}
+
 resource "aws_secretsmanager_secret_version" "db" {
   secret_id = aws_secretsmanager_secret.db.id
   secret_string = jsonencode({
@@ -98,6 +115,6 @@ resource "aws_secretsmanager_secret_version" "db" {
     host     = aws_db_instance.this.address
     port     = 5432
     dbname   = var.db_name
-    url      = "postgresql+psycopg2://${var.db_username}:${random_password.db.result}@${aws_db_instance.this.address}:5432/${var.db_name}"
+    url      = "postgresql+psycopg2://${var.db_username}:${random_password.db.result}@${local.db_address}:5432/${var.db_name}"
   })
 }

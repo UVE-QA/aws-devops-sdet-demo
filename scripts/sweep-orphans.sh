@@ -188,6 +188,17 @@ confirm_exists() {
       aws elbv2 describe-load-balancers --region "$region" --load-balancer-arns "$arn" >/dev/null 2>&1 ;;
     elasticloadbalancing:targetgroup)
       aws elbv2 describe-target-groups --region "$region" --target-group-arns "$arn" >/dev/null 2>&1 ;;
+    cloudwatch:alarm)
+      # Both of these appeared for the first time on 2026-08-07, in the first
+      # sweep this project ever ran against a LIVE environment rather than the
+      # remains of one. Neither is adoptable and neither needs to be - a
+      # listener leaves with its load balancer - but `unconfirmed` is red, and a
+      # gate that reddens on a resource behaving perfectly normally is a gate on
+      # its way to being switched off.
+      [ "$(aws cloudwatch describe-alarms --region "$region" --alarm-names "$id" \
+             --query "MetricAlarms[0].AlarmName" --output text 2>/dev/null)" = "$id" ] ;;
+    elasticloadbalancing:listener)
+      aws elbv2 describe-listeners --region "$region" --listener-arns "$arn" >/dev/null 2>&1 ;;
     logs:log-group)
       [ -n "$(aws logs describe-log-groups --region "$region" \
                 --log-group-name-prefix "$id" --query "logGroups[0].arn" --output text 2>/dev/null | grep -v None)" ] ;;
