@@ -57,6 +57,8 @@ from __future__ import annotations
 
 from typing import Any, Callable
 
+import arns
+
 # The four ways an ARN can fail to become an address. Named, because a log line
 # that says "skipped" tells the next person nothing.
 NO_RULE = "no rule for this kind"
@@ -77,29 +79,18 @@ INDEXED_KINDS = {
 
 
 class Arn:
-    """Just enough ARN to work with. `rest` is everything after the account."""
+    """Just enough ARN to work with, parsed by `scripts/arns.py`.
 
-    __slots__ = ("service", "rest", "raw")
+    The parse lives there rather than here because `sweep-orphans.sh` needs the
+    same answer, and it used to compute its own - wrongly, for every ARN whose
+    resource part is colon-separated. One definition, two hosts.
+    """
+
+    __slots__ = ("service", "kind", "tail", "raw")
 
     def __init__(self, raw: str) -> None:
-        parts = raw.split(":", 5)
         self.raw = raw
-        self.service = parts[2] if len(parts) > 3 else ""
-        self.rest = parts[5] if len(parts) > 5 else ""
-
-    @property
-    def kind(self) -> str:
-        """`security-group/sg-0abc` -> security-group; `db:name` -> db."""
-        head = self.rest.split("/", 1)[0]
-        return head.split(":", 1)[0]
-
-    @property
-    def tail(self) -> str:
-        """Everything after the kind, however this service separates it."""
-        head = self.rest.split("/", 1)[0]
-        if ":" in head:
-            return self.rest.split(":", 1)[1]
-        return self.rest.split("/", 1)[1] if "/" in self.rest else ""
+        self.service, self.kind, self.tail = arns.parse(raw)
 
     def __repr__(self) -> str:  # pragma: no cover - diagnostics only
         return f"Arn({self.raw!r})"

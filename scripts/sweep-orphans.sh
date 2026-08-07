@@ -128,23 +128,37 @@ fi
 # two would be the empty-result trap again, one level down.
 confirm_exists() {
   local arn="$1" region="$2"
-  local service kind id
-  service="$(echo "$arn" | cut -d: -f3)"
-  id="$(echo "$arn" | cut -d: -f6-)"
-  kind="${id%%/*}"
-  case "$service:$kind" in
+  local parsed key id
+  # PARSED BY scripts/arns.py, not here. This function used to compute the kind
+  # as `${id%%/*}` - up to the first SLASH - which is right for
+  # `security-group/sg-0abc` and wrong for every ARN whose resource part is
+  # COLON-separated: `db:demo-db` came back whole as the kind, so `rds:db`,
+  # `rds:subgrp`, `logs:log-group` and `secretsmanager:secret` were four arms
+  # that had never once been reached. Every resource of those kinds answered
+  # `unconfirmed`, which is honest and unhelpful, and looks in a log exactly
+  # like a kind nobody thought about.
+  #
+  # It was invisible on an empty account, which is where it was tested: nothing
+  # of those kinds is tagged once the environment is gone. On 2026-08-07 a
+  # cancelled launch left an RDS instance alive, the sweep could not confirm it,
+  # the adoption step rightly refused to import something nobody had confirmed,
+  # and the destroy died on the subnet group it was holding.
+  parsed="$(python3 scripts/arns.py "$arn")" || return 2
+  key="${parsed%%$'\t'*}"
+  id="${parsed#*$'\t'}"
+  case "$key" in
     ec2:security-group)
-      aws ec2 describe-security-groups --region "$region" --group-ids "${id#*/}" >/dev/null 2>&1 ;;
+      aws ec2 describe-security-groups --region "$region" --group-ids "$id" >/dev/null 2>&1 ;;
     ec2:subnet)
-      aws ec2 describe-subnets --region "$region" --subnet-ids "${id#*/}" >/dev/null 2>&1 ;;
+      aws ec2 describe-subnets --region "$region" --subnet-ids "$id" >/dev/null 2>&1 ;;
     ec2:vpc)
-      aws ec2 describe-vpcs --region "$region" --vpc-ids "${id#*/}" >/dev/null 2>&1 ;;
+      aws ec2 describe-vpcs --region "$region" --vpc-ids "$id" >/dev/null 2>&1 ;;
     ec2:internet-gateway)
-      aws ec2 describe-internet-gateways --region "$region" --internet-gateway-ids "${id#*/}" >/dev/null 2>&1 ;;
+      aws ec2 describe-internet-gateways --region "$region" --internet-gateway-ids "$id" >/dev/null 2>&1 ;;
     ec2:route-table)
-      aws ec2 describe-route-tables --region "$region" --route-table-ids "${id#*/}" >/dev/null 2>&1 ;;
+      aws ec2 describe-route-tables --region "$region" --route-table-ids "$id" >/dev/null 2>&1 ;;
     ec2:elastic-ip)
-      aws ec2 describe-addresses --region "$region" --allocation-ids "${id#*/}" >/dev/null 2>&1 ;;
+      aws ec2 describe-addresses --region "$region" --allocation-ids "$id" >/dev/null 2>&1 ;;
     ecs:task-definition)
       # NEVER present, and by KIND rather than by status. A revision no service
       # refers to is inert whether it is ACTIVE or INACTIVE: nothing runs from
@@ -160,23 +174,23 @@ confirm_exists() {
     ecs:cluster)
       # ACTIVE only. A deleted cluster answers `describe` for a while, with
       # status INACTIVE, which is how one survived a teardown on 2026-08-06.
-      [ "$(aws ecs describe-clusters --region "$region" --clusters "${id#*/}" \
+      [ "$(aws ecs describe-clusters --region "$region" --clusters "$id" \
              --query "clusters[0].status" --output text 2>/dev/null)" = "ACTIVE" ] ;;
     ecs:service)
-      [ "$(aws ecs describe-services --region "$region" --cluster "$(echo "${id#*/}" | cut -d/ -f1)" \
-             --services "$(echo "$id" | rev | cut -d/ -f1 | rev)" \
+      [ "$(aws ecs describe-services --region "$region" --cluster "${id%%/*}" \
+             --services "${id##*/}" \
              --query "services[0].status" --output text 2>/dev/null)" = "ACTIVE" ] ;;
     rds:db)
-      aws rds describe-db-instances --region "$region" --db-instance-identifier "${id#*:}" >/dev/null 2>&1 ;;
+      aws rds describe-db-instances --region "$region" --db-instance-identifier "$id" >/dev/null 2>&1 ;;
     rds:subgrp)
-      aws rds describe-db-subnet-groups --region "$region" --db-subnet-group-name "${id#*:}" >/dev/null 2>&1 ;;
+      aws rds describe-db-subnet-groups --region "$region" --db-subnet-group-name "$id" >/dev/null 2>&1 ;;
     elasticloadbalancing:loadbalancer)
       aws elbv2 describe-load-balancers --region "$region" --load-balancer-arns "$arn" >/dev/null 2>&1 ;;
     elasticloadbalancing:targetgroup)
       aws elbv2 describe-target-groups --region "$region" --target-group-arns "$arn" >/dev/null 2>&1 ;;
     logs:log-group)
       [ -n "$(aws logs describe-log-groups --region "$region" \
-                --log-group-name-prefix "${id#*:}" --query "logGroups[0].arn" --output text 2>/dev/null | grep -v None)" ] ;;
+                --log-group-name-prefix "$id" --query "logGroups[0].arn" --output text 2>/dev/null | grep -v None)" ] ;;
     secretsmanager:secret)
       aws secretsmanager describe-secret --region "$region" --secret-id "$arn" >/dev/null 2>&1 ;;
     *)
