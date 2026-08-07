@@ -35,7 +35,8 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 19c   | Live launch, TTL, both watchdog paths | ✅ closed by 19e | sessions/2026-08-05-phase-19c-live-launch-and-teardown.md |
 | 19d   | The record, the lock, the state lock | ✅ witnessed live 2026-08-06 | sessions/2026-08-05-phase-19d-cancelled-run-recovery.md |
 | 19e   | Break test; teardown claim narrowed | ✅ done | sessions/2026-08-06-phase-19e-break-test-and-teardown-gap.md |
-| 19f   | Teardown that finishes on its own | 🟡 written, break test pending | next-phases.md |
+| 19f   | Teardown gates that see the remainder | ✅ done | sessions/2026-08-07-phase-19f-teardown-sees-what-it-leaves.md |
+| 19g   | Teardown that finishes on its own | ⬜ next (the ordering) | next-phases.md |
 
 Phase 17 (prod data continuity) is still open and still optional, in
 `docs/next-phases.md`. Phase 18 was pulled forward of both remaining phases
@@ -1524,85 +1525,56 @@ were the same shape — a page saying something it was not in a position to say:
   account verified empty afterwards with a positive control in the same command.
   It is the same criterion 19c is still holding.
 
-### Phase 19f — Teardown that finishes on its own  [IN PROGRESS 2026-08-06]
-- Plan: `docs/next-phases.md` 19f, which is **ADR-0037** D2-D4. No new ADR: the
-  decisions were recorded in 19e, from the evidence, and this phase implements
-  them.
-- Written, and not yet exercised against AWS:
+### Phase 19f — Teardown gates that see the remainder  [DONE 2026-08-07]
+- Plan: `docs/next-phases.md` 19f = **ADR-0037** D2-D4. No new ADR; ADR-0037 D4
+  gained an amendment, written beside the sentence it corrects.
+- Shipped and confirmed on live evidence, in one cancelled launch
+  (ss-b05240b2b90c10b7):
 ```text
-  D2  scripts/revoke-cross-sg-rules.sh takes away every rule by which one of
-      the environment's security groups references another, BEFORE anything is
-      destroyed. Wired into destroy.yml (stage and prod, one commit) and into
-      the self-service destroy job
-  D3  `if: always()` on "Verify no billable resources remain", in both
-      workflows, so a failed teardown still states what is alive
-  D4  scripts/sweep-orphans.sh + scripts/sweep_orphans.py: the tagging API is
-      asked what exists, Terraform is asked what it manages, and the difference
-      fails the run. Also `if: always()`
-  IAM tag:GetResources added to the deploy role's TeardownVerifyRead statement
+  D2  scripts/revoke-cross-sg-rules.sh revoked 2 cross-group rules against REAL
+      groups, and the destroy then deleted alb-sg without resistance. The same
+      group in the same situation held destroy for 15m22s on 2026-08-06
+  D3  Verify AND the new sweep both RAN on a job that had already failed, and
+      said what was alive. On 2026-08-06 the identical situation produced a run
+      that reported success while an ECS cluster survived
+  D4  the sweep named 6 orphans at 00:57 and is green on an empty account
+  IAM tag:GetResources applied to infra/bootstrap-oidc under demo-admin;
+      confirmed against the ROLE with simulate-principal-policy, which answered
+      implicitDeny for iam:CreateUser in the same call
 ```
-- **D3 is not safe as written, and that is this phase's first finding.** The
-  step it applies to was last, so it only ever ran with working credentials.
-  `always()` means it can now run after a FAILED credentials step - and then
-  every `aws` call answers nothing, which is exactly what an empty account looks
-  like. destroy.yml's verification had neither `set -euo pipefail` nor an `sts`
-  call; the self-service copy had both, since 19b. The decision as recorded in
-  ADR-0037 would have turned a skipped step into a green one. Both copies now
-  carry the fail-closed shape.
-- **The sweep needs a grant this project has never had.** `tag:GetResources` is
-  the only unscopeable read in the deploy policy, and deliberately so: a sweep
-  exists to find resources nobody declared, so naming in advance what it may
-  look at defines away the thing it is looking for. It means `infra/bootstrap-oidc`
-  must be re-applied locally with `demo-admin` BEFORE the break test - a
-  permanent level, $0, and the one step of this phase that is not in Actions.
-- **Log groups are the reason the comparison is not a set intersection.** The
-  tagging API reports `...:log-group:/aws-devops-sdet-demo/stage/app`; Terraform
-  stores the same group with a trailing `:*`. Matched literally, a live and
-  fully managed log group is reported as an orphan on every teardown - a gate
-  that cries wolf until somebody switches it off. Found by reading the two
-  spellings side by side before the first run, and pinned by a unit test.
-- Break tests, on fixtures, exit codes measured to a file rather than through a
-  pipe:
-```text
-  revoke, 3 groups, 2 cross-rules   the two cross-group pairs selected; a pair
-                                    naming a group OUTSIDE the environment left
-                                    alone, and a CIDR in the same permission
-                                    left alone
-  revoke, no groups                 no-op, exit 0 (an environment already gone)
-  revoke, no cross-references       no-op, exit 0
-  revoke, missing fixture           refused, exit 2
-  revoke, the call itself fails     refused, exit 1, and the error quoted
-  sweep, planted orphan             red, exit 1, the ARN named
-  sweep, nothing tagged             green, exit 0
-  sweep, empty control              REFUSED, exit 1 - and its ::group:: output
-                                    is byte-identical to the green case, which
-                                    is the whole reason the control exists
-  tests/unit/test_sweep_orphans.py  11 assertions, including that matching does
-                                    not fall back to a substring
-```
-- **The sweep found something on its first live run, against an empty account,
-  and it amended its own decision.** 23 tagged resources in a stage that a
-  destroy, its verification and a manual check had each called empty - one ECS
-  cluster deleted and still answering `describe`, and 22 task-definition
-  revisions, which `terraform destroy` deregisters rather than deletes and AWS
-  keeps for ever. Shipped as written, the gate would have been red on every
-  teardown from day one, and a gate that is always red is switched off. The
-  tagging API is now DISCOVERY and the owning service is LIVENESS: `ecs
-  list-clusters` returns ACTIVE only, task definitions are excluded by type
-  because a revision no service refers to is inert at any status, every other
-  kind stays fail-closed, and every exclusion is printed with its reason.
-  **ADR-0037** D4 amended beside the sentence it corrects.
-- The IAM grant is applied: `simulate-principal-policy` answers `allowed` for
-  `tag:GetResources` on the stage deploy role, and `implicitDeny` for
-  `iam:CreateUser` in the same call - a simulator that says yes to everything is
-  indistinguishable from one that cannot say no. Checked against the ROLE,
-  because `demo-admin` holds the grant anyway and a control that inherits the
-  privilege of whoever runs it proves nothing (2026-08-05).
-- Criteria to close: a cancelled launch reclaimed with **ZERO manual AWS calls**,
-  and the account verified empty afterwards with a positive control in the same
-  command. **NOT MET** - the break test has not run. It is the same criterion
-  19c held and 19e narrowed.
-- Cost so far: **$0**. The verifying break test is about 40 minutes of ALB + RDS.
+- **The criterion is NOT met, and that is the finding.** The remainder still took
+  three manual AWS calls. The gap is now exact, and it is an ORDERING: resources
+  created by a cancelled apply never enter state, so Terraform can neither delete
+  them nor delete what depends on them; the watchdog's blunt path clears the
+  billable ones only AFTER the dispatched destroy has failed on exactly those
+  resources; and nothing dispatches the destroy that would then succeed. Decided
+  in 19g.
+- **D3 is not safe as ADR-0037 wrote it.** The step was last, so it had only ever
+  run with working credentials. `always()` lets it run after a FAILED credentials
+  step, and every `aws` call then answers nothing - which is what an empty
+  account looks like. destroy.yml's copy had neither `set -euo pipefail` nor an
+  `sts` call. Applied literally, the decision would have turned a skipped step
+  into a green one.
+- **The tagging API is discovery, never a verdict**, and it was wrong in both
+  directions within one hour: it did not report the RDS instance 40 seconds into
+  the teardown because it was still `creating`, and it reported a security group
+  one minute after a successful destroy that `describe-security-groups` answered
+  `InvalidGroup.NotFound` for. The stale direction would have reddened every
+  teardown from the first day - and a red destroy job keeps the launch lock
+  (ADR-0036 D2), so the public button would have stayed shut until its TTL after
+  every launch. Findings are now confirmed against the owning service, and
+  `unconfirmed` is its own class because "I could not check" must not read as "it
+  is gone".
+- **An exclusion is not replaced by a mechanism that merely looks more general.**
+  Task definitions were excluded by type, then the exclusion was removed on the
+  theory that confirmation subsumed it. With no existence rule for the kind, 22
+  deregistered revisions became `unconfirmed` and the gate went red on an empty
+  account - the same failure from the other side.
+- Cost: about **$0.02** of RDS for the 100 minutes between the cancellation and
+  the blunt path, plus $0 for everything else. One of the day's three launches.
+- Validation: tf-fmt clean, tf-validate 8 levels, test-unit 63, docs-check 0
+  findings, iac-scan 290/0, action-pins 43, ci green on every push, and
+  `destroy.yml` green end to end on the emptied account.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

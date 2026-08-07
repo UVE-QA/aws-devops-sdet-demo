@@ -6,6 +6,44 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
+**As of 2026-08-07.** Phase 19f is DONE and did not meet its criterion, which is
+the honest shape of the result rather than a failure to report it. ADR-0037's D2,
+D3 and D4 all shipped and all three were confirmed by one cancelled launch: the
+security-group chain was revoked against real groups, and the group that had held
+a destroy for 15m22s the day before left without comment; the verification step
+and the new orphan sweep both RAN on a job that had already failed, where the
+identical situation on 2026-08-06 produced a run that reported success while an
+ECS cluster survived. The remainder still took three manual AWS calls.
+
+The gap is now exact, and it is an ORDERING rather than a missing check. A
+cancelled apply creates resources that never enter state. Terraform can neither
+delete them nor delete what depends on them - here an unmanaged RDS instance and
+the managed subnet group that cannot go while the instance holds it. The
+watchdog's blunt path removes the billable orphans, which is precisely what
+unblocks Terraform, but only after the dispatched destroy has already failed on
+them, and nothing dispatches the destroy that would then succeed. Three candidate
+shapes are written down as 19g: re-dispatch, widen the blunt path, or import the
+orphans into state.
+
+Three things were learned by running rather than by reading, and two of them
+would have shipped as green. D3 is not safe as the ADR wrote it: the verification
+step was last, so it had only ever run with live credentials, and `always()` lets
+it run after a FAILED credentials step - at which point every `aws` call answers
+nothing, which is exactly what an empty account looks like. The tagging API was
+wrong in both directions inside one hour, missing an RDS instance that was still
+`creating` and reporting a security group a minute after AWS had deleted it; the
+stale direction would have reddened every teardown from its first day, and since
+a red destroy job keeps the launch lock, the public button would have stayed shut
+until its TTL after every launch. And an exclusion for ECS task definitions,
+removed on the theory that a more general confirmation mechanism subsumed it,
+turned 22 deregistered revisions into `unconfirmed` and the gate red on an
+account that was empty - the same failure arrived at from the other side.
+
+Also true: `tag:GetResources` is now on the deploy role, applied locally to
+infra/bootstrap-oidc, and was checked against the ROLE with
+`simulate-principal-policy` rather than under demo-admin, which holds the grant
+anyway - a control that inherits the privilege of whoever runs it proves nothing.
+
 **As of 2026-08-05 (later that day).** Phase 19c RAN and is NOT closed. The
 button was pressed anonymously from a browser for the first time, a full cycle
 deployed and destroyed itself, the dashboard reported it while it ran, and the

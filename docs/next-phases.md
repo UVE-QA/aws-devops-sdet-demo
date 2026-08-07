@@ -668,17 +668,41 @@ broken by the preflight in 6s, and the watchdog wrote its own record and removed
 the billable resources with no human. Disproved the wider claim: the remainder
 took four manual AWS calls. Root cause and decisions in ADR-0037.
 
-### 19f — teardown that finishes on its own  (ADR-0037 D2-D4)
+### 19f — teardown gates that see the remainder  **DONE 2026-08-07**
 
-    D2  revoke cross-SG rules in a teardown preflight, so no security group
-        deletion is impossible by construction
-    D3  `if: always()` on "Verify no billable resources remain", so a failed
-        teardown still states what is alive
-    D4  orphan sweep: project-tagged resources absent from Terraform state
-        fail the run
+D2, D3 and D4 shipped and all three confirmed by a cancelled launch. The claim
+they were written for was disproved in the same run: the remainder still took
+three manual AWS calls. What changed is that the teardown now reports it.
 
-Cost: $0 until the verifying break test, which is ~40 minutes of ALB + RDS.
-Done when a cancelled launch is reclaimed with ZERO manual AWS calls.
+### 19g — teardown that finishes on its own  (the ordering)
+
+The gap 19f made exact. A cancelled apply creates resources that never enter
+state, so Terraform can neither delete them nor delete what depends on them —
+the RDS instance is unmanaged, the subnet group that holds it is managed, and
+the destroy dies on the pair. The watchdog's blunt path removes the billable
+orphans, which is exactly what unblocks Terraform, but it does so only AFTER the
+dispatched destroy has already failed, and nothing dispatches another.
+
+Three candidate shapes, to be decided rather than assumed:
+
+```text
+re-dispatch    the watchdog dispatches destroy once more after the blunt path.
+               Smallest change; does nothing for orphans the blunt path does not
+               touch, and the security groups and cluster it left are exactly
+               those
+widen          the blunt path deletes the non-billable kinds too. Turns a
+               spend control into a general deleter, and its IAM condition is
+               currently the thing that keeps it away from the owner's
+               environment
+import         orphans are imported into state before the destroy, so Terraform
+               owns them and can remove them in dependency order. The only
+               option that ends with state and AWS agreeing, and the only one
+               that needs a mapping from ARN to resource address
+```
+
+Cost: $0 until its own break test, which is another cancelled launch.
+Done when a cancelled launch is reclaimed with ZERO manual AWS calls — the
+criterion 19c raised, 19e narrowed and 19f did not meet.
 
 ## Deliberately out of scope
 
