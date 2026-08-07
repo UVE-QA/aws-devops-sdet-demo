@@ -111,9 +111,19 @@ data "aws_iam_policy_document" "deploy" {
 
   # The destroy workflow asserts "no EKS in v0"; asserting absence still
   # requires the read. Deliberately read-only and separate from InfraManage.
+  #
+  # `tag:GetResources` is the orphan sweep (ADR-0037 D4), and it is the one read
+  # in this policy that cannot be scoped: the sweep exists to find resources
+  # NOBODY declared, so naming the resources it may look at in advance would
+  # define away the thing it is looking for. It returns ARNs and tags and
+  # nothing else - no contents, no credentials - and it is the only member of
+  # the `tag:` namespace granted here.
   statement {
-    sid       = "TeardownVerifyRead"
-    actions   = ["eks:ListClusters"]
+    sid = "TeardownVerifyRead"
+    actions = [
+      "eks:ListClusters",
+      "tag:GetResources",
+    ]
     resources = ["*"]
   }
 
