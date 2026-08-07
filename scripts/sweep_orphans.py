@@ -35,32 +35,52 @@ API reports `...:log-group:/aws-devops-sdet-demo/stage/app` and Terraform stores
 reports a live, managed log group as an orphan on every single teardown - a gate
 that cries wolf until somebody switches it off.
 
-TAGGED IS NOT THE SAME AS ALIVE (ADR-0037 D4, amended 2026-08-07)
+THE TAGGING API IS DISCOVERY, NEVER A VERDICT (ADR-0037 D4, amended 2026-08-07)
 
-The first live run of this sweep, against an account three checks had already
-called empty, reported twenty-three orphans. All twenty-three were tombstones:
+It was wrong in both directions within one hour of this being written:
 
-    22  ecs:task-definition   `destroy` DEREGISTERS revisions, it does not
-                              delete them, and AWS keeps the record
-                              indefinitely. They cost nothing, they accumulate
-                              one per apply, and a revision with no service is
-                              inert whether it is ACTIVE or not - so there is no
-                              state in which one is worth acting on. Excluded by
-                              TYPE, which is why the exclusion is not a status
-                              check
-     1  ecs:cluster INACTIVE  a deleted cluster keeps answering `describe` for a
-                              while, and the tagging API keeps reporting it.
-                              `list-clusters` returns ACTIVE ones only, which is
-                              why the verification step never saw it and was
-                              right not to
+    too late   40 seconds into a teardown it did not report the RDS instance -
+               the only billable resource in the account - because the instance
+               was still `creating`
+    too early  one minute after a SUCCESSFUL destroy it reported a security
+               group that `describe-security-groups` answered
+               `InvalidGroup.NotFound` for
 
-So the question is not "is it tagged and unmanaged" but "is it ALIVE, tagged and
-unmanaged". Discovery comes from the tagging API; liveness is confirmed by the
-service that owns the resource. Everything whose type is not named here stays
-fail-closed: an unrecognised kind is reported, not excused.
+The first version of this file also treated 22 deregistered task-definition
+revisions and one INACTIVE cluster as orphans, in an account three other checks
+had already called empty. `terraform destroy` DEREGISTERS a revision - deleting
+one is not an operation it has - and AWS keeps the record indefinitely.
 
-What is excluded is COUNTED AND PRINTED. A silent exclusion is how a gate stops
-meaning anything, and a list nobody sees cannot be argued with.
+The second failure is the dangerous one, because it points the wrong way: it
+would have reddened every teardown from its first day, and a red `destroy` job
+means `release-lock` keeps the lock (ADR-0036 D2), so the public button would
+have stayed shut until its TTL after every launch. A gate that is always red
+gets switched off, and this one would have taken the button with it.
+
+So the tagging API says what to LOOK AT, and the service that owns the resource
+says whether it is THERE. This file never sees the second question: the caller
+has already asked, and passes in what came back.
+
+THREE ANSWERS, NOT TWO
+
+    present       the owning service confirmed it. Compared against state
+    absent        the service says no. Silently dropped - this is the deleted
+                  resource the tagging API had not caught up with
+    unconfirmed   no rule for this kind, or the call itself failed. REPORTED,
+                  because "I could not check" must never read as "it is gone".
+                  That is the empty-result trap one level down
+
+ARNs ARE NOT SPELLED THE SAME ON BOTH SIDES
+
+CloudWatch log groups are the reason the state comparison is not a set
+intersection: the tagging API reports `...:log-group:/aws-devops-sdet-demo/stage/app`
+and Terraform stores the same group with a trailing `:*`. Matching those two
+literally reports a live, managed log group as an orphan on every teardown.
+
+WHAT IS EXCLUDED IS COUNTED AND PRINTED
+
+A silent exclusion is how a gate stops meaning anything, and a list nobody sees
+cannot be argued with.
 """
 from __future__ import annotations
 
@@ -99,37 +119,6 @@ def state_identifiers(state: dict[str, Any]) -> set[str]:
     return found
 
 
-# A resource of this type is never actionable, whatever its status. Membership
-# here has to be argued from the resource's nature, not from it being noisy.
-TOMBSTONE_TYPES = ("ecs:task-definition",)
-
-
-def arn_type(arn: str) -> str:
-    """`arn:aws:ecs:region:acct:cluster/name` -> `ecs:cluster`."""
-    parts = arn.split(":", 6)
-    if len(parts) < 6:
-        return ""
-    service = parts[2]
-    tail = parts[5]
-    kind = tail.split("/", 1)[0]
-    return f"{service}:{kind}"
-
-
-def is_alive(arn: str, active_clusters: set[str]) -> tuple[bool, str]:
-    """Whether the owning service still has this, and why not when it does not.
-
-    Only the kinds that AWS is KNOWN to keep tombstones for are asked about.
-    Anything else is assumed alive, which is the fail-closed direction: an
-    unrecognised kind gets reported rather than excused.
-    """
-    kind = arn_type(arn)
-    if kind in TOMBSTONE_TYPES:
-        return False, "deregistered revision, kept by AWS indefinitely"
-    if kind == "ecs:cluster" and arn not in active_clusters:
-        return False, "cluster is not ACTIVE"
-    return True, ""
-
-
 def is_managed(arn: str, identifiers: set[str]) -> bool:
     """Whether Terraform holds this resource under any spelling it uses.
 
@@ -151,18 +140,27 @@ def decide_sweep(
     tagged: Iterable[dict[str, Any]],
     control: Iterable[dict[str, Any]],
     identifiers: set[str],
-    active_clusters: set[str] | None = None,
+    present: Iterable[str] = (),
+    unconfirmed: Iterable[str] = (),
 ) -> dict[str, Any]:
     """`refuse`, `orphans` or `clean`, in that order of precedence.
 
     The order matters: an unanswered question must not be reported as a clean
     account, so the control is settled before anything is counted.
+
+    `present` and `unconfirmed` come from the caller, which asked the owning
+    service. Anything in `tagged` and in neither of them is a resource the
+    service says is gone - the tagging API had simply not caught up - and it is
+    dropped without comment beyond the count.
     """
-    # Both are materialised before anything is counted. A generator walked once
-    # answers empty the second time, and empty is the one answer this file
-    # exists to distrust.
+    # Materialised before anything is counted. A generator walked once answers
+    # empty the second time, and empty is the one answer this file exists to
+    # distrust.
     tagged_list = list(tagged)
     control_list = list(control)
+    present_set = set(present)
+    unconfirmed_list = sorted(set(unconfirmed))
+
     if not control_list:
         return {
             "verdict": "refuse",
@@ -175,44 +173,40 @@ def decide_sweep(
                 "than reporting an account nobody looked at as empty."
             ),
             "orphans": [],
-            "tombstones": [],
+            "unconfirmed": [],
+            "stale": 0,
         }
 
-    clusters = active_clusters or set()
-    orphans: list[str] = []
-    tombstones: list[str] = []
-    for arn in (r.get("ResourceARN", "") for r in tagged_list):
-        if not arn:
-            continue
-        alive, why = is_alive(arn, clusters)
-        if not alive:
-            tombstones.append(f"{arn}  ({why})")
-            continue
-        if not is_managed(arn, identifiers):
-            orphans.append(arn)
+    arns = [r.get("ResourceARN", "") for r in tagged_list]
+    arns = [a for a in arns if a]
+    stale = [a for a in arns if a not in present_set and a not in unconfirmed_list]
 
-    if orphans:
+    orphans = sorted(a for a in arns if a in present_set and not is_managed(a, identifiers))
+
+    if orphans or unconfirmed_list:
         return {
             "verdict": "orphans",
             "reason": (
-                f"{len(orphans)} live tagged resource(s) exist in AWS and are "
-                "absent from Terraform state. A partially failed teardown drops "
-                "resources out of state; these are what it left."
+                f"{len(orphans)} confirmed live resource(s) absent from "
+                f"Terraform state, {len(unconfirmed_list)} that could not be "
+                "checked at all. A partially failed teardown drops resources "
+                "out of state; an unchecked kind is not a clean one."
             ),
-            "orphans": sorted(orphans),
-            "tombstones": sorted(tombstones),
+            "orphans": orphans,
+            "unconfirmed": unconfirmed_list,
+            "stale": len(stale),
         }
 
     return {
         "verdict": "clean",
         "reason": (
-            f"{len(tagged_list)} tagged resource(s): "
-            f"{len(tombstones)} tombstone(s) AWS keeps and cannot act on, "
-            f"{len(tagged_list) - len(tombstones)} live and all of them managed. "
-            "Nothing was left behind."
+            f"{len(arns)} tagged, {len(present_set & set(arns))} still there and "
+            f"all of them managed, {len(stale)} already gone and not yet dropped "
+            "by the tagging API. Nothing was left behind."
         ),
         "orphans": [],
-        "tombstones": sorted(tombstones),
+        "unconfirmed": [],
+        "stale": len(stale),
     }
 
 
@@ -224,9 +218,9 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--control", required=True, help="get-resources for the whole project")
     parser.add_argument("--state", required=True, help="terraform show -json output")
     parser.add_argument(
-        "--active-clusters",
+        "--present",
         required=True,
-        help="ecs list-clusters output. ACTIVE ones only, which is the point.",
+        help="{present, unconfirmed}: what the owning services answered",
     )
     parser.add_argument("--environment", required=True)
     args = parser.parse_args(argv)
@@ -237,24 +231,31 @@ def main(argv: list[str]) -> int:
         control = json.load(handle).get("ResourceTagMappingList", [])
     with open(args.state, encoding="utf-8") as handle:
         state = json.load(handle)
-    with open(args.active_clusters, encoding="utf-8") as handle:
-        active_clusters = set(json.load(handle).get("clusterArns", []))
+    with open(args.present, encoding="utf-8") as handle:
+        confirmed = json.load(handle)
 
     identifiers = state_identifiers(state)
-    decision = decide_sweep(tagged, control, identifiers, active_clusters)
+    decision = decide_sweep(
+        tagged,
+        control,
+        identifiers,
+        confirmed.get("present", []),
+        confirmed.get("unconfirmed", []),
+    )
 
     print(f"environment: {args.environment}")
     print(f"tagged in AWS: {len(tagged)}   in Terraform state: {len(identifiers)} identifier(s)")
     print(f"control (whole project): {len(control)} resource(s)")
-    print(f"ACTIVE ECS clusters in the account: {len(active_clusters)}")
-    # Printed, always, and before the verdict. An exclusion nobody sees is how a
-    # gate quietly stops meaning anything.
-    for line in decision["tombstones"]:
-        print(f"  tombstone  {line}")
+    print(f"confirmed present: {len(confirmed.get('present', []))}   "
+          f"gone but still tagged: {decision['stale']}")
     print(f"verdict: {decision['verdict']}")
     print(decision["reason"])
     for arn in decision["orphans"]:
         print(f"  ORPHAN  {arn}")
+    # Printed separately, always. "I could not check" and "it is there" are
+    # different claims and must not share a line.
+    for arn in decision["unconfirmed"]:
+        print(f"  UNCONFIRMED  {arn}  (no existence rule for this kind)")
 
     return 0 if decision["verdict"] == "clean" else 1
 

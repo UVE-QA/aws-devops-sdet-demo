@@ -279,6 +279,19 @@ answer as a refusal rather than a pass. The permanent levels are always tagged,
 so nothing is the one answer that cannot be true — and nothing is also what an
 expired token, the wrong region and a missing IAM grant all return.
 
+**The tagging API is discovery, never a verdict.** It was wrong in both
+directions within one hour on 2026-08-07: it missed an RDS instance that was
+still `creating`, and it reported a security group a minute after AWS had
+deleted it. So nothing becomes a finding until the service that owns it confirms
+the resource is there — one `describe` per ARN, by kind. A kind with no rule is
+still reported, labelled `unconfirmed`, because *I could not check* must never
+read as *it is gone*.
+
+That is also why the verification step in front of it is not redundant. It asks
+ECS, RDS and ELB directly, by name prefix; the sweep asks about every kind but
+only learns of what has been indexed. Neither is sufficient, and the run is red
+if either fires.
+
 ### Why prod keeps no data
 
 Prod is created and destroyed with every cycle (**ADR-0017** D2a), so there is

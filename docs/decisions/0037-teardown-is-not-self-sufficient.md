@@ -41,26 +41,44 @@ D3. `Verify no billable resources remain` gets `if: always()`.
 D4. End teardown with an orphan sweep: project-tagged resources absent from state
     fail the run.
 
-    AMENDED 2026-08-07, by its own first live run, before it had ever been
-    trusted. "Tagged and absent from state" is not the same as "left behind".
-    Against an account that a destroy, its verification step and a manual check
-    had each called empty, the sweep reported twenty-three orphans, and all
-    twenty-three were tombstones: one ECS cluster deleted and still answering
-    `describe`, and twenty-two task-definition revisions, which `terraform
-    destroy` DEREGISTERS - deleting one is not an operation it has - and which
-    AWS then keeps indefinitely at no cost.
+    AMENDED TWICE on 2026-08-07, by its own first two runs, before it had ever
+    been trusted. Both amendments say the same thing from opposite directions:
+    **the tagging API is discovery, never a verdict.**
 
-    So the sweep asks two sources, not one: the tagging API for DISCOVERY, and
-    the service that owns the resource for LIVENESS. `ecs list-clusters` returns
-    ACTIVE clusters only, which is why the verification step reported an empty
-    account truthfully while the tagging API still listed one. Task definitions
-    are excluded by TYPE rather than by status, because a revision no service
-    refers to is inert whether or not it is ACTIVE.
+    Run against an account a destroy, its verification and a manual check had
+    each called empty, it reported 23 orphans - one deleted ECS cluster still
+    answering `describe`, and 22 task-definition revisions, which `terraform
+    destroy` DEREGISTERS because deleting one is not an operation it has, and
+    which AWS keeps indefinitely at no cost.
 
-    Every other kind stays fail-closed, and every exclusion is printed with its
-    reason. Had this shipped as written it would have been red on every teardown
-    from its first day, and a gate that is always red gets switched off - the
-    same outcome as never having written it.
+    Run one minute after a SUCCESSFUL destroy, it reported a security group that
+    `describe-security-groups` answered `InvalidGroup.NotFound` for.
+
+    And run 40 seconds into a teardown, it did NOT report the RDS instance - the
+    only billable resource in the account - because the instance was still
+    `creating`.
+
+    The stale direction is the dangerous one. It would have reddened every
+    teardown from the first day, and a red `destroy` job means `release-lock`
+    keeps the lock (ADR-0036 D2), so the public button would have stayed shut
+    until its TTL after every launch. A gate that is always red is switched off,
+    and this one would have taken the button with it.
+
+    So nothing becomes a finding until the service that OWNS it confirms the
+    resource is there. `scripts/sweep-orphans.sh` asks one `describe` per ARN,
+    by kind, and the decision receives three classes rather than two:
+
+        present       confirmed by the service. Compared against state
+        absent        the service says no. Dropped, counted, not reported
+        unconfirmed   no rule for the kind, or the call itself failed.
+                      REPORTED, because "I could not check" must never read as
+                      "it is gone"
+
+    The verification step (D3) remains in front of it and is not redundant: it
+    asks ECS, RDS and ELB directly by name prefix and saw the instance the sweep
+    missed. One knows only the kinds it names, the other only what has been
+    indexed, and a run is red if either fires. No retry or delay was added: a
+    check that waits is a check whose answer depends on how long it waited.
 
 ## Consequences
 Until D2-D4 ship, the honest claim is narrower than the README's: the system

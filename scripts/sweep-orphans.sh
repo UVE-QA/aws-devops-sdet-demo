@@ -36,6 +36,28 @@
 # the owning service is the CONFIRMATION - here, `ecs list-clusters`, which
 # returns ACTIVE clusters only and is the same call the verification step makes.
 #
+# THE TAGGING API IS DISCOVERY, NEVER A VERDICT (2026-08-07)
+#
+# It was wrong in BOTH directions on the day this was written, in the same hour:
+#
+#   too late   run 40 seconds into a teardown, it did not report the RDS
+#              instance - the only billable thing in the account - because the
+#              instance was still `creating`
+#   too early  run one minute after a SUCCESSFUL destroy, it reported a security
+#              group that `describe-security-groups` answered
+#              `InvalidGroup.NotFound` for
+#
+# The second is the dangerous one: it would have reddened every teardown from
+# now on, and a red `destroy` job means `release-lock` keeps the lock
+# (ADR-0036 D2), so the public button would have stayed shut until its TTL after
+# every launch. A gate that is always red is switched off, and this one takes
+# the button with it.
+#
+# So nothing becomes a finding until the service that OWNS it says it is there.
+# Discovery is the tagging API; existence is `describe`, one call per kind. A
+# kind with no rule here is still reported - fail-closed - but labelled
+# `unconfirmed`, so "this exists" and "I could not check" never read the same.
+#
 # Usage:  scripts/sweep-orphans.sh <environment>
 #
 # The four BREAK_TEST_ variables replace one input each with a fixture, so a
@@ -97,14 +119,84 @@ else
     --output json > "$WORK/control.json"
 fi
 
-# --- what the owning service says is still alive ----------------------------
-if [ -n "${BREAK_TEST_CLUSTERS_JSON:-}" ]; then
-  echo "!! BREAK_TEST_CLUSTERS_JSON is set: reading ${BREAK_TEST_CLUSTERS_JSON} instead of AWS"
-  cp "$BREAK_TEST_CLUSTERS_JSON" "$WORK/clusters.json"
+# --- what the owning service says is still there ----------------------------
+#
+# One `describe` per ARN, and the ARN is only kept when the call SUCCEEDS. A
+# call that fails for any reason - the resource is gone, the API is unhappy, the
+# credential died - leaves the ARN out of `present.json`, and the decision then
+# treats it as unconfirmed rather than as absent. Refusing to distinguish those
+# two would be the empty-result trap again, one level down.
+confirm_exists() {
+  local arn="$1" region="$2"
+  local service kind id
+  service="$(echo "$arn" | cut -d: -f3)"
+  id="$(echo "$arn" | cut -d: -f6-)"
+  kind="${id%%/*}"
+  case "$service:$kind" in
+    ec2:security-group)
+      aws ec2 describe-security-groups --region "$region" --group-ids "${id#*/}" >/dev/null 2>&1 ;;
+    ec2:subnet)
+      aws ec2 describe-subnets --region "$region" --subnet-ids "${id#*/}" >/dev/null 2>&1 ;;
+    ec2:vpc)
+      aws ec2 describe-vpcs --region "$region" --vpc-ids "${id#*/}" >/dev/null 2>&1 ;;
+    ec2:internet-gateway)
+      aws ec2 describe-internet-gateways --region "$region" --internet-gateway-ids "${id#*/}" >/dev/null 2>&1 ;;
+    ec2:route-table)
+      aws ec2 describe-route-tables --region "$region" --route-table-ids "${id#*/}" >/dev/null 2>&1 ;;
+    ec2:elastic-ip)
+      aws ec2 describe-addresses --region "$region" --allocation-ids "${id#*/}" >/dev/null 2>&1 ;;
+    ecs:cluster)
+      # ACTIVE only. A deleted cluster answers `describe` for a while, with
+      # status INACTIVE, which is how one survived a teardown on 2026-08-06.
+      [ "$(aws ecs describe-clusters --region "$region" --clusters "${id#*/}" \
+             --query "clusters[0].status" --output text 2>/dev/null)" = "ACTIVE" ] ;;
+    ecs:service)
+      [ "$(aws ecs describe-services --region "$region" --cluster "$(echo "${id#*/}" | cut -d/ -f1)" \
+             --services "$(echo "$id" | rev | cut -d/ -f1 | rev)" \
+             --query "services[0].status" --output text 2>/dev/null)" = "ACTIVE" ] ;;
+    rds:db)
+      aws rds describe-db-instances --region "$region" --db-instance-identifier "${id#*:}" >/dev/null 2>&1 ;;
+    rds:subgrp)
+      aws rds describe-db-subnet-groups --region "$region" --db-subnet-group-name "${id#*:}" >/dev/null 2>&1 ;;
+    elasticloadbalancing:loadbalancer)
+      aws elbv2 describe-load-balancers --region "$region" --load-balancer-arns "$arn" >/dev/null 2>&1 ;;
+    elasticloadbalancing:targetgroup)
+      aws elbv2 describe-target-groups --region "$region" --target-group-arns "$arn" >/dev/null 2>&1 ;;
+    logs:log-group)
+      [ -n "$(aws logs describe-log-groups --region "$region" \
+                --log-group-name-prefix "${id#*:}" --query "logGroups[0].arn" --output text 2>/dev/null | grep -v None)" ] ;;
+    secretsmanager:secret)
+      aws secretsmanager describe-secret --region "$region" --secret-id "$arn" >/dev/null 2>&1 ;;
+    *)
+      # No rule. `unconfirmed` is not `absent`: the ARN goes to the decision
+      # marked, and the decision reports it.
+      return 2 ;;
+  esac
+}
+
+if [ -n "${BREAK_TEST_PRESENT_JSON:-}" ]; then
+  echo "!! BREAK_TEST_PRESENT_JSON is set: reading ${BREAK_TEST_PRESENT_JSON} instead of AWS"
+  cp "$BREAK_TEST_PRESENT_JSON" "$WORK/present.json"
 else
-  # ACTIVE only, by the API's own definition - which is exactly why a deleted
-  # cluster is absent here while the tagging API still reports it.
-  aws ecs list-clusters --region "$REGION" --output json > "$WORK/clusters.json"
+  present="[]"
+  unconfirmed="[]"
+  while IFS= read -r arn; do
+    [ -n "$arn" ] || continue
+    # `|| rc=$?`, never a bare call. Under `set -e` a function returning
+    # non-zero ENDS THE SCRIPT, and here non-zero is the ordinary answer: it is
+    # what "the service says it is gone" looks like. The step would have gone
+    # red on the first deleted resource, which is the right colour for entirely
+    # the wrong reason.
+    rc=0
+    confirm_exists "$arn" "$REGION" || rc=$?
+    case "$rc" in
+      0) present="$(echo "$present" | jq -c --arg a "$arn" '. + [$a]')" ;;
+      2) unconfirmed="$(echo "$unconfirmed" | jq -c --arg a "$arn" '. + [$a]')" ;;
+      *) : ;;   # the service says it is not there
+    esac
+  done < <(jq -r '.ResourceTagMappingList[].ResourceARN' "$WORK/tagged.json")
+  jq -n --argjson p "$present" --argjson u "$unconfirmed" \
+    '{present: $p, unconfirmed: $u}' > "$WORK/present.json"
 fi
 
 echo "::group::tagged in ${ENVIRONMENT}"
@@ -115,5 +207,5 @@ python3 scripts/sweep_orphans.py \
   --tagged "$WORK/tagged.json" \
   --control "$WORK/control.json" \
   --state "$WORK/state.json" \
-  --active-clusters "$WORK/clusters.json" \
+  --present "$WORK/present.json" \
   --environment "$ENVIRONMENT"

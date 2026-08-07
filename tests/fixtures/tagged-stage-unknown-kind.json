@@ -1,0 +1,3 @@
+{"ResourceTagMappingList": [
+  {"ResourceARN": "arn:aws:kinesis:us-west-2:111122223333:stream/aws-devops-sdet-demo-stage", "Tags": []}
+]}

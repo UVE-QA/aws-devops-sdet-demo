@@ -1,16 +1,22 @@
-"""The orphan sweep's branches, including the two that look identical in a log.
+"""The orphan sweep's branches, including the three that look identical in a log.
 
-ADR-0037 D4. A teardown that fails part way drops resources out of Terraform
-state, and every other check in this project asks either Terraform or a name
-prefix - so the resource nobody manages is the one nobody looks for. On
-2026-08-06 an ECS cluster survived exactly that way.
+ADR-0037 D4, as amended twice on 2026-08-07 by its own first runs. A teardown
+that fails part way drops resources out of Terraform state, and every other
+check in this project asks either Terraform or a name prefix - so the resource
+nobody manages is the one nobody looks for. On 2026-08-06 an ECS cluster
+survived exactly that way.
 
-The branch worth the most here is `refuse`. An account with nothing left and an
-account nobody was able to ask both print zero resources, and the second one has
-been mistaken for the first twice in this project's history: once with an
-expired SSO token printing nine empty lines, once with `gh run view` printing
-nothing for a run that had two failed steps. So the control is asserted before
-the count, and its absence is a refusal rather than a pass.
+Two things this file exists to keep straight, both learned the same night:
+
+  an unanswered question is not a clean account. An empty control, a kind with
+  no existence rule, a `describe` that failed - none of them mean "gone", and
+  all of them look like it in a log
+
+  the tagging API is not a verdict. It missed an RDS instance that was still
+  creating, and it reported a security group a minute after AWS had deleted it.
+  The second would have reddened every teardown from its first day, and a red
+  destroy keeps the lock (ADR-0036 D2), so the public button would have stayed
+  shut until its TTL after every launch
 """
 from __future__ import annotations
 
@@ -27,6 +33,7 @@ CLUSTER = f"arn:aws:ecs:us-west-2:{ACCOUNT}:cluster/aws-devops-sdet-demo-stage-c
 LOG_GROUP = f"arn:aws:logs:us-west-2:{ACCOUNT}:log-group:/aws-devops-sdet-demo/stage/app"
 SG = f"arn:aws:ec2:us-west-2:{ACCOUNT}:security-group/sg-0abc"
 PERMANENT = f"arn:aws:ecr:us-west-2:{ACCOUNT}:repository/aws-devops-sdet-demo-app"
+WEIRD = f"arn:aws:kinesis:us-west-2:{ACCOUNT}:stream/aws-devops-sdet-demo-stage"
 
 
 def tagged(*arns: str) -> list[dict]:
@@ -51,21 +58,22 @@ def state(*values: str) -> dict:
     }
 
 
-TASK_DEF = f"arn:aws:ecs:us-west-2:{ACCOUNT}:task-definition/aws-devops-sdet-demo-stage-app:21"
-
-
-def decide(tagged_list, control, state_doc, active_clusters=(CLUSTER,)):
+def decide(tagged_list, control, state_doc, present=None, unconfirmed=()):
+    """`present` defaults to everything tagged - the pre-amendment assumption."""
+    if present is None:
+        present = [r["ResourceARN"] for r in tagged_list]
     return sweep_orphans.decide_sweep(
         tagged_list,
         control,
         sweep_orphans.state_identifiers(state_doc),
-        set(active_clusters),
+        present,
+        unconfirmed,
     )
 
 
 # ------------------------------------------------------------------ refusals
 def test_an_empty_control_refuses_rather_than_reporting_a_clean_account():
-    """The whole point. Zero tagged resources and zero control is NOT clean."""
+    """Zero tagged resources and zero control is NOT clean."""
     decision = decide(tagged(), tagged(), state())
     assert decision["verdict"] == "refuse"
     assert "not answered" in decision["reason"]
@@ -75,82 +83,60 @@ def test_an_empty_control_refuses_even_when_orphans_were_found():
     """Order of precedence: an unanswered question is settled first.
 
     If the control is empty the environment answer cannot be trusted either, so
-    reporting its contents as findings would be dressing up an unknown as a
-    result.
+    reporting its contents as findings would dress an unknown up as a result.
     """
     decision = decide(tagged(CLUSTER), tagged(), state())
     assert decision["verdict"] == "refuse"
     assert decision["orphans"] == []
 
 
-# ------------------------------------------------------------------- orphans
-# ---------------------------------------------------------------- tombstones
-def test_the_first_live_run_in_full():
-    """2026-08-07, and the reason D4 was amended before it had ever been trusted.
+# --------------------------------------------------- the tagging API is stale
+def test_a_resource_the_service_says_is_gone_is_not_an_orphan():
+    """2026-08-07, one minute after a SUCCESSFUL destroy.
 
-    An account that a destroy, its verification and a manual check had all
-    called empty answered with twenty-three tagged resources. Every one was
-    something AWS keeps and nobody can act on: the ECS cluster had been deleted
-    and was still answering `describe`, and the twenty-two task-definition
-    revisions had been deregistered rather than deleted, which is the only thing
-    `terraform destroy` can do to one.
-
-    Had this shipped as written, the gate would have been red on every teardown
-    from its first day - and a gate that is always red is switched off, which is
-    the same outcome as never having written it.
+    `get-resources` still listed the VPC's default security group;
+    `describe-security-groups` answered InvalidGroup.NotFound for the same id.
+    Believing the first would have reddened every teardown from that day on -
+    and a red destroy job keeps the launch lock, so the public button would have
+    stayed shut until its TTL after every single launch. The gate would have
+    been switched off within a week, taking the button with it.
     """
-    tagged_list = tagged(CLUSTER, *[TASK_DEF[:-2] + str(n) for n in range(10, 32)])
-    decision = decide(tagged_list, tagged(PERMANENT), state(), active_clusters=())
+    decision = decide(tagged(SG), tagged(PERMANENT), state(), present=[])
     assert decision["verdict"] == "clean"
-    assert len(decision["tombstones"]) == 23
+    assert decision["stale"] == 1
 
 
-def test_a_deregistered_task_definition_is_not_an_orphan_even_when_active():
-    """Excluded by TYPE, and the distinction is the argument for it.
-
-    A revision no service refers to does nothing whatever its status, so there
-    is no state in which one is worth acting on. Excluding by status instead
-    would leave a rule that fires on a resource nobody can use.
-    """
-    decision = decide(tagged(TASK_DEF), tagged(PERMANENT), state())
-    assert decision["verdict"] == "clean"
-
-
-def test_an_inactive_cluster_is_a_tombstone_and_an_active_one_is_an_orphan():
-    """The same ARN, the same state, two verdicts - and only the service knows.
-
-    `list-clusters` returns ACTIVE clusters only, which is why the verification
-    step could report an empty account truthfully while the tagging API still
-    listed this one.
-    """
-    dead = decide(tagged(CLUSTER), tagged(PERMANENT), state(), active_clusters=())
-    assert dead["verdict"] == "clean"
-
-    alive = decide(tagged(CLUSTER), tagged(PERMANENT), state())
-    assert alive["verdict"] == "orphans"
-    assert alive["orphans"] == [CLUSTER]
-
-
-def test_an_unrecognised_kind_is_reported_rather_than_excused():
-    """Fail-closed on everything the liveness rules do not know about.
-
-    The exclusions are a list of things argued for one at a time. Anything not
-    on it is an orphan, because the alternative is a sweep that quietly stops
-    covering whatever AWS adds next.
-    """
-    weird = f"arn:aws:kinesis:us-west-2:{ACCOUNT}:stream/aws-devops-sdet-demo-stage"
-    decision = decide(tagged(weird), tagged(PERMANENT), state())
+def test_the_same_arn_is_an_orphan_once_the_service_confirms_it():
+    """The identical input, one answer different, and the verdict flips."""
+    decision = decide(tagged(SG), tagged(PERMANENT), state(), present=[SG])
     assert decision["verdict"] == "orphans"
+    assert decision["orphans"] == [SG]
 
 
-def test_arn_type_reads_service_and_kind():
-    assert sweep_orphans.arn_type(CLUSTER) == "ecs:cluster"
-    assert sweep_orphans.arn_type(TASK_DEF) == "ecs:task-definition"
-    assert sweep_orphans.arn_type(LOG_GROUP) == "logs:log-group"
-    assert sweep_orphans.arn_type("not-an-arn") == ""
+# --------------------------------------------------------------- unconfirmed
+def test_a_kind_with_no_existence_rule_is_reported_not_excused():
+    """"I could not check" must never read as "it is gone".
+
+    The alternative is a sweep that quietly stops covering whatever AWS adds
+    next, and reports it as a pass.
+    """
+    decision = decide(tagged(WEIRD), tagged(PERMANENT), state(), present=[], unconfirmed=[WEIRD])
+    assert decision["verdict"] == "orphans"
+    assert decision["unconfirmed"] == [WEIRD]
+    assert decision["orphans"] == []
 
 
-def test_a_resource_absent_from_state_is_an_orphan():
+def test_unconfirmed_alone_is_enough_to_fail_even_with_nothing_else_wrong():
+    decision = decide(
+        tagged(WEIRD, SG), tagged(PERMANENT), state(SG), present=[SG], unconfirmed=[WEIRD]
+    )
+    assert decision["verdict"] == "orphans"
+    assert decision["orphans"] == []
+    assert decision["unconfirmed"] == [WEIRD]
+
+
+# ------------------------------------------------------------------- orphans
+def test_a_confirmed_resource_absent_from_state_is_an_orphan():
     decision = decide(tagged(CLUSTER), tagged(PERMANENT), state())
     assert decision["verdict"] == "orphans"
     assert decision["orphans"] == [CLUSTER]
@@ -165,8 +151,8 @@ def test_a_permanent_level_is_not_swept_because_it_is_never_asked_about():
     """The environment query carries `Environment=stage`; the control does not.
 
     The permanent levels are tagged `shared`, `dns`, `self-service` and are
-    therefore absent from the first list by construction rather than by an
-    exception this file would have to maintain.
+    absent from the first list by construction rather than by an exception this
+    file would have to maintain.
     """
     decision = decide(tagged(), tagged(PERMANENT), state())
     assert decision["verdict"] == "clean"
@@ -190,11 +176,7 @@ def test_a_resource_stored_under_its_bare_id_is_managed():
 
 
 def test_matching_does_not_fall_back_to_a_substring():
-    """A sweep that can be talked out of a finding is not a sweep.
-
-    `aws-devops-sdet-demo-stage-cluster` appears inside the orphan's ARN, and a
-    looser matcher would let any state value containing it clear the finding.
-    """
+    """A sweep that can be talked out of a finding is not a sweep."""
     decision = decide(
         tagged(CLUSTER), tagged(PERMANENT), state("aws-devops-sdet-demo-stage")
     )
@@ -202,8 +184,7 @@ def test_matching_does_not_fall_back_to_a_substring():
 
 
 def test_state_identifiers_walks_nested_modules():
-    identifiers = sweep_orphans.state_identifiers(state(CLUSTER))
-    assert CLUSTER in identifiers
+    assert CLUSTER in sweep_orphans.state_identifiers(state(CLUSTER))
 
 
 def test_state_identifiers_ignores_empty_and_non_string_values():
@@ -224,10 +205,10 @@ def test_the_cli_exit_code_is_the_verdict(tmp_path):
         "--tagged", write("tagged.json", {"ResourceTagMappingList": tagged(CLUSTER)}),
         "--control", write("control.json", {"ResourceTagMappingList": tagged(PERMANENT)}),
         "--state", write("state.json", state()),
-        "--active-clusters", write("clusters.json", {"clusterArns": [CLUSTER]}),
+        "--present", write("present.json", {"present": [CLUSTER], "unconfirmed": []}),
         "--environment", "stage",
     ]
     assert sweep_orphans.main(argv) == 1
 
-    argv[1] = write("empty.json", {"ResourceTagMappingList": []})
+    argv[7] = write("gone.json", {"present": [], "unconfirmed": []})
     assert sweep_orphans.main(argv) == 0
