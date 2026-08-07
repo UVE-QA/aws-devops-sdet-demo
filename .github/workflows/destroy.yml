@@ -102,6 +102,20 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: scripts/break-stale-state-lock.sh ${{ inputs.environment }}
 
+      # The other half of the same defect, and the general one (ADR-0037 D2).
+      # Narrowing the target below stops `module.alb`'s security group from
+      # being deleted while the app SG references it; it does nothing for the
+      # next link in the chain, or for any partial teardown where the referrer
+      # happens to sit outside whatever is being destroyed. Revoking the
+      # references first means no group deletion in this environment is
+      # impossible, whichever order the rest runs in.
+      #
+      # It leaves the environment unable to serve traffic. That is what a
+      # teardown is for, and it is why this script is wired here and nowhere
+      # else.
+      - name: Revoke cross-group security group rules
+        run: scripts/revoke-cross-sg-rules.sh ${{ inputs.environment }}
+
       # The TARGET is the load balancer, not the module. Destroying
       # `module.alb` includes `aws_security_group.alb`, which cannot be
       # deleted while the app SG's ingress rule still references it: AWS
@@ -118,8 +132,22 @@ jobs:
         working-directory: infra/envs/${{ inputs.environment }}
         run: terraform destroy -input=false -auto-approve
 
+      # `if: always()` (ADR-0037 D3). This step is last of the substantive ones,
+      # so it was skipped exactly when a teardown failed - the moment its answer
+      # matters most. A failed destroy now still ends with a statement about
+      # what is alive.
+      #
+      # always() is what makes the `sts` line below load-bearing rather than
+      # decorative: this step can now run after a FAILED credentials step, and
+      # every `aws` call would then return nothing, which is indistinguishable
+      # from an empty account. `set -euo pipefail` plus a first call whose
+      # failure aborts the step is the difference between "nothing is there" and
+      # "nobody was able to look".
       - name: Verify no billable resources remain
+        if: always()
         run: |
+          set -euo pipefail
+          echo "account: $(aws sts get-caller-identity --query Account --output text)"
           REGION="${{ vars.AWS_REGION }}"
           # Scoped to the environment BEING DESTROYED, not to the project. With a
           # project-wide prefix this step reports the other environment's live
@@ -196,6 +224,20 @@ jobs:
             exit 1
           fi
           echo "OK: no billable ${{ inputs.environment }} resources remain (permanent levels intentionally kept)."
+
+      # ADR-0037 D4. The step above asks four services about a name prefix; this
+      # one asks AWS for everything tagged with this environment and fails on
+      # anything Terraform does not manage. A destroy that dies part way drops
+      # resources out of state, and what falls out is invisible to every other
+      # check here - that is how an ECS cluster survived 2026-08-06 into a run
+      # that reported success.
+      #
+      # `if: always()` for the same reason as the step above, and its own
+      # positive control is inside it: an empty answer from the tagging API is
+      # a refusal, not a pass.
+      - name: Sweep for resources Terraform does not manage
+        if: always()
+        run: scripts/sweep-orphans.sh ${{ inputs.environment }}
 
       # ---------------------------------------------------------------------
       # Dashboard (ADR-0026). Two steps and TWO ROLES, deliberately: the

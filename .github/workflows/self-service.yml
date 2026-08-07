@@ -272,6 +272,18 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: scripts/break-stale-state-lock.sh stage
 
+      # The general form of the same defect (ADR-0037 D2), and the one that
+      # matters most on the public path: this job runs after a cancellation as
+      # often as after a clean cycle, and a cancellation is exactly when the
+      # referrer sits outside whatever is being destroyed. Revoking first means
+      # no group deletion here is impossible, whatever state the apply stopped
+      # in.
+      #
+      # Stage and prod get this in the same commit, in destroy.yml, even though
+      # nothing public can reach prod.
+      - name: Revoke cross-group security group rules
+        run: scripts/revoke-cross-sg-rules.sh stage
+
       # The TARGET is the load balancer, not the module. Destroying
       # `module.alb` includes `aws_security_group.alb`, which cannot be
       # deleted while the app SG's ingress rule still references it: AWS
@@ -288,7 +300,12 @@ jobs:
         working-directory: infra/envs/stage
         run: terraform destroy -input=false -auto-approve
 
+      # `if: always()` (ADR-0037 D3). Skipped exactly when a destroy failed,
+      # which is the only time its answer is news. The `sts` line below was
+      # already here and becomes load-bearing now: this step can run after a
+      # failed credentials step, and every call would then answer nothing.
       - name: Verify no billable stage resources remain
+        if: always()
         run: |
           set -euo pipefail
           # `sts` FIRST and every result assigned under `set -e`. A check whose
@@ -309,6 +326,15 @@ jobs:
             exit 1
           fi
           echo "OK: nothing billable remains from launch ${{ inputs.launch_id }}"
+
+      # ADR-0037 D4. The step above asks three services about a name prefix;
+      # this one asks AWS what is tagged `stage` and fails on anything Terraform
+      # does not manage. A cancelled launch is the case that produces exactly
+      # that: resources created before the cancellation never reached state, and
+      # nothing else in this workflow can see them.
+      - name: Sweep for resources Terraform does not manage
+        if: always()
+        run: scripts/sweep-orphans.sh stage
 
       - name: Observe the destroyed environment
         if: always()
