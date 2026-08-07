@@ -140,6 +140,31 @@ D6. **AMENDED 2026-08-07, by its own first live run.** Adoption did exactly what
     fails on any arm no real ARN can reach — with a positive control, because an
     empty list of arms would pass it silently.
 
+D7. **AMENDED AGAIN the same day, by the run that followed the first
+    amendment.** With the parser fixed, a cancelled launch adopted the RDS
+    instance three minutes into its creation - 4 of 4, including the resource
+    whose absence from state has failed every teardown since 2026-08-05 - and
+    the destroy died evaluating
+
+```text
+    url = "...@${aws_db_instance.this.address}:5432/..."
+          aws_db_instance.this.address is null
+```
+
+    Terraform evaluates the configuration during a DESTROY as well, and a null
+    in a string template is a hard error. The state was unreachable before this
+    ADR: an apply waits for the instance, so a destroy had only ever seen a
+    finished one. **Adoption did not fail; it moved the failure to the next
+    thing.** Fixed with a local in `infra/modules/rds` that treats a null
+    address as an empty string, with the cause written beside it.
+
+    Two kinds also turned up `unconfirmed` for the first time -
+    `cloudwatch:alarm` and `elasticloadbalancing:listener` - because this was
+    the first sweep this project has run against a LIVE environment rather than
+    the remains of one. Neither is adoptable and neither needs to be; both now
+    have an existence rule, because `unconfirmed` is red and a gate that reddens
+    on a resource behaving normally does not stay switched on.
+
 ## Consequences
 The honest claim becomes what 19c asked for and 19e and 19f narrowed: a launch
 cancelled mid-apply is reclaimed by the system. It is not proven until a

@@ -36,7 +36,7 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 19d   | The record, the lock, the state lock | ✅ witnessed live 2026-08-06 | sessions/2026-08-05-phase-19d-cancelled-run-recovery.md |
 | 19e   | Break test; teardown claim narrowed | ✅ done | sessions/2026-08-06-phase-19e-break-test-and-teardown-gap.md |
 | 19f   | Teardown gates that see the remainder | ✅ done | sessions/2026-08-07-phase-19f-teardown-sees-what-it-leaves.md |
-| 19g   | Teardown that finishes on its own | 🟡 shipped, break test pending | ADR-0038 |
+| 19g   | Teardown that finishes on its own | 🟡 proven in parts, one run short | sessions/2026-08-07-phase-19g-the-teardown-reaches-the-end.md |
 
 Phase 17 (prod data continuity) is still open and still optional, in
 `docs/next-phases.md`. Phase 18 was pulled forward of both remaining phases
@@ -1576,7 +1576,7 @@ were the same shape — a page saying something it was not in a position to say:
   findings, iac-scan 290/0, action-pins 43, ci green on every push, and
   `destroy.yml` green end to end on the emptied account.
 
-### Phase 19g — Teardown that finishes on its own  [SHIPPED, NOT CONFIRMED 2026-08-07]
+### Phase 19g — Teardown that finishes on its own  [PROVEN IN PARTS 2026-08-07]
 - Plan: `docs/next-phases.md` 19g. **ADR-0038**, which completes ADR-0037 and
   demotes ADR-0035 guardrail 5 - the blunt path stops being a step in the
   ordinary recovery from a cancellation and goes back to being the recovery for
@@ -1627,11 +1627,40 @@ were the same shape — a page saying something it was not in a position to say:
   shape of defect: it computed every replacement from the original text and
   wrote them one after another, so a second edit to one file silently discarded
   the first, and it reported success twice.
-- Criteria to close: a cancelled launch reclaimed with ZERO manual AWS calls,
-  and the account verified empty afterwards with a positive control in the same
-  command. **NOT YET TESTED** - the break test is another cancelled launch and
-  has not been run.
-- Cost: $0 so far. Its break test is one of the day's three launches.
+- **Two cancelled launches, and three defects each found by the previous fix
+  working.** Full record in the session summary.
+```text
+  L1 04:09  the adoption step DID NOT RUN: the patch was on the devbox and not
+            on main, and the workflow comes from main. My sequencing error
+     05:36  watchdog dispatched destroy by itself, 92 min after the launch.
+            Adoption: 4 orphans, 4 adopted, 0 failed. Destroy still failed -
+            the RDS instance was UNCONFIRMED, and adoption reads `orphans`
+     07:30  after the parser fix, destroy green in 1m12s and ZERO UNCONFIRMED
+            lines where the same situation had two
+  L2 07:41  adoption adopted 4 of 4 INCLUDING module.rds.aws_db_instance.this.
+            Destroy died on a null endpoint address - an instance three
+            minutes old has none, and Terraform evaluates config during a
+            destroy too
+     07:54  after that fix, destroy green in 5m27s; the adopted instance was
+            deleted as an ordinary managed resource
+```
+- **The defect underneath all of it.** `sweep-orphans.sh` read a resource's kind
+  as everything up to the first SLASH, and AWS separates kind from name with a
+  slash OR a colon - so `rds:db`, `rds:subgrp`, `logs:log-group` and
+  `secretsmanager:secret` were four `case` arms that had never once been
+  reached. It also corrects ADR-0037's diagnosis, which blamed the missed RDS
+  instance on its `creating` status: it was never reportable at all. Invisible
+  where it was tested, because none of those kinds is tagged once an environment
+  is gone - including on a deliberate read-only run against the empty account
+  ninety minutes before it fired.
+- Criteria to close: a cancelled launch reclaimed with ZERO manual AWS calls and
+  nobody in the loop, the account verified empty with a positive control in the
+  same command. **PARTLY MET.** No manual AWS call was made all day and the
+  account was verified empty twice; but the final destroy of each launch was
+  dispatched by hand to skip a 90-minute wait, so the uninterrupted run is still
+  a prediction. The day's three launches are spent.
+- Cost: about $0.10 - two launches, an RDS instance up for roughly ninety
+  minutes in total, two ALBs for ten minutes each.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

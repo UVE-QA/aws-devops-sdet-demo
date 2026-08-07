@@ -674,7 +674,7 @@ D2, D3 and D4 shipped and all three confirmed by a cancelled launch. The claim
 they were written for was disproved in the same run: the remainder still took
 three manual AWS calls. What changed is that the teardown now reports it.
 
-### 19g — teardown that finishes on its own  **SHIPPED 2026-08-07, NOT CONFIRMED**
+### 19g — teardown that finishes on its own  **PROVEN IN PARTS 2026-08-07**
 
 The gap 19f made exact. A cancelled apply creates resources that never enter
 state, so Terraform can neither delete them nor delete what depends on them —
@@ -712,10 +712,18 @@ The ordering then dissolves instead of being patched. The watchdog already
 dispatches destroy once; that dispatch has always been the retry, and it was
 ineffective only because the destroy it dispatched could not adopt.
 
-Cost: $0 until its own break test, which is another cancelled launch.
-Done when a cancelled launch is reclaimed with ZERO manual AWS calls — the
-criterion 19c raised, 19e narrowed and 19f did not meet. Shipped and offline
-break-tested on 2026-08-07; the live run has not happened.
+Two cancelled launches on 2026-08-07 proved every component and did not close
+the phase. Adoption found and imported the RDS instance whose absence from state
+has failed every teardown since 2026-08-05, and two defects surfaced behind it —
+four `case` arms in the 19f sweep that had never been reached, and a null
+endpoint address on an instance adopted while still `creating`. Both fixed, both
+with the account verified empty afterwards.
+
+What remains is ONE uninterrupted run: cancel a launch and watch the IN-BAND
+destroy adopt and finish within minutes, with no watchdog, no blunt path and
+nobody dispatching anything. Today both destroys that finished were dispatched
+by hand to skip a 90-minute wait, so that sentence is a prediction rather than
+evidence. It is the first thing the next session does.
 
 ## Deliberately out of scope
 

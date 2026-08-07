@@ -6,6 +6,52 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
+**As of 2026-08-07 (later that day).** Phase 19g SHIPPED and did not close. A
+teardown now ADOPTS what it does not manage before it destroys (ADR-0038). The
+shape was decided by reading the three candidates against the code rather than
+comparing their descriptions: re-dispatch re-runs a destroy that still does not
+manage the cluster and the security groups, because those are free and the blunt
+path only deletes what bills; widen puts Terraform's dependency graph inside a
+Lambda and spends the IAM narrowness that makes the blunt path safe. Adoption
+works one layer earlier, and the ordering then dissolves rather than being
+patched - the watchdog's existing dispatch has always been the retry, and it was
+ineffective only because the destroy it dispatched could not adopt. Its input is
+the 19f gate itself, so the check that names the remainder is now the input to
+the thing that removes it, and the two cannot disagree about what an orphan is.
+
+Two cancelled launches, and three defects, each found by the previous fix
+WORKING. The one underneath everything: `confirm_exists` read a resource's kind
+as everything up to the first SLASH, and AWS separates kind from name with a
+slash OR a colon - so `rds:db`, `rds:subgrp`, `logs:log-group` and
+`secretsmanager:secret` were four `case` arms that had never once been reached,
+and every resource of those kinds answered `unconfirmed`. Adoption reads
+`orphans` and not `unconfirmed`, which is correct - importing what nobody has
+confirmed is acting on an unanswered question - so the RDS instance was never
+offered to it. That also corrects a diagnosis: ADR-0037 recorded the missed
+instance as a consequence of its `creating` status, and it was never reportable
+at all. The defect was invisible where it was tested, because none of those
+kinds is tagged once an environment is gone - including on a deliberate
+read-only run against the empty account ninety minutes before it fired. A gate
+is only exercised by the case it was built for.
+
+With the parser fixed, the second launch adopted 4 of 4 INCLUDING
+`module.rds.aws_db_instance.this` - the resource whose absence from state has
+failed every teardown since 2026-08-05 - and the destroy died on a null endpoint
+address, because an instance three minutes old has none and Terraform evaluates
+the configuration during a destroy too. That state was unreachable before
+adoption existed. The fix moved the failure rather than removing it. Third:
+`cloudwatch:alarm` and `elasticloadbalancing:listener` had no existence rule and
+turned `unconfirmed` in the first sweep this project has ever run against a LIVE
+environment rather than the remains of one.
+
+Both destroys that finished were green with the account verified empty and a
+positive control in the same command. Both were dispatched by hand to skip a
+ninety-minute wait, so "reclaimed with nobody in the loop" remains a prediction
+and the phase stays open - the same sentence 19c, 19e and 19f each ended on. One
+uninterrupted cancelled launch is what is left, and the day's three launches are
+spent. The first launch was lost to a sequencing error of mine: the patch was
+applied on the devbox and not pushed, and the workflow comes from `main`.
+
 **As of 2026-08-07.** Phase 19f is DONE and did not meet its criterion, which is
 the honest shape of the result rather than a failure to report it. ADR-0037's D2,
 D3 and D4 all shipped and all three were confirmed by one cancelled launch: the
