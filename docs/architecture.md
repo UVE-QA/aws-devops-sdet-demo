@@ -235,9 +235,49 @@ concurrently — and does. The ALB's network interfaces are still attached when
 the detach of the internet gateway is attempted, and AWS answers
 `DependencyViolation`.
 
-`destroy.yml` therefore runs a targeted destroy of the ALB module, and only then
-the rest. The fix is ordering, in a workflow, because the race is between two
+`destroy.yml` therefore destroys the load balancer first, and only then the
+rest. The fix is ordering, in a workflow, because the race is between two
 resources that have no reference to each other.
+
+The target is `module.alb.aws_lb.this` and not `module.alb`, which is a
+correction rather than a detail (**ADR-0037** D1). The module includes the ALB's
+security group, and that group cannot be deleted while the app security group's
+ingress rule still references it — so the wider target turned an ordering fix
+into a fifteen-minute `DependencyViolation` retry, and the destroy behind it
+never ran.
+
+### Why the security group rules are revoked before anything is destroyed
+
+**ADR-0037** D2. The environment's groups form a chain — `rds-sg` admits
+`app-sg`, `app-sg` admits `alb-sg` — and AWS refuses to delete a group another
+group's rule references. Narrowing the ALB target above removes one instance of
+that; it does nothing for the general case, where a partial teardown leaves the
+referrer outside whatever is being destroyed and the deletion is impossible
+rather than slow.
+
+`scripts/revoke-cross-sg-rules.sh` runs first and takes the references away, so
+no group deletion in the environment can be blocked by another group. It leaves
+the environment unable to serve traffic, which is what a teardown is for, and is
+why it is wired into the teardown path and nowhere else.
+
+### Why a teardown ends by looking for what it does not manage
+
+**ADR-0037** D4. Every other check here asks Terraform what it manages, or asks
+four services about a name prefix. A destroy that fails part way drops resources
+*out of state*: Terraform forgets them, no plan mentions them, and the
+verification step — which used to be last, and therefore skipped whenever a
+teardown failed — never ran to notice. An ECS cluster survived exactly that way
+on 2026-08-06 and was removed by hand.
+
+So the verification now runs `if: always()` (D3), and `scripts/sweep-orphans.sh`
+follows it with the opposite question: not *is what I know about gone?* but *is
+everything AWS still has, mine to have?* It asks the tagging API for this
+environment and fails the run on anything absent from Terraform state.
+
+It asks a second time, without the environment filter, and treats an empty
+answer as a refusal rather than a pass. The permanent levels are always tagged,
+so nothing is the one answer that cannot be true — and nothing is also what an
+expired token, the wrong region and a missing IAM grant all return.
 
 ### Why prod keeps no data
 

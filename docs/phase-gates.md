@@ -35,7 +35,7 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 19c   | Live launch, TTL, both watchdog paths | ✅ closed by 19e | sessions/2026-08-05-phase-19c-live-launch-and-teardown.md |
 | 19d   | The record, the lock, the state lock | ✅ witnessed live 2026-08-06 | sessions/2026-08-05-phase-19d-cancelled-run-recovery.md |
 | 19e   | Break test; teardown claim narrowed | ✅ done | sessions/2026-08-06-phase-19e-break-test-and-teardown-gap.md |
-| 19f   | Teardown that finishes on its own | ⬜ next (ADR-0037 D2-D4) | next-phases.md |
+| 19f   | Teardown that finishes on its own | 🟡 written, break test pending | next-phases.md |
 
 Phase 17 (prod data continuity) is still open and still optional, in
 `docs/next-phases.md`. Phase 18 was pulled forward of both remaining phases
@@ -1523,6 +1523,68 @@ were the same shape — a page saying something it was not in a position to say:
 - Criteria to close: a cancelled run cleaned up with nobody in the loop, and the
   account verified empty afterwards with a positive control in the same command.
   It is the same criterion 19c is still holding.
+
+### Phase 19f — Teardown that finishes on its own  [IN PROGRESS 2026-08-06]
+- Plan: `docs/next-phases.md` 19f, which is **ADR-0037** D2-D4. No new ADR: the
+  decisions were recorded in 19e, from the evidence, and this phase implements
+  them.
+- Written, and not yet exercised against AWS:
+```text
+  D2  scripts/revoke-cross-sg-rules.sh takes away every rule by which one of
+      the environment's security groups references another, BEFORE anything is
+      destroyed. Wired into destroy.yml (stage and prod, one commit) and into
+      the self-service destroy job
+  D3  `if: always()` on "Verify no billable resources remain", in both
+      workflows, so a failed teardown still states what is alive
+  D4  scripts/sweep-orphans.sh + scripts/sweep_orphans.py: the tagging API is
+      asked what exists, Terraform is asked what it manages, and the difference
+      fails the run. Also `if: always()`
+  IAM tag:GetResources added to the deploy role's TeardownVerifyRead statement
+```
+- **D3 is not safe as written, and that is this phase's first finding.** The
+  step it applies to was last, so it only ever ran with working credentials.
+  `always()` means it can now run after a FAILED credentials step - and then
+  every `aws` call answers nothing, which is exactly what an empty account looks
+  like. destroy.yml's verification had neither `set -euo pipefail` nor an `sts`
+  call; the self-service copy had both, since 19b. The decision as recorded in
+  ADR-0037 would have turned a skipped step into a green one. Both copies now
+  carry the fail-closed shape.
+- **The sweep needs a grant this project has never had.** `tag:GetResources` is
+  the only unscopeable read in the deploy policy, and deliberately so: a sweep
+  exists to find resources nobody declared, so naming in advance what it may
+  look at defines away the thing it is looking for. It means `infra/bootstrap-oidc`
+  must be re-applied locally with `demo-admin` BEFORE the break test - a
+  permanent level, $0, and the one step of this phase that is not in Actions.
+- **Log groups are the reason the comparison is not a set intersection.** The
+  tagging API reports `...:log-group:/aws-devops-sdet-demo/stage/app`; Terraform
+  stores the same group with a trailing `:*`. Matched literally, a live and
+  fully managed log group is reported as an orphan on every teardown - a gate
+  that cries wolf until somebody switches it off. Found by reading the two
+  spellings side by side before the first run, and pinned by a unit test.
+- Break tests, on fixtures, exit codes measured to a file rather than through a
+  pipe:
+```text
+  revoke, 3 groups, 2 cross-rules   the two cross-group pairs selected; a pair
+                                    naming a group OUTSIDE the environment left
+                                    alone, and a CIDR in the same permission
+                                    left alone
+  revoke, no groups                 no-op, exit 0 (an environment already gone)
+  revoke, no cross-references       no-op, exit 0
+  revoke, missing fixture           refused, exit 2
+  revoke, the call itself fails     refused, exit 1, and the error quoted
+  sweep, planted orphan             red, exit 1, the ARN named
+  sweep, nothing tagged             green, exit 0
+  sweep, empty control              REFUSED, exit 1 - and its ::group:: output
+                                    is byte-identical to the green case, which
+                                    is the whole reason the control exists
+  tests/unit/test_sweep_orphans.py  11 assertions, including that matching does
+                                    not fall back to a substring
+```
+- Criteria to close: a cancelled launch reclaimed with **ZERO manual AWS calls**,
+  and the account verified empty afterwards with a positive control in the same
+  command. **NOT MET** - the break test has not run. It is the same criterion
+  19c held and 19e narrowed.
+- Cost so far: **$0**. The verifying break test is about 40 minutes of ALB + RDS.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

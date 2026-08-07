@@ -162,8 +162,27 @@ from nothing.
                         LAST, and optional: everything above works without it,
                         and it is the only level that holds a long-lived
                         credential. Needs `make self-service-package` first.
-                        NOT APPLIED in any account today - Phase 19b.
+                        APPLIED 2026-08-05 (Phase 19b), 25 resources, about
+                        $0.45/month standing. Duplicated as 6a above, which is
+                        where the package and the GitHub App are described.
 ```
+
+### When the deploy role's policy changes
+
+`infra/bootstrap-oidc` is a permanent level and the only thing that grants the
+GitHub deploy roles anything. A change there does NOT reach AWS through any
+workflow - Actions assumes the role, it does not create it - so it has to be
+applied locally, exactly like the steps above:
+
+```bash
+aws sso login --profile demo-admin --use-device-code
+AWS_PROFILE=demo-admin terraform -chdir=infra/bootstrap-oidc apply
+```
+
+`tag:GetResources` was added this way for the orphan sweep (**ADR-0037** D4,
+Phase 19f). A workflow that needs a grant which is not there fails with an
+AccessDenied naming the API and not the role, so check this first when a step
+that used to work stops.
 
 ### The out-of-git state step 9 depends on (Phase 19b)
 

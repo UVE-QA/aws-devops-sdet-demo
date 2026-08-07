@@ -12,11 +12,12 @@ credentials. There are no static AWS keys anywhere in this repository or in its
 GitHub configuration.
 
 That claim gained a qualifier in Phase 19a and is more interesting with it. The
-self-service level (**ADR-0034**, written but **not applied**) reverses the one
-direction of trust: everywhere else GitHub authenticates to AWS over OIDC, and
-there AWS must authenticate to GitHub, where no OIDC exists. So the honest
-sentence is *no static AWS keys anywhere, and exactly one static GitHub
-credential, in Secrets Manager, readable by one Lambda role.*
+self-service level (**ADR-0034**, applied in Phase 19b and pressed by an
+anonymous visitor in 19c) reverses the one direction of trust: everywhere else
+GitHub authenticates to AWS over OIDC, and there AWS must authenticate to
+GitHub, where no OIDC exists. So the honest sentence is *no static AWS keys
+anywhere, and exactly one static GitHub credential, in Secrets Manager, readable
+by one Lambda role.*
 
 ```text
 build image → apply stage → migrate + seed → API, smoke and regression suites →
