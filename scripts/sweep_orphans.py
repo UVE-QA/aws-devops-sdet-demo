@@ -229,6 +229,10 @@ def main(argv: list[str]) -> int:
         help="{present, unconfirmed}: what the owning services answered",
     )
     parser.add_argument("--environment", required=True)
+    # ADR-0038 D2. The adoption step runs this script and adopts exactly what it
+    # reports, so the two can never disagree about what an orphan is. Optional,
+    # because the gate itself has no use for it.
+    parser.add_argument("--json", help="also write the decision here, for adoption")
     args = parser.parse_args(argv)
 
     with open(args.tagged, encoding="utf-8") as handle:
@@ -262,6 +266,10 @@ def main(argv: list[str]) -> int:
     # different claims and must not share a line.
     for arn in decision["unconfirmed"]:
         print(f"  UNCONFIRMED  {arn}  (no existence rule for this kind)")
+
+    if args.json:
+        with open(args.json, "w", encoding="utf-8") as handle:
+            json.dump(decision, handle, indent=2)
 
     return 0 if decision["verdict"] == "clean" else 1
 

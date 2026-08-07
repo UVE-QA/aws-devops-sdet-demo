@@ -215,9 +215,29 @@ echo "::group::tagged in ${ENVIRONMENT}"
 jq -r '.ResourceTagMappingList[].ResourceARN' "$WORK/tagged.json" || true
 echo "::endgroup::"
 
-python3 scripts/sweep_orphans.py \
-  --tagged "$WORK/tagged.json" \
-  --control "$WORK/control.json" \
-  --state "$WORK/state.json" \
-  --present "$WORK/present.json" \
-  --environment "$ENVIRONMENT"
+# SWEEP_KEEP_DIR is how `scripts/adopt-orphans.sh` gets at the answer without
+# asking AWS a second time (ADR-0038 D2). Everything this run looked at is
+# copied there, including the tags, which adoption needs and the decision drops.
+# The exit code is captured rather than allowed to end the script, because the
+# copy below has to happen either way: a RED sweep is exactly the case adoption
+# has work to do in. The code is re-raised at the end, so this script's contract
+# to every existing caller is unchanged.
+DECIDE=(python3 scripts/sweep_orphans.py
+  --tagged "$WORK/tagged.json"
+  --control "$WORK/control.json"
+  --state "$WORK/state.json"
+  --present "$WORK/present.json"
+  --environment "$ENVIRONMENT")
+if [ -n "${SWEEP_KEEP_DIR:-}" ]; then
+  DECIDE+=(--json "$WORK/decision.json")
+fi
+
+RC=0
+"${DECIDE[@]}" || RC=$?
+
+if [ -n "${SWEEP_KEEP_DIR:-}" ]; then
+  mkdir -p "$SWEEP_KEEP_DIR"
+  cp "$WORK"/*.json "$SWEEP_KEEP_DIR/"
+fi
+
+exit "$RC"
