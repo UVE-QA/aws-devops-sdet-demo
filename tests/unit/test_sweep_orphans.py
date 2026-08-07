@@ -34,6 +34,7 @@ LOG_GROUP = f"arn:aws:logs:us-west-2:{ACCOUNT}:log-group:/aws-devops-sdet-demo/s
 SG = f"arn:aws:ec2:us-west-2:{ACCOUNT}:security-group/sg-0abc"
 PERMANENT = f"arn:aws:ecr:us-west-2:{ACCOUNT}:repository/aws-devops-sdet-demo-app"
 WEIRD = f"arn:aws:kinesis:us-west-2:{ACCOUNT}:stream/aws-devops-sdet-demo-stage"
+TASK_DEF = f"arn:aws:ecs:us-west-2:{ACCOUNT}:task-definition/aws-devops-sdet-demo-stage-app"
 
 
 def tagged(*arns: str) -> list[dict]:
@@ -103,7 +104,7 @@ def test_a_resource_the_service_says_is_gone_is_not_an_orphan():
     """
     decision = decide(tagged(SG), tagged(PERMANENT), state(), present=[])
     assert decision["verdict"] == "clean"
-    assert decision["stale"] == 1
+    assert decision["not_present"] == 1
 
 
 def test_the_same_arn_is_an_orphan_once_the_service_confirms_it():
@@ -133,6 +134,24 @@ def test_unconfirmed_alone_is_enough_to_fail_even_with_nothing_else_wrong():
     assert decision["verdict"] == "orphans"
     assert decision["orphans"] == []
     assert decision["unconfirmed"] == [WEIRD]
+
+
+def test_a_kind_that_is_never_live_is_absent_rather_than_unconfirmed():
+    """22 task-definition revisions, and the lesson learned twice in one night.
+
+    An exclusion list was written for them, then removed on the theory that
+    asking the owning service subsumed it. It did not: with no rule for the
+    kind they became `unconfirmed`, which is red, in an account that was empty.
+    A revision is inert at any status - nothing runs from one no service refers
+    to, `destroy` can only deregister it - so the caller answers `absent` for
+    the kind, and this file simply counts it.
+    """
+    revisions = [f"{TASK_DEF}:{n}" for n in range(1, 23)]
+    decision = decide(
+        tagged(*revisions), tagged(PERMANENT), state(), present=[], unconfirmed=[]
+    )
+    assert decision["verdict"] == "clean"
+    assert decision["not_present"] == 22
 
 
 # ------------------------------------------------------------------- orphans

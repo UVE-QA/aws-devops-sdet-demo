@@ -64,8 +64,10 @@ has already asked, and passes in what came back.
 THREE ANSWERS, NOT TWO
 
     present       the owning service confirmed it. Compared against state
-    absent        the service says no. Silently dropped - this is the deleted
-                  resource the tagging API had not caught up with
+    absent        the service says no, or the kind is one that is never live.
+                  Dropped and counted - the deleted resource the tagging API
+                  has not caught up with, and the task-definition revision
+                  nothing can ever run from
     unconfirmed   no rule for this kind, or the call itself failed. REPORTED,
                   because "I could not check" must never read as "it is gone".
                   That is the empty-result trap one level down
@@ -174,12 +176,16 @@ def decide_sweep(
             ),
             "orphans": [],
             "unconfirmed": [],
-            "stale": 0,
+            "not_present": 0,
         }
 
     arns = [r.get("ResourceARN", "") for r in tagged_list]
     arns = [a for a in arns if a]
-    stale = [a for a in arns if a not in present_set and a not in unconfirmed_list]
+    # Reported by the tagging API, and not there according to the service:
+    # either deleted and not yet dropped from the index, or a kind that is never
+    # live. Counted rather than listed - the count is what would make a sudden
+    # change visible.
+    not_present = [a for a in arns if a not in present_set and a not in unconfirmed_list]
 
     orphans = sorted(a for a in arns if a in present_set and not is_managed(a, identifiers))
 
@@ -194,19 +200,19 @@ def decide_sweep(
             ),
             "orphans": orphans,
             "unconfirmed": unconfirmed_list,
-            "stale": len(stale),
+            "not_present": len(not_present),
         }
 
     return {
         "verdict": "clean",
         "reason": (
             f"{len(arns)} tagged, {len(present_set & set(arns))} still there and "
-            f"all of them managed, {len(stale)} already gone and not yet dropped "
-            "by the tagging API. Nothing was left behind."
+            f"all of them managed, {len(not_present)} reported by the tagging "
+            "API and not there according to the service. Nothing was left behind."
         ),
         "orphans": [],
         "unconfirmed": [],
-        "stale": len(stale),
+        "not_present": len(not_present),
     }
 
 
@@ -247,7 +253,7 @@ def main(argv: list[str]) -> int:
     print(f"tagged in AWS: {len(tagged)}   in Terraform state: {len(identifiers)} identifier(s)")
     print(f"control (whole project): {len(control)} resource(s)")
     print(f"confirmed present: {len(confirmed.get('present', []))}   "
-          f"gone but still tagged: {decision['stale']}")
+          f"tagged but not there: {decision['not_present']}")
     print(f"verdict: {decision['verdict']}")
     print(decision["reason"])
     for arn in decision["orphans"]:

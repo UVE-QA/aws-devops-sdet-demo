@@ -145,6 +145,18 @@ confirm_exists() {
       aws ec2 describe-route-tables --region "$region" --route-table-ids "${id#*/}" >/dev/null 2>&1 ;;
     ec2:elastic-ip)
       aws ec2 describe-addresses --region "$region" --allocation-ids "${id#*/}" >/dev/null 2>&1 ;;
+    ecs:task-definition)
+      # NEVER present, and by KIND rather than by status. A revision no service
+      # refers to is inert whether it is ACTIVE or INACTIVE: nothing runs from
+      # it, `terraform destroy` can only DEREGISTER one, and AWS keeps the
+      # record indefinitely at no cost. There is no state in which one is worth
+      # acting on, so a status check here would only produce a rule that fires
+      # on something nobody can use.
+      #
+      # This was learned twice. First as an exclusion list, then removed on the
+      # theory that confirmation subsumed it - which turned 22 revisions from
+      # excluded into `unconfirmed`, and the gate red, in an empty account.
+      return 1 ;;
     ecs:cluster)
       # ACTIVE only. A deleted cluster answers `describe` for a while, with
       # status INACTIVE, which is how one survived a teardown on 2026-08-06.
