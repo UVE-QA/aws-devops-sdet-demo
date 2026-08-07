@@ -1580,6 +1580,24 @@ were the same shape — a page saying something it was not in a position to say:
   tests/unit/test_sweep_orphans.py  11 assertions, including that matching does
                                     not fall back to a substring
 ```
+- **The sweep found something on its first live run, against an empty account,
+  and it amended its own decision.** 23 tagged resources in a stage that a
+  destroy, its verification and a manual check had each called empty - one ECS
+  cluster deleted and still answering `describe`, and 22 task-definition
+  revisions, which `terraform destroy` deregisters rather than deletes and AWS
+  keeps for ever. Shipped as written, the gate would have been red on every
+  teardown from day one, and a gate that is always red is switched off. The
+  tagging API is now DISCOVERY and the owning service is LIVENESS: `ecs
+  list-clusters` returns ACTIVE only, task definitions are excluded by type
+  because a revision no service refers to is inert at any status, every other
+  kind stays fail-closed, and every exclusion is printed with its reason.
+  **ADR-0037** D4 amended beside the sentence it corrects.
+- The IAM grant is applied: `simulate-principal-policy` answers `allowed` for
+  `tag:GetResources` on the stage deploy role, and `implicitDeny` for
+  `iam:CreateUser` in the same call - a simulator that says yes to everything is
+  indistinguishable from one that cannot say no. Checked against the ROLE,
+  because `demo-admin` holds the grant anyway and a control that inherits the
+  privilege of whoever runs it proves nothing (2026-08-05).
 - Criteria to close: a cancelled launch reclaimed with **ZERO manual AWS calls**,
   and the account verified empty afterwards with a positive control in the same
   command. **NOT MET** - the break test has not run. It is the same criterion

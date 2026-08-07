@@ -34,6 +34,33 @@ API reports `...:log-group:/aws-devops-sdet-demo/stage/app` and Terraform stores
 `...:log-group:/aws-devops-sdet-demo/stage/app:*`. Matching those two literally
 reports a live, managed log group as an orphan on every single teardown - a gate
 that cries wolf until somebody switches it off.
+
+TAGGED IS NOT THE SAME AS ALIVE (ADR-0037 D4, amended 2026-08-07)
+
+The first live run of this sweep, against an account three checks had already
+called empty, reported twenty-three orphans. All twenty-three were tombstones:
+
+    22  ecs:task-definition   `destroy` DEREGISTERS revisions, it does not
+                              delete them, and AWS keeps the record
+                              indefinitely. They cost nothing, they accumulate
+                              one per apply, and a revision with no service is
+                              inert whether it is ACTIVE or not - so there is no
+                              state in which one is worth acting on. Excluded by
+                              TYPE, which is why the exclusion is not a status
+                              check
+     1  ecs:cluster INACTIVE  a deleted cluster keeps answering `describe` for a
+                              while, and the tagging API keeps reporting it.
+                              `list-clusters` returns ACTIVE ones only, which is
+                              why the verification step never saw it and was
+                              right not to
+
+So the question is not "is it tagged and unmanaged" but "is it ALIVE, tagged and
+unmanaged". Discovery comes from the tagging API; liveness is confirmed by the
+service that owns the resource. Everything whose type is not named here stays
+fail-closed: an unrecognised kind is reported, not excused.
+
+What is excluded is COUNTED AND PRINTED. A silent exclusion is how a gate stops
+meaning anything, and a list nobody sees cannot be argued with.
 """
 from __future__ import annotations
 
@@ -72,6 +99,37 @@ def state_identifiers(state: dict[str, Any]) -> set[str]:
     return found
 
 
+# A resource of this type is never actionable, whatever its status. Membership
+# here has to be argued from the resource's nature, not from it being noisy.
+TOMBSTONE_TYPES = ("ecs:task-definition",)
+
+
+def arn_type(arn: str) -> str:
+    """`arn:aws:ecs:region:acct:cluster/name` -> `ecs:cluster`."""
+    parts = arn.split(":", 6)
+    if len(parts) < 6:
+        return ""
+    service = parts[2]
+    tail = parts[5]
+    kind = tail.split("/", 1)[0]
+    return f"{service}:{kind}"
+
+
+def is_alive(arn: str, active_clusters: set[str]) -> tuple[bool, str]:
+    """Whether the owning service still has this, and why not when it does not.
+
+    Only the kinds that AWS is KNOWN to keep tombstones for are asked about.
+    Anything else is assumed alive, which is the fail-closed direction: an
+    unrecognised kind gets reported rather than excused.
+    """
+    kind = arn_type(arn)
+    if kind in TOMBSTONE_TYPES:
+        return False, "deregistered revision, kept by AWS indefinitely"
+    if kind == "ecs:cluster" and arn not in active_clusters:
+        return False, "cluster is not ACTIVE"
+    return True, ""
+
+
 def is_managed(arn: str, identifiers: set[str]) -> bool:
     """Whether Terraform holds this resource under any spelling it uses.
 
@@ -93,6 +151,7 @@ def decide_sweep(
     tagged: Iterable[dict[str, Any]],
     control: Iterable[dict[str, Any]],
     identifiers: set[str],
+    active_clusters: set[str] | None = None,
 ) -> dict[str, Any]:
     """`refuse`, `orphans` or `clean`, in that order of precedence.
 
@@ -116,31 +175,44 @@ def decide_sweep(
                 "than reporting an account nobody looked at as empty."
             ),
             "orphans": [],
+            "tombstones": [],
         }
 
-    orphans = [
-        arn
-        for arn in (r.get("ResourceARN", "") for r in tagged_list)
-        if arn and not is_managed(arn, identifiers)
-    ]
+    clusters = active_clusters or set()
+    orphans: list[str] = []
+    tombstones: list[str] = []
+    for arn in (r.get("ResourceARN", "") for r in tagged_list):
+        if not arn:
+            continue
+        alive, why = is_alive(arn, clusters)
+        if not alive:
+            tombstones.append(f"{arn}  ({why})")
+            continue
+        if not is_managed(arn, identifiers):
+            orphans.append(arn)
+
     if orphans:
         return {
             "verdict": "orphans",
             "reason": (
-                f"{len(orphans)} tagged resource(s) exist in AWS and are absent "
-                "from Terraform state. A partially failed teardown drops "
+                f"{len(orphans)} live tagged resource(s) exist in AWS and are "
+                "absent from Terraform state. A partially failed teardown drops "
                 "resources out of state; these are what it left."
             ),
             "orphans": sorted(orphans),
+            "tombstones": sorted(tombstones),
         }
 
     return {
         "verdict": "clean",
         "reason": (
-            f"{len(tagged_list)} tagged resource(s), all of them managed. "
+            f"{len(tagged_list)} tagged resource(s): "
+            f"{len(tombstones)} tombstone(s) AWS keeps and cannot act on, "
+            f"{len(tagged_list) - len(tombstones)} live and all of them managed. "
             "Nothing was left behind."
         ),
         "orphans": [],
+        "tombstones": sorted(tombstones),
     }
 
 
@@ -151,6 +223,11 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--tagged", required=True, help="get-resources for this environment")
     parser.add_argument("--control", required=True, help="get-resources for the whole project")
     parser.add_argument("--state", required=True, help="terraform show -json output")
+    parser.add_argument(
+        "--active-clusters",
+        required=True,
+        help="ecs list-clusters output. ACTIVE ones only, which is the point.",
+    )
     parser.add_argument("--environment", required=True)
     args = parser.parse_args(argv)
 
@@ -160,13 +237,20 @@ def main(argv: list[str]) -> int:
         control = json.load(handle).get("ResourceTagMappingList", [])
     with open(args.state, encoding="utf-8") as handle:
         state = json.load(handle)
+    with open(args.active_clusters, encoding="utf-8") as handle:
+        active_clusters = set(json.load(handle).get("clusterArns", []))
 
     identifiers = state_identifiers(state)
-    decision = decide_sweep(tagged, control, identifiers)
+    decision = decide_sweep(tagged, control, identifiers, active_clusters)
 
     print(f"environment: {args.environment}")
     print(f"tagged in AWS: {len(tagged)}   in Terraform state: {len(identifiers)} identifier(s)")
     print(f"control (whole project): {len(control)} resource(s)")
+    print(f"ACTIVE ECS clusters in the account: {len(active_clusters)}")
+    # Printed, always, and before the verdict. An exclusion nobody sees is how a
+    # gate quietly stops meaning anything.
+    for line in decision["tombstones"]:
+        print(f"  tombstone  {line}")
     print(f"verdict: {decision['verdict']}")
     print(decision["reason"])
     for arn in decision["orphans"]:

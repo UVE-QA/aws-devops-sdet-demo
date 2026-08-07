@@ -26,9 +26,19 @@
 # An empty control is a refusal. The decision lives in `scripts/sweep_orphans.py`
 # so that branch can be driven from a dictionary in `tests/unit`.
 #
+# TAGGED IS NOT ALIVE (ADR-0037 D4, amended 2026-08-07)
+#
+# The first live run of this reported twenty-three orphans in an account three
+# other checks had already called empty, and all twenty-three were tombstones:
+# twenty-two deregistered task-definition revisions, which AWS keeps for ever
+# and `destroy` never deletes, and one INACTIVE ECS cluster, which keeps
+# answering `describe` after deletion. So the tagging API is the DISCOVERY and
+# the owning service is the CONFIRMATION - here, `ecs list-clusters`, which
+# returns ACTIVE clusters only and is the same call the verification step makes.
+#
 # Usage:  scripts/sweep-orphans.sh <environment>
 #
-# The three BREAK_TEST_ variables replace one input each with a fixture, so a
+# The four BREAK_TEST_ variables replace one input each with a fixture, so a
 # planted orphan and a dead credential can both be exercised without an account.
 
 set -euo pipefail
@@ -87,6 +97,16 @@ else
     --output json > "$WORK/control.json"
 fi
 
+# --- what the owning service says is still alive ----------------------------
+if [ -n "${BREAK_TEST_CLUSTERS_JSON:-}" ]; then
+  echo "!! BREAK_TEST_CLUSTERS_JSON is set: reading ${BREAK_TEST_CLUSTERS_JSON} instead of AWS"
+  cp "$BREAK_TEST_CLUSTERS_JSON" "$WORK/clusters.json"
+else
+  # ACTIVE only, by the API's own definition - which is exactly why a deleted
+  # cluster is absent here while the tagging API still reports it.
+  aws ecs list-clusters --region "$REGION" --output json > "$WORK/clusters.json"
+fi
+
 echo "::group::tagged in ${ENVIRONMENT}"
 jq -r '.ResourceTagMappingList[].ResourceARN' "$WORK/tagged.json" || true
 echo "::endgroup::"
@@ -95,4 +115,5 @@ python3 scripts/sweep_orphans.py \
   --tagged "$WORK/tagged.json" \
   --control "$WORK/control.json" \
   --state "$WORK/state.json" \
+  --active-clusters "$WORK/clusters.json" \
   --environment "$ENVIRONMENT"

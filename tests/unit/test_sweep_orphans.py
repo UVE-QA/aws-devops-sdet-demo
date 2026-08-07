@@ -51,9 +51,15 @@ def state(*values: str) -> dict:
     }
 
 
-def decide(tagged_list, control, state_doc):
+TASK_DEF = f"arn:aws:ecs:us-west-2:{ACCOUNT}:task-definition/aws-devops-sdet-demo-stage-app:21"
+
+
+def decide(tagged_list, control, state_doc, active_clusters=(CLUSTER,)):
     return sweep_orphans.decide_sweep(
-        tagged_list, control, sweep_orphans.state_identifiers(state_doc)
+        tagged_list,
+        control,
+        sweep_orphans.state_identifiers(state_doc),
+        set(active_clusters),
     )
 
 
@@ -78,6 +84,72 @@ def test_an_empty_control_refuses_even_when_orphans_were_found():
 
 
 # ------------------------------------------------------------------- orphans
+# ---------------------------------------------------------------- tombstones
+def test_the_first_live_run_in_full():
+    """2026-08-07, and the reason D4 was amended before it had ever been trusted.
+
+    An account that a destroy, its verification and a manual check had all
+    called empty answered with twenty-three tagged resources. Every one was
+    something AWS keeps and nobody can act on: the ECS cluster had been deleted
+    and was still answering `describe`, and the twenty-two task-definition
+    revisions had been deregistered rather than deleted, which is the only thing
+    `terraform destroy` can do to one.
+
+    Had this shipped as written, the gate would have been red on every teardown
+    from its first day - and a gate that is always red is switched off, which is
+    the same outcome as never having written it.
+    """
+    tagged_list = tagged(CLUSTER, *[TASK_DEF[:-2] + str(n) for n in range(10, 32)])
+    decision = decide(tagged_list, tagged(PERMANENT), state(), active_clusters=())
+    assert decision["verdict"] == "clean"
+    assert len(decision["tombstones"]) == 23
+
+
+def test_a_deregistered_task_definition_is_not_an_orphan_even_when_active():
+    """Excluded by TYPE, and the distinction is the argument for it.
+
+    A revision no service refers to does nothing whatever its status, so there
+    is no state in which one is worth acting on. Excluding by status instead
+    would leave a rule that fires on a resource nobody can use.
+    """
+    decision = decide(tagged(TASK_DEF), tagged(PERMANENT), state())
+    assert decision["verdict"] == "clean"
+
+
+def test_an_inactive_cluster_is_a_tombstone_and_an_active_one_is_an_orphan():
+    """The same ARN, the same state, two verdicts - and only the service knows.
+
+    `list-clusters` returns ACTIVE clusters only, which is why the verification
+    step could report an empty account truthfully while the tagging API still
+    listed this one.
+    """
+    dead = decide(tagged(CLUSTER), tagged(PERMANENT), state(), active_clusters=())
+    assert dead["verdict"] == "clean"
+
+    alive = decide(tagged(CLUSTER), tagged(PERMANENT), state())
+    assert alive["verdict"] == "orphans"
+    assert alive["orphans"] == [CLUSTER]
+
+
+def test_an_unrecognised_kind_is_reported_rather_than_excused():
+    """Fail-closed on everything the liveness rules do not know about.
+
+    The exclusions are a list of things argued for one at a time. Anything not
+    on it is an orphan, because the alternative is a sweep that quietly stops
+    covering whatever AWS adds next.
+    """
+    weird = f"arn:aws:kinesis:us-west-2:{ACCOUNT}:stream/aws-devops-sdet-demo-stage"
+    decision = decide(tagged(weird), tagged(PERMANENT), state())
+    assert decision["verdict"] == "orphans"
+
+
+def test_arn_type_reads_service_and_kind():
+    assert sweep_orphans.arn_type(CLUSTER) == "ecs:cluster"
+    assert sweep_orphans.arn_type(TASK_DEF) == "ecs:task-definition"
+    assert sweep_orphans.arn_type(LOG_GROUP) == "logs:log-group"
+    assert sweep_orphans.arn_type("not-an-arn") == ""
+
+
 def test_a_resource_absent_from_state_is_an_orphan():
     decision = decide(tagged(CLUSTER), tagged(PERMANENT), state())
     assert decision["verdict"] == "orphans"
@@ -152,6 +224,7 @@ def test_the_cli_exit_code_is_the_verdict(tmp_path):
         "--tagged", write("tagged.json", {"ResourceTagMappingList": tagged(CLUSTER)}),
         "--control", write("control.json", {"ResourceTagMappingList": tagged(PERMANENT)}),
         "--state", write("state.json", state()),
+        "--active-clusters", write("clusters.json", {"clusterArns": [CLUSTER]}),
         "--environment", "stage",
     ]
     assert sweep_orphans.main(argv) == 1

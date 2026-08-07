@@ -41,6 +41,27 @@ D3. `Verify no billable resources remain` gets `if: always()`.
 D4. End teardown with an orphan sweep: project-tagged resources absent from state
     fail the run.
 
+    AMENDED 2026-08-07, by its own first live run, before it had ever been
+    trusted. "Tagged and absent from state" is not the same as "left behind".
+    Against an account that a destroy, its verification step and a manual check
+    had each called empty, the sweep reported twenty-three orphans, and all
+    twenty-three were tombstones: one ECS cluster deleted and still answering
+    `describe`, and twenty-two task-definition revisions, which `terraform
+    destroy` DEREGISTERS - deleting one is not an operation it has - and which
+    AWS then keeps indefinitely at no cost.
+
+    So the sweep asks two sources, not one: the tagging API for DISCOVERY, and
+    the service that owns the resource for LIVENESS. `ecs list-clusters` returns
+    ACTIVE clusters only, which is why the verification step reported an empty
+    account truthfully while the tagging API still listed one. Task definitions
+    are excluded by TYPE rather than by status, because a revision no service
+    refers to is inert whether or not it is ACTIVE.
+
+    Every other kind stays fail-closed, and every exclusion is printed with its
+    reason. Had this shipped as written it would have been red on every teardown
+    from its first day, and a gate that is always red gets switched off - the
+    same outcome as never having written it.
+
 ## Consequences
 Until D2-D4 ship, the honest claim is narrower than the README's: the system
 removes the billable resources of a cancelled launch without a human; the
