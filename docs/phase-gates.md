@@ -36,7 +36,7 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 19d   | The record, the lock, the state lock | ✅ witnessed live 2026-08-06 | sessions/2026-08-05-phase-19d-cancelled-run-recovery.md |
 | 19e   | Break test; teardown claim narrowed | ✅ done | sessions/2026-08-06-phase-19e-break-test-and-teardown-gap.md |
 | 19f   | Teardown gates that see the remainder | ✅ done | sessions/2026-08-07-phase-19f-teardown-sees-what-it-leaves.md |
-| 19g   | Teardown that finishes on its own | ⬜ next (the ordering) | next-phases.md |
+| 19g   | Teardown that finishes on its own | 🟡 shipped, break test pending | ADR-0038 |
 
 Phase 17 (prod data continuity) is still open and still optional, in
 `docs/next-phases.md`. Phase 18 was pulled forward of both remaining phases
@@ -1575,6 +1575,63 @@ were the same shape — a page saying something it was not in a position to say:
 - Validation: tf-fmt clean, tf-validate 8 levels, test-unit 63, docs-check 0
   findings, iac-scan 290/0, action-pins 43, ci green on every push, and
   `destroy.yml` green end to end on the emptied account.
+
+### Phase 19g — Teardown that finishes on its own  [SHIPPED, NOT CONFIRMED 2026-08-07]
+- Plan: `docs/next-phases.md` 19g. **ADR-0038**, which completes ADR-0037 and
+  demotes ADR-0035 guardrail 5 - the blunt path stops being a step in the
+  ordinary recovery from a cancellation and goes back to being the recovery for
+  "Actions is the broken thing".
+- The three candidate shapes were read against the code rather than compared as
+  descriptions, and two of them cannot meet the criterion at all:
+```text
+  re-dispatch  the blunt path deletes what BILLS. The cluster and the security
+               groups a cancelled apply leaves are free, so a re-dispatched
+               destroy does not manage them either and the run ends red on the
+               same three manual calls
+  widen        deleting the rest in the right order is Terraform's job.
+               Reimplementing a dependency graph in a Lambda is larger than the
+               defect, and it costs the IAM narrowness that makes the blunt
+               path safe to have
+  import       the teardown fails because it does not OWN three resources. Let
+               it adopt them and the FIRST destroy succeeds - the watchdog is
+               never needed and state and AWS agree at the end
+```
+- The ordering dissolves rather than being patched: the watchdog already
+  dispatches destroy once, and that dispatch has always been the retry. It was
+  ineffective only because the destroy it dispatched could not adopt.
+- Shipped: `scripts/adopt-orphans.sh`, `scripts/adopt_orphans.py`,
+  `SWEEP_KEEP_DIR` and `--json` on the 19f sweep, and the step wired into
+  `destroy.yml` (both environments) and the self-service destroy job. No new
+  AWS permission: `terraform import` reads, and the deploy role already reads
+  what it manages plus `tag:GetResources` since 19f.
+- Break tests kept, all offline, exit codes measured to a file:
+```text
+  the map     count added to a mapped resource: RED, naming it
+              a resource renamed inside a module: RED
+              a module renamed in infra/envs/stage: RED
+  the plan    a kind with no rule, a counted subnet (which says WHY, rather
+              than "no rule"), a security group with no Name tag, a name from
+              another environment, and two groups sharing one Name tag -
+              which adopts NEITHER and names the address both claimed
+  the script  two imports green; the same two with every import failing, which
+              CONTINUES and exits 0 by design; an empty plan; an unknown
+              environment; no argument
+  the sweep   unchanged with and without SWEEP_KEEP_DIR - the two runs' output
+              is identical and both exit 1 on the same planted orphan
+```
+- One finding while writing it, and it is the reason two of the map's tests
+  exist: the first version of "no mapped resource is counted" read the ALB
+  security group as indexed. It was matching `for_each` four spaces in, inside a
+  `dynamic "ingress"` block, which is not a count on the resource - the test was
+  measuring its own regex. The patch script used to make the edits had the same
+  shape of defect: it computed every replacement from the original text and
+  wrote them one after another, so a second edit to one file silently discarded
+  the first, and it reported success twice.
+- Criteria to close: a cancelled launch reclaimed with ZERO manual AWS calls,
+  and the account verified empty afterwards with a positive control in the same
+  command. **NOT YET TESTED** - the break test is another cancelled launch and
+  has not been run.
+- Cost: $0 so far. Its break test is one of the day's three launches.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

@@ -674,7 +674,7 @@ D2, D3 and D4 shipped and all three confirmed by a cancelled launch. The claim
 they were written for was disproved in the same run: the remainder still took
 three manual AWS calls. What changed is that the teardown now reports it.
 
-### 19g — teardown that finishes on its own  (the ordering)
+### 19g — teardown that finishes on its own  **SHIPPED 2026-08-07, NOT CONFIRMED**
 
 The gap 19f made exact. A cancelled apply creates resources that never enter
 state, so Terraform can neither delete them nor delete what depends on them —
@@ -700,9 +700,22 @@ import         orphans are imported into state before the destroy, so Terraform
                that needs a mapping from ARN to resource address
 ```
 
+**Decided: import** (ADR-0038). Read against the code, the other two cannot meet
+the criterion alone. `re-dispatch` re-runs a destroy that still does not manage
+the cluster and the security groups, because those are free and the blunt path
+only deletes what bills. `widen` puts Terraform's dependency graph inside a
+Lambda and spends the IAM narrowness that makes the blunt path safe. Adoption
+works one layer earlier: the teardown fails because it does not own three
+resources, and a teardown that can adopt them succeeds on the FIRST destroy.
+
+The ordering then dissolves instead of being patched. The watchdog already
+dispatches destroy once; that dispatch has always been the retry, and it was
+ineffective only because the destroy it dispatched could not adopt.
+
 Cost: $0 until its own break test, which is another cancelled launch.
 Done when a cancelled launch is reclaimed with ZERO manual AWS calls — the
-criterion 19c raised, 19e narrowed and 19f did not meet.
+criterion 19c raised, 19e narrowed and 19f did not meet. Shipped and offline
+break-tested on 2026-08-07; the live run has not happened.
 
 ## Deliberately out of scope
 

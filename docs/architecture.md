@@ -292,6 +292,39 @@ ECS, RDS and ELB directly, by name prefix; the sweep asks about every kind but
 only learns of what has been indexed. Neither is sufficient, and the run is red
 if either fires.
 
+### Why a teardown adopts before it destroys
+
+**ADR-0038.** The section above is a report; this one is what acts on it. A
+cancelled apply creates resources that never enter Terraform state, and
+Terraform can then delete neither them nor what depends on them. On 2026-08-07
+an unmanaged RDS instance held a managed DB subnet group and the destroy died on
+that pair in seventy seconds — twice, once in band and once when the watchdog
+dispatched it. The blunt path removed the instance an hour later, which is
+exactly what unblocks Terraform, and nothing ran Terraform again.
+
+`scripts/adopt-orphans.sh` runs the sweep before the destroy and imports what it
+reports, so the two cannot disagree about what an orphan is: the check that
+names the remainder is the input to the thing that removes it. The ARN-to-address
+map lives in `scripts/adopt_orphans.py`, imports no AWS SDK, and is checked
+against the Terraform sources by `tests/unit` — a renamed module reddens there
+rather than during a teardown that is already failing.
+
+What it will not do is guess. Counted resources — the subnets — cannot be
+addressed from an ARN, because the Name tag carries an availability zone and the
+zone-to-index mapping is read at apply time. They are reported as `unadoptable`
+and the sweep fails on them. It does not need every kind: a dependent leaves
+with its parent, so the map covers the resources that *hold* others, which are
+the ones that stall a destroy.
+
+It also does not fail the run when a single import fails. That is a deliberate
+exception to fail-closed: the step exists so the destroy after it succeeds, and
+a step that aborts leaves the billable resources running for another TTL. The
+one thing that does stop it is an unanswerable question — a sweep that refused —
+because nothing after that would mean anything.
+
+The claim this is written for is *a cancelled launch is reclaimed with no manual
+AWS calls*, and it is not proven until a cancelled launch demonstrates it.
+
 ### Why prod keeps no data
 
 Prod is created and destroyed with every cycle (**ADR-0017** D2a), so there is

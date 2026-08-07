@@ -264,7 +264,12 @@ def test_no_mapped_resource_is_counted():
     counted = []
     for address in mapped_addresses():
         _, module, kind, name = address.split(".")
-        body = resource_block(sources[module], kind, name) or ""
+        directory = sources.get(module)
+        if directory is None:
+            # The test above owns that finding. Raising KeyError here would add
+            # a second, uglier failure to the same cause.
+            continue
+        body = resource_block(directory, kind, name) or ""
         # EXACTLY two spaces: a resource-level attribute. `for_each` also
         # appears four spaces in, inside a `dynamic` block - the ALB security
         # group has one - and that is not a count on the resource. The first

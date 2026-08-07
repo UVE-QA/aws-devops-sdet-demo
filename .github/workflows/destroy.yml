@@ -116,6 +116,27 @@ jobs:
       - name: Revoke cross-group security group rules
         run: scripts/revoke-cross-sg-rules.sh ${{ inputs.environment }}
 
+      # ADR-0038. The teardown adopts what it does not manage BEFORE it tries to
+      # destroy. A cancelled apply leaves resources outside state; Terraform can
+      # then delete neither them nor what depends on them, which is how an
+      # unmanaged RDS instance held a managed subnet group and failed this
+      # workflow twice in seventy seconds on 2026-08-07.
+      #
+      # It runs on every teardown, not only after a failure. On a healthy
+      # environment it finds nothing and costs a few seconds, and a path that
+      # only runs after a disaster is a path nobody has exercised.
+      #
+      # LAST before the destroy, deliberately. The tagging API lags - 40 seconds
+      # into a teardown it did not report an RDS instance that was still
+      # `creating` - so every second between the cancellation and this step is a
+      # second in which discovery gets more complete.
+      #
+      # It refuses only when the question could not be answered at all. An
+      # import that fails is printed and the run continues, because the two
+      # gates at the end are what judge the result (ADR-0038 D5).
+      - name: Adopt live resources Terraform does not manage
+        run: scripts/adopt-orphans.sh ${{ inputs.environment }}
+
       # The TARGET is the load balancer, not the module. Destroying
       # `module.alb` includes `aws_security_group.alb`, which cannot be
       # deleted while the app SG's ingress rule still references it: AWS
