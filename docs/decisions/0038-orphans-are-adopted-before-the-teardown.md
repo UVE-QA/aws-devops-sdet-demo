@@ -99,6 +99,47 @@ D5. **A failure to adopt one resource does not fail the step.** This is a
     abort is an unanswerable question — a refusal from the sweep — because
     nothing after it would mean anything.
 
+D6. **AMENDED 2026-08-07, by its own first live run.** Adoption did exactly what
+    it was written to do and the teardown still failed, because the thing it was
+    written for was never offered to it. `sweep-orphans.sh` computed a
+    resource's kind as everything up to the first SLASH, and AWS separates kind
+    from name with a slash OR a colon — so `rds:db`, `rds:subgrp`,
+    `logs:log-group` and `secretsmanager:secret` were four `case` arms that had
+    never once been reached. Every resource of those kinds answered
+    `unconfirmed`.
+
+    The run: four orphans found, four mapped, `adopted 4 of 4; 0 could not be
+    imported` — and then `Error: deleting RDS Subnet Group ... because at least
+    one database instance ... is still using it`, which is the pair this whole
+    phase exists for. The instance was in the tagging API's answer the entire
+    time, three lines above the ones that were adopted.
+
+    Two things follow, and the second is worse than the bug.
+
+    **A kind that cannot be confirmed cannot be adopted, and that is correct.**
+    Adoption reads `orphans` and not `unconfirmed`, deliberately: importing
+    something nobody has confirmed is acting on an unanswered question. The
+    defect was upstream, in the answering.
+
+    **It corrects a diagnosis, not just a line of shell.** ADR-0037's amendment
+    recorded that the sweep "did not report the RDS instance because it was
+    still `creating`". It could not have reported it in any state. A plausible
+    cause arrived at the same moment as the symptom and was accepted without a
+    control — the sibling of the throwaway function that reproduced a defect
+    because it inherited it.
+
+    And it was invisible where it was tested. None of those kinds is tagged once
+    an environment is gone, so the arms never ran and the gate was green — on
+    every teardown, and on a deliberate read-only run against the empty account
+    ninety minutes before this one. A gate is only exercised by the case it was
+    built for.
+
+    Fixed by `scripts/arns.py`: one parser, called by the shell and imported by
+    `adopt_orphans.py`, which had the correct parse all along in a copy of its
+    own. `tests/unit/test_arns.py` reads the `case` arms OUT of the script and
+    fails on any arm no real ARN can reach — with a positive control, because an
+    empty list of arms would pass it silently.
+
 ## Consequences
 The honest claim becomes what 19c asked for and 19e and 19f narrowed: a launch
 cancelled mid-apply is reclaimed by the system. It is not proven until a
