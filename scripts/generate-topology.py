@@ -579,7 +579,13 @@ def main() -> int:
         return 1
     if OUT.read_text() != rendered:
         print(
-            f"site-data: DRIFT\n{OUT.relative_to(ROOT)} disagrees with infra/ and tests/.\n"
+            # EVERY source it reads, because the message is what a reader goes
+            # looking with. On 2026-08-08 it fired on a new ADR and sent the
+            # reader to infra/ and tests/, where nothing had changed. A message
+            # that names the wrong directory is the same defect as a step whose
+            # name lies about what it checks.
+            f"site-data: DRIFT\n{OUT.relative_to(ROOT)} disagrees with "
+            "infra/, tests/, .github/workflows/ or docs/decisions/.\n"
             "Run `make site-data` and commit the result."
         )
         return 1
