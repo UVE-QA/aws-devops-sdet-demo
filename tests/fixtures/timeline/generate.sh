@@ -30,9 +30,15 @@ tf() { terraform "$@"; }
 
 say() { printf '\n== %s\n' "$*"; }
 
+# Only the streams are regenerated. expected.json is the HUMAN half of a
+# fixture - it says what the case is supposed to mean - and an earlier version of
+# this function wiped the whole case directory, which deleted every expectation
+# the moment anyone regenerated. The gate went from green to "no expected.json"
+# in five cases at once, which is at least loud; a subtler version of the same
+# mistake would have been silent.
 new_case() {
   local name="$1"
-  rm -rf "${dest:?}/${name}"
+  rm -rf "${dest:?}/${name}/streams"
   mkdir -p "${dest}/${name}/streams"
 }
 
@@ -153,6 +159,19 @@ kill -9 "$runner" 2>/dev/null || true
 wait "$runner" 2>/dev/null || true
 sleep 1
 echo "  01-apply: killed, no .rc written, $(wc -l < "$killed_stream") events"
+
+# ---------------------------------------------------------------------------
+# The same complete stream with its .rc removed, which is what a process killed
+# in the window between finishing and recording its status leaves. Every event
+# says the apply worked; the fold must still refuse to call it complete, because
+# it cannot prove terraform returned. It exists as its own case because
+# apply-killed is over-determined - three signals are missing there at once, so
+# it cannot show which one is doing the work.
+say "apply-complete-no-rc — a finished stream whose exit code was never recorded"
+new_case apply-complete-no-rc
+cp "${dest}/apply-complete/streams/01-apply.jsonl" "${dest}/apply-complete-no-rc/streams/"
+cp "${dest}/apply-complete/streams/01-apply.cmd" "${dest}/apply-complete-no-rc/streams/"
+echo "  01-apply: copied from apply-complete, .rc deliberately absent"
 
 # ---------------------------------------------------------------------------
 # destroy.yml's shape: the ALB is destroyed on its own first, then everything

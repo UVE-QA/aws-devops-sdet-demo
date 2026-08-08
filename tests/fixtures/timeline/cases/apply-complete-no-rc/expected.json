@@ -1,0 +1,30 @@
+{
+  "description": "A stream in which everything succeeded, with its .rc removed - what a process killed between finishing and recording its status leaves behind. The fold must refuse to call it complete: it cannot prove terraform returned. apply-killed cannot make this point, because three signals are missing there at once.",
+  "status": "incomplete",
+  "totals": {
+    "operations": 1,
+    "resources_created": 4,
+    "resources_destroyed": 0
+  },
+  "operations": [
+    {
+      "label": "apply",
+      "command": "apply",
+      "status": "incomplete",
+      "exit_code": null,
+      "resources": {
+        "complete": 4,
+        "errored": 0,
+        "incomplete": 0
+      },
+      "diagnostics": {
+        "error": 0,
+        "warning": 0
+      },
+      "stream": {
+        "unparsed_lines": 0,
+        "unknown_types": []
+      }
+    }
+  ]
+}
