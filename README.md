@@ -90,15 +90,23 @@ halves are given the same probe name at parse time, so they cannot drift apart.
 Every one of these commands also runs in `ci.yml`, on the same Compose stack,
 with no AWS credentials present anywhere in that workflow.
 
-`ci.yml` also runs five checks on the same push, none of which touch AWS:
+`ci.yml` also runs these checks on the same push, none of which touch AWS. The
+list carries no total: "five checks" stood above five lines here while three
+others had already been added to `ci.yml`, which is the same defect as the count
+that read "three levels" above a list of four.
 
 ```text
-make secret-scan   gitleaks over the full history, every ref
-make iac-scan      Checkov over infra/, decisions recorded in .checkov.yaml
-make image-scan    Trivy over the image this commit builds, allowlist in
-                   .trivyignore
-make action-pins   every third-party action is pinned to a commit SHA
-make docs-check    the living documents describe things that exist
+make secret-scan      gitleaks over the full history, every ref
+make iac-scan         Checkov over infra/, decisions recorded in .checkov.yaml
+make image-scan       Trivy over the image this commit builds, allowlist in
+                      .trivyignore
+make action-pins      every third-party action is pinned to a commit SHA
+make docs-check       the living documents describe things that exist
+make site-data-check  the map's data still matches infra/, and every resource
+                      block belongs to a display group
+make site-page-check  the committed page is what its template builds
+make timeline-check   an apply that was killed folds into an INCOMPLETE
+                      timeline, never a plausible complete one
 ```
 
 Each one refuses rather than passing when it cannot actually scan — a missing

@@ -950,25 +950,43 @@ phone             phases 2 and 6 unroll into long columns; collapsing them by
                   default is still the obvious move and still not obviously right
 ```
 
-### 20b — the timeline  [needs one cycle, about $0.03]
+### 20b — the timeline  [split: 20b.1 done at $0, 20b.2 needs one cycle]
+
+Everything decidable without a cycle went into **20b.1**, on the shape 19 used.
+Done, and none of it has met AWS:
 
 ```text
--json         on apply and destroy in deploy-stage, promote-prod, destroy and
-              self-service
-fold          scripts/ turns the event stream into
-              timeline/<env>/<run id>.json plus latest
-publish       scripts/publish-status.sh, under the narrow publish role, exactly
-              as it already publishes the Playwright report
-readable log  a step that folds the JSON stream back into a legible apply
-              summary. NOT optional - -json replaces the human-readable log in
-              the Actions UI, and losing that to gain a picture is a bad trade
-cache         short Cache-Control on the timeline object; no CloudFront
-              invalidation per write
+-json         DONE. Eight terraform invocations across the four workflows, each
+              captured by scripts/tf-stream.sh
+fold          DONE. scripts/fold-timeline.py, into
+              timeline/<env>/<run id>-<job>.json plus latest. The key carries
+              the JOB because self-service launches and destroys in ONE run
+publish       DONE. scripts/publish-status.sh, under the narrow publish role,
+              exactly as it already publishes the Playwright report. No IAM
+              change: that role already covers the bucket
+readable log  DONE. Per-resource table, every diagnostic in full, errors
+              printed outside the collapsed group
+cache         DONE. max-age=60 on the timeline objects, no invalidation per
+              write
+break test    DONE, on fixtures. Seven ways red, both controls green, and one
+              of the fixtures is a terraform process that was really killed
+```
+
+**20b.2 — the live half** [one cycle, about $0.03]
+
+```text
+schema        confirm the fold against terraform 1.15.5. The fixtures were
+              generated with OpenTofu 1.10.6, which shares the schema and is
+              not the same binary; regenerate on the devbox first
+modules       the fixtures use no modules, so `hook.resource.module` and what
+              `addr` looks like inside one are unconfirmed
+publish       a real timeline object in the bucket, from an apply and from a
+              destroy, at the key above
 page          nodes light from the timeline; identifiers appear as the provider
               assigned them (ADR-0039 D2); the phase pulses live from the
               Actions API
-break test    a run that dies mid-apply must publish a timeline marked
-              INCOMPLETE, never a plausible complete one
+break test    the live one: a cancelled run must publish INCOMPLETE. The
+              fixtures prove the fold, not the workflow's `if: always()`
 open          per-resource live pulsing, if phase-level proves too coarse. Two
               priced options in ADR-0039 D4; neither is taken by default
 ```

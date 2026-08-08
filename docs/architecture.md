@@ -355,6 +355,22 @@ flight, nothing having observed AWS since — the page renders `unknown` and nam
 the run it is waiting for, rather than showing a value it cannot stand behind.
 An absent status file reads as "no observation", never as "destroyed".
 
+A third source is **wired and has never run in AWS** (Phase 20b.1):
+
+```text
+timeline/<env>/<run id>-<job>.json   Terraform's own -json event stream, folded
+                                     by scripts/fold-timeline.py: which resource,
+                                     which action, how long, and the identifier
+                                     the provider handed back. It knows nothing
+                                     about tests, and nothing about a run that
+                                     had no terraform in it
+```
+
+ADR-0039 D2. It obeys the same rule as the other two — a source may assert only
+what it observes — and it carries its own refusal: a stream whose exit code was
+never recorded folds to `incomplete`, however finished its events look. Nothing
+on the page draws it yet, and no cycle has produced one. That is 20b.2.
+
 ## What is deliberately absent
 
 EKS, Helm, ArgoCD, a React frontend, a WAF, CloudFront in front of the

@@ -6,6 +6,42 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
+**As of 2026-08-08 (20b.1, the stream and the fold).** Terraform's own `-json`
+event stream is captured in all eight apply and destroy invocations across the
+four AWS workflows, folded into `timeline/<env>/<run id>-<job>.json` and back
+into a legible per-resource log, and gated by `make timeline-check` in `ci.yml`.
+Nothing was applied, no AWS API was called, and nothing on the page draws it:
+20b was split so that everything decidable without a cycle could be settled at
+$0, the way 19 was split.
+
+The claim under gate is one sentence — a run that dies mid-apply must not be
+reported as a cycle that happened — and three signals decide it, the weakest
+winning: the `.rc` written after terraform returns, the exit code, and the
+terminal `change_summary`. The third signal is why a `.cmd` file exists, and
+that came from the streams rather than from the documentation: **an apply killed
+before it finishes emits a `change_summary` whose operation is `"plan"`**, so a
+fold reading only the stream would report a half-finished apply as a plan.
+
+The fixtures are real terraform runs and `apply-killed` was really killed — a
+sleeping resource and a `kill -9`, not a truncated file. `apply-complete-no-rc`
+was added because `apply-killed` turned out to be over-determined: three signals
+are missing there at once, so removing any single rule leaves it correctly
+incomplete and the case cannot show which rule works. With the isolated case,
+break test 4 said something better than it was aimed at — removing the
+missing-`.rc` rule made that case `errored` rather than green, because the next
+rule down catches `None` too.
+
+Two things the plan did not have, both silent if missed: the published key needs
+the JOB as well as the run id, because self-service launches an environment and
+destroys it again inside ONE run and the second timeline would have overwritten
+the first; and `publish-site.sh` syncs with `--delete`, so without a third
+`--exclude` the next push to `main` would have deleted every published timeline
+while the map kept working from the one published minutes earlier. Seven break
+tests red, both controls green, tree committed first. The caveat that belongs at
+the front: the fixtures were generated with OpenTofu 1.10.6, not terraform
+1.15.5 — the schema is shared, the binary is not, and regenerating on the devbox
+is validation step one.
+
 **As of 2026-08-08 (20a CLOSED, the map on the page).** The front page renders
 the map. The hand-written "What happens, in the order it happens" section — the
 one telling every visitor there were five permanent state levels while standing
