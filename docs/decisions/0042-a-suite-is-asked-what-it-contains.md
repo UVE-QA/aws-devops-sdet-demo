@@ -153,6 +153,25 @@ a spec answering to a project from outside its
 the map naming a suite nothing can collect      REFUSED
 ```
 
+### What the cycle said, and the one thing it broke
+Run 31276975666 (apply) and 31277877190 (destroy), 2026-08-08. The fold ran in
+AWS for the first time and published real results: api 52 passed, regression 12,
+smoke 2 — and **db incomplete, 1 passed, 1 not_run, for a suite that had passed
+both its checks.**
+
+The cause was not a race, though a race is what was reached for first and a
+stability wait had already been written for it. `aws logs get-log-events
+--query 'events[].message' --output text` joins an ARRAY with tabs, so three log
+events arrived as ONE line, and a fold that anchors a verdict to the start of a
+line saw one check. Reading the run's log refuted the guess in a single command,
+and the real bytes are now a fixture: `a-flattened-log-capture-is-incomplete`.
+
+Two things this settles for the design. The fold behaved exactly as D5 asks - it
+named the gap (`not_run`) instead of filling it in, so a lying capture surfaced
+as `incomplete` rather than as two green checks. And the capture is fixed where
+it broke, in `ecs-run-task.sh`, with `--output json` and `jq -r` per message; the
+stability wait stays as an unproven precaution and says so in place.
+
 ### The fold's own refusals, in the same log
 `scripts/fold-results.py` is gated by nine fixtures, six of them real reporter
 output. Four deliberate defects were put into the fold to see the gate bite:

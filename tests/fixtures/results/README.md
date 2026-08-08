@@ -25,6 +25,15 @@ a-test-the-inventory-does-
   not-have                      DERIVED. A testcase the collectors never saw.
                                 It lands in `unknown`, by name, and does not
                                 change the suite's verdict.
+a-flattened-log-capture-        REAL, and the only fixture here taken from a
+  is-incomplete                 live cycle. `aws logs get-log-events --output
+                                text` joins the events array with TABS, so the
+                                db assertion's two PASS lines and its summary
+                                arrived as ONE line and the fold saw one check.
+                                The suite had passed; the map said incomplete.
+                                The capture is fixed in ecs-run-task.sh; this
+                                case pins what the fold does when a capture
+                                lies to it - name the gap, never fill it in.
 truncated-playwright-report     REAL SHAPE. The JSON reporter's file cut in half,
                                 which is what a killed run leaves on disk.
 no-node-for-this-environment    The destructive api suite reported for prod.

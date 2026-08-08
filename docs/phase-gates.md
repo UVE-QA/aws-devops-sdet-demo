@@ -41,7 +41,7 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 20a   | The generated map, on the page | ✅ done | sessions/2026-08-08-phase-20a-the-map-on-the-page.md |
 | 20b.1 | The stream captured, folded, gated | ✅ done, $0 | sessions/2026-08-08-phase-20b-1-a-killed-apply-is-not-a-cycle.md |
 | 20b.2 | The timeline from a live cycle, on the page | ✅ done — the apply half was never lit; see below | sessions/2026-08-08-phase-20b-2-a-cancelled-run-erases-nothing.md |
-| 20c   | The tests panel | ⬜ planned | — |
+| 20c   | The suites answer for themselves | 🟡 inventory, fold and one live cycle done; the page remains | sessions/2026-08-08-phase-20c-the-suites-answer-for-themselves.md |
 | 20d   | Cost, computed and reconciled | ⬜ planned, blocked on 20b | — |
 
 Phase 17 (prod data continuity) is still open and still optional, in
@@ -2270,6 +2270,60 @@ closed. **ADR-0041**, and the summary in
   for; two items were added to it there rather than done here — a
   `make session-close` check for chat links in unpushed commits, and the
   `ExpiresAt` predicate as a second gate (ADR-0041 D6).
+
+### Phase 20c — The suites answer for themselves  🟡 HALF DONE 2026-08-08
+Inventory, fold, wiring and ONE LIVE CYCLE. **ADR-0042**, and the summary in
+`docs/sessions/2026-08-08-phase-20c-the-suites-answer-for-themselves.md`.
+- Criteria: an inventory collected from the suites rather than written beside
+  them; a fold from the reporters' own output onto the suite nodes; a cycle
+  proving both; the page drawing them. All but the last are met.
+- **Reading the repository before writing code killed three lines of the plan**:
+  `tests/db` has no collector and was given `--list` rather than a description;
+  the map's gate lives in a job with no test dependencies, so the inventory gate
+  runs in `local-ci`; and the db assertion exists twice, with the cloud running
+  the copy `make test-db` does not. That mirror had been asked for by a comment
+  at the top of each file for eleven phases and is now a refusal.
+- Eleven deliberate defects offline, green control before the first and after
+  the last, in
+  `docs/sessions/2026-08-08-phase-20c-the-suites-answer-for-themselves.log`. One
+  did NOT break as designed: "refusing to report zero" is unreachable for the
+  pytest suites, because pytest exits 5 first.
+- **The cycle: apply 31276975666, destroy 31277877190.** The apply half of 20b.2
+  is lit at last - `nodes-apply.json` had never existed - with real per-group
+  durations and identifiers. Real results published: api 52, regression 12,
+  smoke 2.
+- **And it broke one thing, in the half that had never run.** `db` came back
+  `incomplete, 1 passed, 1 not_run` for a suite that passed both checks:
+  `aws logs get-log-events --output text` joins an array with TABS, so three log
+  events arrived as one line. A race was assumed and a fix for it written BEFORE
+  the log was read; the log refuted it in one command. Fixed at the capture
+  (`--output json`, `jq -r` per message); the real bytes are fixture
+  `a-flattened-log-capture-is-incomplete`, which pins that the fold names the gap
+  rather than filling it in.
+- Three findings for the page, from watching the cycle rather than from code:
+  every node of a running phase claims "running now" while terraform creates one;
+  a phase that has FINISHED falls back to "nothing recorded yet" until the run
+  publishes at the end, which is indistinguishable from never having run; and
+  `suite.db.stage` is drawn in the quality gate while its step runs in Provision
+  - stage and prod disagree about this today.
+- Validation:
+```bash
+  make suite-inventory-check   # clean on sandbox, devbox and the runner
+  make results-check           # 10/10
+  make test-unit               # 112
+  make docs-check
+  curl -fsS https://demo.uveapp.net/results/stage/latest.json | jq .nodes
+  aws sso login --profile demo-admin --use-device-code   # then ecs/rds/alb/nat/eks
+```
+- Teardown confirmed against the AWS CLI under a live credential, not against
+  Terraform state and not against the green run: account 993912191738, all of
+  ecs, rds, alb, nat and eks empty.
+- Cost: one full cycle, about 25 minutes of RDS and ALB. Not yet reconciled
+  against a bill - that is 20d's job, and this is the first cycle it can use.
+- Next allowed step: **the page.** `site/index.html` reads neither
+  `site/data/suites.json` nor `results/<env>/latest.json`, so everything above is
+  true and invisible. The three findings above are its first work, and a suite
+  node needs its own `live.steps` binding the way a phase already has one.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

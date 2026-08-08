@@ -79,15 +79,37 @@ log_prefix="$(printf '%s' "$log_options" | jq -r '."awslogs-stream-prefix" // em
 
 if [ -n "$log_group" ] && [ -n "$log_prefix" ]; then
   stream="${log_prefix}/${CONTAINER}/${task_id}"
+  # ONE EVENT PER LINE. `--output text` on an ARRAY joins its elements with
+  # TABS, so every message the task printed arrives as a single line - and the
+  # cycle of 2026-08-08 is what taught this file so. The db assertion passed both
+  # its checks, the capture held both, and the map published
+  # `db: incomplete, 1 passed, 1 not_run`, because the fold anchors a verdict to
+  # the start of a line and there was only ever one line.
+  #
+  # The first explanation reached for was a race - the task stops, the last line
+  # has not been delivered - and a stability wait was written for it before the
+  # log was read. The log refuted it in one command. The wait below is KEPT as a
+  # precaution, because a stopped task genuinely may have undelivered lines, but
+  # it has never been seen to fire and it fixed nothing here. What fixed it is
+  # the line above this comment: json out, jq per message.
   events=""
-  # The task has stopped, which does not mean its last line has been delivered.
-  for _ in 1 2 3 4 5; do
+  prev_count=-1
+  stable=0
+  for _ in 1 2 3 4 5 6 7 8 9 10; do
     events="$(aws logs get-log-events \
       --log-group-name "$log_group" --log-stream-name "$stream" \
-      --start-from-head --query 'events[].message' --output text 2>/dev/null || true)"
-    [ -n "$events" ] && break
+      --start-from-head --output json 2>/dev/null | jq -r '.events[].message' || true)"
+    count="$(printf '%s' "$events" | grep -c . || true)"
+    if [ "$count" -gt 0 ] && [ "$count" -eq "$prev_count" ]; then
+      stable=1
+      break
+    fi
+    prev_count="$count"
     sleep 3
   done
+  if [ -n "$events" ] && [ "$stable" != "1" ]; then
+    echo "::warning::log for $label never stopped growing (last count: ${prev_count}); what follows may be partial"
+  fi
   if [ -n "$events" ]; then
     echo "::group::log $label"
     printf '%s\n' "$events"

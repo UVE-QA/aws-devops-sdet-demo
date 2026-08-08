@@ -1,0 +1,4 @@
+{
+  "environment": "stage",
+  "db_log": "db.txt"
+}

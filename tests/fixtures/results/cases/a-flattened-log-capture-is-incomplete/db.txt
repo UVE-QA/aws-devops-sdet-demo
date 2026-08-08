@@ -1,0 +1,1 @@
+PASS: table_exists - table 'demo_items' exists	PASS: seed_row_exists - row name='seed-item-001' exists (id=1)	DB assertion: all checks passed
