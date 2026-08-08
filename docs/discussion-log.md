@@ -6,7 +6,34 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
-**As of 2026-08-08 (later the same night).** Phase 20.0 is closed: the project
+**As of 2026-08-08 (20a, the layout pilot).** Half of 20a is done: the layout,
+built in a sandbox and LOOKED AT rather than reasoned about, because it is the
+only part of Phase 20 that cannot be derived from the repository. The finding is
+that a picture makes claims like a sentence does — folding the chain node by node
+drew VPC → Secrets Manager → RDS → ALB as a sequence, and Terraform creates those
+from a graph. ADR-0026's rule, written about JSON documents, reaches diagrams
+unchanged. Sequence moved up a level: the PHASE carries order, the nodes inside
+it are a set with no arrows, phases fold serpentine, and the phone falls out of
+the same code at one column. Desktop and laptop are declared the intended view in
+the page itself rather than engineered around.
+
+ADR-0039 forbade guessing about the AWS Architecture Icons, so three of AWS's own
+pages were read: the answer is that none of them names a public web page, in
+either direction. What was taken is a decision in the absence of a "no", not a
+permission, and `assets/aws-icons/NOTICE.md` keeps those two apart. Seventeen
+unmodified icons in one inline sprite; a test suite, a human approval and a
+teardown keep project glyphs, because they are not AWS services.
+
+Two tools were wrong and both were caught by measuring twice: a raw headless
+`--window-size=390` screenshot showed a clipped phone layout that does not exist,
+and `make docs-check` reddened on this session's own cursor entry for naming a
+target 20a has not built yet. The fixture is where the schema came from, on
+purpose — the layout decided what `topology.json` must carry, so the generator
+inherits a contract instead of inventing a shape. Still to build in 20a: the
+generator, the drift gate and its break tests, and folding the map into
+`site/index.html`, which was deliberately untouched. $0.
+
+**As of 2026-08-08 (earlier, Phase 20.0).** Phase 20.0 is closed: the project
 has a cursor forward again, and it points at making the cycle visible without a
 log. The session that decided it found its own subject first — FIVE
 reader-facing places described the applied, publicly-pressed, closed

@@ -38,7 +38,7 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 19f   | Teardown gates that see the remainder | ✅ done | sessions/2026-08-07-phase-19f-teardown-sees-what-it-leaves.md |
 | 19g   | Teardown that finishes on its own | ✅ done, uninterrupted run 2026-08-08 | sessions/2026-08-08-phase-19g-nobody-in-the-loop.md |
 | 20.0  | Visible cycle: decisions + plan | ✅ done | ADR-0039 |
-| 20a   | The generated map, and its drift gate | ⬜ next | — |
+| 20a   | The generated map, and its drift gate | 🟡 layout settled; generator + gate pending | sessions/2026-08-08-phase-20a-layout-pilot.md |
 | 20b   | The timeline from Terraform's own events | ⬜ planned | — |
 | 20c   | The tests panel | ⬜ planned | — |
 | 20d   | Cost, computed and reconciled | ⬜ planned, blocked on 20b | — |
@@ -1766,6 +1766,39 @@ were the same shape — a page saying something it was not in a position to say:
 - Cost: **$0**. Nothing was applied to AWS and no environment existed at any
   point.
 - Next allowed step: 20a. It applies nothing and costs nothing.
+
+### Phase 20a — The generated map  [PART DONE 2026-08-08: layout settled]
+- Criteria for the whole sub-phase: `site/data/topology.json` generated from
+  `infra/` and `tests/`; counts carried in the same file; the layout; a
+  `site-data-check` target in CI with its two break tests; the hand-written
+  section in `site/index.html` replaced. **PARTLY MET** — the LAYOUT half only.
+- What is done: the layout, decided by looking at it rather than by reasoning
+  about it. `site/map-pilot.html` (built by `make site-pilot` from
+  `assets/map-pilot.template.html`) renders a hand-built `site/data/topology.json`
+  at 1440 / 1180 / 834 / 390. What it settled, and what it left open on purpose,
+  is in `docs/next-phases.md` under 20a.
+- The finding worth carrying: folding the chain node by node drew a SEQUENCE
+  inside an apply, where Terraform has a graph. Sequence now belongs to the
+  phase; the nodes inside one are a set with no arrows. ADR-0026's rule reaches
+  pictures too.
+- Icons: ADR-0039 asked 20a to establish AWS's terms rather than guess. Done —
+  and the answer is that AWS's three relevant pages neither permit nor exclude a
+  public web page. The position taken, with the terms quoted, is in
+  `assets/aws-icons/NOTICE.md`; the ADR's Consequences carry the same answer.
+- NOT done, and not claimed: the generator, the `site-data-check` target and its
+  two break tests, and folding the map into `site/index.html`. The pilot deliberately
+  did not touch `index.html`, and `topology.json` is a fixture that says so in
+  its first field.
+- Two refusals of the sprite builder were exercised on purpose, both red: a
+  missing icon file, and a template that has lost its injection marker.
+- Cost: **$0**. Nothing applied, nothing published, no environment at any point.
+- Validation:
+```bash
+  make site-pilot          # rebuilds site/map-pilot.html from the template
+  make docs-check
+  git diff --stat
+```
+- Next allowed step: finish 20a — the generator and its drift gate.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,
