@@ -1,0 +1,13 @@
+{
+  "nodes": {
+    "suite.db.prod": {
+      "status": "passed",
+      "passed": 2,
+      "failed": 0
+    }
+  },
+  "unobserved": [
+    "suite.smoke.prod"
+  ],
+  "unknown": {}
+}

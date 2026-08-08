@@ -1,0 +1,7 @@
+{
+  "environment": "stage",
+  "junit": [
+    "api=junit-api.xml"
+  ],
+  "playwright": "playwright.json"
+}

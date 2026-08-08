@@ -1,0 +1,727 @@
+{
+  "config": {
+    "argv": [
+      "/opt/node22/bin/node",
+      "/tmp/repo/tests/playwright/node_modules/.bin/playwright",
+      "test",
+      "--reporter=json"
+    ],
+    "configFile": "/tmp/repo/tests/playwright/playwright.config.ts",
+    "rootDir": "/tmp/repo/tests/playwright/tests",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/tmp/repo/tests/playwright/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "smoke",
+        "name": "smoke",
+        "testDir": "/tmp/repo/tests/playwright/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "/[\\\\/]smoke[\\\\/].*\\.spec\\.ts$/"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/tmp/repo/tests/playwright/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "regression",
+        "name": "regression",
+        "testDir": "/tmp/repo/tests/playwright/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "/[\\\\/]regression[\\\\/].*\\.spec\\.ts$/"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.62.0",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "smoke/smoke.spec.ts",
+      "file": "smoke/smoke.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "aws-devops-sdet-demo smoke",
+          "file": "smoke/smoke.spec.ts",
+          "line": 7,
+          "column": 6,
+          "specs": [
+            {
+              "title": "page loads and health/db statuses resolve",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "smoke",
+                  "projectName": "smoke",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 3,
+                      "error": {
+                        "message": "Error: browserType.launch: Executable doesn't exist at /opt/pw-browsers/chromium_headless_shell-1234/chrome-headless-shell-linux64/chrome-headless-shell\n╔════════════════════════════════════════════════════════════╗\n║ Looks like Playwright was just installed or updated.       ║\n║ Please run the following command to download new browsers: ║\n║                                                            ║\n║     npx playwright install                                 ║\n║                                                            ║\n║ <3 Playwright Team                                         ║\n╚════════════════════════════════════════════════════════════╝",
+                        "stack": "Error: browserType.launch: Executable doesn't exist at /opt/pw-browsers/chromium_headless_shell-1234/chrome-headless-shell-linux64/chrome-headless-shell\n╔════════════════════════════════════════════════════════════╗\n║ Looks like Playwright was just installed or updated.       ║\n║ Please run the following command to download new browsers: ║\n║                                                            ║\n║     npx playwright install                                 ║\n║                                                            ║\n║ <3 Playwright Team                                         ║\n╚════════════════════════════════════════════════════════════╝"
+                      },
+                      "errors": [
+                        {
+                          "message": "Error: browserType.launch: Executable doesn't exist at /opt/pw-browsers/chromium_headless_shell-1234/chrome-headless-shell-linux64/chrome-headless-shell\n╔════════════════════════════════════════════════════════════╗\n║ Looks like Playwright was just installed or updated.       ║\n║ Please run the following command to download new browsers: ║\n║                                                            ║\n║     npx playwright install                                 ║\n║                                                            ║\n║ <3 Playwright Team                                         ║\n╚════════════════════════════════════════════════════════════╝"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-08T20:07:25.918Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/tmp/repo/tests/playwright/test-results/smoke-smoke-aws-devops-sde-5a9ba--health-db-statuses-resolve-smoke/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/tmp/repo/tests/playwright/test-results/smoke-smoke-aws-devops-sde-5a9ba--health-db-statuses-resolve-smoke/trace.zip"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "f2f9e57ccde56fbee371-f2bbf985e7718caefdc3",
+              "file": "smoke/smoke.spec.ts",
+              "line": 8,
+              "column": 7
+            },
+            {
+              "title": "the items list renders and contains the seeded row",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "smoke",
+                  "projectName": "smoke",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 3,
+                      "error": {
+                        "message": "Error: browserType.launch: Executable doesn't exist at /opt/pw-browsers/chromium_headless_shell-1234/chrome-headless-shell-linux64/chrome-headless-shell\n╔════════════════════════════════════════════════════════════╗\n║ Looks like Playwright was just installed or updated.       ║\n║ Please run the following command to download new browsers: ║\n║                                                            ║\n║     npx playwright install                                 ║\n║                                                            ║\n║ <3 Playwright Team                                         ║\n╚════════════════════════════════════════════════════════════╝",
+                        "stack": "Error: browserType.launch: Executable doesn't exist at /opt/pw-browsers/chromium_headless_shell-1234/chrome-headless-shell-linux64/chrome-headless-shell\n╔════════════════════════════════════════════════════════════╗\n║ Looks like Playwright was just installed or updated.       ║\n║ Please run the following command to download new browsers: ║\n║                                                            ║\n║     npx playwright install                                 ║\n║                                                            ║\n║ <3 Playwright Team                                         ║\n╚════════════════════════════════════════════════════════════╝"
+                      },
+                      "errors": [
+                        {
+                          "message": "Error: browserType.launch: Executable doesn't exist at /opt/pw-browsers/chromium_headless_shell-1234/chrome-headless-shell-linux64/chrome-headless-shell\n╔════════════════════════════════════════════════════════════╗\n║ Looks like Playwright was just installed or updated.       ║\n║ Please run the following command to download new browsers: ║\n║                                                            ║\n║     npx playwright install                                 ║\n║                                                            ║\n║ <3 Playwright Team                                         ║\n╚════════════════════════════════════════════════════════════╝"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-08T20:07:26.498Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/tmp/repo/tests/playwright/test-results/smoke-smoke-aws-devops-sde-c4a03-and-contains-the-seeded-row-smoke/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/tmp/repo/tests/playwright/test-results/smoke-smoke-aws-devops-sde-c4a03-and-contains-the-seeded-row-smoke/trace.zip"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "f2f9e57ccde56fbee371-f80a011bba45130595e3",
+              "file": "smoke/smoke.spec.ts",
+              "line": 29,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "regression/items.spec.ts",
+      "file": "regression/items.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "items regression (destructive, stage only)",
+          "file": "regression/items.spec.ts",
+          "line": 97,
+          "column": 6,
+          "specs": [
+            {
+              "title": "create through the UI leaves a row for the database assertion",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "regression",
+                  "projectName": "regression",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 0,
+                      "error": {
+                        "message": "Error: UI_PROBE_NAME and UI_EDIT_PROBE_NAME not set. The database assertion that follows this suite looks up exactly these names; without them the assertion would check nothing and pass. Set them in the caller (Makefile or workflow).",
+                        "stack": "Error: UI_PROBE_NAME and UI_EDIT_PROBE_NAME not set. The database assertion that follows this suite looks up exactly these names; without them the assertion would check nothing and pass. Set them in the caller (Makefile or workflow).\n    at /tmp/repo/tests/playwright/tests/regression/items.spec.ts:28:11",
+                        "location": {
+                          "file": "/tmp/repo/tests/playwright/tests/regression/items.spec.ts",
+                          "column": 11,
+                          "line": 28
+                        },
+                        "snippet": "  26 |   ].filter(Boolean);\n  27 |   if (missing.length) {\n> 28 |     throw new Error(\n     |           ^\n  29 |       `${missing.join(\" and \")} not set. The database assertion that follows ` +\n  30 |         \"this suite looks up exactly these names; without them the assertion \" +\n  31 |         \"would check nothing and pass. Set them in the caller (Makefile or \" +"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/tmp/repo/tests/playwright/tests/regression/items.spec.ts",
+                            "column": 11,
+                            "line": 28
+                          },
+                          "message": "Error: UI_PROBE_NAME and UI_EDIT_PROBE_NAME not set. The database assertion that follows this suite looks up exactly these names; without them the assertion would check nothing and pass. Set them in the caller (Makefile or workflow).\n\n  26 |   ].filter(Boolean);\n  27 |   if (missing.length) {\n> 28 |     throw new Error(\n     |           ^\n  29 |       `${missing.join(\" and \")} not set. The database assertion that follows ` +\n  30 |         \"this suite looks up exactly these names; without them the assertion \" +\n  31 |         \"would check nothing and pass. Set them in the caller (Makefile or \" +\n    at /tmp/repo/tests/playwright/tests/regression/items.spec.ts:28:11"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-08T20:07:27.185Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/tmp/repo/tests/playwright/test-results/regression-items-items-reg-981b3--for-the-database-assertion-regression/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/tmp/repo/tests/playwright/test-results/regression-items-items-reg-981b3--for-the-database-assertion-regression/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/tmp/repo/tests/playwright/tests/regression/items.spec.ts",
+                        "column": 11,
+                        "line": 28
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "8da3d7c487699ca503a7-8aeda480d2492af8f6ee",
+              "file": "regression/items.spec.ts",
+              "line": 98,
+              "column": 7
+            },
+            {
+              "title": "edit through the UI rewrites the row the database assertion checks",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "regression",
+                  "projectName": "regression",
+                  "results": [
+                    {
+                      "workerIndex": -1,
+                      "parallelIndex": -1,
+                      "status": "skipped",
+                      "duration": 0,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-08T20:07:27.320Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "8da3d7c487699ca503a7-65062dd36de2e4a41acc",
+              "file": "regression/items.spec.ts",
+              "line": 119,
+              "column": 7
+            },
+            {
+              "title": "editing only the description leaves the name alone",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "regression",
+                  "projectName": "regression",
+                  "results": [
+                    {
+                      "workerIndex": -1,
+                      "parallelIndex": -1,
+                      "status": "skipped",
+                      "duration": 0,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-08T20:07:27.320Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "8da3d7c487699ca503a7-91dc53079c8c1ea7b765",
+              "file": "regression/items.spec.ts",
+              "line": 152,
+              "column": 7
+            },
+            {
+              "title": "an edit onto a name that already exists is refused and surfaced",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "regression",
+                  "projectName": "regression",
+                  "results": [
+                    {
+                      "workerIndex": -1,
+                      "parallelIndex": -1,
+                      "status": "skipped",
+                      "duration": 0,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-08T20:07:27.320Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "8da3d7c487699ca503a7-8f6a55a796f77b504c39",
+              "file": "regression/items.spec.ts",
+              "line": 171,
+              "column": 7
+            },
+            {
+              "title": "cancelling an edit changes nothing",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "regression",
+                  "projectName": "regression",
+                  "results": [
+                    {
+                      "workerIndex": -1,
+                      "parallelIndex": -1,
+                      "status": "skipped",
+                      "duration": 0,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-08T20:07:27.320Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "8da3d7c487699ca503a7-585329833b9e11f53abd",
+              "file": "regression/items.spec.ts",
+              "line": 197,
+              "column": 7
+            },
+            {
+              "title": "create, appears in the list, delete, gone",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "regression",
+                  "projectName": "regression",
+                  "results": [
+                    {
+                      "workerIndex": -1,
+                      "parallelIndex": -1,
+                      "status": "skipped",
+                      "duration": 0,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-08T20:07:27.320Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "8da3d7c487699ca503a7-731582a8e90ec58cd7f2",
+              "file": "regression/items.spec.ts",
+              "line": 225,
+              "column": 7
+            },
+            {
+              "title": "a duplicate name is refused and surfaced in the UI",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "regression",
+                  "projectName": "regression",
+                  "results": [
+                    {
+                      "workerIndex": -1,
+                      "parallelIndex": -1,
+                      "status": "skipped",
+                      "duration": 0,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-08T20:07:27.320Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "8da3d7c487699ca503a7-0b28a92f143f1a4db0af",
+              "file": "regression/items.spec.ts",
+              "line": 254,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "regression/pagination.spec.ts",
+      "file": "regression/pagination.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "pagination (destructive, stage only)",
+          "file": "regression/pagination.spec.ts",
+          "line": 68,
+          "column": 6,
+          "specs": [
+            {
+              "title": "one page is shown, and the page says which one it is",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "regression",
+                  "projectName": "regression",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 0,
+                      "error": {
+                        "message": "Error: apiRequestContext.post: connect ECONNREFUSED 127.0.0.1:8000\nCall log:\n\u001b[2m  - → POST http://localhost:8000/api/items\u001b[22m\n\u001b[2m    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.7922.34 Safari/537.36\u001b[22m\n\u001b[2m    - accept: */*\u001b[22m\n\u001b[2m    - accept-encoding: gzip,deflate,br\u001b[22m\n\u001b[2m    - content-type: application/json\u001b[22m\n\u001b[2m    - content-length: 39\u001b[22m\n",
+                        "stack": "Error: apiRequestContext.post: connect ECONNREFUSED 127.0.0.1:8000\nCall log:\n\u001b[2m  - → POST http://localhost:8000/api/items\u001b[22m\n\u001b[2m    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.7922.34 Safari/537.36\u001b[22m\n\u001b[2m    - accept: */*\u001b[22m\n\u001b[2m    - accept-encoding: gzip,deflate,br\u001b[22m\n\u001b[2m    - content-type: application/json\u001b[22m\n\u001b[2m    - content-length: 39\u001b[22m\n\n    at /tmp/repo/tests/playwright/tests/regression/pagination.spec.ts:27:27",
+                        "location": {
+                          "file": "/tmp/repo/tests/playwright/tests/regression/pagination.spec.ts",
+                          "column": 27,
+                          "line": 27
+                        },
+                        "snippet": "  25 |   api = await playwright.request.newContext({ baseURL });\n  26 |   for (let i = 0; i < FIXTURE_ROWS; i++) {\n> 27 |     const res = await api.post(\"/api/items\", {\n     |                           ^\n  28 |       data: { name: `${prefix}-${String(i).padStart(3, \"0\")}` },\n  29 |     });\n  30 |     expect(res.status(), await res.text()).toBe(201);"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/tmp/repo/tests/playwright/tests/regression/pagination.spec.ts",
+                            "column": 27,
+                            "line": 27
+                          },
+                          "message": "Error: apiRequestContext.post: connect ECONNREFUSED 127.0.0.1:8000\nCall log:\n\u001b[2m  - → POST http://localhost:8000/api/items\u001b[22m\n\u001b[2m    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.7922.34 Safari/537.36\u001b[22m\n\u001b[2m    - accept: */*\u001b[22m\n\u001b[2m    - accept-encoding: gzip,deflate,br\u001b[22m\n\u001b[2m    - content-type: application/json\u001b[22m\n\u001b[2m    - content-length: 39\u001b[22m\n\n\n  25 |   api = await playwright.request.newContext({ baseURL });\n  26 |   for (let i = 0; i < FIXTURE_ROWS; i++) {\n> 27 |     const res = await api.post(\"/api/items\", {\n     |                           ^\n  28 |       data: { name: `${prefix}-${String(i).padStart(3, \"0\")}` },\n  29 |     });\n  30 |     expect(res.status(), await res.text()).toBe(201);\n    at /tmp/repo/tests/playwright/tests/regression/pagination.spec.ts:27:27"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-08T20:07:27.852Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/tmp/repo/tests/playwright/test-results/regression-pagination-pagi-c11c6-e-page-says-which-one-it-is-regression/error-context.md"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/tmp/repo/tests/playwright/test-results/regression-pagination-pagi-c11c6-e-page-says-which-one-it-is-regression/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/tmp/repo/tests/playwright/test-results/regression-pagination-pagi-c11c6-e-page-says-which-one-it-is-regression/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/tmp/repo/tests/playwright/tests/regression/pagination.spec.ts",
+                        "column": 27,
+                        "line": 27
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "bb2fab233bfff8e69928-701bc6338b3487ef644f",
+              "file": "regression/pagination.spec.ts",
+              "line": 69,
+              "column": 7
+            },
+            {
+              "title": "next and prev move by exactly one page",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "regression",
+                  "projectName": "regression",
+                  "results": [
+                    {
+                      "workerIndex": -1,
+                      "parallelIndex": -1,
+                      "status": "skipped",
+                      "duration": 0,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-08T20:07:28.153Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bb2fab233bfff8e69928-3487fb546274d77f2b12",
+              "file": "regression/pagination.spec.ts",
+              "line": 83,
+              "column": 7
+            },
+            {
+              "title": "the last page ends the walk",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "regression",
+                  "projectName": "regression",
+                  "results": [
+                    {
+                      "workerIndex": -1,
+                      "parallelIndex": -1,
+                      "status": "skipped",
+                      "duration": 0,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-08T20:07:28.153Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bb2fab233bfff8e69928-11429fad1fadb173686c",
+              "file": "regression/pagination.spec.ts",
+              "line": 108,
+              "column": 7
+            },
+            {
+              "title": "a row created through the form is visible without paging to it",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "regression",
+                  "projectName": "regression",
+                  "results": [
+                    {
+                      "workerIndex": -1,
+                      "parallelIndex": -1,
+                      "status": "skipped",
+                      "duration": 0,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-08T20:07:28.153Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bb2fab233bfff8e69928-dc47daad1386072d3696",
+              "file": "regression/pagination.spec.ts",
+              "line": 121,
+              "column": 7
+            },
+            {
+              "title": "deleting the only row on the last page steps back a page",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "regression",
+                  "projectName": "regression",
+                  "results": [
+                    {
+                      "workerIndex": -1,
+                      "parallelIndex": -1,
+                      "status": "skipped",
+                      "duration": 0,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-08T20:07:28.153Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "bb2fab233bfff8e69928-e217a03f70de7cadf2c8",
+              "file": "regression/pagination.spec.ts",
+              "line": 148,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-08-08T20:07:25.335Z",
+    "duration": 2836.3810000000003,
+    "expected": 0,
+    "skipped": 10,
+    "unexpected": 4,
+    "flaky": 0
+  }
+}

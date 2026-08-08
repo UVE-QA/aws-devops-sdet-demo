@@ -1,0 +1,33 @@
+{
+  "_": "Frozen: only the suite node ids, which is all the fold looks at.",
+  "phases": [
+    {
+      "nodes": [
+        {
+          "id": "suite.db.stage",
+          "kind": "suite"
+        },
+        {
+          "id": "suite.api.stage",
+          "kind": "suite"
+        },
+        {
+          "id": "suite.regression.stage",
+          "kind": "suite"
+        },
+        {
+          "id": "suite.smoke.stage",
+          "kind": "suite"
+        },
+        {
+          "id": "suite.db.prod",
+          "kind": "suite"
+        },
+        {
+          "id": "suite.smoke.prod",
+          "kind": "suite"
+        }
+      ]
+    }
+  ]
+}

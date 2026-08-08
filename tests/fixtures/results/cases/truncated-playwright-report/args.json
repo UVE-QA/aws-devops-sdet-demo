@@ -1,0 +1,4 @@
+{
+  "environment": "stage",
+  "playwright": "playwright.json"
+}

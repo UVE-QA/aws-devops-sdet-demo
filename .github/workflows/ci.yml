@@ -165,6 +165,12 @@ jobs:
         # a picture that looks complete.
         run: make node-states-check
 
+      - name: A run's report decides what a suite node says
+        # The fold from pytest's junit, Playwright's JSON reporter and the db
+        # assertion's stdout onto the map's suite nodes. Fixtures only: it reads
+        # files, calls nothing, and costs nothing (ADR-0042 D5).
+        run: make results-check
+
       - name: Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:

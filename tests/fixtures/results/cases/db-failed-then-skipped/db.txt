@@ -1,0 +1,2 @@
+FAIL: table_exists - table 'demo_items' does not exist
+SKIP: seed_row_exists (an earlier check failed)

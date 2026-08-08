@@ -1,0 +1,4 @@
+{
+  "environment": "prod",
+  "db_log": "db.txt"
+}

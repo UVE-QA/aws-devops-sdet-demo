@@ -1,0 +1,24 @@
+{
+  "nodes": {
+    "suite.api.stage": {
+      "status": "failed",
+      "passed": 0,
+      "failed": 52
+    },
+    "suite.smoke.stage": {
+      "status": "failed",
+      "passed": 0,
+      "failed": 2
+    },
+    "suite.regression.stage": {
+      "status": "failed",
+      "passed": 0,
+      "failed": 2,
+      "skipped": 10
+    }
+  },
+  "unobserved": [
+    "suite.db.stage"
+  ],
+  "unknown": {}
+}

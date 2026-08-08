@@ -1,0 +1,325 @@
+{
+  "config": {
+    "argv": [
+      "/opt/node22/bin/node",
+      "/tmp/repo/tests/playwright/node_modules/.bin/playwright",
+      "test",
+      "--reporter=json"
+    ],
+    "configFile": "/tmp/repo/tests/playwright/playwright.config.ts",
+    "rootDir": "/tmp/repo/tests/playwright/tests",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/tmp/repo/tests/playwright/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "smoke",
+        "name": "smoke",
+        "testDir": "/tmp/repo/tests/playwright/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "/[\\\\/]smoke[\\\\/].*\\.spec\\.ts$/"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/tmp/repo/tests/playwright/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "regression",
+        "name": "regression",
+        "testDir": "/tmp/repo/tests/playwright/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "/[\\\\/]regression[\\\\/].*\\.spec\\.ts$/"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.62.0",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "smoke/smoke.spec.ts",
+      "file": "smoke/smoke.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "aws-devops-sdet-demo smoke",
+          "file": "smoke/smoke.spec.ts",
+          "line": 7,
+          "column": 6,
+          "specs": [
+            {
+              "title": "page loads and health/db statuses resolve",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "smoke",
+                  "projectName": "smoke",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 3,
+                      "error": {
+                        "message": "Error: browserType.launch: Executable doesn't exist at /opt/pw-browsers/chromium_headless_shell-1234/chrome-headless-shell-linux64/chrome-headless-shell\n╔════════════════════════════════════════════════════════════╗\n║ Looks like Playwright was just installed or updated.       ║\n║ Please run the following command to download new browsers: ║\n║                                                            ║\n║     npx playwright install                                 ║\n║                                                            ║\n║ <3 Playwright Team                                         ║\n╚════════════════════════════════════════════════════════════╝",
+                        "stack": "Error: browserType.launch: Executable doesn't exist at /opt/pw-browsers/chromium_headless_shell-1234/chrome-headless-shell-linux64/chrome-headless-shell\n╔════════════════════════════════════════════════════════════╗\n║ Looks like Playwright was just installed or updated.       ║\n║ Please run the following command to download new browsers: ║\n║                                                            ║\n║     npx playwright install                                 ║\n║                                                            ║\n║ <3 Playwright Team                                         ║\n╚════════════════════════════════════════════════════════════╝"
+                      },
+                      "errors": [
+                        {
+                          "message": "Error: browserType.launch: Executable doesn't exist at /opt/pw-browsers/chromium_headless_shell-1234/chrome-headless-shell-linux64/chrome-headless-shell\n╔════════════════════════════════════════════════════════════╗\n║ Looks like Playwright was just installed or updated.       ║\n║ Please run the following command to download new browsers: ║\n║                                                            ║\n║     npx playwright install                                 ║\n║                                                            ║\n║ <3 Playwright Team                                         ║\n╚════════════════════════════════════════════════════════════╝"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-08T20:07:25.918Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/tmp/repo/tests/playwright/test-results/smoke-smoke-aws-devops-sde-5a9ba--health-db-statuses-resolve-smoke/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/tmp/repo/tests/playwright/test-results/smoke-smoke-aws-devops-sde-5a9ba--health-db-statuses-resolve-smoke/trace.zip"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "f2f9e57ccde56fbee371-f2bbf985e7718caefdc3",
+              "file": "smoke/smoke.spec.ts",
+              "line": 8,
+              "column": 7
+            },
+            {
+              "title": "the items list renders and contains the seeded row",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "smoke",
+                  "projectName": "smoke",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 3,
+                      "error": {
+                        "message": "Error: browserType.launch: Executable doesn't exist at /opt/pw-browsers/chromium_headless_shell-1234/chrome-headless-shell-linux64/chrome-headless-shell\n╔════════════════════════════════════════════════════════════╗\n║ Looks like Playwright was just installed or updated.       ║\n║ Please run the following command to download new browsers: ║\n║                                                            ║\n║     npx playwright install                                 ║\n║                                                            ║\n║ <3 Playwright Team                                         ║\n╚════════════════════════════════════════════════════════════╝",
+                        "stack": "Error: browserType.launch: Executable doesn't exist at /opt/pw-browsers/chromium_headless_shell-1234/chrome-headless-shell-linux64/chrome-headless-shell\n╔════════════════════════════════════════════════════════════╗\n║ Looks like Playwright was just installed or updated.       ║\n║ Please run the following command to download new browsers: ║\n║                                                            ║\n║     npx playwright install                                 ║\n║                                                            ║\n║ <3 Playwright Team                                         ║\n╚════════════════════════════════════════════════════════════╝"
+                      },
+                      "errors": [
+                        {
+                          "message": "Error: browserType.launch: Executable doesn't exist at /opt/pw-browsers/chromium_headless_shell-1234/chrome-headless-shell-linux64/chrome-headless-shell\n╔════════════════════════════════════════════════════════════╗\n║ Looks like Playwright was just installed or updated.       ║\n║ Please run the following command to download new browsers: ║\n║                                                            ║\n║     npx playwright install                                 ║\n║                                                            ║\n║ <3 Playwright Team                                         ║\n╚════════════════════════════════════════════════════════════╝"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-08T20:07:26.498Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/tmp/repo/tests/playwright/test-results/smoke-smoke-aws-devops-sde-c4a03-and-contains-the-seeded-row-smoke/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/tmp/repo/tests/playwright/test-results/smoke-smoke-aws-devops-sde-c4a03-and-contains-the-seeded-row-smoke/trace.zip"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "f2f9e57ccde56fbee371-f80a011bba45130595e3",
+              "file": "smoke/smoke.spec.ts",
+              "line": 29,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "regression/items.spec.ts",
+      "file": "regression/items.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "items regression (destructive, stage only)",
+          "file": "regression/items.spec.ts",
+          "line": 97,
+          "column": 6,
+          "specs": [
+            {
+              "title": "create through the UI leaves a row for the database assertion",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "regression",
+                  "projectName": "regression",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 0,
+                      "error": {
+                        "message": "Error: UI_PROBE_NAME and UI_EDIT_PROBE_NAME not set. The database assertion that follows this suite looks up exactly these names; without them the assertion would check nothing and pass. Set them in the caller (Makefile or workflow).",
+                        "stack": "Error: UI_PROBE_NAME and UI_EDIT_PROBE_NAME not set. The database assertion that follows this suite looks up exactly these names; without them the assertion would check nothing and pass. Set them in the caller (Makefile or workflow).\n    at /tmp/repo/tests/playwright/tests/regression/items.spec.ts:28:11",
+                        "location": {
+                          "file": "/tmp/repo/tests/playwright/tests/regression/items.spec.ts",
+                          "column": 11,
+                          "line": 28
+                        },
+                        "snippet": "  26 |   ].filter(Boolean);\n  27 |   if (missing.length) {\n> 28 |     throw new Error(\n     |           ^\n  29 |       `${missing.join(\" and \")} not set. The database assertion that follows ` +\n  30 |         \"this suite looks up exactly these names; without them the assertion \" +\n  31 |         \"would check nothing and pass. Set them in the caller (Makefile or \" +"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/tmp/repo/tests/playwright/tests/regression/items.spec.ts",
+                            "column": 11,
+                            "line": 28
+                          },
+                          "message": "Error: UI_PROBE_NAME and UI_EDIT_PROBE_NAME not set. The database assertion that follows this suite looks up exactly these names; without them the assertion would check nothing and pass. Set them in the caller (Makefile or workflow).\n\n  26 |   ].filter(Boolean);\n  27 |   if (missing.length) {\n> 28 |     throw new Error(\n     |           ^\n  29 |       `${missing.join(\" and \")} not set. The database assertion that follows ` +\n  30 |         \"this suite looks up exactly these names; without them the assertion \" +\n  31 |         \"would check nothing and pass. Set them in the caller (Makefile or \" +\n    at /tmp/repo/tests/playwright/tests/regression/items.spec.ts:28:11"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-08T20:07:27.185Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/tmp/repo/tests/playwright/test-results/regression-items-items-reg-981b3--for-the-database-assertion-regression/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/tmp/repo/tests/playwright/test-results/regression-items-items-reg-981b3--for-the-database-assertion-regression/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/tmp/repo/tests/playwright/tests/regression/items.spec.ts",
+                        "column": 11,
+                        "line": 28
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "8da3d7c487699ca503a7-8aeda480d2492af8f6ee",
+              "file": "regression/items.spec.ts",
+              "line": 98,
+              "column": 7
+            },
+            {
+              "title": "edit through the UI rewrites the row the database assertion checks",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "regression",
+                  "projectName": "regression",
+                  "results": [
+                    {
+                      "workerIndex": -1,
+                      "parallelIndex": -1,
+                      "status": "skipped",
+                      "duration": 0,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-08T20:07:27.320Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "8da3d7c487699ca503a7-65062dd36de2e4a41acc",
+              "file": "regression/items.spec.ts",
+              "line": 119,
+              "column": 7
+            },
+            {
+              "title": "editing only the description leaves the name alone",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+ 

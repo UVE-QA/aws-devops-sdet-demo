@@ -6,7 +6,7 @@
         tf-validate docs-check secret-scan iac-scan image-scan action-pins \
         self-service-package self-service-cors-check site-page site-page-check \
         site-data site-data-check timeline-check node-states-check \
-        suite-inventory suite-inventory-check
+        suite-inventory suite-inventory-check results-check
 
 # Bring up postgres + app (build app image if needed), detached.
 local-up:
@@ -233,6 +233,23 @@ timeline-check:
 # member" apart from "the first member".
 node-states-check:
 	python3 scripts/check-node-states.py
+
+# The join from the test reporters' own output onto the map's suite nodes
+# (ADR-0042 D5). Same shape as node-states-check and for the same reason: written
+# twice, in JavaScript on the page and in Python here, it would be one definition
+# on two hosts.
+#
+# The claim under gate: a run's report decides what a suite node says, and
+# everything the report does not cover is NAMED - unobserved, not_run, unknown -
+# rather than coloured. Most cases are real reporter output, including a
+# Playwright JSON file cut in half, which is what a killed run leaves on disk.
+# One is hand-written and says so: no green api report exists to record until a
+# cycle produces one.
+#
+# Needs no test dependencies - it reads files - so unlike suite-inventory-check
+# it runs beside the map's other gates.
+results-check:
+	python3 scripts/check-results.py
 
 # The two ends of a session, as commands rather than as prose in four documents
 # (ADR-0033). Local only: on a CI checkout the tree is always clean and HEAD

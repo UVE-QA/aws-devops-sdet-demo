@@ -1,0 +1,6 @@
+{
+  "environment": "stage",
+  "junit": [
+    "api=junit-api.xml"
+  ]
+}

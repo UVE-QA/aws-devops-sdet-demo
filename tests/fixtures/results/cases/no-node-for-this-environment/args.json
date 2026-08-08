@@ -1,0 +1,6 @@
+{
+  "environment": "prod",
+  "junit": [
+    "api=junit-api.xml"
+  ]
+}

@@ -70,3 +70,69 @@ exit: 0
 local-ci The map's inventory still matches the suites 19:59:29 Run make suite-inventory-check
 local-ci The map's inventory still matches the suites 19:59:34 suite-inventory: clean - 180 tests across 5 suites, collected with @playwright/test 1.62.0, pytest 9.1.1
 (sandbox clone, devbox and runner collect the same 180 tests, byte-identical)
+
+############ the results fold, broken on purpose ############
+=== CONTROL, before anything is broken ===
+
+9/9 result fixtures fold as expected
+exit: 0
+
+=== B1 the fold calls every suite passed ===
+ok    a-test-the-inventory-does-not-have
+ok    api-green-hand-written
+FAIL  db-failed-then-skipped
+      suite.db.stage.status: expected failed, got passed
+ok    db-green
+ok    no-node-for-this-environment
+FAIL  no-server-everything-red
+      suite.api.stage.status: expected failed, got passed
+      suite.smoke.stage.status: expected failed, got passed
+      suite.regression.stage.status: expected failed, got passed
+ok    nothing-reported
+FAIL  partial-run-is-incomplete
+      suite.api.stage.status: expected incomplete, got passed
+ok    truncated-playwright-report
+
+results-check: 3 of 9 cases disagree with the fold
+exit: 1
+
+=== B2 a test the report never mentioned is quietly dropped ===
+ok    a-test-the-inventory-does-not-have
+ok    api-green-hand-written
+ok    db-failed-then-skipped
+ok    db-green
+ok    no-node-for-this-environment
+ok    no-server-everything-red
+ok    nothing-reported
+FAIL  partial-run-is-incomplete
+      suite.api.stage.status: expected incomplete, got passed
+      suite.api.stage.not_run: expected 49, got 0
+ok    truncated-playwright-report
+
+results-check: 1 of 9 cases disagree with the fold
+exit: 1
+
+=== B3 a test the inventory does not have is swallowed instead of named ===
+FAIL  a-test-the-inventory-does-not-have
+      unknown: expected {'suite.api.stage': ['test_something_nobody_collected']}, got {}
+ok    api-green-hand-written
+ok    db-failed-then-skipped
+ok    db-green
+ok    no-node-for-this-environment
+ok    no-server-everything-red
+ok    nothing-reported
+ok    partial-run-is-incomplete
+ok    truncated-playwright-report
+
+results-check: 1 of 9 cases disagree with the fold
+exit: 1
+
+=== B4 the gate has no cases to check ===
+results-check: REFUSED
+tests/fixtures/results/cases does not exist.
+exit: 1
+
+=== CONTROL, after every break was restored ===
+
+9/9 result fixtures fold as expected
+exit: 0

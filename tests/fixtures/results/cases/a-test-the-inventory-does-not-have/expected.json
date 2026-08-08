@@ -1,0 +1,18 @@
+{
+  "nodes": {
+    "suite.api.stage": {
+      "status": "passed",
+      "passed": 52
+    }
+  },
+  "unobserved": [
+    "suite.db.stage",
+    "suite.regression.stage",
+    "suite.smoke.stage"
+  ],
+  "unknown": {
+    "suite.api.stage": [
+      "test_something_nobody_collected"
+    ]
+  }
+}

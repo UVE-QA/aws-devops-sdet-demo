@@ -153,6 +153,21 @@ a spec answering to a project from outside its
 the map naming a suite nothing can collect      REFUSED
 ```
 
+### The fold's own refusals, in the same log
+`scripts/fold-results.py` is gated by nine fixtures, six of them real reporter
+output. Four deliberate defects were put into the fold to see the gate bite:
+
+```text
+every suite called passed                      3 of 9 cases red, on status
+a test the report never mentioned, dropped     the partial case red, on not_run
+an unknown test swallowed instead of named     the unknown case red
+the cases directory moved away                 REFUSED, not "0 failures"
+```
+
+The last one matters most and is the cheapest to get wrong: a checker that finds
+no cases prints the same thing as a checker that passed them all, which is the
+empty-result shape this project has now met in four different tools.
+
 **The zero-tests refusal is unreachable for the pytest suites, and the break test
 is what said so.** pytest exits 5 when it collects nothing, so the
 collector-failed refusal fires first and prints pytest's own `no tests collected`.
