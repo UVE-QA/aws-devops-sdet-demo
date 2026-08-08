@@ -40,7 +40,7 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 20.0  | Visible cycle: decisions + plan | ✅ done | ADR-0039 |
 | 20a   | The generated map, on the page | ✅ done | sessions/2026-08-08-phase-20a-the-map-on-the-page.md |
 | 20b.1 | The stream captured, folded, gated | ✅ done, $0 | sessions/2026-08-08-phase-20b-1-a-killed-apply-is-not-a-cycle.md |
-| 20b.2 | The timeline from a live cycle, on the page | 🟡 $0 half written and gated; no cycle yet | ADR-0040 |
+| 20b.2 | The timeline from a live cycle, on the page | 🟡 $0 half done and broken 6 ways; no cycle yet | ADR-0040 |
 | 20c   | The tests panel | ⬜ planned | — |
 | 20d   | Cost, computed and reconciled | ⬜ planned, blocked on 20b | — |
 
@@ -2049,11 +2049,11 @@ were the same shape — a page saying something it was not in a position to say:
   the map's nodes from it, and break it the way fixtures cannot: a cancelled RUN
   must publish INCOMPLETE. About $0.03.
 
-### Phase 20b.2 — the timeline from a live cycle, on the page  🟡 IN PROGRESS
+### Phase 20b.2 — the timeline from a live cycle, on the page  🟡 the $0 half is DONE
 - Criteria: the map's nodes carry the figures a real cycle measured; a run that
   did not finish is SAID rather than silently drawn; every resource a cycle
   touches lands on a node, is recorded as deliberately not drawn, or is named.
-  **The $0 half is written and gated. The cycle has not run.**
+  **The $0 half is done, gated and broken on purpose. The cycle has not run.**
 - Split the way 20b.1 was and for the same reason: everything decidable without
   AWS is settled first, at nothing, and the billable run is spent only on what
   only AWS can answer.
@@ -2073,35 +2073,73 @@ were the same shape — a page saying something it was not in a position to say:
   measurement. And the join belongs on the runner in Python rather than on the
   page in JavaScript, because the gate over it is Python and the pair would be
   one definition on two hosts.
-- **The module question is answered offline, before the cycle.** 20b.1 left
+- **The module question is ANSWERED, offline, and it cost nothing.** 20b.1 left
   `hook.resource.module` and the shape of an address inside a module read from
-  the documentation. A local module holding `terraform_data` is as real a
-  terraform run as the other fixtures and costs the same nothing, so
-  `apply-module` was added to `tests/fixtures/timeline/generate.sh` with an
-  expectation written from the documentation — three address shapes, including
-  `count` on the module itself, which `infra/` does not have today. Running
-  `generate.sh` on the devbox turns that prediction into a measurement or into a
-  red gate, and either is worth more than finding out mid-apply.
-- Break tests so far, chat-side and to be re-run on the devbox: the live binding
-  refused a renamed STEP and a renamed JOB; control green.
-- **The devbox must run `tests/fixtures/timeline/generate.sh` first.** Until it
-  does, `make timeline-check` and `make node-states-check` are RED on
-  `apply-module`, which has an expectation and no streams. That is the intended
-  order, not a defect.
-- Cost so far: **$0**.
-- Validation, before anything billable:
+  the documentation, and planned to find out during the billable run. It did not
+  need to: a local module holding `terraform_data` is as real a terraform run as
+  the other fixtures, so `apply-module` was added to
+  `tests/fixtures/timeline/generate.sh` with an expectation written from the
+  documentation, naming the exact address strings. Run on the devbox against
+  terraform 1.15.8 it held to the character:
+```text
+  addr    module.child.terraform_data.only        fully qualified by the module
+          module.pair[0].terraform_data.many[0]   the MODULE's index as well as
+                                                  the resource's
+  module  module.pair[0] — redundant with addr, which is why the join reads addr
+          alone. Empty at the root
+```
+  The six existing fixtures regenerated to identical expectations and identical
+  event counts (16, 15, 14, 10, 13, 13), as in 20b.1. The general form is worth
+  keeping: **a question about a tool's own output is usually answerable offline,
+  and answering it before the billable run turns a discovery into a
+  confirmation.**
+- **Six break tests, all red, both controls green**, run on the devbox with the
+  tree committed first and exit codes taken directly rather than through a pipe.
+  Evidence: `docs/sessions/2026-08-08-phase-20b-2-break-tests.log`.
+```text
+  1  a live binding names a step the job does not have
+  2  a live binding names a job the workflow does not have
+  3  the environment filter removed from the node index — stage and prod hold
+     IDENTICAL member addresses, so half the map lights from the other
+     environment's cycle. The stub topology carries a prod node holding stage's
+     members precisely so this reddens
+  4  the index stripping stops seeing count, so nothing repeated matches
+  5  a hidden group forgets which addresses it hides — they must become UNKNOWN
+     rather than being quietly counted as not-shown
+  6  the fixture directory emptied — it refuses rather than passing 0/0
+  0/6  controls: the untouched tree, before and after
+```
+- **`make session-open` was naming the wrong phase, and had been for a day.** It
+  read "the last data row of the status table", which is the FURTHEST-OUT phase
+  rather than the next one: since 20.0 added three planned rows in one go it
+  announced `20d — blocked on 20b` to every session that opened. Reading the
+  status column instead is no better in the other direction — the first row that
+  is not done is phase 8, open and parked since July. It now reads the last
+  `- Next allowed step:` line and the `###` heading above it, which is the line
+  the document already writes for this purpose and the one the primer tells a
+  chat to name itself from. It refuses if that line is missing.
+- **The first fix pointed at a different wrong row.** `/^#{2,3} /` is an
+  interval quantifier, and under the devbox's mawk 1.3.4 it matched
+  `## Completion criteria & validation` and none of the thirty-three
+  `### Phase` headings. Plain `/^### /` is correct. Caught by running it rather
+  than by reading it.
+- Cost so far: **$0**. Nothing applied, no AWS API called.
+- Validation, all of it run on the devbox on 2026-08-08, and `ci.yml` green on
+  the push with the new step confirmed to have executed:
 ```bash
-  tests/fixtures/timeline/generate.sh
-  make timeline-check
-  make node-states-check
+  tests/fixtures/timeline/generate.sh   # terraform 1.15.8, 7 cases
+  make timeline-check                   # 7/7
+  make node-states-check                # 5 cases, 4 from real terraform runs
   make site-data-check
   make site-page-check
   make docs-check
 ```
-- Next allowed step: run the fixture generator on the devbox, get both gates
-  green, then one live cycle — and with it the break test only a live run can
-  give: a cancelled RUN must publish a timeline marked INCOMPLETE, and the page
-  must say so instead of drawing it.
+- Next allowed step: **one live cycle**, about $0.03 — the only things left need
+  AWS. A timeline and node states published from a real apply and a real
+  destroy; the map drawn from figures AWS produced; and the break test fixtures
+  cannot give, because they prove the fold and not the workflow's
+  `if: always()`: a cancelled RUN must publish a timeline marked INCOMPLETE, and
+  the page must say so instead of drawing it.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

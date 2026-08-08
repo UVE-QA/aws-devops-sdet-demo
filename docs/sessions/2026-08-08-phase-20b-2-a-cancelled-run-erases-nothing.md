@@ -94,12 +94,23 @@ module.pair[0].terraform_data.only    count on the MODULE. infra/ has none
                                       of thing this repository breaks on purpose
 ```
 
-Its expectation is a PREDICTION, written in a chat session with no terraform on
-it, and it names the exact address strings. Running `generate.sh` on the devbox
-turns that into a measurement or into a red gate. Either is worth more than
-finding out mid-apply, and the general form is worth keeping: **a question about
-a tool's own output is usually answerable offline, and answering it before the
-billable run turns a discovery into a confirmation.**
+Its expectation was a PREDICTION, written in a chat session with no terraform on
+it, and it named the exact address strings. Run on the devbox against terraform
+1.15.8 it held to the character:
+
+```text
+addr    module.child.terraform_data.only        fully qualified by the module
+        module.pair[0].terraform_data.many[0]   the MODULE's index as well as
+                                                the resource's
+module  module.pair[0] — redundant with addr, which is why the join reads addr
+        alone. Empty at the root
+```
+
+The six existing fixtures regenerated to identical expectations and identical
+event counts — 16, 15, 14, 10, 13, 13, as in 20b.1. The general form is worth
+keeping: **a question about a tool's own output is usually answerable offline,
+and answering it before the billable run turns a discovery into a
+confirmation.**
 
 ## Smaller things, each of which would have been found late
 
@@ -122,36 +133,71 @@ the guard     nodeEl gained an `incomplete` branch for a state the publish rule
               20a the last time a state arrived with no branch for it
 ```
 
+## Two findings in the session machinery, both invisible from inside
+
+**`make session-open` had been naming the wrong phase for a day.** ADR-0033 made
+it the thing that prints the phase from the cursor rather than from memory, and
+it read *the last data row of the status table* — which is the FURTHEST-OUT
+phase, not the next one. Since 20.0 added 20b.2, 20c and 20d in one go it
+announced `20d — blocked on 20b` to every session that opened, including this
+one. Green, specific, and pointing at the wrong box: the same shape as 20a's
+layout check measuring the document instead of the node.
+
+Reading the status column instead does not work in the other direction either —
+the first row that is not done is phase 8, open and deliberately parked since
+July. The status column says how a phase ended, never which one is next. It now
+reads the last `- Next allowed step:` line and the `###` heading above it: the
+line the document already writes for exactly this purpose, and the one the
+primer tells a chat to name itself from. Derived from the structure rather than
+duplicated into a field somebody has to remember to update.
+
+**And the first fix pointed at a different wrong row.** `/^#{2,3} /` looks
+obviously right and is an interval quantifier; under the devbox's mawk 1.3.4 it
+matched `## Completion criteria & validation` and not one of the thirty-three
+`### Phase` headings. Plain `/^### /` is what a phase section is. Caught by
+running it rather than by reading it, which is the whole argument for running it.
+
 ## What has NOT happened
 
 ```text
 no cycle          nothing has been applied and no AWS API has been called
 no object         no timeline and no node states exist in the bucket
 the workflow half if: always() folding a CANCELLED RUN is still proven against
-                  fixtures, not against GitHub
-apply-module      its expectation has no streams beside it yet, so
-                  make timeline-check and make node-states-check are RED until
-                  tests/fixtures/timeline/generate.sh runs on the devbox. That
-                  is the intended order
+                  fixtures, not against GitHub. That is the live break test,
+                  and it is the reason the cycle is worth $0.03
 ```
 
 ## Validation
 
-Run in the chat session's own clone; to be re-run on the devbox, after the
-fixture generator.
+All of it on the devbox, 2026-08-08, and `ci.yml` green on the push — with the
+new step confirmed to have EXECUTED rather than the run merely being green.
 
 ```bash
-tests/fixtures/timeline/generate.sh    # writes the apply-module streams
-make timeline-check
-make node-states-check
+tests/fixtures/timeline/generate.sh   # terraform 1.15.8, 7 cases
+make timeline-check                   # 7/7
+make node-states-check                # 5 cases, 4 from real terraform runs
 make site-data-check
 make site-page-check
 make docs-check
 ```
 
-Break tests so far, chat-side: the live binding refused a renamed STEP and a
-renamed JOB, with a control green either side. To be re-run on the devbox and
-recorded.
+Six break tests, all red, both controls green, tree committed first and exit
+codes taken directly rather than through a pipe. Evidence:
+`docs/sessions/2026-08-08-phase-20b-2-break-tests.log`.
+
+```text
+1  a live binding names a step the job does not have
+2  a live binding names a job the workflow does not have
+3  the environment filter removed from the node index
+4  the index stripping stops seeing count
+5  a hidden group forgets which addresses it hides
+6  the fixture directory emptied — it refuses rather than passing 0/0
+0/6  controls: the untouched tree, before and after
+```
+
+Case 3 said more than it was aimed at: the synthetic case reddened too, so the
+environment filter is asserted by a hand-written fixture as well as by a real
+one.
 
 ## Files
 
@@ -175,7 +221,10 @@ Makefile                                     node-states-check
 .github/workflows/promote-prod.yml           the join step
 .github/workflows/destroy.yml                the join step
 .github/workflows/self-service.yml           the join step, in both jobs
-docs/decisions/0040-...                       new
+scripts/session-open.sh                      the cursor, read from the line
+                                             that means it
+docs/sessions/...-break-tests.log            new: the evidence
+docs/decisions/0040-...                      new
 docs/architecture.md                         the third source, in full
 docs/phase-gates.md                          20b.2 section, cursor row
 docs/next-phases.md                          what moved to the $0 half
