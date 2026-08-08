@@ -427,6 +427,22 @@ jobs:
           --stream-dir "$TF_STREAM_DIR"
           --out /tmp/timeline-prod.json
 
+      # The join onto the map's nodes (ADR-0039 D4). Separate from the fold
+      # because it answers a different question - the fold says what terraform
+      # did, this says which node on the picture that was - and separate from
+      # the page because the rule would otherwise live in JavaScript here and in
+      # Python in the gate that checks it.
+      #
+      # `if: always()` for the same reason the fold has it, and no `continue-on-
+      # error`: the script exits 0 even when addresses go unmatched, on purpose.
+      - name: Join the timeline onto the map's nodes
+        if: always()
+        run: >
+          python3 scripts/node-states.py
+          --topology site/data/topology.json
+          --timeline /tmp/timeline-prod.json
+          --out /tmp/nodes-prod.json
+
       - name: Configure AWS credentials (OIDC, publish role)
         if: always()
         uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
@@ -442,4 +458,5 @@ jobs:
           SITE_BASE_URL: ${{ vars.SITE_URL }}
           JOB_STATUS: ${{ job.status }}
           TIMELINE_JSON: /tmp/timeline-prod.json
+          NODE_STATES_JSON: /tmp/nodes-prod.json
         run: scripts/publish-status.sh prod /tmp/observation.json tests/playwright/playwright-report

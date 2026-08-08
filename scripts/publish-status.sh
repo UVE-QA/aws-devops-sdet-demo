@@ -14,7 +14,9 @@
 #   reports/<environment>/<run id>/                     immutable evidence
 #   reports/<environment>/latest/                       a link that stays valid
 #   timeline/<environment>/<run id>-<job>.json          what terraform did, when
-#   timeline/<environment>/latest.json                  the map's at-rest source
+#   timeline/<environment>/latest.json                  the last run, ANY status
+#   timeline/<environment>/nodes-apply.json             the map's at-rest numbers
+#   timeline/<environment>/nodes-destroy.json           ... for the teardown node
 #
 # ONE FILE PER ENVIRONMENT, not the single status.json ADR-0026 describes. Two
 # workflows can be in flight at once - destroying prod while stage deploys is a
@@ -38,6 +40,10 @@
 #                         argument, because two of the four callers publish no
 #                         report and would have had to pass an empty slot to
 #                         reach it.
+#   NODE_STATES_JSON      optional. The file scripts/node-states.py wrote, from
+#                         that same timeline. Published only when the cycle
+#                         finished - see the block below for why that is not the
+#                         same rule as the timeline's.
 set -euo pipefail
 
 env_name="${1:?usage: publish-status.sh <environment> <observation-json> [report-dir]}"
@@ -106,6 +112,43 @@ if [ -n "$timeline_json" ] && [ -s "$timeline_json" ]; then
   echo "published timeline (${timeline_status}): ${base_url}/timeline/${env_name}/${timeline_key}.json"
 else
   echo "no timeline to publish (looked at: '${timeline_json:-<none>}')"
+fi
+
+# ---- the node states, ONLY from a cycle that finished -----------------------
+# ADR-0039 D4 says the at-rest state carries the last MEASURED values and the
+# date of the cycle they came from. latest.json cannot be that source: it is
+# overwritten by every run whatever happened, so a single cancelled run would
+# replace a good measurement with a half one, and the map would go from a dated
+# cycle to a scatter of nodes that stopped mid-apply - for a reason no visitor
+# could see.
+#
+# So two objects answer two questions. latest.json says what happened LAST,
+# including that it did not finish; nodes-<kind>.json carries the NUMBERS, and
+# is written only when the timeline is complete. A cancelled run therefore
+# publishes a timeline marked INCOMPLETE - which is 20b.1's whole claim, now
+# visible on the page - while the figures beside each node stay the ones from
+# the last cycle that ran to the end.
+#
+# The kind is in the key because an apply and a destroy measure different things
+# and would otherwise overwrite each other: a destroy lights the teardown node,
+# an apply lights the service nodes.
+node_states_json="${NODE_STATES_JSON:-}"
+if [ -n "$node_states_json" ] && [ -s "$node_states_json" ]; then
+  states_status="$(jq -r '.cycle.status // "unknown"' "$node_states_json")"
+  states_kind="$(jq -r '.kind // "apply"' "$node_states_json")"
+  states_unknown="$(jq -r '.observed.unknown // 0' "$node_states_json")"
+  if [ "$states_status" = "complete" ]; then
+    aws s3 cp "$node_states_json" \
+      "s3://${SITE_BUCKET}/timeline/${env_name}/nodes-${states_kind}.json" \
+      --content-type application/json \
+      --cache-control "max-age=60" \
+      --only-show-errors
+    echo "published node states (${states_kind}, ${states_unknown} unknown): ${base_url}/timeline/${env_name}/nodes-${states_kind}.json"
+  else
+    echo "node states NOT published: this ${states_kind} is ${states_status}, and the map's numbers only ever come from a cycle that finished"
+  fi
+else
+  echo "no node states to publish (looked at: '${node_states_json:-<none>}')"
 fi
 
 # ---- the run block ---------------------------------------------------------

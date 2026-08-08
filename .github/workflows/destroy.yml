@@ -304,6 +304,24 @@ jobs:
           --stream-dir "$TF_STREAM_DIR"
           --out /tmp/timeline-${{ inputs.environment }}.json
 
+      # The join onto the map's nodes (ADR-0039 D4). Separate from the fold
+      # because it answers a different question - the fold says what terraform
+      # did, this says which node on the picture that was - and separate from
+      # the page because the rule would otherwise live in JavaScript there and
+      # in Python in the gate that checks it.
+      #
+      # Every resource here is a DELETE, so all of them land on this
+      # environment's teardown node; scripts/node-states.py matches a delete by
+      # environment rather than by address, because that node stands for a whole
+      # state level and has no member list to match against.
+      - name: Join the timeline onto the map's nodes
+        if: always()
+        run: >
+          python3 scripts/node-states.py
+          --topology site/data/topology.json
+          --timeline /tmp/timeline-${{ inputs.environment }}.json
+          --out /tmp/nodes-${{ inputs.environment }}.json
+
       - name: Configure AWS credentials (OIDC, publish role)
         if: always()
         uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
@@ -319,4 +337,5 @@ jobs:
           SITE_BASE_URL: ${{ vars.SITE_URL }}
           JOB_STATUS: ${{ job.status }}
           TIMELINE_JSON: /tmp/timeline-${{ inputs.environment }}.json
+          NODE_STATES_JSON: /tmp/nodes-${{ inputs.environment }}.json
         run: scripts/publish-status.sh ${{ inputs.environment }} /tmp/observation.json
