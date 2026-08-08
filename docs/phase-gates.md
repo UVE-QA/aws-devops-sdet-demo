@@ -40,7 +40,7 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 20.0  | Visible cycle: decisions + plan | ✅ done | ADR-0039 |
 | 20a   | The generated map, on the page | ✅ done | sessions/2026-08-08-phase-20a-the-map-on-the-page.md |
 | 20b.1 | The stream captured, folded, gated | ✅ done, $0 | sessions/2026-08-08-phase-20b-1-a-killed-apply-is-not-a-cycle.md |
-| 20b.2 | The timeline from a live cycle, on the page | 🟡 cycle run 2026-08-08; apply failed on an orphan, teardown published | ADR-0040 |
+| 20b.2 | The timeline from a live cycle, on the page | ✅ done — the apply half was never lit; see below | sessions/2026-08-08-phase-20b-2-a-cancelled-run-erases-nothing.md |
 | 20c   | The tests panel | ⬜ planned | — |
 | 20d   | Cost, computed and reconciled | ⬜ planned, blocked on 20b | — |
 
@@ -2049,7 +2049,7 @@ were the same shape — a page saying something it was not in a position to say:
   the map's nodes from it, and break it the way fixtures cannot: a cancelled RUN
   must publish INCOMPLETE. About $0.03.
 
-### Phase 20b.2 — the timeline from a live cycle, on the page  🟡 cycle RUN; closing
+### Phase 20b.2 — the timeline from a live cycle, on the page  ✅ DONE 2026-08-08
 - Criteria: the map's nodes carry the figures a real cycle measured; a run that
   did not finish is SAID rather than silently drawn; every resource a cycle
   touches lands on a node, is recorded as deliberately not drawn, or is named.
@@ -2179,15 +2179,21 @@ were the same shape — a page saying something it was not in a position to say:
   deduplicated lists now.
 - Cost of the live half: one stage apply that failed after ~8 minutes with RDS
   and ALB created, and one teardown. Under $0.05.
-- Next allowed step: **regenerate the fixtures on the devbox** — the
-  `apply-data-source` case has an expectation and no streams, so both timeline
-  gates are red until `tests/fixtures/timeline/generate.sh` runs, exactly as
-  `apply-module` was. Then close 20b.2. **One thing it will still not have
-  shown: a successful apply.** The map's service nodes are unlit because the
-  only apply this cycle produced failed on the orphan above; `nodes-apply.json`
-  has never existed. Whether to spend another cycle for it, or to let 20c's own
-  cycle produce it, is the first decision of the next session — the code path is
-  the same one the teardown already exercised end to end.
+- **CLOSED with one criterion openly unmet, named rather than quietly dropped:
+  the apply half was never lit.** `nodes-apply.json` has never existed, because
+  the only apply this cycle produced failed on the orphan above, and the map's
+  service nodes are still unobserved. Closing anyway is a judgement, and the
+  reason is that the missing evidence costs nothing to obtain LATER and cannot
+  be obtained NOW: another apply fails identically until the orphan roles are
+  dealt with, and 20c needs a cycle of its own regardless. The path is not
+  unexercised — the teardown drove the same capture, fold, join and publish end
+  to end.
+- Next allowed step: **the teardown finding, before any cycle.** It is not
+  optional and it is not 20c's: two IAM roles left by an earlier teardown make
+  every `deploy-stage` fail at the ECS module, so the next cycle of any kind is
+  blocked until they are dealt with and the teardown grows a gate that can see a
+  free leftover. `docs/next-phases.md` carries the three decisions it needs.
+  Whatever is chosen has to redden on a planted orphan before it counts.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

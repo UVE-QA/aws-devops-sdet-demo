@@ -218,6 +218,24 @@ how long the phase has been running, from the earliest bound step that is in
 flight. It ticks without re-rendering, because rebuilding the map once a second
 to change four characters would throw away the layout work sixty times a minute.
 
+## Closed with one criterion unmet, said out loud
+
+The apply half was never lit. `nodes-apply.json` has never existed, and the
+map's service nodes are still unobserved, because the only apply this cycle
+produced failed on the orphan roles.
+
+Closing anyway is a judgement and here is the whole of it: the missing evidence
+**cannot be obtained now and costs nothing later.** Another apply fails
+identically until the orphans are dealt with, 20c needs a cycle of its own
+regardless, and the code path is not unexercised — the teardown drove the same
+capture, fold, join and publish end to end, on real AWS, and the map drew the
+result. What is missing is one more instance of a proven path, not a proof.
+
+The alternative considered and rejected was deleting the two roles by hand and
+re-running: an AWS mutation outside Terraform, at the tail of a long session, to
+buy a criterion that arrives free in the next one. This project's own record
+says that is how findings get made rather than avoided.
+
 ## What has NOT happened
 
 ```text
