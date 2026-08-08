@@ -1,0 +1,469 @@
+{
+  "_": "FIXTURE. Hand-built in the 20a pilot from infra/ and tests/ as they stand at 4a4f056. NOT generated. It exists to decide the LAYOUT and, by doing so, to fix the schema the generator must produce. Nothing here is published.",
+  "schema": 1,
+  "source_commit": "4a4f056",
+  "counts": {
+    "levels": 8,
+    "permanent_levels": 6,
+    "cycle_levels": 2,
+    "resources": 116,
+    "resources_permanent": 55,
+    "resources_per_cycle": 61,
+    "modules": 9,
+    "suites": 5,
+    "workflows": 6,
+    "adrs": 40
+  },
+  "measured_cycle": {
+    "run": "deploy-stage #217 / promote-prod #58 / destroy #96",
+    "date": "2026-08-08",
+    "note": "FIXTURE NUMBERS. Real values arrive in 20b from Terraform's own event stream."
+  },
+  "permanent": [
+    {
+      "id": "perm.tfstate",
+      "label": "S3 — Terraform state",
+      "service": "s3",
+      "level": "infra/bootstrap",
+      "resources": 4,
+      "why": "the bucket every other level keeps its state in"
+    },
+    {
+      "id": "perm.oidc",
+      "label": "IAM — OIDC + deploy roles",
+      "service": "iam",
+      "level": "infra/bootstrap-oidc",
+      "resources": 5,
+      "why": "GitHub Actions assumes these; no static AWS key exists"
+    },
+    {
+      "id": "perm.ecr",
+      "label": "ECR — the registry",
+      "service": "ecr",
+      "level": "infra/shared-ecr",
+      "resources": 3,
+      "why": "prod promotes the digest stage tested; a teardown must not delete it"
+    },
+    {
+      "id": "perm.dns",
+      "label": "Route 53 + ACM",
+      "service": "route53",
+      "level": "infra/dns",
+      "resources": 4,
+      "why": "delegated zone and the wildcard certificate the ALB serves"
+    },
+    {
+      "id": "perm.site",
+      "label": "S3 + CloudFront — this page",
+      "service": "cloudfront",
+      "level": "infra/public-site",
+      "resources": 14,
+      "why": "the exhibit cannot be destroyed by the thing it exhibits"
+    },
+    {
+      "id": "perm.selfservice",
+      "label": "Lambda + DynamoDB — the button",
+      "service": "lambda",
+      "level": "infra/self-service",
+      "resources": 25,
+      "why": "the public launch button, its TTL and its watchdog"
+    }
+  ],
+  "phases": [
+    {
+      "id": "build",
+      "n": 1,
+      "label": "Build",
+      "workflow": "deploy-stage.yml",
+      "nodes": [
+        {
+          "id": "build.ecr",
+          "label": "ECR push",
+          "service": "ecr",
+          "kind": "service",
+          "env": "stage",
+          "observer": "terraform",
+          "state": "at_rest",
+          "duration_s": 74,
+          "identifier": "sha256:9f2c…4ab1",
+          "cost_usd": 0.0
+        }
+      ]
+    },
+    {
+      "id": "stage-apply",
+      "n": 2,
+      "label": "Apply — stage",
+      "workflow": "deploy-stage.yml",
+      "nodes": [
+        {
+          "id": "stage.vpc",
+          "label": "VPC",
+          "service": "vpc",
+          "kind": "service",
+          "env": "stage",
+          "observer": "terraform",
+          "state": "at_rest",
+          "duration_s": 21,
+          "identifier": "vpc-0a19c7d3e5b8f4c02",
+          "cost_usd": 0.0,
+          "resources": 7
+        },
+        {
+          "id": "stage.secrets",
+          "label": "Secrets Manager",
+          "service": "secretsmanager",
+          "kind": "service",
+          "env": "stage",
+          "observer": "terraform",
+          "state": "at_rest",
+          "duration_s": 4,
+          "identifier": "…/stage/db-abc123",
+          "cost_usd": 0.001,
+          "resources": 2
+        },
+        {
+          "id": "stage.rds",
+          "label": "RDS PostgreSQL",
+          "service": "rds",
+          "kind": "service",
+          "env": "stage",
+          "observer": "terraform",
+          "state": "at_rest",
+          "duration_s": 254,
+          "identifier": "aws-devops-sdet-demo-stage",
+          "cost_usd": 0.012,
+          "resources": 4
+        },
+        {
+          "id": "stage.alb",
+          "label": "Application Load Balancer",
+          "service": "elb",
+          "kind": "service",
+          "env": "stage",
+          "observer": "terraform",
+          "state": "at_rest",
+          "duration_s": 132,
+          "identifier": "arn:…:loadbalancer/app/…/7d2e",
+          "cost_usd": 0.009,
+          "resources": 5
+        },
+        {
+          "id": "stage.ecs",
+          "label": "ECS Fargate",
+          "service": "ecs",
+          "kind": "service",
+          "env": "stage",
+          "observer": "terraform",
+          "state": "at_rest",
+          "duration_s": 96,
+          "identifier": "arn:…:service/…/app",
+          "cost_usd": 0.004,
+          "resources": 8
+        },
+        {
+          "id": "stage.cw",
+          "label": "CloudWatch",
+          "service": "cloudwatch",
+          "kind": "service",
+          "env": "stage",
+          "observer": "terraform",
+          "state": "at_rest",
+          "duration_s": 6,
+          "identifier": "/ecs/…-stage/app",
+          "cost_usd": 0.0,
+          "resources": 3
+        },
+        {
+          "id": "stage.budget",
+          "label": "Budgets",
+          "service": "budgets",
+          "kind": "service",
+          "env": "stage",
+          "observer": "terraform",
+          "state": "at_rest",
+          "duration_s": 3,
+          "identifier": "…-stage-monthly",
+          "cost_usd": 0.0,
+          "resources": 1
+        }
+      ]
+    },
+    {
+      "id": "stage-provision",
+      "n": 3,
+      "label": "Provision — stage",
+      "workflow": "deploy-stage.yml",
+      "nodes": [
+        {
+          "id": "stage.migrate",
+          "label": "migrate + seed",
+          "service": "ecs",
+          "kind": "task",
+          "env": "stage",
+          "observer": "actions",
+          "state": "at_rest",
+          "duration_s": 41,
+          "identifier": "task/…/1f8c",
+          "cost_usd": 0.0
+        }
+      ]
+    },
+    {
+      "id": "stage-gate",
+      "n": 4,
+      "label": "Quality gate — stage",
+      "workflow": "deploy-stage.yml",
+      "nodes": [
+        {
+          "id": "suite.db.stage",
+          "label": "seed assertion",
+          "service": "suite",
+          "kind": "suite",
+          "env": "stage",
+          "observer": "report",
+          "suite_dir": "tests/db",
+          "asserts": "the seeded rows are in RDS, read from inside the VPC",
+          "state": "at_rest",
+          "duration_s": 12,
+          "result": "passed",
+          "specs": 1
+        },
+        {
+          "id": "suite.api.stage",
+          "label": "API contract",
+          "service": "suite",
+          "kind": "suite",
+          "env": "stage",
+          "observer": "report",
+          "suite_dir": "tests/api",
+          "asserts": "the paginated envelope, partial update, request id — DESTRUCTIVE",
+          "state": "at_rest",
+          "duration_s": 19,
+          "result": "passed",
+          "specs": 2
+        },
+        {
+          "id": "suite.regression.stage",
+          "label": "regression",
+          "service": "suite",
+          "kind": "suite",
+          "env": "stage",
+          "observer": "report",
+          "suite_dir": "tests/playwright/tests/regression",
+          "asserts": "items and pagination through the UI — DESTRUCTIVE",
+          "state": "at_rest",
+          "duration_s": 34,
+          "result": "passed",
+          "specs": 2
+        },
+        {
+          "id": "suite.smoke.stage",
+          "label": "smoke",
+          "service": "suite",
+          "kind": "suite",
+          "env": "stage",
+          "observer": "report",
+          "suite_dir": "tests/playwright/tests/smoke",
+          "asserts": "the page loads and the app reaches its database — read-only",
+          "state": "at_rest",
+          "duration_s": 11,
+          "result": "passed",
+          "specs": 1
+        }
+      ]
+    },
+    {
+      "id": "approve",
+      "n": 5,
+      "label": "Approve",
+      "workflow": "promote-prod.yml",
+      "nodes": [
+        {
+          "id": "gate.human",
+          "label": "a human, in the prod environment",
+          "service": "human",
+          "kind": "gate",
+          "env": "prod",
+          "observer": "actions",
+          "state": "at_rest",
+          "duration_s": 213,
+          "identifier": "required reviewer, main only",
+          "cost_usd": 0.0
+        }
+      ]
+    },
+    {
+      "id": "prod-apply",
+      "n": 6,
+      "label": "Apply — prod",
+      "workflow": "promote-prod.yml",
+      "nodes": [
+        {
+          "id": "prod.vpc",
+          "label": "VPC",
+          "service": "vpc",
+          "kind": "service",
+          "env": "prod",
+          "observer": "terraform",
+          "state": "at_rest",
+          "duration_s": 22,
+          "identifier": "vpc-04c81b6a2f7d9e350",
+          "cost_usd": 0.0,
+          "resources": 7
+        },
+        {
+          "id": "prod.secrets",
+          "label": "Secrets Manager",
+          "service": "secretsmanager",
+          "kind": "service",
+          "env": "prod",
+          "observer": "terraform",
+          "state": "at_rest",
+          "duration_s": 4,
+          "identifier": "…/prod/db-9de41f",
+          "cost_usd": 0.001,
+          "resources": 2
+        },
+        {
+          "id": "prod.rds",
+          "label": "RDS PostgreSQL",
+          "service": "rds",
+          "kind": "service",
+          "env": "prod",
+          "observer": "terraform",
+          "state": "at_rest",
+          "duration_s": 261,
+          "identifier": "aws-devops-sdet-demo-prod",
+          "cost_usd": 0.012,
+          "resources": 4
+        },
+        {
+          "id": "prod.alb",
+          "label": "Application Load Balancer",
+          "service": "elb",
+          "kind": "service",
+          "env": "prod",
+          "observer": "terraform",
+          "state": "live",
+          "duration_s": 128,
+          "identifier": "arn:…:loadbalancer/app/…/b1f0",
+          "cost_usd": 0.009,
+          "resources": 5
+        },
+        {
+          "id": "prod.ecs",
+          "label": "ECS Fargate",
+          "service": "ecs",
+          "kind": "service",
+          "env": "prod",
+          "observer": "terraform",
+          "state": "absent",
+          "resources": 8
+        },
+        {
+          "id": "prod.cw",
+          "label": "CloudWatch",
+          "service": "cloudwatch",
+          "kind": "service",
+          "env": "prod",
+          "observer": "terraform",
+          "state": "absent",
+          "resources": 3
+        },
+        {
+          "id": "prod.dnsrec",
+          "label": "Route 53 — app record",
+          "service": "route53",
+          "kind": "service",
+          "env": "prod",
+          "observer": "terraform",
+          "state": "absent",
+          "resources": 1
+        },
+        {
+          "id": "prod.budget",
+          "label": "Budgets",
+          "service": "budgets",
+          "kind": "service",
+          "env": "prod",
+          "observer": "terraform",
+          "state": "absent",
+          "resources": 1
+        }
+      ]
+    },
+    {
+      "id": "prod-gate",
+      "n": 7,
+      "label": "Quality gate — prod",
+      "workflow": "promote-prod.yml",
+      "nodes": [
+        {
+          "id": "suite.db.prod",
+          "label": "seed assertion",
+          "service": "suite",
+          "kind": "suite",
+          "env": "prod",
+          "observer": "report",
+          "suite_dir": "tests/db",
+          "asserts": "the seeded rows are in RDS, read from inside the VPC",
+          "state": "absent",
+          "specs": 1
+        },
+        {
+          "id": "suite.smoke.prod",
+          "label": "smoke",
+          "service": "suite",
+          "kind": "suite",
+          "env": "prod",
+          "observer": "report",
+          "suite_dir": "tests/playwright/tests/smoke",
+          "asserts": "the page loads and the app reaches its database — read-only",
+          "state": "absent",
+          "specs": 1
+        }
+      ]
+    },
+    {
+      "id": "destroy",
+      "n": 8,
+      "label": "Destroy",
+      "workflow": "destroy.yml",
+      "nodes": [
+        {
+          "id": "destroy.stage",
+          "label": "stage — everything above",
+          "service": "destroy",
+          "kind": "service",
+          "env": "stage",
+          "observer": "terraform",
+          "state": "absent",
+          "resources": 30
+        },
+        {
+          "id": "destroy.prod",
+          "label": "prod — everything above",
+          "service": "destroy",
+          "kind": "service",
+          "env": "prod",
+          "observer": "terraform",
+          "state": "absent",
+          "resources": 31
+        }
+      ]
+    }
+  ],
+  "not_shown": [
+    {
+      "group": "iam-inline",
+      "resources": 19,
+      "why": "execution/task roles and inline policies inside ecs, self-service and public-site. They belong to the node they serve; drawing each one buys nothing and costs the legibility floor."
+    },
+    {
+      "group": "sg-rules",
+      "resources": 3,
+      "why": "security groups are drawn with the service they guard"
+    }
+  ]
+}

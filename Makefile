@@ -150,6 +150,13 @@ test-db:
 docs-check:
 	python3 scripts/check-docs-references.py
 
+# Phase 20a pilot. Folds the AWS Architecture Icons into an inline sprite and
+# injects it into site/map-pilot.template.html. The built page is committed so a
+# reader can open it from a clone; this regenerates it. It refuses on a missing
+# icon and on a template that has lost its marker - both exercised on purpose.
+site-pilot:
+	python3 scripts/build-icon-sprite.py
+
 # The two ends of a session, as commands rather than as prose in four documents
 # (ADR-0033). Local only: on a CI checkout the tree is always clean and HEAD
 # always matches, so the interesting checks could not fail there.
