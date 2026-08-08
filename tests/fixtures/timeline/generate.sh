@@ -187,6 +187,62 @@ capture destroy-cycle 01-destroy-alpha "$work/destroy" \
 capture destroy-cycle 02-destroy "$work/destroy" destroy -input=false -auto-approve -json
 
 # ---------------------------------------------------------------------------
+# EVERY resource this project applies lives inside a module, and none of the
+# cases above has one. So `hook.resource.module` and what `addr` looks like
+# inside a module were the last piece of the schema still read from the
+# documentation rather than observed — and scripts/node-states.py matches those
+# addresses against the module addresses in site/data/topology.json, so a wrong
+# guess there would light no node at all.
+#
+# A local module holding terraform_data is as real a terraform run as the others
+# and costs the same nothing. Three shapes, because the address of each is
+# different and the normalisation has to survive all three:
+#
+#   module.child.terraform_data.only        a plain resource inside a module
+#   module.child.terraform_data.many[0]     count INSIDE a module - what
+#                                           aws_subnet.public actually is
+#   module.pair[0].terraform_data.only      count on the MODULE. infra/ has none
+#                                           today, and a normalisation rule
+#                                           written for a shape nobody exercised
+#                                           is the class of thing this repository
+#                                           breaks on purpose
+say "apply-module — resources inside modules, the shape infra/ actually uses"
+new_case apply-module
+mkdir -p "$work/module/modules/child"
+cat > "$work/module/modules/child/main.tf" <<'EOF'
+variable "label" {
+  type = string
+}
+
+resource "terraform_data" "only" {
+  input = var.label
+}
+
+resource "terraform_data" "many" {
+  count = 2
+  input = "${var.label}-${count.index}"
+}
+EOF
+cat > "$work/module/main.tf" <<'EOF'
+resource "terraform_data" "root" {
+  input = "at the root"
+}
+
+module "child" {
+  source = "./modules/child"
+  label  = "child"
+}
+
+module "pair" {
+  count  = 2
+  source = "./modules/child"
+  label  = "pair"
+}
+EOF
+( cd "$work/module" && tf init -input=false -no-color > /dev/null )
+capture apply-module 01-apply "$work/module" apply -input=false -auto-approve -json
+
+# ---------------------------------------------------------------------------
 version_line="$(terraform version | head -1)"
 printf '%s\ngenerated %s by tests/fixtures/timeline/generate.sh\n' \
   "$version_line" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "${dest}/GENERATED-BY"

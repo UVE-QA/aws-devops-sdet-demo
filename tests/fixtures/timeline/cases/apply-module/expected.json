@@ -1,0 +1,30 @@
+{
+  "description": "An apply whose resources live inside modules, which is the shape every resource in infra/ actually has. Ten resources created: one at the root, three in a plain module, and three in each instance of a module with count. The fold has to carry the module-qualified address through unchanged, because scripts/node-states.py matches it against the addresses in site/data/topology.json.",
+  "status": "complete",
+  "totals": {
+    "operations": 1,
+    "resources_created": 10,
+    "resources_destroyed": 0
+  },
+  "operations": [
+    {
+      "label": "apply",
+      "command": "apply",
+      "status": "complete",
+      "exit_code": 0,
+      "resources": {
+        "complete": 10,
+        "errored": 0,
+        "incomplete": 0
+      },
+      "diagnostics": {
+        "error": 0,
+        "warning": 0
+      },
+      "stream": {
+        "unparsed_lines": 0,
+        "unknown_types": []
+      }
+    }
+  ]
+}
