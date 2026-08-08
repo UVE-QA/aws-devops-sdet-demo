@@ -1,0 +1,68 @@
+{
+  "phases": {
+    "build": {
+      "state": "finished",
+      "since": "2026-08-08T10:00:00Z"
+    },
+    "stage-apply": {
+      "state": "finished",
+      "since": "2026-08-08T11:00:00Z"
+    },
+    "stage-provision": {
+      "state": "running",
+      "since": "2026-08-08T13:00:00Z"
+    }
+  },
+  "nodes": {
+    "build.ecr": {
+      "state": "finished",
+      "since": "2026-08-08T10:00:00Z",
+      "via": "phase"
+    },
+    "stage.vpc": {
+      "state": "finished",
+      "since": "2026-08-08T11:00:00Z",
+      "via": "phase"
+    },
+    "stage.secrets": {
+      "state": "finished",
+      "since": "2026-08-08T11:00:00Z",
+      "via": "phase"
+    },
+    "stage.rds": {
+      "state": "finished",
+      "since": "2026-08-08T11:00:00Z",
+      "via": "phase"
+    },
+    "stage.alb": {
+      "state": "finished",
+      "since": "2026-08-08T11:00:00Z",
+      "via": "phase"
+    },
+    "stage.ecs": {
+      "state": "finished",
+      "since": "2026-08-08T11:00:00Z",
+      "via": "phase"
+    },
+    "stage.cloudwatch": {
+      "state": "finished",
+      "since": "2026-08-08T11:00:00Z",
+      "via": "phase"
+    },
+    "stage.budgets": {
+      "state": "finished",
+      "since": "2026-08-08T11:00:00Z",
+      "via": "phase"
+    },
+    "stage.migrate": {
+      "state": "running",
+      "since": "2026-08-08T13:00:00Z",
+      "via": "phase"
+    },
+    "suite.db.stage": {
+      "state": "running",
+      "since": "2026-08-08T14:00:00Z",
+      "via": "own"
+    }
+  }
+}

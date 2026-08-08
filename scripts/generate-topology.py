@@ -259,25 +259,33 @@ def workflow_jobs(path: pathlib.Path) -> dict[str, list[str]]:
     return jobs
 
 
-def live_bindings(phase: dict) -> tuple[list[dict], list[str]]:
-    """Resolve and CHECK one phase's live bindings."""
+def live_bindings(owner: str, spec: dict) -> tuple[list[dict], list[str]]:
+    """Resolve and CHECK one owner's live bindings.
+
+    The owner is a phase or a SUITE NODE, and the check is identical for both.
+    A suite node binds its OWN step, because the phase it is drawn in may bind a
+    different one: `suite.db.stage` is drawn in the quality gate and its report
+    comes out of a step in Provision, so inheriting the phase's answer lit it in
+    the wrong minute - and prod, whose gate phase does bind its db step, gave a
+    different answer for the same suite (ADR-0043 D1).
+    """
     findings: list[str] = []
-    bindings = phase.get("live")
+    bindings = spec.get("live")
     if not bindings:
-        # No phase is exempt. A phase with no binding is a phase that can never
-        # pulse, and the map would show a cycle running with a hole in it.
-        return [], [f"phase {phase['id']} declares no `live` binding"]
+        # Nothing that can pulse is exempt. A phase or suite with no binding can
+        # never pulse, and the map would show a cycle running with a hole in it.
+        return [], [f"{owner} declares no `live` binding"]
 
     resolved = []
     for b in bindings:
         path = WORKFLOWS / b["workflow"]
         if not path.is_file():
-            findings.append(f"phase {phase['id']}: no workflow {b['workflow']}")
+            findings.append(f"{owner}: no workflow {b['workflow']}")
             continue
         jobs = workflow_jobs(path)
         if b["job"] not in jobs:
             findings.append(
-                f"phase {phase['id']}: {b['workflow']} has no job {b['job']} "
+                f"{owner}: {b['workflow']} has no job {b['job']} "
                 f"(it has: {', '.join(sorted(jobs)) or 'none'})"
             )
             continue
@@ -285,15 +293,15 @@ def live_bindings(phase: dict) -> tuple[list[dict], list[str]]:
         for step in steps:
             if step not in jobs[b["job"]]:
                 findings.append(
-                    f"phase {phase['id']}: {b['workflow']} job {b['job']} has no step "
+                    f"{owner}: {b['workflow']} job {b['job']} has no step "
                     f"named {step!r}. Renaming a step breaks the pulse silently; "
                     f"this is that rename, caught."
                 )
         when = b.get("when", "step")
         if when == "step" and not steps:
-            findings.append(f"phase {phase['id']}: {b['workflow']} binding names no step")
+            findings.append(f"{owner}: {b['workflow']} binding names no step")
         if when not in ("step", "waiting"):
-            findings.append(f"phase {phase['id']}: unknown live trigger {when!r}")
+            findings.append(f"{owner}: unknown live trigger {when!r}")
         resolved.append(
             {
                 "workflow": b["workflow"],
@@ -448,6 +456,12 @@ def build():
                 )
             elif "suite" in n:
                 s = spec["suites"][n["suite"]]
+                # The node's OWN binding, checked exactly like a phase's. A
+                # suite is observed by a step, and the step that produces its
+                # report is not always in the phase the node is drawn in.
+                node_live, node_findings = live_bindings(f"node {n['id']}", n)
+                if node_findings:
+                    raise Refusal("\n".join(node_findings))
                 nodes.append(
                     {
                         "id": n["id"],
@@ -456,9 +470,11 @@ def build():
                         "kind": n["kind"],
                         "env": n.get("env", p.get("env")),
                         "observer": n["observer"],
+                        "suite": n["suite"],
                         "suite_dir": s["dir"],
                         "asserts": s["asserts"],
                         "spec_files": spec_files(s),
+                        "live": node_live,
                     }
                 )
             elif "whole_level" in n:
@@ -470,7 +486,7 @@ def build():
                 node = dict(n)
                 node.setdefault("env", p.get("env"))
                 nodes.append(node)
-        live, live_findings = live_bindings(p)
+        live, live_findings = live_bindings(f"phase {p['id']}", p)
         if live_findings:
             raise Refusal("\n".join(live_findings))
         phases.append(

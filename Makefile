@@ -6,7 +6,7 @@
         tf-validate docs-check secret-scan iac-scan image-scan action-pins \
         self-service-package self-service-cors-check site-page site-page-check \
         site-data site-data-check timeline-check node-states-check \
-        suite-inventory suite-inventory-check results-check
+        suite-inventory suite-inventory-check results-check live-state-check
 
 # Bring up postgres + app (build app image if needed), detached.
 local-up:
@@ -254,6 +254,25 @@ node-states-check:
 # it runs beside the map's other gates.
 results-check:
 	python3 scripts/check-results.py
+
+# The one piece of map logic that CANNOT move to Python, gated where it lives
+# (ADR-0043 D3). The other two folds run on the runner and are checked there
+# precisely so they are not written twice; this one reads the Actions API in the
+# visitor's browser, and there is no run afterwards to fold. So the gate lifts
+# the marked block OUT OF site/index.html and runs that, verbatim, against
+# recorded observations - the code the visitor executes, not a copy of it.
+#
+# The claim under gate, in the three sentences 20c wrote down while watching a
+# live cycle and had no way to check afterwards: a node with no step of its own
+# is never reported as running on its own behalf; a phase whose steps are over in
+# a run still going is FINISHED, which is not the same thing as never having run;
+# and a suite answers for its own step, not for the phase it happens to be drawn
+# in.
+#
+# It reads the BUILT page, so a template edited without rebuilding reddens it -
+# the same property site-page-check exists for, arriving here for free.
+live-state-check:
+	node scripts/check-live-state.mjs
 
 # The two ends of a session, as commands rather than as prose in four documents
 # (ADR-0033). Local only: on a CI checkout the tree is always clean and HEAD

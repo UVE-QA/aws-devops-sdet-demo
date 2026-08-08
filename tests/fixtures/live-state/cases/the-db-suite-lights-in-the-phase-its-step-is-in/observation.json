@@ -1,0 +1,53 @@
+{
+  "run": {
+    "path": ".github/workflows/deploy-stage.yml",
+    "status": "in_progress",
+    "run_started_at": "2026-08-08T10:00:00Z"
+  },
+  "envs": [
+    "stage"
+  ],
+  "jobs": [
+    {
+      "name": "deploy",
+      "status": "in_progress",
+      "started_at": "2026-08-08T10:00:00Z",
+      "steps": [
+        {
+          "name": "Build, tag, and push image",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-08-08T10:00:00Z"
+        },
+        {
+          "name": "Terraform plan",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-08-08T11:00:00Z"
+        },
+        {
+          "name": "Terraform apply",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-08-08T12:00:00Z"
+        },
+        {
+          "name": "Wait for ECS service to be stable",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-08-08T13:00:00Z"
+        },
+        {
+          "name": "Run one-off tasks (migrate, seed, db-assert)",
+          "status": "in_progress",
+          "started_at": "2026-08-08T14:00:00Z"
+        },
+        {
+          "name": "API contract tests against the ALB",
+          "status": "queued"
+        }
+      ]
+    }
+  ],
+  "_": "suite.db.stage is DRAWN in the quality gate and its report comes out of a step in Provision. Its own binding is what answers: it is running while the gate phase has not started. Under the phase's answer it would have been dark here and lit later, during tests it takes no part in - and prod, whose gate phase does bind its db step, would have said the opposite about the same suite."
+}

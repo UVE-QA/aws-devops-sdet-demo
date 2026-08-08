@@ -1,0 +1,41 @@
+{
+  "run": {
+    "path": ".github/workflows/deploy-stage.yml",
+    "status": "in_progress",
+    "run_started_at": "2026-08-08T10:00:00Z"
+  },
+  "envs": [
+    "stage"
+  ],
+  "jobs": [
+    {
+      "name": "deploy",
+      "status": "in_progress",
+      "started_at": "2026-08-08T10:00:00Z",
+      "steps": [
+        {
+          "name": "Build, tag, and push image",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-08-08T10:00:00Z"
+        },
+        {
+          "name": "Terraform plan",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-08-08T11:00:00Z"
+        },
+        {
+          "name": "Terraform apply",
+          "status": "in_progress",
+          "started_at": "2026-08-08T12:00:00Z"
+        },
+        {
+          "name": "Wait for ECS service to be stable",
+          "status": "queued"
+        }
+      ]
+    }
+  ],
+  "_": "Terraform creates ONE resource at a time and the page is never told which, so every node of the running phase inherits the phase and is marked as having done so. Not one of the seven may come back via `own`. The clock starts at `Terraform plan`, the first bound step to have begun, not at the step running right now."
+}

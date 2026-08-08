@@ -171,6 +171,15 @@ jobs:
         # files, calls nothing, and costs nothing (ADR-0042 D5).
         run: make results-check
 
+      - name: A node with no step of its own never claims to be running
+        # The gate over the one piece of map logic that cannot move off the page
+        # (ADR-0043 D3): it reads the Actions API live in the browser, so there
+        # is no run afterwards to fold. Instead of a second copy in Python, the
+        # gate lifts the marked block out of the BUILT page and runs that. Node
+        # is preinstalled on this image and the block is plain ES2015, so there
+        # is no setup step and no version this check is sensitive to.
+        run: make live-state-check
+
       - name: Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:

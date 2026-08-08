@@ -1,0 +1,59 @@
+{
+  "phases": {
+    "approve": {
+      "state": "finished",
+      "since": "2026-08-08T11:00:00Z"
+    },
+    "prod-apply": {
+      "state": "running",
+      "since": "2026-08-08T12:00:00Z"
+    }
+  },
+  "nodes": {
+    "gate.human": {
+      "state": "finished",
+      "since": "2026-08-08T11:00:00Z",
+      "via": "phase"
+    },
+    "prod.vpc": {
+      "state": "running",
+      "since": "2026-08-08T12:00:00Z",
+      "via": "phase"
+    },
+    "prod.secrets": {
+      "state": "running",
+      "since": "2026-08-08T12:00:00Z",
+      "via": "phase"
+    },
+    "prod.rds": {
+      "state": "running",
+      "since": "2026-08-08T12:00:00Z",
+      "via": "phase"
+    },
+    "prod.alb": {
+      "state": "running",
+      "since": "2026-08-08T12:00:00Z",
+      "via": "phase"
+    },
+    "prod.ecs": {
+      "state": "running",
+      "since": "2026-08-08T12:00:00Z",
+      "via": "phase"
+    },
+    "prod.cloudwatch": {
+      "state": "running",
+      "since": "2026-08-08T12:00:00Z",
+      "via": "phase"
+    },
+    "prod.dnsrec": {
+      "state": "running",
+      "since": "2026-08-08T12:00:00Z",
+      "via": "phase"
+    },
+    "prod.budgets": {
+      "state": "running",
+      "since": "2026-08-08T12:00:00Z",
+      "via": "phase"
+    }
+  }
+}

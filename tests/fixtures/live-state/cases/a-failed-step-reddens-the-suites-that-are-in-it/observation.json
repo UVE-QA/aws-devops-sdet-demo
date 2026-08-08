@@ -1,0 +1,44 @@
+{
+  "run": {
+    "path": ".github/workflows/deploy-stage.yml",
+    "status": "in_progress",
+    "run_started_at": "2026-08-08T10:00:00Z"
+  },
+  "envs": [
+    "stage"
+  ],
+  "jobs": [
+    {
+      "name": "deploy",
+      "status": "in_progress",
+      "started_at": "2026-08-08T10:00:00Z",
+      "steps": [
+        {
+          "name": "Run one-off tasks (migrate, seed, db-assert)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-08-08T14:00:00Z"
+        },
+        {
+          "name": "API contract tests against the ALB",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-08-08T15:00:00Z"
+        },
+        {
+          "name": "Playwright smoke + regression against the ALB",
+          "status": "completed",
+          "conclusion": "failure",
+          "started_at": "2026-08-08T16:00:00Z"
+        },
+        {
+          "name": "Assert the UI write reached RDS",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-08-08T17:00:00Z"
+        }
+      ]
+    }
+  ],
+  "_": "One Playwright invocation runs both projects, so a failure in it belongs to both suites and to neither of the other two. Failure outranks finished on the phase, which holds all four steps; the API suite next to it stays green."
+}

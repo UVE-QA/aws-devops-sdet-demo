@@ -1,0 +1,39 @@
+{
+  "run": {
+    "path": ".github/workflows/promote-prod.yml",
+    "status": "in_progress",
+    "run_started_at": "2026-08-08T10:00:00Z"
+  },
+  "envs": [
+    "prod"
+  ],
+  "jobs": [
+    {
+      "name": "promote",
+      "status": "in_progress",
+      "started_at": "2026-08-08T11:00:00Z",
+      "steps": [
+        {
+          "name": "Terraform plan",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-08-08T12:00:00Z"
+        },
+        {
+          "name": "Terraform apply",
+          "status": "in_progress",
+          "started_at": "2026-08-08T13:00:00Z"
+        },
+        {
+          "name": "Provision the prod database (migrate, seed, db-assert)",
+          "status": "queued"
+        },
+        {
+          "name": "Read-only smoke against prod",
+          "status": "queued"
+        }
+      ]
+    }
+  ],
+  "_": "The job leaving the queue IS the approval being given, and the gate node has to stop saying `waiting for a human` at that moment rather than at the end of the run."
+}

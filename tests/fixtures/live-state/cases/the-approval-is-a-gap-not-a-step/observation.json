@@ -1,0 +1,19 @@
+{
+  "run": {
+    "path": ".github/workflows/promote-prod.yml",
+    "status": "waiting",
+    "run_started_at": "2026-08-08T11:00:00Z",
+    "created_at": "2026-08-08T10:00:00Z"
+  },
+  "envs": [
+    "prod"
+  ],
+  "jobs": [
+    {
+      "name": "promote",
+      "status": "queued",
+      "steps": []
+    }
+  ],
+  "_": "There is no step to ask: the approval is the gap before the job starts, and the runs API reports it as a run in the `waiting` state."
+}

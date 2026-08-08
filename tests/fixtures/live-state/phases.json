@@ -1,0 +1,375 @@
+{
+  "_": "A FROZEN snapshot of what the run-layer state machine needs out of site/data/topology.json: the phase bindings, and each node's id, environment and own binding. Frozen on purpose, exactly like the inventory in tests/fixtures/results/: this gate is about the state machine, and if it read the live map then adding a node would redden it and teach the person who added it that the fixture is stale. Refresh it deliberately, with tests/fixtures/live-state/refresh.py, when the bindings themselves change.",
+  "captured_from": "site/data/topology.json",
+  "phases": [
+    {
+      "id": "build",
+      "live": [
+        {
+          "workflow": "deploy-stage.yml",
+          "path": ".github/workflows/deploy-stage.yml",
+          "job": "deploy",
+          "when": "step",
+          "steps": [
+            "Build, tag, and push image"
+          ]
+        },
+        {
+          "workflow": "self-service.yml",
+          "path": ".github/workflows/self-service.yml",
+          "job": "launch",
+          "when": "step",
+          "steps": [
+            "Build, tag, and push image"
+          ]
+        }
+      ],
+      "nodes": [
+        {
+          "id": "build.ecr",
+          "env": "stage"
+        }
+      ]
+    },
+    {
+      "id": "stage-apply",
+      "live": [
+        {
+          "workflow": "deploy-stage.yml",
+          "path": ".github/workflows/deploy-stage.yml",
+          "job": "deploy",
+          "when": "step",
+          "steps": [
+            "Terraform plan",
+            "Terraform apply"
+          ]
+        },
+        {
+          "workflow": "self-service.yml",
+          "path": ".github/workflows/self-service.yml",
+          "job": "launch",
+          "when": "step",
+          "steps": [
+            "Terraform apply"
+          ]
+        }
+      ],
+      "nodes": [
+        {
+          "id": "stage.vpc",
+          "env": "stage"
+        },
+        {
+          "id": "stage.secrets",
+          "env": "stage"
+        },
+        {
+          "id": "stage.rds",
+          "env": "stage"
+        },
+        {
+          "id": "stage.alb",
+          "env": "stage"
+        },
+        {
+          "id": "stage.ecs",
+          "env": "stage"
+        },
+        {
+          "id": "stage.cloudwatch",
+          "env": "stage"
+        },
+        {
+          "id": "stage.budgets",
+          "env": "stage"
+        }
+      ]
+    },
+    {
+      "id": "stage-provision",
+      "live": [
+        {
+          "workflow": "deploy-stage.yml",
+          "path": ".github/workflows/deploy-stage.yml",
+          "job": "deploy",
+          "when": "step",
+          "steps": [
+            "Wait for ECS service to be stable",
+            "Run one-off tasks (migrate, seed, db-assert)"
+          ]
+        },
+        {
+          "workflow": "self-service.yml",
+          "path": ".github/workflows/self-service.yml",
+          "job": "launch",
+          "when": "step",
+          "steps": [
+            "Wait for ECS service to be stable",
+            "Run one-off tasks (migrate, seed, db-assert)"
+          ]
+        }
+      ],
+      "nodes": [
+        {
+          "id": "stage.migrate",
+          "env": "stage"
+        }
+      ]
+    },
+    {
+      "id": "stage-gate",
+      "live": [
+        {
+          "workflow": "deploy-stage.yml",
+          "path": ".github/workflows/deploy-stage.yml",
+          "job": "deploy",
+          "when": "step",
+          "steps": [
+            "API contract tests against the ALB",
+            "Playwright smoke + regression against the ALB",
+            "Assert the UI write reached RDS"
+          ]
+        },
+        {
+          "workflow": "self-service.yml",
+          "path": ".github/workflows/self-service.yml",
+          "job": "launch",
+          "when": "step",
+          "steps": [
+            "Playwright smoke against the ALB"
+          ]
+        }
+      ],
+      "nodes": [
+        {
+          "id": "suite.db.stage",
+          "env": "stage",
+          "live": [
+            {
+              "workflow": "deploy-stage.yml",
+              "path": ".github/workflows/deploy-stage.yml",
+              "job": "deploy",
+              "when": "step",
+              "steps": [
+                "Run one-off tasks (migrate, seed, db-assert)"
+              ]
+            },
+            {
+              "workflow": "self-service.yml",
+              "path": ".github/workflows/self-service.yml",
+              "job": "launch",
+              "when": "step",
+              "steps": [
+                "Run one-off tasks (migrate, seed, db-assert)"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "suite.api.stage",
+          "env": "stage",
+          "live": [
+            {
+              "workflow": "deploy-stage.yml",
+              "path": ".github/workflows/deploy-stage.yml",
+              "job": "deploy",
+              "when": "step",
+              "steps": [
+                "API contract tests against the ALB"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "suite.regression.stage",
+          "env": "stage",
+          "live": [
+            {
+              "workflow": "deploy-stage.yml",
+              "path": ".github/workflows/deploy-stage.yml",
+              "job": "deploy",
+              "when": "step",
+              "steps": [
+                "Playwright smoke + regression against the ALB",
+                "Assert the UI write reached RDS"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "suite.smoke.stage",
+          "env": "stage",
+          "live": [
+            {
+              "workflow": "deploy-stage.yml",
+              "path": ".github/workflows/deploy-stage.yml",
+              "job": "deploy",
+              "when": "step",
+              "steps": [
+                "Playwright smoke + regression against the ALB"
+              ]
+            },
+            {
+              "workflow": "self-service.yml",
+              "path": ".github/workflows/self-service.yml",
+              "job": "launch",
+              "when": "step",
+              "steps": [
+                "Playwright smoke against the ALB"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "approve",
+      "live": [
+        {
+          "workflow": "promote-prod.yml",
+          "path": ".github/workflows/promote-prod.yml",
+          "job": "promote",
+          "when": "waiting",
+          "steps": []
+        }
+      ],
+      "nodes": [
+        {
+          "id": "gate.human",
+          "env": "prod"
+        }
+      ]
+    },
+    {
+      "id": "prod-apply",
+      "live": [
+        {
+          "workflow": "promote-prod.yml",
+          "path": ".github/workflows/promote-prod.yml",
+          "job": "promote",
+          "when": "step",
+          "steps": [
+            "Terraform plan",
+            "Terraform apply"
+          ]
+        }
+      ],
+      "nodes": [
+        {
+          "id": "prod.vpc",
+          "env": "prod"
+        },
+        {
+          "id": "prod.secrets",
+          "env": "prod"
+        },
+        {
+          "id": "prod.rds",
+          "env": "prod"
+        },
+        {
+          "id": "prod.alb",
+          "env": "prod"
+        },
+        {
+          "id": "prod.ecs",
+          "env": "prod"
+        },
+        {
+          "id": "prod.cloudwatch",
+          "env": "prod"
+        },
+        {
+          "id": "prod.dnsrec",
+          "env": "prod"
+        },
+        {
+          "id": "prod.budgets",
+          "env": "prod"
+        }
+      ]
+    },
+    {
+      "id": "prod-gate",
+      "live": [
+        {
+          "workflow": "promote-prod.yml",
+          "path": ".github/workflows/promote-prod.yml",
+          "job": "promote",
+          "when": "step",
+          "steps": [
+            "Provision the prod database (migrate, seed, db-assert)",
+            "Read-only smoke against prod"
+          ]
+        }
+      ],
+      "nodes": [
+        {
+          "id": "suite.db.prod",
+          "env": "prod",
+          "live": [
+            {
+              "workflow": "promote-prod.yml",
+              "path": ".github/workflows/promote-prod.yml",
+              "job": "promote",
+              "when": "step",
+              "steps": [
+                "Provision the prod database (migrate, seed, db-assert)"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "suite.smoke.prod",
+          "env": "prod",
+          "live": [
+            {
+              "workflow": "promote-prod.yml",
+              "path": ".github/workflows/promote-prod.yml",
+              "job": "promote",
+              "when": "step",
+              "steps": [
+                "Read-only smoke against prod"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "destroy",
+      "live": [
+        {
+          "workflow": "destroy.yml",
+          "path": ".github/workflows/destroy.yml",
+          "job": "destroy",
+          "when": "step",
+          "steps": [
+            "Destroy ALB first (release ENIs before the IGW)",
+            "Terraform destroy"
+          ]
+        },
+        {
+          "workflow": "self-service.yml",
+          "path": ".github/workflows/self-service.yml",
+          "job": "destroy",
+          "when": "step",
+          "steps": [
+            "Destroy ALB first (release ENIs before the IGW)",
+            "Terraform destroy"
+          ]
+        }
+      ],
+      "nodes": [
+        {
+          "id": "destroy.stage",
+          "env": "stage"
+        },
+        {
+          "id": "destroy.prod",
+          "env": "prod"
+        }
+      ]
+    }
+  ]
+}

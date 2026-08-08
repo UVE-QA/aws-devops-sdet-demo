@@ -1,0 +1,34 @@
+{
+  "run": {
+    "path": ".github/workflows/deploy-stage.yml",
+    "status": "completed",
+    "conclusion": "success",
+    "run_started_at": "2026-08-08T10:00:00Z"
+  },
+  "envs": [
+    "stage"
+  ],
+  "jobs": [
+    {
+      "name": "deploy",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-08-08T10:00:00Z",
+      "steps": [
+        {
+          "name": "Terraform apply",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-08-08T12:00:00Z"
+        },
+        {
+          "name": "API contract tests against the ALB",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-08-08T15:00:00Z"
+        }
+      ]
+    }
+  ],
+  "_": "The publish step of that same run has already written the figures and the reports, so they are the better answer. Without this rule 'finished in this run' would sit over the top of real measurements until somebody started another cycle - which is most days, on a demo that is torn down between them."
+}

@@ -1,0 +1,51 @@
+{
+  "run": {
+    "path": ".github/workflows/deploy-stage.yml",
+    "status": "in_progress",
+    "run_started_at": "2026-08-08T10:00:00Z"
+  },
+  "envs": [
+    "stage"
+  ],
+  "jobs": [
+    {
+      "name": "deploy",
+      "status": "in_progress",
+      "started_at": "2026-08-08T10:00:00Z",
+      "steps": [
+        {
+          "name": "Terraform apply",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-08-08T12:00:00Z"
+        },
+        {
+          "name": "Wait for ECS service to be stable",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-08-08T13:00:00Z"
+        },
+        {
+          "name": "Run one-off tasks (migrate, seed, db-assert)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-08-08T14:00:00Z"
+        },
+        {
+          "name": "API contract tests against the ALB",
+          "status": "in_progress",
+          "started_at": "2026-08-08T15:00:00Z"
+        },
+        {
+          "name": "Playwright smoke + regression against the ALB",
+          "status": "queued"
+        },
+        {
+          "name": "Assert the UI write reached RDS",
+          "status": "queued"
+        }
+      ]
+    }
+  ],
+  "_": "The gate phase is running and three of its four suites have not started. Only the one whose step is in progress lights; regression and smoke report NOTHING rather than inheriting the phase, and the db suite - drawn in this same phase - is already finished. This is the whole of ADR-0043 D1 in one observation."
+}

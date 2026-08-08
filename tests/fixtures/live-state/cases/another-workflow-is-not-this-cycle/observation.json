@@ -1,0 +1,23 @@
+{
+  "run": {
+    "path": ".github/workflows/ci.yml",
+    "status": "in_progress",
+    "run_started_at": "2026-08-08T10:00:00Z"
+  },
+  "envs": [],
+  "jobs": [
+    {
+      "name": "deploy",
+      "status": "in_progress",
+      "started_at": "2026-08-08T10:00:00Z",
+      "steps": [
+        {
+          "name": "Terraform apply",
+          "status": "in_progress",
+          "started_at": "2026-08-08T12:00:00Z"
+        }
+      ]
+    }
+  ],
+  "_": "The job and step names collide on purpose. The binding matches on the WORKFLOW PATH first, so a CI run that happens to hold a step called `Terraform apply` cannot light the stage apply."
+}

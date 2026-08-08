@@ -1,0 +1,15 @@
+{
+  "phases": {
+    "destroy": {
+      "state": "running",
+      "since": "2026-08-08T11:00:00Z"
+    }
+  },
+  "nodes": {
+    "destroy.stage": {
+      "state": "running",
+      "since": "2026-08-08T11:00:00Z",
+      "via": "phase"
+    }
+  }
+}

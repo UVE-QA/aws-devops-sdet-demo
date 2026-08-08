@@ -1,0 +1,23 @@
+{
+  "run": {
+    "path": ".github/workflows/destroy.yml",
+    "status": "in_progress",
+    "run_started_at": "2026-08-08T10:00:00Z"
+  },
+  "envs": [],
+  "jobs": [
+    {
+      "name": "destroy",
+      "status": "in_progress",
+      "started_at": "2026-08-08T10:00:00Z",
+      "steps": [
+        {
+          "name": "Terraform destroy",
+          "status": "in_progress",
+          "started_at": "2026-08-08T12:00:00Z"
+        }
+      ]
+    }
+  ],
+  "_": "When the run does not say which environment it is about, both are lit. That is the honest rendering of `it could be either`, and it is the same conservative choice the status panel makes when it marks both stale."
+}

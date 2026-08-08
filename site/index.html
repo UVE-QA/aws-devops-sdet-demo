@@ -291,6 +291,23 @@
         border: 1px solid var(--accent); animation: pulse 1.6s ease-out infinite;
       }
       @keyframes pulse { 0% { opacity: 0.9; transform: scale(1); } 100% { opacity: 0; transform: scale(1.04); } }
+      /* Three states that are NOT "running now", and are deliberately quieter
+         than it (ADR-0043 D2). `working` is a node inside a running phase that
+         has no step of its own: something in that phase is happening and nothing
+         on this page knows whether it is this node - it used to take the pulse
+         and claim it was. `done` and `failed-now` finished IN THE RUN THAT IS
+         STILL GOING, and carry no figures because those publish at the end - so
+         without them a phase that finished thirty seconds ago was drawn exactly
+         like a phase that has never run. */
+      /* These three outrank `absent`: the node has no published figures, which
+         is what `absent` dims for, but something is happening to it right now. */
+      .node.working, .node.done, .node.failed-now { opacity: 1; }
+      .node.working { border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); border-style: dashed; }
+      .node.done { border-color: color-mix(in srgb, var(--ok) 45%, var(--line)); }
+      .node.failed-now { border-color: color-mix(in srgb, var(--bad) 55%, var(--line)); }
+      .phase.done { border-color: color-mix(in srgb, var(--ok) 45%, var(--line)); }
+      .phase > header .finished { margin-left: auto; color: var(--ok); font-weight: 700; }
+      .phase > header .was + .finished { margin-left: 0.4rem; }
 
       .node.suite { background: var(--suite-bg); border-color: color-mix(in srgb, var(--suite) 40%, var(--line)); }
       .node.suite .icon { border-style: solid; border-color: var(--suite); color: var(--suite); background: transparent; }
@@ -299,6 +316,12 @@
       .node.destroy { background: var(--bad-bg); border-color: color-mix(in srgb, var(--bad) 40%, var(--line)); }
       .result { font-size: 0.71rem; font-weight: 700; }
       .result.passed { color: var(--ok); }
+      .result.failed { color: var(--bad); }
+      .result.incomplete { color: var(--warn); }
+      .result.unobserved { color: var(--muted); }
+      /* The suite's own counts, under its verdict. Never a bar: a suite has no
+         duration worth drawing at the same scale as a database. */
+      .counts { font-size: 0.71rem; color: var(--muted); }
 
       .envtag {
         margin-left: auto; font-size: 0.62rem; font-weight: 700; letter-spacing: 0.05em;
@@ -551,7 +574,9 @@
       <div class="legend wide">
         <span><b>Dimmed</b> nothing recorded yet</span>
         <span><b>Solid</b> last measured cycle</span>
-        <span><b>Pulsing</b> running now</span>
+        <span><b>Pulsing</b> running now &mdash; this node's own step</span>
+        <span><b>Dashed accent</b> its phase is running, and which node is unknown</span>
+        <span><b>Green outline</b> finished in the run still going &mdash; figures publish at the end</span>
         <span><b>Purple</b> a test suite &mdash; observed by its report, not by Terraform</span>
         <span><b>No arrow inside a phase</b> those happen together</span>
         <span class="best">Best on a laptop or wider &mdash; on a phone the map reflows to one column, which works but flattens the shape</span>
@@ -1237,6 +1262,29 @@
         // that ADR made generated. Recomputed whenever node states arrive.
         let MAXDUR = 1;
 
+        // What a suite node says once a run has reported on it. The verdict and
+        // the counts come from the fold - nothing is recomputed here, and a
+        // status this function has no word for is printed rather than coloured.
+        const RESULT_WORD = { passed: "passed", failed: "failed", incomplete: "incomplete" };
+        // A suite's own clock. secs() rounds, which is right for a four-minute
+        // database and wrong for a two-second smoke run: rounded, the whole
+        // smoke suite reads as `2s` and a 0.6s unit run reads as `1s`.
+        const suiteSecs = (s) => (s < 10 ? (Math.round(s * 10) / 10).toFixed(1) + "s" : secs(s));
+        function suiteFigures(n) {
+          const r = n.result;
+          const c = r.counts || {};
+          const parts = [];
+          ["passed", "failed", "skipped", "not_run", "incomplete"].forEach((k) => {
+            if (c[k]) parts.push(`${c[k]} ${k.replace("_", " ")}`);
+          });
+          return `<div class="figures">
+                    <span class="result ${r.status}">${RESULT_WORD[r.status] || r.status}</span>
+                    <span>${r.duration_s != null ? `<b>${suiteSecs(r.duration_s)}</b>` : ""}</span>
+                  </div>
+                  <div class="counts">${parts.join(", ")}${
+                    n.result_previous ? " &mdash; from the previous run" : ""}</div>`;
+        }
+
         function nodeEl(n) {
           const el = document.createElement("div");
           // ONE default, used by the class and by the body. They were two, and a
@@ -1244,16 +1292,63 @@
           // one - took the "absent" class and the MEASURED body, rendering
           // `undefineds` where the seconds go. Read off a screenshot, not off the
           // data: nothing in the JSON is wrong.
-          const st = n.state || "absent";
+          //
+          // THE RUN LAYER COMES FIRST, and only where it is entitled to: a node
+          // running its own step, or one whose step is over in a run that has
+          // published nothing yet. Everything else falls through to what is on
+          // disk - the measured figures, or a suite's report (ADR-0043 D2).
+          const run = n.run || null;
+          const ownLive = run && run.state === "running" && run.via === "own";
+          const phaseLive = run && run.state === "running" && run.via === "phase";
+          const st = ownLive ? "live" : n.kind === "suite" && n.result ? n.result.status : n.state || "absent";
           el.className = "node " + st;
+          if (phaseLive) el.classList.add("working");
+          if (run && run.state === "finished" && !(n.kind === "suite" && n.result)) el.classList.add("done");
+          if (run && run.state === "failed") el.classList.add("failed-now");
           if (n.kind === "suite") el.classList.add("suite");
           if (n.kind === "gate") el.classList.add("gate");
           if (n.service === "destroy") el.classList.add("destroy");
 
           const blocks = (k) => `${k} resource block${k === 1 ? "" : "s"}`;
+          // What the repository knows about a suite without any run at all: how
+          // many tests were COLLECTED from it (data/suites.json, ADR-0042 D1),
+          // not how many files it happens to have.
+          const collected = n.collected != null
+            ? `${n.collected} test${n.collected === 1 ? "" : "s"} collected`
+            : `${n.spec_files} spec file${n.spec_files === 1 ? "" : "s"}`;
 
           let body = "";
-          if (st === "perm") {
+          if (ownLive) {
+            // A suite's observer is its report, and while the step is running
+            // there is no report - saying `running now - report` names the thing
+            // that does not exist yet.
+            body = `<div class="meta">running now &mdash; ${
+              n.kind === "suite" ? "its report arrives when the step ends" : n.observer}</div>`;
+          } else if (phaseLive) {
+            // FINDING, 20c: every node of a running phase said "running now"
+            // while Terraform was creating exactly one of them. The page cannot
+            // know which, so it says that instead of picking.
+            body = `<div class="meta">its phase is running &mdash; which node is not published
+                    until the cycle ends</div>`;
+          } else if (run && (run.state === "finished" || run.state === "failed") &&
+                     !(n.kind === "suite" && n.result)) {
+            // FINDING, 20c: a phase that had FINISHED fell back to "nothing
+            // recorded yet", which is what a phase that never ran says. The
+            // figures are real, they are just not published until the end.
+            body = `<div class="meta">${run.state === "failed" ? "failed" : "finished"} in the run
+                    still going &mdash; figures publish when the cycle ends</div>`;
+          } else if (n.kind === "suite" && n.result) {
+            body = `<div class="asserts">${n.asserts || ""}</div>${suiteFigures(n)}`;
+          } else if (n.kind === "suite" && n.unobserved) {
+            // Named, never coloured. ADR-0025 drawn: regression and the API
+            // contract cannot reach prod, and a self-service launch runs smoke
+            // alone - so a node with no report is often correct, and always
+            // worth saying out loud.
+            body = `<div class="asserts">${n.asserts || ""}</div>
+                    <div class="figures"><span class="result unobserved">not reported</span></div>
+                    <div class="counts">${collected} &mdash; the ${
+                      n.result_previous ? "previous" : "last"} run here did not report this suite</div>`;
+          } else if (st === "perm") {
             body = ""; // a permanent level has no cycle duration to report
           } else if (st === "absent") {
             // What IS known without a cycle: what the node is made of, and what a
@@ -1261,10 +1356,8 @@
             body =
               n.kind === "suite"
                 ? `<div class="asserts">${n.asserts || ""}</div>
-                   <div class="meta">${n.spec_files} spec file${n.spec_files === 1 ? "" : "s"} &mdash; not run yet</div>`
+                   <div class="meta">${collected} &mdash; not run yet</div>`
                 : `<div class="meta">${n.resources ? blocks(n.resources) + " &mdash; " : ""}no observation yet</div>`;
-          } else if (st === "live") {
-            body = `<div class="meta">running now &mdash; ${n.observer}</div>`;
           } else if (st === "incomplete") {
             // A node whose members did not all finish: no bar and no duration,
             // because a figure taken from a group that stopped in the middle of
@@ -1281,8 +1374,13 @@
                     &mdash; the cycle did not complete</div>
                     ${n.identifier ? `<div class="ident" title="${n.identifier}">${n.identifier}</div>` : ""}`;
           } else if (n.kind === "suite") {
+            // A suite carrying a state this function has no branch for. It must
+            // not fall through to the one below: that divides by a duration a
+            // suite does not have and prints `undefined` seconds on a public
+            // page, which is precisely what happened the last time an unbranched
+            // state arrived here.
             body = `<div class="asserts">${n.asserts || ""}</div>
-                    <div class="figures"><span class="result ${n.result}">${n.result}</span><span><b>${secs(n.duration_s)}</b></span></div>`;
+                    <div class="counts">${collected} &mdash; reported as ${st}</div>`;
           } else {
             const w = Math.max(4, Math.round(100 * Math.sqrt(n.duration_s / MAXDUR)));
             body = `<div class="bar"><i style="width:${w}%"></i></div>
@@ -1334,8 +1432,22 @@
             h += dl(
               p.nodes.map((n) => {
                 const head = `${esc(n.label)}${n.env ? ` <span class="note">${esc(n.env)}</span>` : ""}`;
-                if (n.kind === "suite")
-                  return [head, `${esc(n.suite_dir)} &mdash; ${n.spec_files} spec file${n.spec_files === 1 ? "" : "s"}<br>${esc(n.asserts)}`];
+                if (n.kind === "suite") {
+                  // The count is COLLECTED (data/suites.json), not counted off
+                  // the filesystem: a spec file says nothing about how many
+                  // tests are in it, and 52 of the api suite's live in two.
+                  const inv = RUNSTATE.inventory && RUNSTATE.inventory[n.suite];
+                  const size = inv
+                    ? `${inv.count} test${inv.count === 1 ? "" : "s"} in ${n.spec_files} file${n.spec_files === 1 ? "" : "s"}, collected by ${esc(inv.collector)}`
+                    : `${n.spec_files} spec file${n.spec_files === 1 ? "" : "s"}`;
+                  const r = n.result;
+                  const said = r
+                    ? `<br>the last run here said <b>${esc(r.status)}</b>`
+                    : n.unobserved
+                    ? `<br>the last run here did not report it`
+                    : ``;
+                  return [head, `${esc(n.suite_dir)} &mdash; ${size}<br>${esc(n.asserts)}${said}`];
+                }
                 if (n.members && n.members.length) return [head, n.members.map(esc).join("<br>")];
                 return [head, esc(n.level || n.note || n.observer)];
               })
@@ -1369,6 +1481,27 @@
                   RUNSTATE.unknown.map(esc).join("<br>"),
               ]);
             h += dl(items);
+          }
+
+          // The same claim, one layer over: a test a REPORT named and the
+          // collected inventory does not have. It is the rename nobody committed
+          // to site/data/suites.json, and the fold refuses to let it vanish into
+          // a green count.
+          const strays = [];
+          ENVS.forEach((env) => {
+            const doc = RUNSTATE.results[env];
+            if (!doc || !doc.unknown) return;
+            Object.keys(doc.unknown).forEach((node) => {
+              (doc.unknown[node] || []).forEach((t) => strays.push(`${env} :: ${node} :: ${t}`));
+            });
+          });
+          if (strays.length) {
+            h += `<h3>Reported by a run, absent from the collected inventory</h3>`;
+            h += dl([[
+              `named by a report, in no suite <span class="note">${strays.length}</span>`,
+              `A run said these ran and <code>site/data/suites.json</code> does not have them.
+               Re-collect with <code>make suite-inventory</code>.<br>` + strays.map(esc).join("<br>"),
+            ]]);
           }
 
           $("#detail-body").innerHTML = h;
@@ -1431,22 +1564,33 @@
               if (i > 0) rowEl.appendChild(arrowEl(ltr ? "right" : "left"));
               const ph = document.createElement("div");
               ph.className = "phase";
-              if (b.p.nodes.some((n) => n.state === "live")) ph.classList.add("live");
+              // The PHASE's own state, not "some node in it looks live". Those
+              // were the same thing until a node could answer for itself.
+              const pst = RUNSTATE.phase[b.p.id];
+              if (pst && pst.state === "running") ph.classList.add("live");
+              if (pst && pst.state === "finished") ph.classList.add("done");
               ph.style.flex = "0 0 auto";
               ph.style.width = b.width + "px";
               // Two clocks, never both silent and never confused for each
               // other: how long this phase has been running NOW, and how long
               // it took the last time it finished. The second is dated, because
               // an unlabelled duration is a claim about today.
-              const since = RUNSTATE.liveSince[b.p.id];
+              const since = pst && pst.state === "running" ? pst.since : null;
               const was = RUNSTATE.phases[b.p.id];
               const wasText = was && was.duration_s
                 ? `<span class="was" title="measured${was.date ? " on " + was.date : ""}">${
                     since ? "last time " : ""}${secs(was.duration_s)}</span>`
                 : ``;
+              // The third thing a phase can be, and the one that was missing:
+              // over, in a run that has not published anything yet.
+              const doneText = pst && pst.state === "finished"
+                ? `<span class="finished" title="this run, published at the end of the cycle">done</span>`
+                : pst && pst.state === "failed"
+                ? `<span class="finished" style="color:var(--bad)" title="a step of this phase failed in the run still going">failed</span>`
+                : ``;
               ph.innerHTML = `<header><b>${b.p.n}. ${b.p.label}</b><span class="wf">${b.p.workflow}</span>${
                 wasText
-              }${
+              }${doneText}${
                 since ? `<span class="elapsed" data-since="${since}">${elapsedText(since)}</span>` : ``
               }</header>`;
               const set = document.createElement("div");
@@ -1493,7 +1637,14 @@
            Nothing is joined here. Which resource belongs to which node is decided
            once, in Python, on the runner - see scripts/node-states.py for why. */
         const ENVS = ["stage", "prod"];
-        const RUNSTATE = { nodes: {}, cycles: [], unfinished: [], unknown: [], hidden: [], live: [], liveSince: {}, envs: [], phases: {} };
+        const RUNSTATE = {
+          nodes: {}, cycles: [], unfinished: [], unknown: [], hidden: [],
+          phase: {}, node: {}, envs: [], phases: {}, observation: null,
+          // What the SUITES said, per environment, and the inventory of what
+          // there is to say it about. Two more sources, and neither is the
+          // timeline's: a suite is observed by its report, never by Terraform.
+          results: {}, inventory: null,
+        };
 
         function readJSON(path) {
           return fetch(path, { cache: "no-store" })
@@ -1502,11 +1653,15 @@
         }
 
         function readRunLayer() {
-          const wanted = [];
+          const wanted = [["inventory", readJSON("data/suites.json")]];
           ENVS.forEach((env) => {
             wanted.push(["nodes", readJSON(`timeline/${env}/nodes-apply.json`)]);
             wanted.push(["nodes", readJSON(`timeline/${env}/nodes-destroy.json`)]);
             wanted.push(["latest", readJSON(`timeline/${env}/latest.json`)]);
+            // results/<env>/latest.json - ADR-0042 D5, published by every run
+            // whatever happened, unlike the node figures. A suite that failed is
+            // not a half-measurement, it is the result.
+            wanted.push([`results:${env}`, readJSON(`results/${env}/latest.json`)]);
           });
           return Promise.all(wanted.map((w) => w[1])).then((results) => {
             results.forEach((doc, i) => {
@@ -1526,6 +1681,10 @@
                 // see the size of it.
                 (doc.unknown || []).forEach((a) => RUNSTATE.unknown.push(`${doc.environment} :: ${a}`));
                 (doc.not_shown || []).forEach((a) => RUNSTATE.hidden.push(`${doc.environment} :: ${a}`));
+              } else if (wanted[i][0] === "inventory") {
+                RUNSTATE.inventory = doc.suites || null;
+              } else if (wanted[i][0].indexOf("results:") === 0) {
+                RUNSTATE.results[wanted[i][0].slice(8)] = doc;
               } else if (doc.status && doc.status !== "complete") {
                 RUNSTATE.unfinished.push({ environment: doc.environment, status: doc.status, at: doc.written_at });
               }
@@ -1539,56 +1698,115 @@
           });
         }
 
-        /* LIVE IS PER PHASE, not per resource, and that is a deliberate limit
-           (ADR-0039 D4): the Actions API reports the running job and step
-           anonymously, while per-resource pulsing would need the timeline
-           published DURING the apply by the one step holding the deploy role -
-           which ADR-0026 keeps away from the bucket that reports on it.
+        /* ==== RUN-LAYER STATE MACHINE - begin =================================
+           Pure: no DOM, no fetch, no clock, no globals. scripts/check-live-state.mjs
+           lifts this block VERBATIM out of the built page and runs it against
+           recorded Actions observations, so the gate checks the code the visitor's
+           browser runs rather than a second copy of it in another language - which
+           is the mistake this repository has already paid for once. Both markers
+           are load-bearing; the gate refuses if either has gone missing.
 
-           Every workflow here holds one job, so the binding names a STEP. Those
-           bindings live in topology.json because scripts/generate-topology.py
-           CHECKS them against the workflow: a step renamed without the binding
-           following it is a refusal at build time, not a pulse that silently
-           never fires again. */
-        function livePhases(observation) {
-          // Returns the live phase ids AND when each started, because a phase
-          // that says "running now" and nothing else cannot be told apart from
-          // a page that has stopped updating. The Actions UI puts the elapsed
-          // time next to the job for the same reason.
-          const ids = [];
-          const since = {};
-          if (!observation || !observation.run || observation.error) return { ids, since };
+           LIVE IS PER STEP, and a step belongs to a phase OR to a suite node
+           (ADR-0043 D1). Every workflow here holds one job, so a job name cannot
+           tell Build from Apply; the binding names a step, and
+           scripts/generate-topology.py refuses if that step does not exist. What
+           this cannot do is name a RESOURCE: per-resource state would need the
+           timeline published during the apply by the step holding the deploy
+           role, which ADR-0026 keeps away from the bucket that reports on it.
+           That limit is why a node without a binding of its own is drawn as
+           "its phase is running" instead of "running now" (ADR-0043 D2).
+
+           Three states, and the third is the one 20c watched go missing: a phase
+           whose steps are over publishes nothing until the END of the cycle, so
+           for the rest of the run it fell back to "nothing recorded yet" - which
+           is what a phase that has NEVER run says. */
+        function bindingState(observation, bindings) {
+          const none = { state: null, since: null };
+          if (!observation || observation.error || !observation.run) return none;
           const run = observation.run;
+          // A COMPLETED run says nothing here on purpose. Its publish step has
+          // already run, so the figures and the reports beside each node are the
+          // better answer, and "finished in this run" would sit over the top of
+          // them until somebody started another cycle - permanently, most days.
+          if (run.status !== "in_progress" && run.status !== "waiting") return none;
           const jobs = observation.jobs || [];
-          const mark = (id, at) => {
-            if (ids.indexOf(id) === -1) ids.push(id);
-            // The EARLIEST start among a phase's bound steps. A phase is busy
-            // from the moment its first step began, and taking the latest would
-            // reset the clock every time the apply moved on to the next one.
-            if (at && (!since[id] || at < since[id])) since[id] = at;
-          };
-          (DATA ? DATA.phases : []).forEach((p) => {
-            (p.live || []).forEach((b) => {
-              if (run.path !== b.path) return;
-              if (b.when === "waiting") {
-                // Not a step: the approval is the gap BEFORE the job starts, so
-                // the clock runs from when the run itself was created.
-                if (run.status === "waiting") mark(p.id, run.run_started_at || run.created_at);
-                return;
+          // ONE clock: the EARLIEST start among the bound steps that have
+          // started at all, whatever they went on to do. A phase is busy from
+          // the moment its first step began, and taking the running step's own
+          // start reset the clock every time the apply moved from `Terraform
+          // plan` to `Terraform apply` - a four-minute phase reading as ten
+          // seconds old. Found writing the gate, not watching the cycle.
+          const earlier = (cur, at) => (at && (!cur || at < cur) ? at : cur);
+          let since = null;
+          let running = false, failed = false, finished = false;
+
+          (bindings || []).forEach((b) => {
+            if (run.path !== b.path) return; // a different workflow is running
+            const job = (jobs || []).filter((j) => j.name === b.job)[0];
+            if (b.when === "waiting") {
+              // Not a step: the approval is the gap BEFORE the job starts, so
+              // the clock runs from when the run itself was created. It is over
+              // when the job it gates leaves the queue - there is nothing else
+              // to ask, and a run cancelled while waiting never gets here.
+              if (run.status === "waiting") {
+                running = true;
+                since = earlier(since, run.run_started_at || run.created_at);
+              } else if (job && job.status !== "queued") {
+                finished = true;
+                since = earlier(since, job.started_at || run.run_started_at);
               }
-              if (run.status !== "in_progress") return;
-              jobs.forEach((job) => {
-                if (job.name !== b.job || job.status !== "in_progress") return;
-                (job.steps || []).forEach((s) => {
-                  if (s.status === "in_progress" && b.steps.indexOf(s.name) !== -1) {
-                    mark(p.id, s.started_at || job.started_at);
-                  }
-                });
-              });
+              return;
+            }
+            if (!job) return;
+            (job.steps || []).forEach((s) => {
+              if ((b.steps || []).indexOf(s.name) === -1) return;
+              const at = s.started_at || job.started_at;
+              if (s.status === "in_progress") { running = true; since = earlier(since, at); }
+              else if (s.status !== "completed") return;
+              else if (s.conclusion === "failure") { failed = true; since = earlier(since, at); }
+              else if (s.conclusion === "success") { finished = true; since = earlier(since, at); }
+              // Queued, skipped and cancelled say NOTHING, and do not move the
+              // clock. A step that was skipped did not happen, and calling that
+              // finished would put a green outline round a node this run never
+              // touched.
             });
           });
-          return { ids, since };
+
+          if (running) return { state: "running", since: since };
+          if (failed) return { state: "failed", since: since };
+          if (finished) return { state: "finished", since: since };
+          return none;
         }
+
+        /* Every phase and every node, in one pass. A node with its own binding
+           answers for itself; a node without one inherits its phase's state and
+           is MARKED as having done so, because the two must not render alike. */
+        function runLayerStates(observation, phases) {
+          const out = { phases: {}, nodes: {} };
+          const envs = (observation && observation.envs) || [];
+          (phases || []).forEach((p) => {
+            const ph = bindingState(observation, p.live);
+            if (ph.state) out.phases[p.id] = { state: ph.state, since: ph.since };
+            (p.nodes || []).forEach((n) => {
+              if (n.live && n.live.length) {
+                const own = bindingState(observation, n.live);
+                if (own.state) out.nodes[n.id] = { state: own.state, since: own.since, via: "own" };
+                return;
+              }
+              if (!ph.state) return;
+              // A live PHASE does not mean this node is doing anything. Destroy
+              // holds one node per environment and destroy.yml tears down one
+              // per run, so lighting the phase lit both - seen on the first live
+              // teardown this layer watched. When the run does not say which
+              // environment it is about, both are lit: that is the honest
+              // rendering of "it could be either".
+              if (n.env && envs.length && envs.indexOf(n.env) === -1) return;
+              out.nodes[n.id] = { state: ph.state, since: ph.since, via: "phase" };
+            });
+          });
+          return out;
+        }
+        /* ==== RUN-LAYER STATE MACHINE - end =================================== */
 
         const elapsedText = (iso) => {
           const started = Date.parse(iso);
@@ -1610,29 +1828,21 @@
         }
         setInterval(tickElapsed, 1000);
 
-        /* One place where a node's state is decided, because there are two
-           sources for it and they are not equal: what a finished cycle measured,
-           and what is happening right now. Live wins while it lasts and leaves
+        /* One place where a node's state is decided, because there are now THREE
+           sources for it and they are not equal: what a finished cycle measured
+           (Terraform), what a run's report said about a suite, and what is
+           happening right now. The run layer wins while it lasts and leaves
            nothing behind - the measured numbers are held in RUNSTATE, never
            overwritten in DATA, so a phase that stops running goes back to its
            figures instead of to "no observation yet". */
         function paint() {
           if (!DATA) return;
+          const states = runLayerStates(RUNSTATE.observation, DATA.phases);
+          RUNSTATE.phase = states.phases;
+          RUNSTATE.node = states.nodes;
           DATA.phases.forEach((p) => {
-            const phaseLive = RUNSTATE.live.indexOf(p.id) !== -1;
             p.nodes.forEach((n) => {
-              // A live PHASE does not mean every node in it is live. The
-              // Destroy phase holds one node per environment and destroy.yml
-              // tears down exactly one per run, so lighting the phase lit both
-              // - stage and prod pulsing while only stage was being destroyed,
-              // seen on the first live teardown this layer ever watched.
-              //
-              // When the run does not say which environment it is about, the
-              // dashboard makes BOTH stale rather than neither; the same
-              // conservative choice here lights both, which is the honest
-              // rendering of "it could be either".
-              const live = phaseLive &&
-                (!n.env || !RUNSTATE.envs.length || RUNSTATE.envs.indexOf(n.env) !== -1);
+              n.run = states.nodes[n.id];
               const observed = RUNSTATE.nodes[n.id];
               if (observed) {
                 n.duration_s = observed.duration_s;
@@ -1640,7 +1850,28 @@
                 n.resources_observed = observed.resources_observed;
                 n.resources_complete = observed.resources_complete;
               }
-              n.state = live ? "live" : observed ? observed.state : undefined;
+              // The suite half. Nothing is joined here: fold-results.py did the
+              // join on the runner, onto ids it looked up in this same file, so
+              // all that is left is to read the node out by its own id.
+              if (n.kind === "suite") {
+                const env = RUNSTATE.results[n.env];
+                n.result = env && env.nodes ? env.nodes[n.id] : undefined;
+                n.result_run = n.result && env ? env.run : undefined;
+                n.unobserved = !!(env && (env.unobserved || []).indexOf(n.id) !== -1);
+                n.collected = RUNSTATE.inventory && RUNSTATE.inventory[n.suite]
+                  ? RUNSTATE.inventory[n.suite].count : null;
+                // Published by an EARLIER run, while another one is in flight.
+                // It is the freshest thing there is, and it is not about what is
+                // happening now - a distinction the page can actually make,
+                // because the report carries the run that wrote it. It applies
+                // to `not reported` just as much as to a verdict: a suite this
+                // run has not reached yet is not a suite the run declined to
+                // run.
+                const obsRun = RUNSTATE.observation && RUNSTATE.observation.run;
+                n.result_previous = !!(obsRun && obsRun.status !== "completed" &&
+                  env && env.run && String(env.run.id) !== String(obsRun.id));
+              }
+              n.state = observed ? observed.state : undefined;
             });
           });
         }
@@ -1673,7 +1904,29 @@
               (stalled
                 ? `<br><b>The most recent run did not finish: ${stalled}.</b> Its numbers are not
                    drawn — what is below is the last cycle that completed.`
-                : ``);
+                : ``) +
+              // The suites are a SECOND source with a second date, and they are
+              // published on a different rule: every run, whatever happened. So
+              // they get their own sentence rather than being folded into the
+              // one above, which would date both by the older of them.
+              (() => {
+                const said = ENVS
+                  .filter((env) => RUNSTATE.results[env] && RUNSTATE.results[env].run)
+                  .map((env) => {
+                    const r = RUNSTATE.results[env].run;
+                    const label = r.url ? `<a href="${r.url}">${r.workflow || r.id}</a>` : (r.workflow || r.id);
+                    return `${env} from ${label}`;
+                  });
+                const collected = RUNSTATE.inventory
+                  ? Object.keys(RUNSTATE.inventory)
+                      .reduce((t, k) => t + (RUNSTATE.inventory[k].count || 0), 0)
+                  : null;
+                if (!collected) return ``;
+                return `<br>${collected} tests are collected from the suites themselves; ` +
+                  (said.length
+                    ? `the verdicts below are what a run reported — ${said.join(", ")}.`
+                    : `no run has reported on them yet.`);
+              })();
             // The bar-length note describes bars, and says the seconds beside them
             // are exact. With no cycle observed there are neither, and a paragraph
             // explaining a thing that is not on the page is the same defect in
@@ -1721,14 +1974,19 @@
         let livePrev = "";
         document.addEventListener("cycle:observed", (e) => {
           if (!DATA) return;
-          const live = livePhases(e.detail);
-          RUNSTATE.live = live.ids;
-          RUNSTATE.liveSince = live.since;
+          RUNSTATE.observation = e.detail;
           RUNSTATE.envs = e.detail.envs || [];
-          const now = live.ids.slice().sort().join(",") + "|" + RUNSTATE.envs.slice().sort().join(",");
+          paint();
+          // The signature is now every state, not only the running ones: a phase
+          // going from running to finished-in-this-run changes what the map says
+          // and used to change nothing here, because both sets of live ids were
+          // empty by then.
+          const now = Object.keys(RUNSTATE.phase).sort()
+              .map((id) => id + ":" + RUNSTATE.phase[id].state).join(",") +
+            "|" + Object.keys(RUNSTATE.node).sort()
+              .map((id) => id + ":" + RUNSTATE.node[id].state).join(",");
           if (now === livePrev) { tickElapsed(); return; }
           livePrev = now;
-          paint();
           render();
         });
 

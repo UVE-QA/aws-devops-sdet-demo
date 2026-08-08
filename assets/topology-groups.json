@@ -273,7 +273,7 @@
     }
   },
 
-  "_phases": "The order the cycle happens in, and - in `live` - how each phase is recognised WHILE IT RUNS. Every workflow here holds one job, so a job name cannot tell Build from Apply; the binding names a STEP, and scripts/generate-topology.py refuses if that step does not exist in that job of that workflow. A renamed step would otherwise break the pulse silently, which no other gate in this repository can see. `when: waiting` is the approval, which is not a step at all: it is the gap before the job starts, and the runs API reports it as a run in the waiting state.",
+  "_phases": "The order the cycle happens in, and - in `live` - how each phase is recognised WHILE IT RUNS. Every workflow here holds one job, so a job name cannot tell Build from Apply; the binding names a STEP, and scripts/generate-topology.py refuses if that step does not exist in that job of that workflow. A renamed step would otherwise break the pulse silently, which no other gate in this repository can see. `when: waiting` is the approval, which is not a step at all: it is the gap before the job starts, and the runs API reports it as a run in the waiting state. A SUITE NODE carries its own `live` in exactly the same shape, and must: which phase box a suite is drawn in is a layout decision, and on 2026-08-08 the two disagreed - suite.db.stage sits in the quality gate while its step runs in Provision, and prod's copy of the same suite sat in a phase that does bind that step. A node bound to its own step cannot inherit a phase's answer about a different one.",
 
   "phases": [
     {
@@ -407,7 +407,23 @@
           "service": "suite",
           "kind": "suite",
           "observer": "report",
-          "suite": "db"
+          "suite": "db",
+          "live": [
+            {
+              "workflow": "deploy-stage.yml",
+              "job": "deploy",
+              "steps": [
+                "Run one-off tasks (migrate, seed, db-assert)"
+              ]
+            },
+            {
+              "workflow": "self-service.yml",
+              "job": "launch",
+              "steps": [
+                "Run one-off tasks (migrate, seed, db-assert)"
+              ]
+            }
+          ]
         },
         {
           "id": "suite.api.stage",
@@ -415,7 +431,16 @@
           "service": "suite",
           "kind": "suite",
           "observer": "report",
-          "suite": "api"
+          "suite": "api",
+          "live": [
+            {
+              "workflow": "deploy-stage.yml",
+              "job": "deploy",
+              "steps": [
+                "API contract tests against the ALB"
+              ]
+            }
+          ]
         },
         {
           "id": "suite.regression.stage",
@@ -423,7 +448,17 @@
           "service": "suite",
           "kind": "suite",
           "observer": "report",
-          "suite": "regression"
+          "suite": "regression",
+          "live": [
+            {
+              "workflow": "deploy-stage.yml",
+              "job": "deploy",
+              "steps": [
+                "Playwright smoke + regression against the ALB",
+                "Assert the UI write reached RDS"
+              ]
+            }
+          ]
         },
         {
           "id": "suite.smoke.stage",
@@ -431,7 +466,23 @@
           "service": "suite",
           "kind": "suite",
           "observer": "report",
-          "suite": "smoke"
+          "suite": "smoke",
+          "live": [
+            {
+              "workflow": "deploy-stage.yml",
+              "job": "deploy",
+              "steps": [
+                "Playwright smoke + regression against the ALB"
+              ]
+            },
+            {
+              "workflow": "self-service.yml",
+              "job": "launch",
+              "steps": [
+                "Playwright smoke against the ALB"
+              ]
+            }
+          ]
         }
       ]
     },
@@ -511,7 +562,16 @@
           "service": "suite",
           "kind": "suite",
           "observer": "report",
-          "suite": "db"
+          "suite": "db",
+          "live": [
+            {
+              "workflow": "promote-prod.yml",
+              "job": "promote",
+              "steps": [
+                "Provision the prod database (migrate, seed, db-assert)"
+              ]
+            }
+          ]
         },
         {
           "id": "suite.smoke.prod",
@@ -519,7 +579,16 @@
           "service": "suite",
           "kind": "suite",
           "observer": "report",
-          "suite": "smoke"
+          "suite": "smoke",
+          "live": [
+            {
+              "workflow": "promote-prod.yml",
+              "job": "promote",
+              "steps": [
+                "Read-only smoke against prod"
+              ]
+            }
+          ]
         }
       ]
     },

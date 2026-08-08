@@ -1,0 +1,31 @@
+{
+  "run": {
+    "path": ".github/workflows/destroy.yml",
+    "status": "in_progress",
+    "run_started_at": "2026-08-08T10:00:00Z"
+  },
+  "envs": [
+    "stage"
+  ],
+  "jobs": [
+    {
+      "name": "destroy",
+      "status": "in_progress",
+      "started_at": "2026-08-08T10:00:00Z",
+      "steps": [
+        {
+          "name": "Destroy ALB first (release ENIs before the IGW)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-08-08T11:00:00Z"
+        },
+        {
+          "name": "Terraform destroy",
+          "status": "in_progress",
+          "started_at": "2026-08-08T12:00:00Z"
+        }
+      ]
+    }
+  ],
+  "_": "destroy.yml tears down exactly one environment per run, and the Destroy phase holds a node for each. Lighting the phase lit both, seen on the first live teardown this layer ever watched."
+}

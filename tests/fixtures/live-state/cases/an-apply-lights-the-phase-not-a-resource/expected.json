@@ -1,0 +1,54 @@
+{
+  "phases": {
+    "build": {
+      "state": "finished",
+      "since": "2026-08-08T10:00:00Z"
+    },
+    "stage-apply": {
+      "state": "running",
+      "since": "2026-08-08T11:00:00Z"
+    }
+  },
+  "nodes": {
+    "build.ecr": {
+      "state": "finished",
+      "since": "2026-08-08T10:00:00Z",
+      "via": "phase"
+    },
+    "stage.vpc": {
+      "state": "running",
+      "since": "2026-08-08T11:00:00Z",
+      "via": "phase"
+    },
+    "stage.secrets": {
+      "state": "running",
+      "since": "2026-08-08T11:00:00Z",
+      "via": "phase"
+    },
+    "stage.rds": {
+      "state": "running",
+      "since": "2026-08-08T11:00:00Z",
+      "via": "phase"
+    },
+    "stage.alb": {
+      "state": "running",
+      "since": "2026-08-08T11:00:00Z",
+      "via": "phase"
+    },
+    "stage.ecs": {
+      "state": "running",
+      "since": "2026-08-08T11:00:00Z",
+      "via": "phase"
+    },
+    "stage.cloudwatch": {
+      "state": "running",
+      "since": "2026-08-08T11:00:00Z",
+      "via": "phase"
+    },
+    "stage.budgets": {
+      "state": "running",
+      "since": "2026-08-08T11:00:00Z",
+      "via": "phase"
+    }
+  }
+}

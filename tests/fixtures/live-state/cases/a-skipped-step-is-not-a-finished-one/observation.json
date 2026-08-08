@@ -1,0 +1,36 @@
+{
+  "run": {
+    "path": ".github/workflows/deploy-stage.yml",
+    "status": "in_progress",
+    "run_started_at": "2026-08-08T10:00:00Z"
+  },
+  "envs": [
+    "stage"
+  ],
+  "jobs": [
+    {
+      "name": "deploy",
+      "status": "in_progress",
+      "started_at": "2026-08-08T10:00:00Z",
+      "steps": [
+        {
+          "name": "Build, tag, and push image",
+          "status": "completed",
+          "conclusion": "skipped",
+          "started_at": "2026-08-08T10:00:00Z"
+        },
+        {
+          "name": "Terraform plan",
+          "status": "completed",
+          "conclusion": "cancelled",
+          "started_at": "2026-08-08T11:00:00Z"
+        },
+        {
+          "name": "Terraform apply",
+          "status": "queued"
+        }
+      ]
+    }
+  ],
+  "_": "A step that was skipped did not happen, and a green outline round a node this run never touched is worse than no outline at all. Neither moves the clock either."
+}

@@ -1,0 +1,7 @@
+{
+  "error": "rate limited",
+  "run": null,
+  "jobs": [],
+  "envs": [],
+  "_": "An empty result is not a clean result, and it is not a running cycle either. The dashboard says it lost the API; the map says nothing at all rather than showing a map with every phase quietly at rest as though that had been observed."
+}

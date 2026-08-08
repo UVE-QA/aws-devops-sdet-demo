@@ -1,0 +1,39 @@
+{
+  "phases": {
+    "stage-provision": {
+      "state": "finished",
+      "since": "2026-08-08T14:00:00Z"
+    },
+    "stage-gate": {
+      "state": "failed",
+      "since": "2026-08-08T15:00:00Z"
+    }
+  },
+  "nodes": {
+    "stage.migrate": {
+      "state": "finished",
+      "since": "2026-08-08T14:00:00Z",
+      "via": "phase"
+    },
+    "suite.db.stage": {
+      "state": "finished",
+      "since": "2026-08-08T14:00:00Z",
+      "via": "own"
+    },
+    "suite.api.stage": {
+      "state": "finished",
+      "since": "2026-08-08T15:00:00Z",
+      "via": "own"
+    },
+    "suite.smoke.stage": {
+      "state": "failed",
+      "since": "2026-08-08T16:00:00Z",
+      "via": "own"
+    },
+    "suite.regression.stage": {
+      "state": "failed",
+      "since": "2026-08-08T16:00:00Z",
+      "via": "own"
+    }
+  }
+}
