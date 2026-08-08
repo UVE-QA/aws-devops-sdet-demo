@@ -794,7 +794,9 @@ aws-devops-sdet-demo/
   scripts/                 ecs-run-task.sh, observe-environment.sh,
                            publish-status.sh, publish-site.sh, send.sh
 
-  site/index.html          the dashboard itself: one file, no build step
+  assets/index.template.html  the dashboard's SOURCE (20a)
+  site/index.html          the dashboard, BUILT from it by `make site-page`:
+                           one published file, no runtime dependency
 
   .github/workflows/       ci.yml, deploy-stage.yml, promote-prod.yml,
                            destroy.yml, publish-site.yml

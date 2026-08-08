@@ -38,7 +38,7 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 19f   | Teardown gates that see the remainder | ✅ done | sessions/2026-08-07-phase-19f-teardown-sees-what-it-leaves.md |
 | 19g   | Teardown that finishes on its own | ✅ done, uninterrupted run 2026-08-08 | sessions/2026-08-08-phase-19g-nobody-in-the-loop.md |
 | 20.0  | Visible cycle: decisions + plan | ✅ done | ADR-0039 |
-| 20a   | The generated map, and its drift gate | 🟡 generator + gate done; site/index.html pending | sessions/2026-08-08-phase-20a-generator-and-drift-gate.md |
+| 20a   | The generated map, on the page | ✅ done | sessions/2026-08-08-phase-20a-the-map-on-the-page.md |
 | 20b   | The timeline from Terraform's own events | ⬜ planned | — |
 | 20c   | The tests panel | ⬜ planned | — |
 | 20d   | Cost, computed and reconciled | ⬜ planned, blocked on 20b | — |
@@ -653,7 +653,10 @@ track 14-19), shaped by ADR-0017. This table tracks only what is done.
   they were added. This section says so rather than implying otherwise.
 - `site/index.html` is now the dashboard: one file, no build step, no
   dependencies, no credential. It reads exactly the two sources ADR-0026 allows
-  and nothing else.
+  and nothing else. (**"No build step" stopped being true in 20a**, when the map
+  arrived needing an inline icon sprite. The PUBLISHED page is still one file
+  with no runtime dependency; the source is now `assets/index.template.html`.
+  Noted here rather than edited away: this entry records what 11.1c delivered.)
 ```text
   environments   status/<env>.json from this bucket - ALB, ECS, RDS, image
                  digest, app URL, report URL, and the run that wrote it
@@ -1903,6 +1906,69 @@ were the same shape — a page saying something it was not in a position to say:
   project is decided by looking.
 - Next allowed step: the last piece of 20a — fold the map and its cut into
   `site/index.html` in place of the hand-written section. Then 20b.
+
+### Phase 20a (closed) — The map on the page  [DONE 2026-08-08]
+- Criteria for this last half: the hand-written "What happens, in the order it
+  happens" section in `site/index.html` replaced by the map and its cut, both
+  rendering the generated `site/data/topology.json`. **MET.** 20a is closed.
+- **The page became a BUILD OUTPUT, which was not in the plan.** The map needs
+  the icon sprite inline, so `site/index.html` is now built from
+  `assets/index.template.html` by `make site-page`. That buys a new way to be
+  wrong - a committed output invites being edited in place, and the edit
+  survives only until the next build silently reverts it - so `make
+  site-page-check` requires the committed page to be byte-identical to a fresh
+  build, and runs in `ci.yml`. The template lives outside `site/` because
+  `publish-site` syncs the whole directory to the public bucket and a template
+  served without its sprite renders a map with no icons.
+- **The pilot is retired**, page and template and target. `publish-site.sh`
+  syncs with `--delete`, so the published copy went with the commit. Two
+  renderings of one file, maintained separately, is the defect this phase
+  exists to remove; keeping the pilot would have been an instance of it.
+- **Two layout defects, both invisible to the pilot's own check.**
+```text
+  packer     a row renders phase | gap | arrow | gap | phase, and the greedy
+             packer charged itself ONE gap per join. At 1180 the first row came
+             out 7px wider than the box it was packed into. The pilot measured
+             the DOCUMENT, and a child overflowing its own parent never reaches
+             it; found by measuring each ROW against its own container
+  .node .head  up to 22px wider than its node, carried forward from the
+             generator session, which recorded it and left it because layout
+             here is decided by looking. Fixed with a two-row grid in the head:
+             icon and name on one line, the environment tag beneath
+```
+- The head took three attempts, and the two failures are the interesting part:
+  `overflow-wrap: anywhere` stopped the overflow and produced "Applicati on Load
+  Balancer"; `flex-wrap: wrap` stopped the mid-word breaks and put the icon on a
+  line of its own, away from the name it belongs to. The tag was what was
+  stealing the width - it is redundant with the phase header, which already says
+  `stage` or `prod`, and it is kept because 20c gives suites an identity of
+  suite x environment.
+- Six ways to make the gate red, five red and both controls green, exit codes
+  written to a FILE, tree committed first. Evidence:
+  `docs/sessions/2026-08-08-phase-20a-page-break-tests.log`.
+```text
+  1  the built page edited by hand
+  2  the built page deleted
+  3  the TEMPLATE edited and the page not rebuilt - the drift the gate is for
+  4  the template loses its injection marker
+  5  an icon the page asks for is missing
+  0/6  controls: the untouched tree, before and after
+```
+- Also corrected on the way past, and all three are the same species this phase
+  keeps finding: the sprite builder's docstring said "17 objects" over a list of
+  EIGHTEEN; it printed a character count while calling it bytes (118,577 against
+  118,667 on disk, which is what em dashes cost); and three documents said
+  `site/index.html` has no build step, which stopped being true in this commit.
+- Cost: **$0**. Nothing applied, no AWS API called. The page publishes on push.
+- Validation:
+```bash
+  make site-page-check
+  make site-data-check
+  make docs-check
+  git diff --stat
+```
+- Next allowed step: **20b** — the timeline from Terraform's own `-json` event
+  stream. It needs one cycle, about $0.03.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

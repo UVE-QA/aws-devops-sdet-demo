@@ -189,8 +189,9 @@ Rename the chat manually — TWICE, because a session learns what it is by the
 end of it.
 
 ```text
-after the first reply   WORKING name, taken from the cursor:
-                        Phase <N>[.<sub>] — <topic>
+after the first reply   WORKING name, taken from the cursor's NEXT ALLOWED STEP
+                        rather than from the phase title:
+                        Phase <N>[.<sub>] — <next allowed step>
                         Ops — <topic>
 at session-close        FINAL name, taken from what the session turned out to
                         be. Rename even when the working name still reads
@@ -201,6 +202,18 @@ Phase 11.0 — publish repository
 Phase 13 — MVP verification gate
 Ops — devbox maintenance
 ```
+
+**The phase title is not enough, and taking it was a collision generator.** A
+sub-phase routinely takes more than one session, and its title does not change
+while it does: 20a took THREE on 2026-08-08 — the layout pilot, the generator
+and gate, the map on the page — and 19g took two across midnight. Every one of
+them would have opened as `Phase 20a — the generated map`. The line that differs
+is the cursor's **Next allowed step**, and it differs because the previous
+session wrote it there for exactly this purpose.
+
+If it still collides — the step did not finish, so the cursor still names it —
+say what THIS session is going for instead. Two sessions on one step is a real
+thing here, and two chats with one name is how you lose the first one.
 
 The working name is a prediction, and the record says predictions here are
 routinely wrong: 19.0 split its phase into three while it ran, 16 split into

@@ -25,17 +25,6 @@ python3 scripts/check-docs-references.py || fail=1
 say ""
 say "=== the record of this session exists and agrees with itself ==="
 
-today="$(date -u +%Y-%m-%d)"
-yesterday="$(date -u -d 'yesterday' +%Y-%m-%d)"
-# Today OR yesterday: sessions here run for hours and cross midnight UTC
-# routinely. A gate that refuses at 00:30 over the calendar gets skipped.
-summary="$(ls docs/sessions/"$today"-*.md docs/sessions/"$yesterday"-*.md 2>/dev/null | tail -1)"
-if [ -z "$summary" ]; then
-  bad "no session summary dated $today or $yesterday in docs/sessions/"
-else
-  say "summary   $summary"
-fi
-
 tracked="$(git ls-files docs/sessions)"
 index="docs/sessions/INDEX.md"
 
@@ -54,7 +43,41 @@ if [ "$dates" != "$(printf '%s\n' "$dates" | sort)" ]; then
   bad "row as the most recent one, and would report the wrong session"
 fi
 
-newest="$(printf '%s\n' "$dates" | sort | tail -1)"
+# WHICH SESSION IS THE NEWEST ONE IS A QUESTION WITH ONE ANSWER HERE, AND IT IS
+# THE LAST ROW OF INDEX. This used to be `ls docs/sessions/<today>-*.md | tail
+# -1`, which sorts alphabetically: on 2026-08-08 four summaries carried that
+# date and it printed the LAYOUT PILOT while the newest was the generator
+# session. Two sub-phases in one day is not unusual here - 20a took three - and
+# the filenames are named after what a session established, so their alphabet
+# says nothing about their order.
+#
+# INDEX is append-ordered and the check directly above refuses when it is not
+# chronological, so reusing it means this script holds ONE ordering rather than
+# two that can disagree. It also stops *.log evidence files being mistaken for
+# summaries, which the old `git ls-files` form did further down.
+row_file() {  # row_file <n from the end> -> the first sessions/*.md in that row
+  grep '^| 20' "$index" | tail -"$1" | head -1 \
+    | grep -o 'sessions/[A-Za-z0-9._-]*\.md' | head -1
+}
+row_date() {
+  grep '^| 20' "$index" | tail -"$1" | head -1 | awk -F'|' '{gsub(/ /,"",$2); print $2}'
+}
+
+newest="$(row_date 1)"
+summary="$(row_file 1)"
+today="$(date -u +%Y-%m-%d)"
+yesterday="$(date -u -d 'yesterday' +%Y-%m-%d)"
+if [ -z "$summary" ]; then
+  bad "the last row of $index names no sessions/<file>.md"
+# Today OR yesterday: sessions here run for hours and cross midnight UTC
+# routinely. A gate that refuses at 00:30 over the calendar gets skipped.
+elif [ "$newest" != "$today" ] && [ "$newest" != "$yesterday" ]; then
+  bad "the newest INDEX row is dated $newest, not $today or $yesterday -"
+  bad "this session has not added one"
+else
+  say "summary   docs/$summary"
+fi
+
 stated="$(grep -o '\*\*As of [0-9-]*\.\*\*' docs/discussion-log.md | grep -o '[0-9-]\{10\}' | head -1)"
 if [ -z "$stated" ]; then
   bad "docs/discussion-log.md has no '**As of YYYY-MM-DD.**' in Current state"
@@ -90,7 +113,11 @@ say "before the work, and ADR-0032 declared one for docs/demo-script.md that"
 say "nothing produced until it was noticed by hand."
 say ""
 
-previous="$(git ls-files docs/sessions | grep -v INDEX | sort | tail -2 | head -1)"
+# The SAME assumption, one more time: this was `git ls-files docs/sessions |
+# sort | tail -2 | head -1`, which is alphabetical and counts *.log evidence
+# files as sessions. On 2026-08-08 it happened to land on the right file, which
+# is the worst kind of green. Second-to-last INDEX row instead.
+previous="docs/$(row_file 2)"
 base="$(git log -1 --format=%H --diff-filter=A -- "$previous" 2>/dev/null)"
 if [ -z "$base" ]; then
   say "could not locate the previous session's commit; skipping"

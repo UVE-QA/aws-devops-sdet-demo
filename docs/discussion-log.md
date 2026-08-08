@@ -6,6 +6,45 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
+**As of 2026-08-08 (20a CLOSED, the map on the page).** The front page renders
+the map. The hand-written "What happens, in the order it happens" section — the
+one telling every visitor there were five permanent state levels while standing
+on the sixth — is gone, and in its place `site/index.html` draws
+`site/data/topology.json`: the band above the cycle, the permanent levels, the
+serpentine of phases, the cut that names every resource block, and the counts.
+Nothing there is maintained beside `infra/` any more.
+
+The page is a BUILD OUTPUT now, which the plan did not have. The map needs the
+icon sprite inline, so `assets/index.template.html` is the source and `make
+site-page` builds it. That buys a new way to be wrong — a committed output
+invites being edited in place, and the edit lives exactly until the next build
+silently reverts it — so `make site-page-check` requires the committed page to
+be byte-identical to a fresh build, and runs in `ci.yml`. Six ways to make it
+red were exercised, five red and both controls green, exit codes to a file with
+the tree committed first. The pilot page, its template and its target are gone;
+`publish-site` syncs with `--delete`, so the published copy went with the commit.
+
+Two layout defects, and what is worth carrying is not either one but how they
+hid: the pilot's `scrollWidth == clientWidth` was green at all four viewports
+and was measuring the DOCUMENT. A box that overflows its own parent never
+reaches it. The serpentine packer charged one gap per join where a row renders
+`phase | gap | arrow | gap | phase`, and at 1180 the first row was 1132px inside
+a 1125px box; `.node .head` was up to 22px wider than its node. Both were found
+by measuring a box against ITS OWN container.
+
+Closed with two fixes to the session machinery that this day earned twice:
+`make session-close` printed the wrong summary whenever a day held more than one
+— `ls | tail -1` sorts alphabetically, and 2026-08-08 held four — and the same
+assumption appeared a second time in the same script, where it also counted
+`*.log` evidence as sessions and happened to land on the right file, which is
+the worst kind of green. Both orderings now come from INDEX's last row, which
+this script already refuses to let go non-chronological: one ordering, not two.
+And the primer's WORKING chat name was taken from the phase title in the cursor,
+which does not change while a sub-phase spans sessions — 20a took three and all
+three would have opened under one name. It comes from the cursor's NEXT ALLOWED
+STEP now, the line that differs, and which exists because the previous session
+wrote it.
+
 **As of 2026-08-08 (20a, the generator and the drift gate).** The fixture is
 gone: `site/data/topology.json` is generated from `infra/` and `tests/` by
 `scripts/generate-topology.py`, and `make site-data-check` runs in `ci.yml`. It

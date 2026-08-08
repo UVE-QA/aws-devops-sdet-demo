@@ -913,9 +913,42 @@ github      GitHub's mark is NOT an open question the way AWS's was: its brand
             A layout question, so it waits for the map to be on a screen again
 ```
 
-Still to build in 20a: folding the map and its cut into `site/index.html` in
-place of the hand-written section. Both pilots deliberately did not touch
-`index.html`.
+#### What the page settled (2026-08-08, closing 20a)
+
+The map and its cut are in `site/index.html`, and the seven hand-written chips
+are gone. Two things the plan did not have:
+
+```text
+build      the page needs the sprite inline, so site/index.html is a BUILD
+           OUTPUT now: assets/index.template.html is the source, `make
+           site-page` builds it, `make site-page-check` requires the committed
+           page to be byte-identical to a fresh build, and ci.yml runs it. A
+           committed output invites being edited in place, and that edit lives
+           only until the next build reverts it - quietly
+pilot      retired, page and template and target. publish-site syncs with
+           --delete so the published copy went with the commit. Keeping it
+           would have left two renderings of one file maintained separately,
+           which is the shape this phase exists to remove
+```
+
+Two layout defects, neither visible to the pilot's `scrollWidth ==
+clientWidth`, because that measured the DOCUMENT: the serpentine packer charged
+one gap per join where a row renders `phase | gap | arrow | gap | phase` (7px
+over at 1180), and `.node .head` was up to 22px wider than its node. Both were
+found by measuring a box against ITS OWN container rather than against the page.
+
+Open, and carried past 20a:
+
+```text
+architecture.md   still draws the same thing by hand, in Mermaid. ADR-0039 D1
+                  ended the prose rendering on the public page; the diagram in
+                  the repository is a third rendering and nothing generates it.
+                  Not in 20a's criteria, so not done here - but it is the same
+                  defect waiting, and a reader of the repo meets it first
+autoscroll        still needs a live run to judge. 20b
+phone             phases 2 and 6 unroll into long columns; collapsing them by
+                  default is still the obvious move and still not obviously right
+```
 
 ### 20b — the timeline  [needs one cycle, about $0.03]
 

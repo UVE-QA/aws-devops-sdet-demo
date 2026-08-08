@@ -1,0 +1,62 @@
+make site-page-check, broken on purpose. Tree committed first: 267b6f3
+Exit codes are written here by the runner, not read off a terminal and not
+taken after a pipe - $? after a pipe is the pipe's (2026-07-28).
+
+=== 0. control: untouched tree must be GREEN
+python3 scripts/build-site-page.py --check
+18 icons, 50,168 bytes of sprite
+site-page-check: site/index.html matches the template
+exit=0
+
+=== 1. the OUTPUT edited by hand
+python3 scripts/build-site-page.py --check
+18 icons, 50,168 bytes of sprite
+site-page-check: site/index.html is not what the template builds.
+  Edit assets/index.template.html, not the built page, then run `make site-page`.
+make: *** [Makefile:168: site-page-check] Error 1
+exit=2
+
+=== 2. the output deleted
+python3 scripts/build-site-page.py --check
+18 icons, 50,168 bytes of sprite
+site-page-check: site/index.html does not exist. Run `make site-page`.
+make: *** [Makefile:168: site-page-check] Error 1
+exit=2
+
+=== 3. the TEMPLATE edited and the page not rebuilt
+python3 scripts/build-site-page.py --check
+18 icons, 50,168 bytes of sprite
+site-page-check: site/index.html is not what the template builds.
+  Edit assets/index.template.html, not the built page, then run `make site-page`.
+make: *** [Makefile:168: site-page-check] Error 1
+exit=2
+
+=== 4. the template has lost its injection marker
+python3 scripts/build-site-page.py --check
+/tmp/repo/assets/index.template.html no longer contains <!--ICON-SPRITE-->; nothing to inject into
+make: *** [Makefile:168: site-page-check] Error 1
+exit=2
+
+=== 5. an icon the page asks for is missing
+python3 scripts/build-site-page.py --check
+missing icon: /tmp/repo/assets/aws-icons/rds.svg
+make: *** [Makefile:168: site-page-check] Error 1
+exit=2
+
+=== 6. control again: the tree is back and must be GREEN
+python3 scripts/build-site-page.py --check
+18 icons, 50,168 bytes of sprite
+site-page-check: site/index.html matches the template
+exit=0
+
+tree at the end: 1 modified files (0 expected)
+  ^ that one file is this log, which did not exist when the count was written.
+    Everything the tests touched was restored: `git status --porcelain` lists
+    no tracked file. Left in rather than corrected, because a runner that
+    quietly adjusts its own accounting is the thing being guarded against.
+
+exit=2 is make's code for a failed recipe; the script itself returns 1. Both
+were checked - `python3 scripts/build-site-page.py --check` direct returns 1.
+
+Not a break test, and recorded so it is not mistaken for one: paths in 4 and 5
+print this sandbox's checkout root.
