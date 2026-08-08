@@ -1,0 +1,73 @@
+{
+  "_comment": "CAPTURED from the AWS Price List Query API by scripts/fetch-rates.py. Not generated from this repository and not edited by hand: every figure carries the SKU and the exact filters that produced it, and `captured_at` is when. Regenerate with `make rates`, which needs AWS credentials.",
+  "schema": "rates/1",
+  "region": "us-west-2",
+  "currency": "USD",
+  "captured_at": "2026-08-08T23:13:42Z",
+  "source": "AWS Price List Query API (pricing:GetProducts, endpoint us-east-1)",
+  "priced_for": {
+    "db_instance_class": "db.t4g.micro"
+  },
+  "unit_prices": {
+    "alb_hour": {
+      "usd": 0.0225,
+      "unit": "Hrs",
+      "sku": "7AKU6NT3G9ZEJTB5",
+      "description": "$0.0225 per Application LoadBalancer-hour (or partial hour)",
+      "filters": {
+        "regionCode": "us-west-2",
+        "productFamily": "Load Balancer-Application",
+        "usagetype": "USW2-LoadBalancerUsage"
+      },
+      "service_code": "AWSELB"
+    },
+    "fargate_gb_hour": {
+      "usd": 0.004445,
+      "unit": "hours",
+      "sku": "NTC2QZFJW79R5XVK",
+      "description": "AWS Fargate - Memory  - US West 2 (Oregon)",
+      "filters": {
+        "regionCode": "us-west-2",
+        "usagetype": "USW2-Fargate-GB-Hours"
+      },
+      "service_code": "AmazonECS"
+    },
+    "fargate_vcpu_hour": {
+      "usd": 0.04048,
+      "unit": "hours",
+      "sku": "EKCCQUSFCBDDTKTS",
+      "description": "AWS Fargate - vCPU  - US West 2 (Oregon)",
+      "filters": {
+        "regionCode": "us-west-2",
+        "usagetype": "USW2-Fargate-vCPU-Hours:perCPU"
+      },
+      "service_code": "AmazonECS"
+    },
+    "rds_gp3_gb_month": {
+      "usd": 0.115,
+      "unit": "GB-Mo",
+      "sku": "ZT28ZDE39BEBGC2Y",
+      "description": "$0.115 per GB-month of provisioned GP3 storage running Oracle",
+      "filters": {
+        "regionCode": "us-west-2",
+        "productFamily": "Database Storage",
+        "usagetype": "USW2-RDS:GP3-Storage"
+      },
+      "service_code": "AmazonRDS"
+    },
+    "rds_instance_hour": {
+      "usd": 0.016,
+      "unit": "Hrs",
+      "sku": "CT79XNCJJGH56FA8",
+      "description": "$ 0.016 per RDS db.t4g.micro Single-AZ instance hour (or partial hour) running PostgreSQL",
+      "filters": {
+        "regionCode": "us-west-2",
+        "instanceType": "db.t4g.micro",
+        "databaseEngine": "PostgreSQL",
+        "deploymentOption": "Single-AZ",
+        "licenseModel": "No license required"
+      },
+      "service_code": "AmazonRDS"
+    }
+  }
+}
