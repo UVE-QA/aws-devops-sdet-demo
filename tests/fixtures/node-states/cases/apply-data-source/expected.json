@@ -1,0 +1,29 @@
+{
+  "description": "The bucket that did not exist until a live cycle produced one. A data source is not a resource block, generate-topology.py counts resource blocks, and D1's coverage gate is about resource blocks - so a data source can NEVER be assigned to a display group. Reporting it as unknown would be a permanent false positive in the one channel that is supposed to be rare, and a channel that always shouts stops being heard.",
+  "environment": "stage",
+  "kind": "apply",
+  "observed": {
+    "resources": 2,
+    "matched": 1,
+    "not_shown": 0,
+    "read": 1,
+    "unknown": 0,
+    "nodes": 1
+  },
+  "not_shown": [],
+  "read": [
+    "data.terraform_remote_state.upstream"
+  ],
+  "unknown": [],
+  "nodes": {
+    "stage.alpha": {
+      "state": "measured",
+      "resources_observed": 1,
+      "resources_complete": 1,
+      "identifier_present": true
+    }
+  },
+  "phase_ids": [
+    "stage-apply"
+  ]
+}

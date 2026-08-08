@@ -1,0 +1,30 @@
+{
+  "description": "A data source read alongside a resource created. PREDICTED, not measured: written after a live teardown showed terraform emitting apply_start/apply_complete for data sources with action \"read\", and before any fixture had one. Two things are observed, one of them is created, and the read counts as neither created nor destroyed.",
+  "status": "complete",
+  "totals": {
+    "operations": 1,
+    "resources_created": 1,
+    "resources_destroyed": 0
+  },
+  "operations": [
+    {
+      "label": "apply",
+      "command": "apply",
+      "status": "complete",
+      "exit_code": 0,
+      "resources": {
+        "complete": 2,
+        "errored": 0,
+        "incomplete": 0
+      },
+      "diagnostics": {
+        "error": 0,
+        "warning": 0
+      },
+      "stream": {
+        "unparsed_lines": 0,
+        "unknown_types": []
+      }
+    }
+  ]
+}

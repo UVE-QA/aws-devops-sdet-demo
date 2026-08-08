@@ -2,14 +2,23 @@
   "description": "The shape infra/ actually has, and the one thing in this file that is a PREDICTION rather than a measurement. Written in a chat session with no terraform on it, from the documented schema, and checked the moment tests/fixtures/timeline/generate.sh next runs on the devbox: if terraform renders a module-qualified address differently from what is written below, this case goes red and the guess is corrected before a cycle is ever launched. All four buckets are exercised at once — two nodes, a hidden group, and one address nothing claims.",
   "environment": "stage",
   "kind": "apply",
-  "observed": { "resources": 10, "matched": 5, "not_shown": 4, "unknown": 1, "nodes": 2 },
+  "observed": {
+    "resources": 10,
+    "matched": 5,
+    "not_shown": 4,
+    "read": 0,
+    "unknown": 1,
+    "nodes": 2
+  },
   "not_shown": [
     "module.pair[0].terraform_data.many[0]",
     "module.pair[0].terraform_data.many[1]",
     "module.pair[1].terraform_data.many[0]",
     "module.pair[1].terraform_data.many[1]"
   ],
-  "unknown": ["terraform_data.root"],
+  "unknown": [
+    "terraform_data.root"
+  ],
   "nodes": {
     "stage.child": {
       "state": "measured",
@@ -23,5 +32,8 @@
       "resources_complete": 2,
       "identifier_present": true
     }
-  }
+  },
+  "phase_ids": [
+    "stage-apply"
+  ]
 }

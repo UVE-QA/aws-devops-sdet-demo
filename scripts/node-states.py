@@ -36,6 +36,14 @@ the last two are the reason this script prints anything at all:
                     so a delete is matched by environment, not by address
     not shown       the address belongs to a group the map deliberately does not
                     draw (ADR-0039 D1). Recorded, quiet, and counted
+    a data source   action `read`. Terraform emits apply_start/apply_complete
+                    for DATA SOURCES too, once per invocation, and a data block
+                    is not a resource block: generate-topology.py counts
+                    `resource`, and D1's coverage gate is about resource blocks.
+                    So a data source can never belong to a display group, and
+                    reporting it as unknown would be a permanent false positive
+                    in the one channel that is supposed to be rare. Found on the
+                    first live teardown - no fixture had a data source in it
     unknown         nothing claims it. LOUD: printed, counted, and carried into
                     the published file, because a resource that a cycle created
                     and the map does not draw is precisely the silence D1 exists
@@ -101,6 +109,12 @@ def parse_ts(value):
         return None
 
 
+def iso(dt) -> str | None:
+    if dt is None:
+        return None
+    return dt.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
 def seconds_between(a, b):
     if a is None or b is None:
         return None
@@ -145,6 +159,16 @@ def index_hidden(topology: dict) -> dict[str, str]:
     return index
 
 
+def phase_of(topology: dict, environment: str) -> dict[str, str]:
+    """node id -> the phase that draws it, for this environment."""
+    index: dict[str, str] = {}
+    for phase in topology.get("phases", []):
+        for node in phase.get("nodes", []):
+            if node.get("env") == environment:
+                index[node["id"]] = phase["id"]
+    return index
+
+
 def destroy_node(topology: dict, environment: str) -> str | None:
     for phase in topology.get("phases", []):
         for node in phase.get("nodes", []):
@@ -162,6 +186,7 @@ def join(topology: dict, timeline: dict) -> dict:
 
     collected: dict[str, list[dict]] = {}
     not_shown: list[str] = []
+    reads: list[str] = []
     unknown: list[str] = []
     matched = 0
 
@@ -169,6 +194,12 @@ def join(topology: dict, timeline: dict) -> dict:
         for resource in op.get("resources", []):
             address = resource.get("address") or ""
             base = base_address(address)
+            if resource.get("action") == "read":
+                # A data source. Checked BEFORE anything else, because the
+                # address of one looks like any other and the action is the
+                # only thing that distinguishes it.
+                reads.append(address)
+                continue
             if resource.get("action") == "delete":
                 node_id = teardown
             else:
@@ -215,6 +246,40 @@ def join(topology: dict, timeline: dict) -> dict:
             "resources_complete": len(complete),
         }
 
+    # The same span, one level up: a phase is busy from the first apply_start
+    # among ALL its nodes to the last apply_complete. Computed here rather than
+    # on the page for the reason the whole join is here - and it could not be
+    # done there at all, because a node reports its duration and not its
+    # boundaries, and durations of overlapping things do not add up.
+    phase_index = phase_of(topology, environment)
+    phases: dict[str, dict] = {}
+    for node_id, resources in collected.items():
+        phase_id = phase_index.get(node_id)
+        if not phase_id:
+            continue
+        starts = [parse_ts(r.get("started_at")) for r in resources]
+        ends = [parse_ts(r.get("finished_at")) for r in resources]
+        starts = [s for s in starts if s]
+        ends = [e for e in ends if e]
+        if not starts or not ends:
+            continue
+        entry = phases.setdefault(phase_id, {"first": None, "last": None, "nodes": 0})
+        entry["nodes"] += 1
+        low, high = min(starts), max(ends)
+        if entry["first"] is None or low < entry["first"]:
+            entry["first"] = low
+        if entry["last"] is None or high > entry["last"]:
+            entry["last"] = high
+    phases = {
+        pid: {
+            "duration_s": seconds_between(e["first"], e["last"]),
+            "started_at": iso(e["first"]),
+            "finished_at": iso(e["last"]),
+            "nodes": e["nodes"],
+        }
+        for pid, e in sorted(phases.items())
+    }
+
     started = parse_ts(timeline.get("started_at"))
     return {
         "schema": SCHEMA,
@@ -230,15 +295,23 @@ def join(topology: dict, timeline: dict) -> dict:
             "tool": timeline.get("tool"),
             "run": timeline.get("run"),
         },
+        # The counts are of the DEDUPLICATED lists below, because those are what
+        # a reader acts on. They disagreed on the first live teardown - two
+        # events for one data source read as "unknown: 2" above a list naming
+        # one address - and a count that does not match the thing under it is
+        # the class of defect ADR-0039 D1 exists to remove.
         "observed": {
-            "resources": matched + len(not_shown) + len(unknown),
+            "resources": matched + len(set(not_shown)) + len(set(reads)) + len(set(unknown)),
             "matched": matched,
-            "not_shown": len(not_shown),
-            "unknown": len(unknown),
+            "not_shown": len(set(not_shown)),
+            "read": len(set(reads)),
+            "unknown": len(set(unknown)),
             "nodes": len(nodes),
         },
         "not_shown": sorted(set(not_shown)),
+        "read": sorted(set(reads)),
         "unknown": sorted(set(unknown)),
+        "phases": phases,
         "nodes": dict(sorted(nodes.items())),
     }
 
@@ -252,8 +325,8 @@ def render(states: dict, out=None) -> None:
     o = states["observed"]
     line(f"node states: {states['environment']} — {states['kind']} — "
          f"{states['cycle']['status'].upper() if states['cycle']['status'] else 'UNKNOWN'}")
-    line(f"  {o['resources']} resources observed → {o['nodes']} nodes; "
-         f"{o['matched']} matched, {o['not_shown']} not shown, {o['unknown']} unknown")
+    line(f"  {o['resources']} observed → {o['nodes']} nodes; {o['matched']} matched, "
+         f"{o['not_shown']} not shown, {o['read']} data sources, {o['unknown']} unknown")
     line()
     if states["nodes"]:
         width = max(len(n) for n in states["nodes"])

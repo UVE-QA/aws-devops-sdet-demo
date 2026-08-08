@@ -2,7 +2,14 @@
   "description": "Two destroy invocations, four deletes, one node. The destroy nodes stand for a whole state level rather than a group, so a delete is matched by ENVIRONMENT and never by address — which is also why the stub topology gives destroy.stage no members at all. Nothing carries an identifier: terraform's apply_complete for a delete has no id_key, and the page shows nothing rather than inventing one.",
   "environment": "stage",
   "kind": "destroy",
-  "observed": { "resources": 4, "matched": 4, "not_shown": 0, "unknown": 0, "nodes": 1 },
+  "observed": {
+    "resources": 4,
+    "matched": 4,
+    "not_shown": 0,
+    "read": 0,
+    "unknown": 0,
+    "nodes": 1
+  },
   "not_shown": [],
   "unknown": [],
   "nodes": {
@@ -12,5 +19,8 @@
       "resources_complete": 4,
       "identifier_present": false
     }
-  }
+  },
+  "phase_ids": [
+    "destroy"
+  ]
 }

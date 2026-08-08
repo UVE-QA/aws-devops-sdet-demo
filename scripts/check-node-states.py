@@ -105,14 +105,24 @@ def summarise(states: dict, expected_nodes: dict) -> dict:
         "kind": states["kind"],
         "observed": states["observed"],
         "not_shown": states["not_shown"],
+        "read": states["read"],
         "unknown": states["unknown"],
         "nodes": nodes,
+        # Which phases lit is stable across regenerations; how long they took is
+        # not, so only the synthetic case names durations.
+        "phase_ids": sorted(states["phases"]),
+        "phases": {
+            pid: {"duration_s": v["duration_s"], "nodes": v["nodes"]}
+            for pid, v in states["phases"].items()
+        },
     }
 
 
 def compare(case: str, got: dict, expected: dict) -> list[str]:
     findings = []
-    for key in ("environment", "kind", "observed", "not_shown", "unknown"):
+    for key in ("environment", "kind", "observed", "not_shown", "read", "unknown", "phase_ids", "phases"):
+        if key not in expected:
+            continue
         if got[key] != expected[key]:
             findings.append(
                 f"{case}: {key}\n     expected {json.dumps(expected[key], sort_keys=True)}"

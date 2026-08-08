@@ -1,8 +1,15 @@
 {
-  "description": "Two rules that no real terraform_data run can tell apart, because every one of its resources finishes in zero seconds. stage.alpha: three members, overlapping, and the node is busy from the FIRST start to the LAST finish — 10:00:00 to 10:02:02 is 122 seconds, not the 128 you get by adding them up and not the 120 the longest one took. stage.slow: the member that ran five minutes carries no identifier, so the node shows the one that ran ten seconds and does carry one — the identifier is taken from the longest member THAT HAS ONE, and nothing is enriched to produce a better answer.",
+  "description": "Two rules that no real terraform_data run can tell apart, because every one of its resources finishes in zero seconds. stage.alpha: three members, overlapping, and the node is busy from the FIRST start to the LAST finish — 10:00:00 to 10:02:02 is 122 seconds, not the 128 you get by adding them up and not the 120 the longest one took. stage.slow: the member that ran five minutes carries no identifier, so the node shows the one that ran ten seconds and does carry one — the identifier is taken from the longest member THAT HAS ONE, and nothing is enriched to produce a better answer. The phase span is the same rule one level up and cannot be computed on the page at all: a node reports its DURATION and not its boundaries, and durations of overlapping things do not add up. stage.alpha and stage.slow together run 10:00:00 to 10:05:00 — 300 seconds, not the 422 you get by adding the two node durations.",
   "environment": "stage",
   "kind": "apply",
-  "observed": { "resources": 5, "matched": 5, "not_shown": 0, "unknown": 0, "nodes": 2 },
+  "observed": {
+    "resources": 5,
+    "matched": 5,
+    "not_shown": 0,
+    "read": 0,
+    "unknown": 0,
+    "nodes": 2
+  },
   "not_shown": [],
   "unknown": [],
   "nodes": {
@@ -23,6 +30,12 @@
       "duration_s": 300.0,
       "identifier": "slow-id",
       "identifier_from": "terraform_data.slow"
+    }
+  },
+  "phases": {
+    "stage-apply": {
+      "duration_s": 300.0,
+      "nodes": 2
     }
   }
 }

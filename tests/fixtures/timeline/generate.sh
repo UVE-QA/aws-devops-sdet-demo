@@ -243,6 +243,48 @@ EOF
 capture apply-module 01-apply "$work/module" apply -input=false -auto-approve -json
 
 # ---------------------------------------------------------------------------
+# A DATA SOURCE, which no fixture had until a live teardown produced one.
+# terraform emits apply_start/apply_complete for data sources too, with action
+# "read", once per invocation - so `module.network.data.aws_availability_zones`
+# arrived at scripts/node-states.py looking exactly like a resource nothing
+# claimed, and was reported as UNKNOWN. A data block is not a resource block and
+# can never belong to a display group, so that would have been a permanent false
+# positive in the one channel that is supposed to be rare.
+#
+# `terraform_remote_state` is the built-in provider's data source and it reads a
+# LOCAL state file, so this stays offline and free like everything else here.
+say "apply-data-source — a data source is read, not created"
+new_case apply-data-source
+mkdir -p "$work/source"
+cat > "$work/source/main.tf" <<'EOF'
+resource "terraform_data" "source" {
+  input = "something for the next configuration to read"
+}
+
+output "value" {
+  value = terraform_data.source.output
+}
+EOF
+( cd "$work/source" && tf init -input=false -no-color > /dev/null )
+( cd "$work/source" && tf apply -input=false -auto-approve > /dev/null )
+
+mkdir -p "$work/reader"
+cat > "$work/reader/main.tf" <<EOF
+data "terraform_remote_state" "upstream" {
+  backend = "local"
+  config = {
+    path = "${work}/source/terraform.tfstate"
+  }
+}
+
+resource "terraform_data" "reader" {
+  input = data.terraform_remote_state.upstream.outputs.value
+}
+EOF
+( cd "$work/reader" && tf init -input=false -no-color > /dev/null )
+capture apply-data-source 01-apply "$work/reader" apply -input=false -auto-approve -json
+
+# ---------------------------------------------------------------------------
 version_line="$(terraform version | head -1)"
 printf '%s\ngenerated %s by tests/fixtures/timeline/generate.sh\n' \
   "$version_line" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "${dest}/GENERATED-BY"

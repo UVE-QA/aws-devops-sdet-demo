@@ -8,7 +8,9 @@
       "label": "deliberately not drawn",
       "resources": 1,
       "why": "stands for the adopted-not-created group in the real topology: observed in a cycle, assigned, and given no mark on purpose.",
-      "members": ["module.pair.terraform_data.many"]
+      "members": [
+        "module.pair.terraform_data.many"
+      ]
     }
   ],
   "phases": [
@@ -25,11 +27,12 @@
           "kind": "service",
           "env": "stage",
           "observer": "terraform",
-          "resources": 3,
+          "resources": 4,
           "members": [
             "terraform_data.alpha",
             "terraform_data.beta",
-            "terraform_data.gamma"
+            "terraform_data.gamma",
+            "terraform_data.reader"
           ]
         },
         {
@@ -40,7 +43,10 @@
           "env": "stage",
           "observer": "terraform",
           "resources": 2,
-          "members": ["terraform_data.quick", "terraform_data.slow"]
+          "members": [
+            "terraform_data.quick",
+            "terraform_data.slow"
+          ]
         },
         {
           "id": "stage.child",
@@ -63,7 +69,9 @@
           "env": "stage",
           "observer": "terraform",
           "resources": 1,
-          "members": ["module.pair.terraform_data.only"]
+          "members": [
+            "module.pair.terraform_data.only"
+          ]
         }
       ]
     },
