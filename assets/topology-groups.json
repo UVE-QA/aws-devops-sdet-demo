@@ -1,0 +1,458 @@
+{
+  "_": "EDITORIAL INPUT to scripts/generate-topology.py. This file carries the two things that cannot be derived from infra/: which display group each resource BLOCK belongs to, and how the groups are arranged into phases. Everything countable - how many levels, how many resources, how many of them each node holds - is computed from the repository and never written here. Every resource block declared under infra/ must appear in `assign` exactly once, including the ones deliberately given no mark of their own; `make site-data-check` is red on any that does not.",
+  "schema": 2,
+
+  "groups": [
+    {
+      "id": "perm.tfstate",
+      "kind": "permanent",
+      "shown": true,
+      "label": "S3 — Terraform state",
+      "service": "s3",
+      "why": "the bucket every other level keeps its state in"
+    },
+    {
+      "id": "perm.oidc",
+      "kind": "permanent",
+      "shown": true,
+      "label": "IAM — OIDC + deploy roles",
+      "service": "iam",
+      "why": "GitHub Actions assumes these; no static AWS key exists"
+    },
+    {
+      "id": "perm.ecr",
+      "kind": "permanent",
+      "shown": true,
+      "label": "ECR — the registry",
+      "service": "ecr",
+      "why": "prod promotes the digest stage tested; a teardown must not delete it"
+    },
+    {
+      "id": "perm.dns",
+      "kind": "permanent",
+      "shown": true,
+      "label": "Route 53 + ACM",
+      "service": "route53",
+      "why": "delegated zone and the wildcard certificate the ALB serves"
+    },
+    {
+      "id": "perm.site",
+      "kind": "permanent",
+      "shown": true,
+      "label": "S3 + CloudFront — this page",
+      "service": "cloudfront",
+      "why": "the exhibit cannot be destroyed by the thing it exhibits"
+    },
+    {
+      "id": "perm.selfservice",
+      "kind": "permanent",
+      "shown": true,
+      "label": "Lambda + DynamoDB — the button",
+      "service": "lambda",
+      "why": "the public launch button, its TTL and its watchdog"
+    },
+
+    {
+      "id": "vpc",
+      "kind": "node",
+      "shown": true,
+      "label": "VPC",
+      "service": "vpc"
+    },
+    {
+      "id": "secrets",
+      "kind": "node",
+      "shown": true,
+      "label": "Secrets Manager",
+      "service": "secretsmanager"
+    },
+    {
+      "id": "rds",
+      "kind": "node",
+      "shown": true,
+      "label": "RDS PostgreSQL",
+      "service": "rds"
+    },
+    {
+      "id": "alb",
+      "kind": "node",
+      "shown": true,
+      "label": "Application Load Balancer",
+      "service": "elb"
+    },
+    {
+      "id": "ecs",
+      "kind": "node",
+      "shown": true,
+      "label": "ECS Fargate",
+      "service": "ecs"
+    },
+    {
+      "id": "cloudwatch",
+      "kind": "node",
+      "shown": true,
+      "label": "CloudWatch",
+      "service": "cloudwatch"
+    },
+    {
+      "id": "budgets",
+      "kind": "node",
+      "shown": true,
+      "label": "Budgets",
+      "service": "budgets"
+    },
+    {
+      "id": "dnsrec",
+      "kind": "node",
+      "shown": true,
+      "label": "Route 53 — app record",
+      "service": "route53"
+    },
+
+    {
+      "id": "adopted-not-created",
+      "kind": "hidden",
+      "shown": false,
+      "label": "adopted, not created",
+      "why": "aws_default_security_group does not create anything. The module's own comment says so: AWS makes the group with the VPC and cannot delete it, Terraform adopts it to empty its rules, and a destroy drops it from state. Drawing it beside resources that ARE created would be a claim about creation that the code contradicts."
+    }
+  ],
+
+  "_repeated": "Resource blocks carrying count or for_each. Each is ONE block and an unknown number of AWS objects, so each has to be acknowledged here by name with the reason; the generator is red on one that appears without an entry, and on an entry whose block no longer repeats. This is why every count in topology.json says resource BLOCKS and not resources - the two differ by exactly this list, and the difference is a fact about variables rather than about the repository.",
+
+  "repeated": {
+    "infra/dns::aws_route53_record.validation": "for_each over the wildcard certificate's domain_validation_options — one record per domain ACM asks about",
+    "infra/public-site::aws_route53_record.cert_validation": "for_each over the dashboard certificate's domain_validation_options",
+    "infra/public-site::aws_route53_record.site_a": "for_each over the apex and www names",
+    "infra/public-site::aws_route53_record.site_aaaa": "for_each over the apex and www names",
+    "infra/modules/alb::aws_lb_listener.https": "count 0 or 1 — no HTTPS listener without a certificate. Both environments configure one",
+    "infra/modules/budgets::aws_budgets_budget.monthly": "count 0 or 1 — the module is instantiated with enabled = false in an environment that does not want its own budget",
+    "infra/modules/network::aws_subnet.public": "count = 2 — one public subnet per availability zone",
+    "infra/modules/network::aws_subnet.private_db": "count = 2 — the RDS subnet group needs two AZs whether or not anything runs in the second",
+    "infra/modules/network::aws_route_table_association.public": "count = 2 — one per public subnet"
+  },
+
+  "assign": {
+    "infra/bootstrap": {
+      "aws_s3_bucket.tfstate": "perm.tfstate",
+      "aws_s3_bucket_versioning.tfstate": "perm.tfstate",
+      "aws_s3_bucket_server_side_encryption_configuration.tfstate": "perm.tfstate",
+      "aws_s3_bucket_public_access_block.tfstate": "perm.tfstate"
+    },
+    "infra/modules/iam_github_oidc_provider": {
+      "aws_iam_openid_connect_provider.github": "perm.oidc"
+    },
+    "infra/modules/iam_github_deploy_role": {
+      "aws_iam_role.deploy": "perm.oidc",
+      "aws_iam_role_policy.deploy": "perm.oidc"
+    },
+    "infra/shared-ecr": {
+      "aws_ssm_parameter.prod_last_good_digest": "perm.ecr"
+    },
+    "infra/modules/ecr": {
+      "aws_ecr_repository.app": "perm.ecr",
+      "aws_ecr_lifecycle_policy.app": "perm.ecr"
+    },
+    "infra/dns": {
+      "aws_route53_zone.demo": "perm.dns",
+      "aws_acm_certificate.wildcard": "perm.dns",
+      "aws_route53_record.validation": "perm.dns",
+      "aws_acm_certificate_validation.wildcard": "perm.dns"
+    },
+    "infra/public-site": {
+      "aws_s3_bucket.site": "perm.site",
+      "aws_s3_bucket_public_access_block.site": "perm.site",
+      "aws_s3_bucket_versioning.site": "perm.site",
+      "aws_s3_bucket_server_side_encryption_configuration.site": "perm.site",
+      "aws_acm_certificate.site": "perm.site",
+      "aws_route53_record.cert_validation": "perm.site",
+      "aws_acm_certificate_validation.site": "perm.site",
+      "aws_cloudfront_origin_access_control.site": "perm.site",
+      "aws_cloudfront_distribution.site": "perm.site",
+      "aws_s3_bucket_policy.site": "perm.site",
+      "aws_route53_record.site_a": "perm.site",
+      "aws_route53_record.site_aaaa": "perm.site",
+      "aws_iam_role.publish": "perm.site",
+      "aws_iam_role_policy.publish": "perm.site"
+    },
+    "infra/self-service": {
+      "aws_cloudwatch_log_group.launch": "perm.selfservice",
+      "aws_iam_role.launch": "perm.selfservice",
+      "aws_iam_role_policy.launch": "perm.selfservice",
+      "aws_lambda_function.launch": "perm.selfservice",
+      "aws_lambda_permission.launch_url_invoke": "perm.selfservice",
+      "aws_lambda_function_url.launch": "perm.selfservice",
+      "aws_iam_role.callback": "perm.selfservice",
+      "aws_iam_role_policy.callback": "perm.selfservice",
+      "aws_dynamodb_table.control": "perm.selfservice",
+      "aws_secretsmanager_secret.github_app_key": "perm.selfservice",
+      "aws_sns_topic.budget": "perm.selfservice",
+      "aws_cloudwatch_log_group.watchdog": "perm.selfservice",
+      "aws_iam_role.watchdog": "perm.selfservice",
+      "aws_iam_role_policy.watchdog": "perm.selfservice",
+      "aws_lambda_function.watchdog": "perm.selfservice",
+      "aws_iam_role.scheduler": "perm.selfservice",
+      "aws_iam_role_policy.scheduler": "perm.selfservice",
+      "aws_scheduler_schedule.watchdog": "perm.selfservice",
+      "aws_cloudwatch_log_group.killswitch": "perm.selfservice",
+      "aws_iam_role.killswitch": "perm.selfservice",
+      "aws_iam_role_policy.killswitch": "perm.selfservice",
+      "aws_lambda_function.killswitch": "perm.selfservice",
+      "aws_lambda_permission.killswitch_sns": "perm.selfservice",
+      "aws_sns_topic_subscription.killswitch": "perm.selfservice",
+      "aws_sns_topic_policy.budget": "perm.selfservice"
+    },
+    "infra/modules/network": {
+      "aws_vpc.this": "vpc",
+      "aws_default_security_group.this": "adopted-not-created",
+      "aws_internet_gateway.this": "vpc",
+      "aws_subnet.public": "vpc",
+      "aws_subnet.private_db": "vpc",
+      "aws_route_table.public": "vpc",
+      "aws_route_table_association.public": "vpc"
+    },
+    "infra/modules/rds": {
+      "aws_db_subnet_group.this": "rds",
+      "aws_security_group.rds": "rds",
+      "random_password.db": "rds",
+      "aws_db_instance.this": "rds",
+      "aws_secretsmanager_secret.db": "secrets",
+      "aws_secretsmanager_secret_version.db": "secrets"
+    },
+    "infra/modules/alb": {
+      "aws_security_group.alb": "alb",
+      "aws_lb.this": "alb",
+      "aws_lb_target_group.app": "alb",
+      "aws_lb_listener.http": "alb",
+      "aws_lb_listener.https": "alb"
+    },
+    "infra/modules/ecs": {
+      "aws_ecs_cluster.this": "ecs",
+      "aws_security_group.app": "ecs",
+      "aws_iam_role.execution": "ecs",
+      "aws_iam_role_policy_attachment.execution_managed": "ecs",
+      "aws_iam_role_policy.execution_read_secret": "ecs",
+      "aws_iam_role.task": "ecs",
+      "aws_ecs_task_definition.app": "ecs",
+      "aws_ecs_service.app": "ecs"
+    },
+    "infra/modules/observability": {
+      "aws_cloudwatch_log_group.app": "cloudwatch",
+      "aws_cloudwatch_log_metric_filter.http_5xx": "cloudwatch",
+      "aws_cloudwatch_metric_alarm.http_5xx": "cloudwatch"
+    },
+    "infra/modules/budgets": {
+      "aws_budgets_budget.monthly": "budgets"
+    },
+    "infra/envs/prod": {
+      "aws_route53_record.app": "dnsrec"
+    }
+  },
+
+  "phases": [
+    {
+      "id": "build",
+      "n": 1,
+      "label": "Build",
+      "workflow": "deploy-stage.yml",
+      "env": "stage",
+      "nodes": [
+        {
+          "id": "build.ecr",
+          "label": "ECR push",
+          "service": "ecr",
+          "kind": "service",
+          "observer": "actions"
+        }
+      ]
+    },
+    {
+      "id": "stage-apply",
+      "n": 2,
+      "label": "Apply — stage",
+      "workflow": "deploy-stage.yml",
+      "env": "stage",
+      "level": "infra/envs/stage",
+      "nodes": [
+        { "group": "vpc" },
+        { "group": "secrets" },
+        { "group": "rds" },
+        { "group": "alb" },
+        { "group": "ecs" },
+        { "group": "cloudwatch" },
+        { "group": "budgets" }
+      ]
+    },
+    {
+      "id": "stage-provision",
+      "n": 3,
+      "label": "Provision — stage",
+      "workflow": "deploy-stage.yml",
+      "env": "stage",
+      "nodes": [
+        {
+          "id": "stage.migrate",
+          "label": "migrate + seed",
+          "service": "ecs",
+          "kind": "task",
+          "observer": "actions"
+        }
+      ]
+    },
+    {
+      "id": "stage-gate",
+      "n": 4,
+      "label": "Quality gate — stage",
+      "workflow": "deploy-stage.yml",
+      "env": "stage",
+      "nodes": [
+        {
+          "id": "suite.db.stage",
+          "label": "seed assertion",
+          "service": "suite",
+          "kind": "suite",
+          "observer": "report",
+          "suite": "db"
+        },
+        {
+          "id": "suite.api.stage",
+          "label": "API contract",
+          "service": "suite",
+          "kind": "suite",
+          "observer": "report",
+          "suite": "api"
+        },
+        {
+          "id": "suite.regression.stage",
+          "label": "regression",
+          "service": "suite",
+          "kind": "suite",
+          "observer": "report",
+          "suite": "regression"
+        },
+        {
+          "id": "suite.smoke.stage",
+          "label": "smoke",
+          "service": "suite",
+          "kind": "suite",
+          "observer": "report",
+          "suite": "smoke"
+        }
+      ]
+    },
+    {
+      "id": "approve",
+      "n": 5,
+      "label": "Approve",
+      "workflow": "promote-prod.yml",
+      "env": "prod",
+      "nodes": [
+        {
+          "id": "gate.human",
+          "label": "a human, in the prod environment",
+          "service": "human",
+          "kind": "gate",
+          "observer": "actions",
+          "note": "required reviewer, main only"
+        }
+      ]
+    },
+    {
+      "id": "prod-apply",
+      "n": 6,
+      "label": "Apply — prod",
+      "workflow": "promote-prod.yml",
+      "env": "prod",
+      "level": "infra/envs/prod",
+      "nodes": [
+        { "group": "vpc" },
+        { "group": "secrets" },
+        { "group": "rds" },
+        { "group": "alb" },
+        { "group": "ecs" },
+        { "group": "cloudwatch" },
+        { "group": "dnsrec" },
+        { "group": "budgets" }
+      ]
+    },
+    {
+      "id": "prod-gate",
+      "n": 7,
+      "label": "Quality gate — prod",
+      "workflow": "promote-prod.yml",
+      "env": "prod",
+      "nodes": [
+        {
+          "id": "suite.db.prod",
+          "label": "seed assertion",
+          "service": "suite",
+          "kind": "suite",
+          "observer": "report",
+          "suite": "db"
+        },
+        {
+          "id": "suite.smoke.prod",
+          "label": "smoke",
+          "service": "suite",
+          "kind": "suite",
+          "observer": "report",
+          "suite": "smoke"
+        }
+      ]
+    },
+    {
+      "id": "destroy",
+      "n": 8,
+      "label": "Destroy",
+      "workflow": "destroy.yml",
+      "nodes": [
+        {
+          "id": "destroy.stage",
+          "label": "stage — everything above",
+          "service": "destroy",
+          "kind": "service",
+          "env": "stage",
+          "observer": "terraform",
+          "whole_level": "infra/envs/stage"
+        },
+        {
+          "id": "destroy.prod",
+          "label": "prod — everything above",
+          "service": "destroy",
+          "kind": "service",
+          "env": "prod",
+          "observer": "terraform",
+          "whole_level": "infra/envs/prod"
+        }
+      ]
+    }
+  ],
+
+  "suites": {
+    "unit": {
+      "dir": "tests/unit",
+      "pattern": "test_*.py",
+      "asserts": "the shape of the log line the 5xx alarm reads, and the scripts a teardown depends on — in-process, no network"
+    },
+    "db": {
+      "dir": "tests/db",
+      "pattern": "assert_*.py",
+      "asserts": "the seeded rows are in RDS, read from inside the VPC"
+    },
+    "api": {
+      "dir": "tests/api",
+      "pattern": "test_*.py",
+      "asserts": "the paginated envelope, partial update, request id — DESTRUCTIVE"
+    },
+    "regression": {
+      "dir": "tests/playwright/tests/regression",
+      "pattern": "*.spec.ts",
+      "asserts": "items and pagination through the UI — DESTRUCTIVE"
+    },
+    "smoke": {
+      "dir": "tests/playwright/tests/smoke",
+      "pattern": "*.spec.ts",
+      "asserts": "the page loads and the app reaches its database — read-only"
+    }
+  }
+}

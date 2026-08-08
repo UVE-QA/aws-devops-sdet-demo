@@ -120,6 +120,16 @@ jobs:
         # pass if the list of documents itself has gone missing.
         run: make docs-check
 
+      - name: The map's data still matches infra/
+        # The other half of the same problem, and the half a reference check
+        # cannot reach: docs-check verifies that everything a document NAMES
+        # exists, never that what it CLAIMS is true, and six of the eleven stale
+        # places found on 2026-08-08 were COUNTS - numbers that go stale without
+        # a word changing around them. This regenerates the map's data from
+        # infra/ and tests/ and fails if the committed file disagrees, or if a
+        # resource block has been added that belongs to no display group.
+        run: make site-data-check
+
       - name: Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:

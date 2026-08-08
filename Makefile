@@ -4,7 +4,8 @@
 .PHONY: local-up local-down migrate seed test-smoke test-regression test-api \
         test-unit test-db test-ui-db test-spec-coverage docker-build tf-fmt \
         tf-validate docs-check secret-scan iac-scan image-scan action-pins \
-        self-service-package self-service-cors-check
+        self-service-package self-service-cors-check site-pilot site-data \
+        site-data-check
 
 # Bring up postgres + app (build app image if needed), detached.
 local-up:
@@ -151,11 +152,27 @@ docs-check:
 	python3 scripts/check-docs-references.py
 
 # Phase 20a pilot. Folds the AWS Architecture Icons into an inline sprite and
-# injects it into site/map-pilot.template.html. The built page is committed so a
-# reader can open it from a clone; this regenerates it. It refuses on a missing
+# injects it into assets/map-pilot.template.html. The built page is committed so
+# a reader can open it from a clone; this regenerates it. It refuses on a missing
 # icon and on a template that has lost its marker - both exercised on purpose.
 site-pilot:
 	python3 scripts/build-icon-sprite.py
+
+# The map's data, GENERATED from infra/ and tests/ rather than written (ADR-0039
+# D1). site-data rewrites it; site-data-check is the gate, and runs in ci.yml.
+#
+# A COVERAGE gate, not a depiction one. It cannot tell whether the picture is a
+# good picture. It can tell that every resource block under infra/ is assigned to
+# exactly one display group - including the group that means "deliberately not
+# shown", which is green and recorded rather than silently missing - that no
+# assignment names a resource that has been deleted, that no group's resources
+# live in a level the map never draws, and that the committed JSON is
+# byte-identical to a fresh generation.
+site-data:
+	python3 scripts/generate-topology.py
+
+site-data-check:
+	python3 scripts/generate-topology.py --check
 
 # The two ends of a session, as commands rather than as prose in four documents
 # (ADR-0033). Local only: on a CI checkout the tree is always clean and HEAD
