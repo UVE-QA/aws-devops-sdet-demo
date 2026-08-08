@@ -355,7 +355,7 @@ flight, nothing having observed AWS since — the page renders `unknown` and nam
 the run it is waiting for, rather than showing a value it cannot stand behind.
 An absent status file reads as "no observation", never as "destroyed".
 
-A third source is **wired and has never run in AWS** (Phase 20b.1):
+A third source is **wired and has never run in AWS** (Phase 20b):
 
 ```text
 timeline/<env>/<run id>-<job>.json   Terraform's own -json event stream, folded
@@ -364,12 +364,29 @@ timeline/<env>/<run id>-<job>.json   Terraform's own -json event stream, folded
                                      the provider handed back. It knows nothing
                                      about tests, and nothing about a run that
                                      had no terraform in it
+timeline/<env>/latest.json           the same, for whatever ran LAST — including
+                                     a run that did not finish. Read for its
+                                     status, never for its numbers
+timeline/<env>/nodes-apply.json      that timeline joined onto the map's nodes by
+timeline/<env>/nodes-destroy.json    scripts/node-states.py, and published only
+                                     when the cycle COMPLETED. These carry the
+                                     figures the map shows at rest
 ```
 
-ADR-0039 D2. It obeys the same rule as the other two — a source may assert only
-what it observes — and it carries its own refusal: a stream whose exit code was
-never recorded folds to `incomplete`, however finished its events look. Nothing
-on the page draws it yet, and no cycle has produced one. That is 20b.2.
+ADR-0039 D2 and D4. It obeys the same rule as the other two — a source may
+assert only what it observes — and it carries its own refusal: a stream whose
+exit code was never recorded folds to `incomplete`, however finished its events
+look.
+
+The split between the last two entries is **ADR-0040**, and it is what stops a
+cancelled run from erasing a good measurement: `latest.json` says what happened
+last, the `nodes-*.json` pair says what the last cycle that FINISHED measured,
+and the page draws the second while saying the first. The join lives in Python
+on the runner rather than in JavaScript on the page for the other half of that
+ADR — written in both, the rule deciding which resource belongs to which node
+would be one definition on two hosts.
+
+No cycle has produced any of these yet. That is 20b.2.
 
 ## What is deliberately absent
 

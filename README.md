@@ -107,6 +107,9 @@ make site-data-check  the map's data still matches infra/, and every resource
 make site-page-check  the committed page is what its template builds
 make timeline-check   an apply that was killed folds into an INCOMPLETE
                       timeline, never a plausible complete one
+make node-states-check
+                      every resource a cycle touches lands on a node of the map,
+                      is recorded as deliberately not drawn, or is named unknown
 ```
 
 Each one refuses rather than passing when it cannot actually scan — a missing

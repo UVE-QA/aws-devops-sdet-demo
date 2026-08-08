@@ -40,7 +40,7 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 20.0  | Visible cycle: decisions + plan | ✅ done | ADR-0039 |
 | 20a   | The generated map, on the page | ✅ done | sessions/2026-08-08-phase-20a-the-map-on-the-page.md |
 | 20b.1 | The stream captured, folded, gated | ✅ done, $0 | sessions/2026-08-08-phase-20b-1-a-killed-apply-is-not-a-cycle.md |
-| 20b.2 | The timeline from a live cycle, on the page | ⬜ planned, about $0.03 | — |
+| 20b.2 | The timeline from a live cycle, on the page | 🟡 $0 half written and gated; no cycle yet | ADR-0040 |
 | 20c   | The tests panel | ⬜ planned | — |
 | 20d   | Cost, computed and reconciled | ⬜ planned, blocked on 20b | — |
 
@@ -2048,6 +2048,60 @@ were the same shape — a page saying something it was not in a position to say:
   and a real destroy, find out what a module does to a resource address, light
   the map's nodes from it, and break it the way fixtures cannot: a cancelled RUN
   must publish INCOMPLETE. About $0.03.
+
+### Phase 20b.2 — the timeline from a live cycle, on the page  🟡 IN PROGRESS
+- Criteria: the map's nodes carry the figures a real cycle measured; a run that
+  did not finish is SAID rather than silently drawn; every resource a cycle
+  touches lands on a node, is recorded as deliberately not drawn, or is named.
+  **The $0 half is written and gated. The cycle has not run.**
+- Split the way 20b.1 was and for the same reason: everything decidable without
+  AWS is settled first, at nothing, and the billable run is spent only on what
+  only AWS can answer.
+```text
+  scripts/node-states.py        the join: a timeline onto the map's nodes
+  scripts/check-node-states.py  the gate
+  make node-states-check        it, in ci.yml
+  tests/fixtures/node-states/   4 cases folded from real terraform runs, 1
+                                hand-written and saying so, 1 stub topology
+  tests/fixtures/timeline/cases/apply-module   resources inside modules
+  assets/index.template.html    the run layer: at-rest figures, the unfinished
+                                run, the live pulse
+```
+- **ADR-0040**, two decisions found by writing the CONSUMER of 20b.1's timeline
+  rather than by planning it. `latest.json` cannot be the at-rest source: it is
+  overwritten by a cancelled run, so one cancelled run would erase a good
+  measurement. And the join belongs on the runner in Python rather than on the
+  page in JavaScript, because the gate over it is Python and the pair would be
+  one definition on two hosts.
+- **The module question is answered offline, before the cycle.** 20b.1 left
+  `hook.resource.module` and the shape of an address inside a module read from
+  the documentation. A local module holding `terraform_data` is as real a
+  terraform run as the other fixtures and costs the same nothing, so
+  `apply-module` was added to `tests/fixtures/timeline/generate.sh` with an
+  expectation written from the documentation — three address shapes, including
+  `count` on the module itself, which `infra/` does not have today. Running
+  `generate.sh` on the devbox turns that prediction into a measurement or into a
+  red gate, and either is worth more than finding out mid-apply.
+- Break tests so far, chat-side and to be re-run on the devbox: the live binding
+  refused a renamed STEP and a renamed JOB; control green.
+- **The devbox must run `tests/fixtures/timeline/generate.sh` first.** Until it
+  does, `make timeline-check` and `make node-states-check` are RED on
+  `apply-module`, which has an expectation and no streams. That is the intended
+  order, not a defect.
+- Cost so far: **$0**.
+- Validation, before anything billable:
+```bash
+  tests/fixtures/timeline/generate.sh
+  make timeline-check
+  make node-states-check
+  make site-data-check
+  make site-page-check
+  make docs-check
+```
+- Next allowed step: run the fixture generator on the devbox, get both gates
+  green, then one live cycle — and with it the break test only a live run can
+  give: a cancelled RUN must publish a timeline marked INCOMPLETE, and the page
+  must say so instead of drawing it.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

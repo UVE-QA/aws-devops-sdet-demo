@@ -974,19 +974,42 @@ break test    DONE, on fixtures. Seven ways red, both controls green, and one
 
 **20b.2 — the live half** [one cycle, about $0.03]
 
+Writing the CONSUMER of 20b.1's timeline moved most of this off the billable
+half, and produced two decisions the plan did not have (**ADR-0040**). Written
+and gated at $0:
+
 ```text
-modules       the fixtures use no modules, so `hook.resource.module` and what
-              `addr` looks like inside one are unconfirmed. This is the last
-              piece of the schema still read from the documentation rather than
-              observed - the rest was settled on the devbox against terraform
-              1.15.8, with every expectation unchanged
+join          DONE. scripts/node-states.py turns a timeline into node states, on
+              the runner. Not on the page: the rule would then be JavaScript
+              there and Python in its own gate - one definition, two hosts
+at rest       DONE, in shape. latest.json is NOT the at-rest source; a cancelled
+              run overwrites it and would erase a good measurement. The numbers
+              come from nodes-apply.json / nodes-destroy.json, published only
+              when a cycle completes, and the page SAYS when the last run did
+              not finish
+page          DONE. Nodes carry duration and the provider's own identifier;
+              phases pulse from the Actions API, read once by the dashboard
+              script and handed to the map rather than fetched twice
+coverage      DONE. make node-states-check: every resource a cycle touches is on
+              a node, recorded as deliberately not drawn, or named UNKNOWN
+modules       ANSWERED OFFLINE. tests/fixtures/timeline/cases/apply-module is a
+              real terraform run with resources inside modules - three address
+              shapes, including count on the module itself. The expectation is
+              written from the documentation, and generate.sh on the devbox
+              turns it into a measurement or a red gate before any cycle runs
+```
+
+What still needs the cycle, and nothing else does:
+
+```text
 publish       a real timeline object in the bucket, from an apply and from a
-              destroy, at the key above
-page          nodes light from the timeline; identifiers appear as the provider
-              assigned them (ADR-0039 D2); the phase pulses live from the
-              Actions API
-break test    the live one: a cancelled run must publish INCOMPLETE. The
-              fixtures prove the fold, not the workflow's `if: always()`
+              destroy, with the node states beside them
+page          the same map drawn from figures AWS produced rather than from
+              fixtures - including whether an identifier is legible at the size
+              its node gives it
+break test    the live one: a cancelled RUN must publish INCOMPLETE, and the
+              page must say so rather than drawing it. The fixtures prove the
+              fold, not the workflow's `if: always()`
 open          per-resource live pulsing, if phase-level proves too coarse. Two
               priced options in ADR-0039 D4; neither is taken by default
 ```
