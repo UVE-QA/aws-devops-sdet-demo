@@ -168,11 +168,13 @@
       <p class="sub" id="sub">Reading the topology&hellip;</p>
 
       <p class="fixture">
-        <b>20a pilot, variant B.</b> Sequence is carried by the PHASE. Inside a phase
-        the nodes are a set with no arrows between them, because Terraform creates
-        them as a graph and an arrow there would be a claim nothing in the repository
-        makes. Data from <code>data/topology.json</code>, a hand-built fixture at this
-        stage.
+        <b>20a pilot.</b> Sequence is carried by the PHASE. Inside a phase the nodes
+        are a set with no arrows between them, because Terraform creates them as a
+        graph and an arrow there would be a claim nothing in the repository makes.
+        Data from <code>data/topology.json</code>, generated from <code>infra/</code>
+        and <code>tests/</code> and checked by <code>make site-data-check</code>. No
+        cycle has been observed into it yet &mdash; the durations, costs and results
+        arrive in 20b and 20c, and until they do every node says so.
       </p>
 
       <h2>Permanent <span class="note">&mdash; no destroy workflow touches these</span></h2>
@@ -188,7 +190,7 @@
         <span class="best">Best on a laptop or wider &mdash; on a phone the map reflows to one column, which works but flattens the shape</span>
       </div>
       <div class="rows" id="rows"></div>
-      <p class="approx">
+      <p class="approx" id="approx" hidden>
         Bar length is an <b>approximate</b>, non-linear rendering of duration &mdash; a
         four-second security group and a four-minute database cannot share one screen at
         true scale. The seconds beside it are exact. Per-resource detail is in the text
@@ -218,17 +220,31 @@
 
       function nodeEl(n) {
         const el = document.createElement("div");
-        el.className = "node " + (n.state || "absent");
+        // ONE default, used by the class and by the body. They were two, and a
+        // node with no `state` at all - which is every node until 20b observes
+        // one - took the "absent" class and the MEASURED body, rendering
+        // `undefineds` where the seconds go. Read off a screenshot, not off the
+        // data: nothing in the JSON is wrong.
+        const st = n.state || "absent";
+        el.className = "node " + st;
         if (n.kind === "suite") el.classList.add("suite");
         if (n.kind === "gate") el.classList.add("gate");
         if (n.service === "destroy") el.classList.add("destroy");
 
+        const blocks = (k) => `${k} resource block${k === 1 ? "" : "s"}`;
+
         let body = "";
-        if (n.state === "perm") {
+        if (st === "perm") {
           body = ""; // a permanent level has no cycle duration to report
-        } else if (n.state === "absent") {
-          body = `<div class="meta">no observation yet</div>`;
-        } else if (n.state === "live") {
+        } else if (st === "absent") {
+          // What IS known without a cycle: what the node is made of, and what a
+          // suite asserts. Both come from the repository, so both are said.
+          body =
+            n.kind === "suite"
+              ? `<div class="asserts">${n.asserts || ""}</div>
+                 <div class="meta">${n.spec_files} spec file${n.spec_files === 1 ? "" : "s"} &mdash; not run yet</div>`
+              : `<div class="meta">${n.resources ? blocks(n.resources) + " &mdash; " : ""}no observation yet</div>`;
+        } else if (st === "live") {
           body = `<div class="meta">running now &mdash; ${n.observer}</div>`;
         } else if (n.kind === "suite") {
           body = `<div class="asserts">${n.asserts || ""}</div>
@@ -330,10 +346,20 @@
         .then((r) => r.json())
         .then((d) => {
           DATA = d;
+          // measured_cycle is null until 20b observes one. Saying "the last
+          // measured cycle" over placeholder numbers is the exact defect this
+          // phase exists to remove, so the sentence changes rather than the data.
           $("#sub").innerHTML =
-            `Built from <code>infra/</code> and <code>tests/</code> at <code>${d.source_commit}</code>. ` +
-            `At rest the map shows the last measured cycle, dated ${d.measured_cycle.date}; ` +
-            `it is on the page whether or not anything is running.`;
+            `Generated from <code>infra/</code> and <code>tests/</code>. ` +
+            (d.measured_cycle
+              ? `At rest the map shows the last measured cycle, dated ${d.measured_cycle.date}; `
+              : `Nothing has been measured into it yet, so every node below is unobserved; `) +
+            `the map is on the page whether or not anything is running.`;
+          // The bar-length note describes bars, and says the seconds beside them
+          // are exact. With no cycle observed there are neither, and a paragraph
+          // explaining a thing that is not on the page is the same defect in
+          // miniature as a count that has gone stale.
+          $("#approx").hidden = !d.measured_cycle;
 
           const perm = $("#perm");
           d.permanent.forEach((n) => {
@@ -344,12 +370,17 @@
           });
 
           const c = d.counts;
+          const hidden = d.not_shown.reduce((a, g) => a + g.resources, 0);
           $("#counts").innerHTML =
             `${c.levels} Terraform state levels &mdash; ${c.permanent_levels} permanent, ` +
-            `${c.cycle_levels} created and destroyed every cycle. ${c.resources} resources in ` +
+            `${c.cycle_levels} created and destroyed every cycle. ${c.resources} resource blocks in ` +
             `<code>infra/</code> (${c.resources_permanent} permanent, ${c.resources_per_cycle} per cycle), ` +
             `across ${c.modules} modules and ${c.workflows} workflows. ${c.suites} test suites. ` +
-            `${c.adrs} architecture decisions.`;
+            `${c.adrs} architecture decisions.` +
+            `<br><span class="note">Blocks, not objects: ${c.repeated_blocks} of them carry ` +
+            `<code>count</code> or <code>for_each</code> and stand for a number that depends on ` +
+            `variables. ${hidden} ${hidden === 1 ? "block is" : "blocks are"} deliberately given no ` +
+            `mark &mdash; ${d.not_shown.map((g) => g.label).join(", ")}.</span>`;
           render();
         })
         .catch((e) => { $("#sub").textContent = "topology.json did not load: " + e; });
