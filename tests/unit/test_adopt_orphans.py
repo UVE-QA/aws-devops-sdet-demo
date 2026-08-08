@@ -368,3 +368,91 @@ def test_every_role_in_the_configuration_is_declared():
     assert not undeclared, (
         "an aws_iam_role nothing will ever look for:\n" + "\n".join(undeclared)
     )
+
+
+# ---------------------------------------------------------------------------
+# What has to come WITH a parent, because DeleteRole refuses while a policy is
+# attached. Found on the live specimen, and only because it was asked about
+# before anything was removed: adopting the role alone would have turned a green
+# teardown that leaks a role into a RED one that leaks it anyway.
+# ---------------------------------------------------------------------------
+EXEC_ROLE = f"arn:aws:iam::{ACCOUNT}:role/{PREFIX}-ecs-execution"
+
+
+def test_the_execution_role_drags_its_policies_into_state():
+    result = adopt_orphans.plan([EXEC_ROLE], {}, PREFIX)
+    by_address = {e["address"]: e for e in result["adopt"]}
+    assert by_address["module.ecs.aws_iam_role.execution"]["import_id"] == f"{PREFIX}-ecs-execution"
+    # Terraform's documented import ids: `<role>/<policy-arn>` for an attachment,
+    # `<role>:<policy-name>` for an inline policy. Asserted literally, because a
+    # wrong separator here fails in the middle of a teardown.
+    assert (
+        by_address["module.ecs.aws_iam_role_policy_attachment.execution_managed"]["import_id"]
+        == f"{PREFIX}-ecs-execution/arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+    )
+    assert (
+        by_address["module.ecs.aws_iam_role_policy.execution_read_secret"]["import_id"]
+        == f"{PREFIX}-ecs-execution:{PREFIX}-read-db-secret"
+    )
+
+
+def test_the_task_role_has_nothing_hanging_off_it():
+    """Asserted rather than assumed: AWS confirmed the task role was bare while
+    the execution role held two. A dependent invented for it would fail an import
+    on every teardown and teach everyone to ignore the log."""
+    result = adopt_orphans.plan([TASK_ROLE], {}, PREFIX)
+    assert len(result["adopt"]) == 1
+
+
+def test_a_dependents_parent_is_imported_by_name():
+    """`dependents_of` builds its ids from the parent's `import_id`, so a parent
+    imported by ARN would silently produce nonsense ids."""
+    for parent in adopt_orphans.DEPENDENTS:
+        _, module, kind, name = parent.split(".")
+        rule = next(
+            r for r in adopt_orphans.RULES.values() if parent in r.addresses.values()
+        )
+        sample = f"arn:aws:iam::{ACCOUNT}:role/{PREFIX}-ecs-execution"
+        parsed = adopt_orphans.Arn(sample)
+        assert rule.import_id(parsed) == rule.name_from(parsed)
+
+
+def test_a_duplicate_parent_does_not_drag_dependents_in():
+    """Order matters, and this is why the dependents are appended AFTER the
+    collision check. A parent that lost its address has nothing for them to hang
+    off, and three imports would then fail for a reason that is not theirs."""
+    other = f"arn:aws:iam::{ACCOUNT}:role/{PREFIX}-ecs-execution"
+    result = adopt_orphans.plan([other, other], {}, PREFIX)
+    assert result["adopt"] == []
+    assert all(adopt_orphans.DUPLICATE in e["reason"] for e in result["unadoptable"])
+
+
+def test_every_policy_on_a_mapped_role_is_declared_a_dependent():
+    """THE OTHER DRIFT GATE. A policy attached to a mapped role and not declared
+    here is a DeleteConflict waiting for the next cancelled apply."""
+    sources = module_sources()
+    roles = adopt_orphans.RULES["iam:role"].addresses.values()
+    declared = {
+        address for entries in adopt_orphans.DEPENDENTS.values() for address, _ in entries
+    }
+    undeclared = []
+    for module, directory in sorted(sources.items()):
+        for path in sorted(directory.glob("*.tf")):
+            text = path.read_text(encoding="utf-8")
+            for kind in ("aws_iam_role_policy", "aws_iam_role_policy_attachment"):
+                for name in re.findall(
+                    r'resource\s+"%s"\s+"([^"]+)"' % kind, text
+                ):
+                    body = resource_block(directory, kind, name) or ""
+                    match = re.search(r"role\s*=\s*aws_iam_role\.(\w+)", body)
+                    if not match:
+                        continue
+                    parent = f"module.{module}.aws_iam_role.{match.group(1)}"
+                    if parent not in roles:
+                        continue
+                    address = f"module.{module}.{kind}.{name}"
+                    if address not in declared:
+                        undeclared.append(f"{address} -> {parent} ({path.name})")
+    assert not undeclared, (
+        "attached to an adoptable role and never adopted with it:\n" + "\n".join(undeclared)
+    )

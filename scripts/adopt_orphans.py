@@ -262,6 +262,67 @@ UNINDEXED_ARN: dict[str, Callable[[str, str], str]] = {
 }
 
 
+# --- what has to be adopted ALONGSIDE a parent (ADR-0041, amended) -----------
+#
+# The docstring above says a dependent leaves with its parent, and for every kind
+# that was true when it was written: AWS deletes a listener with its load
+# balancer and the default security group with its VPC. `DeleteRole` is the
+# exception - it REFUSES while any policy is attached or inline.
+#
+# The usual partial-failure shape hides that completely. When an apply completed,
+# the attachment and the inline policy are in state beside the role, and
+# `terraform destroy` removes them first. In the shape that actually produced the
+# two orphans - role in AWS, nothing whatsoever in state - importing only the role
+# hands the destroy a DeleteConflict: a RED teardown that also fails to clean up,
+# and a red destroy keeps the launch lock (ADR-0036 D2), which shuts the public
+# button until its TTL. Adopting the role alone would have been worse than not
+# adopting it at all.
+#
+# Found by asking AWS what was attached BEFORE removing anything, on the live
+# specimen, rather than after.
+#
+# Keyed by the parent's ADDRESS, not by kind: which policies hang off which role
+# is a fact about this configuration. `force_detach_policies` was the shorter
+# alternative and is not used - it is a provider-side flag with no AWS field
+# behind it, so an imported role carries its default `false` in state, and
+# `destroy.yml` imports and destroys with no apply in between.
+ECS_TASK_EXECUTION_POLICY = (
+    "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+)
+
+DEPENDENTS: dict[str, list[tuple[str, Callable[[str, str], str]]]] = {
+    "module.ecs.aws_iam_role.execution": [
+        (
+            "module.ecs.aws_iam_role_policy_attachment.execution_managed",
+            lambda prefix, role: f"{role}/{ECS_TASK_EXECUTION_POLICY}",
+        ),
+        (
+            "module.ecs.aws_iam_role_policy.execution_read_secret",
+            lambda prefix, role: f"{role}:{prefix}-read-db-secret",
+        ),
+    ],
+}
+
+
+def dependents_of(address: str, prefix: str, parent_name: str, arn: str) -> list[dict[str, Any]]:
+    """Extra imports that must accompany one adopted parent.
+
+    An import that fails is printed and the run continues (ADR-0038 D5), so a
+    dependent that had already been destroyed costs a log line rather than the
+    teardown - which is what makes it safe to ask for all of them every time.
+    """
+    return [
+        {
+            "arn": arn,
+            "verdict": "adopt",
+            "address": dependent,
+            "import_id": import_id(prefix, parent_name),
+            "dependent_of": address,
+        }
+        for dependent, import_id in DEPENDENTS.get(address, [])
+    ]
+
+
 def unindexed_names(prefix: str, account: str = "ACCOUNT") -> list[dict[str, str]]:
     """Every name this configuration will need, for kinds nothing discovers.
 
@@ -352,6 +413,21 @@ def plan(
 
     adopt = [e for e in entries if e["verdict"] == "adopt"]
     unadoptable = [e for e in entries if e["verdict"] == "unadoptable"]
+
+    # AFTER the collision check, deliberately. A parent that lost its address to a
+    # duplicate must not drag its dependents in behind it - there would be nothing
+    # for them to hang off, and the imports would fail one by one for a reason
+    # that has nothing to do with them.
+    #
+    # `import_id` is the parent's own name for every kind that has dependents, and
+    # `test_a_dependents_parent_is_imported_by_name` holds that.
+    adopt = adopt + [
+        dependent
+        for entry in adopt
+        for dependent in dependents_of(
+            entry["address"], prefix, entry["import_id"], entry["arn"]
+        )
+    ]
     return {"adopt": adopt, "unadoptable": unadoptable}
 
 

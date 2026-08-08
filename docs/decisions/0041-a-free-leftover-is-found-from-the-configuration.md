@@ -122,7 +122,7 @@ already proved the credential works by returning the ARN. This channel touches
 no AWS during discovery, so nothing is proved, and an `AccessDenied` would
 otherwise read exactly like a role that is not there.
 
-### D5. Adoption gets the kind, and the map is checked in both directions
+### D5. Adoption gets the kind AND what hangs off it
 `RULES["iam:role"]` maps `ecs-task` and `ecs-execution` to
 `module.ecs.aws_iam_role.task` and `.execution`; Terraform imports a role by
 name. `test_every_address_exists_in_the_configuration` covers the new addresses
@@ -131,6 +131,48 @@ for free. The reverse direction is new and is the one that matters here:
 `aws_iam_role` with no entry in the map — because in this channel the map is the
 QUESTION, so a gap in it is a resource nobody will ever ask about, invisible
 exactly the way the first two were.
+
+**Amended before this ADR was pushed, by the live specimen.** The first version
+of D5 adopted the role and nothing else, and that would have been worse than
+adopting nothing. `DeleteRole` REFUSES while any policy is attached or inline,
+and AWS was asked what was attached before anything was removed:
+
+```text
+…-ecs-task        bare
+…-ecs-execution   attached  AmazonECSTaskExecutionRolePolicy
+                  inline    aws-devops-sdet-demo-stage-read-db-secret
+```
+
+So the teardown that leaked these roles leaked FOUR objects, not two. Importing
+only the role hands the following `terraform destroy` a `DeleteConflict`: a RED
+teardown that leaks the role anyway, and a red destroy keeps the launch lock
+(ADR-0036 D2), so the public button would shut after every such run. Turning
+"green and leaking" into "red and still leaking" is a worse gate, not a stricter
+one.
+
+**The usual partial-failure shape hides this completely**, which is what makes it
+worth writing down rather than just fixing. When an apply COMPLETED, the
+attachment and the inline policy are in state beside the role, and `destroy`
+removes them first; importing the role alone is then perfectly correct. It is
+wrong in exactly the shape that produces orphan roles in the first place — role
+and policies in AWS, nothing at all in state — which is the shape that will
+recur.
+
+`DEPENDENTS` therefore maps a parent ADDRESS to the imports that must accompany
+it, and Terraform does the ordering from the configuration's own graph, which is
+ADR-0038's thesis one level deeper. Appended AFTER the duplicate check: a parent
+that lost its address has nothing for its dependents to hang off.
+
+`force_detach_policies = true` was the shorter alternative and is not used. It is
+a provider-side flag with no field behind it in AWS, so an imported role carries
+its default `false` in state, and `destroy.yml` imports and destroys with no
+apply in between — relying on it means relying on provider internals nobody here
+has tested, which is the definition of a break test measuring an assumption
+about the tool.
+
+`test_every_policy_on_a_mapped_role_is_declared_a_dependent` is the drift gate
+for this half: a policy attached to a mapped role and not declared is a
+`DeleteConflict` waiting for the next cancelled apply.
 
 ### D6. The watchdog is unchanged, and that is a decision rather than an omission
 `observe()` in `infra/self-service/src/watchdog_handler.py` looks at ECS
