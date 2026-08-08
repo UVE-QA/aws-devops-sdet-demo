@@ -765,17 +765,31 @@ when something happens.
 ### 20a — the generated map  [$0, nothing applied]
 
 ```text
-generator     site/data/topology.json, built from infra/: the state levels and
-              the resources each module declares
-gate          make site-data-check regenerates and diffs; wired into ci.yml
+generator     site/data/topology.json, built from infra/: the state levels, the
+              resources each module declares, and the display group each one is
+              assigned to
+layout        ONE DESKTOP SCREEN, no scrolling (ADR-0039 D5). That is a budget,
+              not an aspiration: a fixed number of visual slots, resources
+              GROUPED into stages rather than drawn one per box
+gate          make site-data-check, wired into ci.yml. It checks COVERAGE, not
+              depiction: every resource in infra/ belongs to exactly one display
+              group, including the group meaning "deliberately not shown". An
+              unassigned resource is red; a hidden one is green and recorded
 page          the hand-written "What happens, in the order it happens" section
-              is replaced by the map. A prose rendering may stay, rendered from
-              the same JSON - never maintained separately (ADR-0039 D1)
+              is replaced by the map. The prose rendering stays and earns its
+              place: it is the narrow-viewport version, generated from the same
+              JSON, never maintained separately (ADR-0039 D1, D5)
 icons         establish AWS's terms for the Architecture Icons set and record
               the answer in ADR-0039, or use project glyphs. Do not guess
-break test    add a resource to a module -> gate red. Delete the generated
-              file -> gate red. Keep both outputs
+break test    add a resource to a module without assigning it -> gate red.
+              Delete the generated file -> gate red. Keep both outputs
 ```
+
+Approximation is allowed here and is expected — stages are a convenient grouping,
+and duration will not be rendered at true scale, because a four-second security
+group and a four-minute database cannot share a screen honestly at one. What is
+not allowed is an approximation that does not say it is one, or a stage
+containing a service the repository does not have.
 
 Closes the structural half of the 2026-08-08 finding: the architecture section
 can no longer disagree with `infra/`, because it is built from it.

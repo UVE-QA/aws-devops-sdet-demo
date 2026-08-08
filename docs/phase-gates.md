@@ -1730,6 +1730,15 @@ were the same shape — a page saying something it was not in a position to say:
   $0.10 pair, and records that **19c closed without a cost figure at all** - a
   gap in the record rather than a zero, and one that 20d is meant to stop
   recurring.
+- **D5 arrived after the other four and changed D1's gate.** The requirement is
+  one desktop screen without scrolling, and legibility is allowed to beat
+  fidelity. Taken naively that contradicts a picture generated so it cannot lie;
+  it does not, once the line is drawn between the DATA (exact, generated) and the
+  DRAWING (grouping, layout, non-linear duration - editorial and labelled). The
+  gate therefore checks COVERAGE rather than depiction: every resource in
+  `infra/` is assigned to exactly one display group, including "deliberately not
+  shown". That is the spec-coverage guard's shape, which this repository already
+  runs over the Playwright suites.
 - Validation:
 ```bash
   make docs-check

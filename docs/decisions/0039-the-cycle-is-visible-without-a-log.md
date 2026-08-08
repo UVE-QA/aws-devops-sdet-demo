@@ -25,19 +25,33 @@ defect that was just found.**
 
 ## Decision
 
-Four decisions, taken together because each one is only safe given the others.
+Five decisions, taken together because each one is only safe given the others.
+D5 arrived after the first four and changed the shape of D1's gate; it is
+recorded in place rather than as an amendment, because none of this had shipped.
 
 ### D1 — the picture is generated from the repository, and drift is a gate
 
 The map's skeleton — state levels, the resources each module declares, the
 suites, the workflow steps — is generated into `site/data/topology.json` by a
 checked-in script. A `make site-data-check` target regenerates and compares; CI
-runs it. A module that gains a resource and a page that does not mention it is a
-red build, not a discovery six weeks later.
+runs it.
 
-This is `make docs-check`'s shape applied one level up: that gate checks that
-what a document names EXISTS, this one checks that what the page draws is what
-the repository CONTAINS.
+**The gate checks coverage, not depiction**, and the difference is what makes it
+compatible with D5's one-screen constraint. It does not require that every
+resource in `infra/` be drawn — infrastructure grows and the screen does not. It
+requires that every resource in `infra/` be assigned to exactly ONE display
+group, including the group meaning "deliberately not shown". An unassigned
+resource is a red build; a resource someone decided to hide is green and
+recorded.
+
+That is the **spec-coverage guard's shape**, which this repository already runs
+over the Playwright suites: a spec belonging to no suite fails the build rather
+than being silently reported by nothing. Here, a resource belonging to no group
+fails the build rather than being silently absent from the picture.
+
+It is also `make docs-check`'s shape one level up: that gate checks that what a
+document NAMES exists; this one checks that what the repository CONTAINS has been
+decided about.
 
 A hand-drawn SVG was the alternative, and it is prettier. It is also the same
 class of artifact as the five places this session had to correct.
@@ -62,16 +76,18 @@ That mapping would be a claim about what a step does; the event stream is the
 step's own account of what it did. ADR-0026's rule — a source may only assert
 what it observes — settles it without further argument.
 
-**What the page may call an identifier.** `id_value` is what the provider uses as
-the resource id: for `aws_lb` and `aws_ecs_service` that is an ARN, for
-`aws_db_instance` it is the instance identifier, for a security group it is
-`sg-…`. The page shows the identity a resource was given at creation and does
-not promise an ARN it was never handed. Where a true ARN is wanted for its own
-sake, `scripts/observe-environment.sh` already reads them.
+**Identity is whatever the stream hands over, and nothing is chased.** The page
+shows `id_value` when `apply_complete` carries one and shows nothing when it does
+not. For `aws_lb` and `aws_ecs_service` that happens to be an ARN, for
+`aws_db_instance` it is the instance identifier, for a security group `sg-…`; the
+page does not care which, does not label them all "ARN", and makes **no extra AWS
+call** to enrich one into another. An ARN is not a goal — it is one of the shapes
+a cheaply-available identity takes.
 
-Publishing an ARN on a public page changes no exposure: `docs/security-posture.md`
-already treats account ids and role ARNs as identifiers rather than credentials,
-and the page has printed the account id in every environment header since 11.1b.
+Publishing them on a public page changes no exposure:
+`docs/security-posture.md` already treats account ids and role ARNs as
+identifiers rather than credentials, and the page has printed the account id in
+every environment header since 11.1b.
 
 ### D3 — cost is computed, and says so
 
@@ -113,6 +129,40 @@ complexity is real), or `s3:PutObject` on `timeline/*` for the deploy role (shor
 and it spends a separation that no one will remember was deliberate). Per-resource
 detail lands at the end of the apply step, minutes into a run, not at the end of
 it.
+
+### D5 — the drawing may approximate; the data behind it may not
+
+Added the same evening, after the first four were written. The requirement is
+**one screen, no scrolling** — legibility beats fidelity, and anyone who wants
+exactness has the text chronometry a click away. Taken naively that contradicts
+D1, which exists precisely so the picture cannot say something untrue. It does
+not, once the line is drawn in the right place:
+
+```text
+generated, exact       which nodes exist, that they exist, the order events
+                       actually happened in, the measured numbers
+editorial, approximate the grouping of resources into stages, the layout, and
+                       any non-linear rendering of duration - a four-second
+                       security group and a four-minute database cannot share
+                       one screen at true scale
+```
+
+So approximation is permitted and BOUNDED: bounded by generated data, never
+free-hand. A stage may be a convenient grouping; it may not contain a service the
+repository does not have, or omit one without the coverage gate above having been
+told.
+
+Anything approximated says so where it renders, and links to the exact rendering.
+An unlabelled approximation is a claim, which is the thing this ADR exists to
+stop.
+
+**One screen means one DESKTOP screen.** A map of six permanent levels, a
+per-cycle environment and seven phases does not fit a phone at any layout, and
+pretending otherwise produces either a scroll or an unreadable diagram. On narrow
+viewports the map degrades to the text chronometry instead. That gives the prose
+rendering of D1 an actual job rather than a courtesy: it is the small-screen
+version, and it is generated from the same file, so it cannot drift from what the
+map shows.
 
 ## Consequences
 
