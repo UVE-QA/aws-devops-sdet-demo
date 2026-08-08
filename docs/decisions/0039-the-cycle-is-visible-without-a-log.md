@@ -170,28 +170,36 @@ It began as "one screen, no scrolling" and was relaxed in the same session, in a
 way that has to be written down carefully or it stops constraining anything:
 
 ```text
-at rest    the whole chain is legible with no manual scrolling. A serpentine
-           layout is the packing strategy - it folds a long chain into a
-           rectangle instead of a strip. Alternate rows then read right to
-           left, so direction arrows stop being decoration
-running    the view MAY follow the active node. It moves at phase
-           granularity (D4), so this is a few calm movements per cycle, not a
-           tracking shot
+1 legibility   there is a FLOOR on node and label size, and it is never
+               crossed. Shrinking to fit is the one failure this rule exists
+               to prevent
+2 packing      if the chain does not fit at that size, fold it serpentine -
+               a rectangle instead of a strip. Alternate rows then read right
+               to left, so direction arrows stop being decoration
+3 one screen   if it still does not fit, it scrolls. One screen is a
+               preference, and it is the one that gives way
 ```
+
+Order matters and reverses an earlier draft of this ADR, which made one screen
+the hard constraint and would have bought it with smaller type. A diagram nobody
+can read at a glance has failed at the only thing it was for.
+
+While a cycle runs the view MAY follow the active node, at phase granularity
+(D4) — a few calm movements per cycle, not a tracking shot.
 
 Two rules that come with autoscroll, both cheap now and expensive to
 retrofit:
 
-- **It yields.** The moment a reader scrolls, drags or zooms, following stops,
-  and it does not resume until they ask or until they have been idle. An
-  autoscroll that pulls the view back while someone is reading is worse than no
-  autoscroll at all.
-- **It is not a licence for an unbounded map.** The reason "one screen" was a
-  useful rule is that it made the node budget mean something; a map that may
-  scroll can grow forever and become the diagram nobody reads. The budget
-  survives in its new form — the at-rest legibility test is the budget, and D1's
-  coverage gate still forces a decision about every resource, including the
-  decision not to show it. Taken naively that contradicts
+- **It yields, and it comes back on its own.** Any manual scroll, drag or zoom
+  stops the following; after a quiet interval with no interaction the view
+  returns to the active phase. An autoscroll that pulls the view back while
+  someone is reading is worse than no autoscroll at all — and one that never
+  returns leaves a reader parked on a finished stage wondering why nothing moves.
+  No resume control and no easing in the pilot; a timeout is the whole mechanism.
+- **It is not a licence for an unbounded map.** A map that may scroll can grow
+  until nobody reads it. What holds the size down is no longer a screen count but
+  the legibility floor plus D1's coverage gate, which forces a decision about
+  every resource — including the decision not to draw it. Taken naively that contradicts
 D1, which exists precisely so the picture cannot say something untrue. It does
 not, once the line is drawn in the right place:
 

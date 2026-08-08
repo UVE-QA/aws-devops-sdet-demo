@@ -762,7 +762,13 @@ The map is on the page ALWAYS (ADR-0039 D4). Idle it shows the last measured
 cycle, dated. Running, the current phase pulses. It is not a panel that appears
 when something happens.
 
-### 20a — the generated map  [$0, nothing applied]
+### 20a — the generated map, as a PILOT  [$0, nothing applied]
+
+Build the smallest thing that shows the shape, look at it in a browser, then
+correct. 20a is not the finished map and is not meant to be: the layout is the
+only part of this phase that cannot be derived from the repository, so it has to
+be seen before it can be decided. Everything below is the target; the pilot is
+allowed to reach less of it, provided it reaches it honestly.
 
 ```text
 generator     site/data/topology.json, built from infra/ AND tests/: the state
@@ -770,14 +776,14 @@ generator     site/data/topology.json, built from infra/ AND tests/: the state
               after stage comes up, and the display node each one is assigned
               to. Suite nodes are part of the chain from the start, not a
               later addition (ADR-0039 D2b)
-layout        legible at rest with NO MANUAL SCROLLING (ADR-0039 D5), packed
-              serpentine so a long chain folds into a rectangle. That is still
-              a budget: resources GROUPED into services, and the at-rest
-              legibility test is what the budget is measured by
+layout        legibility floor first, serpentine packing second, one screen
+              third and it is the one that gives way (ADR-0039 D5). NEVER
+              shrink to fit. Resources are GROUPED into services, and the
+              floor plus the coverage gate are what hold the size down
 autoscroll    while a cycle runs the view may follow the active node, at phase
-              granularity. It YIELDS to any manual scroll, drag or zoom and
-              does not resume until asked or idle. It is a comfort during a
-              run, never a licence for a map that grew too big
+              granularity. Any manual scroll, drag or zoom stops it; after a
+              quiet interval it returns to the active phase. A timeout is the
+              whole mechanism - no resume control, no easing
 mobile        the map REFLOWS to a single vertical column and scrolls - same
               nodes, same data, a second layout pass over the same JSON. Not
               the desktop layout squeezed, and not text instead of a map. The
