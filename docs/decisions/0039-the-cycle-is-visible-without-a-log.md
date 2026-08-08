@@ -299,6 +299,28 @@ layout. It is not the small-screen substitute for the map.
   sheets and posters — a public page is neither named nor excluded. 20a either
   establishes the answer from AWS's own terms and records it here, or sidesteps
   it with project glyphs. It does not guess.
+
+  **Answered in 20a on 2026-08-08, and the answer is that AWS does not say.**
+  Three of AWS's own pages were read. The icons page grants use "to create
+  architecture diagrams" and lists materials "like whitepapers, presentations,
+  data sheets, and posters", links no licence document specific to the package,
+  and never uses the word website. The trademark guidelines give no blanket
+  permission to display marks publicly outside the authorised cases, and forbid
+  altering them. The site terms forbid reproduction "for any commercial purpose
+  without express written consent". A public web page is named by none of the
+  three.
+
+  So the prediction in this ADR held, and what follows is a DECISION taken in
+  the absence of a "no" — not a permission granted by AWS. The icons are used
+  unmodified, for diagrams of this project's own infrastructure, on a
+  non-commercial page, claiming no endorsement; anything that is NOT an AWS
+  service — a test suite, a human approval, a teardown — carries a project glyph,
+  because drawing it in AWS's visual language would be a claim about what it is.
+  The quoted terms, the reasoning and the caveat that a portfolio in a job search
+  is not obviously non-commercial are recorded in `assets/aws-icons/NOTICE.md`, so
+  that the difference between "AWS allowed this" and "we decided this" outlives
+  the session that decided it. Reversing it is one commit: the icons live in one
+  directory, behind one sprite builder.
 - Every sub-phase carries a break test, because a gate that has only been seen
   green is indistinguishable from a gate that cannot fail. The two that matter:
   the drift gate must redden on a resource added to a module, and a run that dies

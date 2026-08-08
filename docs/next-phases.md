@@ -823,6 +823,59 @@ not have, or omitting one without the coverage gate having been told.
 Closes the structural half of the 2026-08-08 finding: the architecture section
 can no longer disagree with `infra/`, because it is built from it.
 
+#### What the layout pilot settled (2026-08-08, in a chat sandbox)
+
+The layout was built and LOOKED AT before the generator existed, which is the
+whole point of 20a being a pilot: the generator is derivable from the repository
+and the layout is not. `site/map-pilot.html`, rendered against a hand-built
+`site/data/topology.json`, at 1440 / 1180 / 834 / 390.
+
+The first attempt folded the chain node by node. It read well, and it said
+something untrue:
+
+```text
+finding   within one apply Terraform creates a DAG, not a queue. An arrow from
+          VPC to Secrets Manager to RDS is a claim about order that nothing in
+          the repository makes - ADR-0026's rule, applied to a picture
+fix       the unit that carries SEQUENCE is the PHASE; the unit inside it is a
+          SET. Phases fold serpentine; nodes inside a phase get no arrows
+side      the phases became legible AS phases, which the node-level fold had
+          destroyed: one row read across three of them
+```
+
+Settled, and not to be reopened without new evidence:
+
+```text
+packing    serpentine at PHASE level; odd rows read right to left
+floor      node width and every type size have a minimum. At 390 the fold
+           degenerates to one column, so the mobile reflow came free - the same
+           code, a second pass over one file, exactly as ADR-0039 D5 predicted
+priority   desktop and laptop are the intended view, and the page SAYS so. The
+           phone works and flattens the shape; that is stated rather than
+           engineered around. Revisit after a real cycle, not before
+icons      official AWS Architecture Icons, unmodified, inlined as ONE sprite
+           (~48 KB, ~12 KB gzipped) so the page stays a single file with no
+           request-time dependency. Anything that is not an AWS service keeps a
+           project glyph. Terms and position: assets/aws-icons/NOTICE.md
+absent     a node with no observation is the same icon in greyscale, never a
+           second set of marks
+```
+
+Open on purpose, until a real cycle says something:
+
+```text
+autoscroll  needs a live run to judge. Nothing in a fixture can exercise it
+phone       phases 2 and 6 unroll into long columns. Collapsing them by default
+            is the obvious move, and it is not obviously the right one
+labels      a node reading "Route 53 + ACM" carries one mark for two services
+numbers     the fixture's measured values are placeholders and say so. 20b
+            replaces them with Terraform's own event stream
+```
+
+Still to build in 20a: the generator itself, `make site-data-check`, its two
+break tests, and folding the map into `site/index.html` in place of the
+hand-written section. The pilot deliberately did not touch `index.html`.
+
 ### 20b — the timeline  [needs one cycle, about $0.03]
 
 ```text
