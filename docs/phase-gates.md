@@ -2240,7 +2240,10 @@ closed. **ADR-0041**, and the summary in
   make docs-check
   make site-data-check
   make site-page-check
-  gh run watch -w ci      # green on 4d95caa, all four jobs
+  # `gh run watch` takes a run id and has no -w; the flag belongs to `gh run
+  # list`. Written as `gh run watch -w ci` here until 20c tried to copy it.
+  gh run watch "$(gh run list -w ci -L 1 --json databaseId --jq '.[0].databaseId')"
+                          # green on 4d95caa, all four jobs
   gh workflow run destroy.yml -f environment=stage -f confirm=DESTROY
   aws iam get-role --profile demo-admin --role-name aws-devops-sdet-demo-stage-ecs-task
 ```

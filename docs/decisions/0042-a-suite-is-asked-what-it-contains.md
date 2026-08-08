@@ -127,8 +127,12 @@ recorded four times.
 - The two copies of the db assertion can no longer drift silently. They can still
   both be wrong together — the gate asserts that they agree, not that they are
   right.
-- Collection costs about 35 seconds in CI, almost all of it Playwright's
-  TypeScript compile, and nothing in AWS.
+- Collection costs 5 seconds in CI and nothing in AWS. That figure is measured -
+  run 31275719232, step "The map's inventory still matches the suites",
+  19:59:29 to 19:59:34 - and it replaces "about 35 seconds", which was written
+  into this file as an estimate and read as a measurement. The estimate was
+  seven times too high because it priced a Playwright compile that the earlier
+  steps in the same job have already paid for.
 - A dependency bump does not redden this gate by itself (D3). That is asserted by
   inspection - the artifact contains no version string - and NOT by a live bump:
   installing a newer Playwright to watch the gate stay green was not done, and

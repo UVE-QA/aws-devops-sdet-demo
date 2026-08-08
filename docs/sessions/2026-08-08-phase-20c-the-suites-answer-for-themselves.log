@@ -65,3 +65,8 @@ PASS: table_exists - table 'demo_items' exists
 PASS: seed_row_exists - row name='seed-item-001' exists (id=1)
 DB assertion: all checks passed
 exit: 0
+
+=== the third host: the GitHub runner, run 31275719232 ===
+local-ci The map's inventory still matches the suites 19:59:29 Run make suite-inventory-check
+local-ci The map's inventory still matches the suites 19:59:34 suite-inventory: clean - 180 tests across 5 suites, collected with @playwright/test 1.62.0, pytest 9.1.1
+(sandbox clone, devbox and runner collect the same 180 tests, byte-identical)
