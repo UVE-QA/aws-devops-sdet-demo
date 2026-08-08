@@ -1052,35 +1052,60 @@ bill said $0.04, and here is the difference" is a stronger FinOps answer than an
 single figure. It also gives this document the per-launch numbers 19c never
 recorded.
 
-### A teardown finding, owned by nobody yet  [found 2026-08-08, unfixed]
+### The teardown finding  [found 2026-08-08, CLOSED the same day]
 
-The first apply after eight days failed before it started anything interesting:
+Closed by **ADR-0041** in an Ops session, not by a phase: see
+`docs/sessions/2026-08-08-ops-the-gate-that-sees-a-free-leftover.md`. The two IAM
+roles are gone, the sweep has a second discovery channel that reads the
+configuration for kinds the tagging API does not index, and adoption imports what
+hangs off a role as well as the role.
+
+The framing this document proposed did NOT survive contact, which is the part
+worth keeping here. "Which free resources may be left behind at all" needs an
+exception list — deregistered task-definition revisions are free and are left for
+ever, deliberately. The class is a resource whose DETERMINISTIC NAME the next
+apply will need, and `EntityAlreadyExists` is its symptom.
+
+### A `session-close` check for chat session links  [$0, deferred deliberately]
+
+Six commits carry a `Claude-Session: https://claude.ai/code/…` trailer and the
+repository is public. `.claude/settings.json` now sets
+`attribution.sessionUrl: false`, which is the mechanism; what is missing is the
+gate that would have caught it.
 
 ```text
-EntityAlreadyExists: Role with name aws-devops-sdet-demo-stage-ecs-task
-  already exists     module.ecs.aws_iam_role.task   (and .execution)
+where     `make session-close`, which already refuses on an unpushed HEAD - it
+          can see the commits that are about to be shared and nothing else can
+evidence  it has to redden on a planted trailer, like every gate here
+first     the setting itself is UNPROVEN: the key is undocumented, and this
+          session's commits arrived by `git am`, where the trailer never appears.
+          The first commit from a Claude Code session on the devbox settles it,
+          and there is no point gating something whose fix has not been seen to
+          work
 ```
 
-Both roles existed in AWS and in no Terraform state. **They survived a teardown
-that verified itself green, because that verification asks whether any BILLABLE
-resource remains and an IAM role is free.** So the teardown's own gate cannot
-see the class of leftover that breaks the next apply, and nothing else looks.
+Deferred on the project's own rule rather than on effort: a new gate needs its
+own break test, and something a command cannot check is a reason to add a check
+in a LATER session, not to extend the one that found it.
 
-Not fixed in 20b.2, deliberately - it is a teardown defect and 20b.2 is a
-picture. What it needs is a decision, not a patch:
+### The `ExpiresAt` predicate as a second gate  [$0, from ADR-0041 D6]
+
+Both orphan roles carried `ExpiresAt=2026-08-05T07:10:39Z` and stood for three
+days. The TTL is written onto the resource and nothing reads it after the fact.
 
 ```text
-scope     which free resources can be left behind at all? IAM roles are the
-          instance; log groups, parameters and secrets are the same shape
-where     `Verify no billable resources remain` is the wrong place by its own
-          name. Either it gains a second question, or `Sweep for resources
-          Terraform does not manage` grows to cover free ones too
-evidence  whatever is chosen has to redden on a planted orphan before it counts,
-          like every other gate here
+predicate   nothing whose own tag says it has expired may still exist. It does
+            not care whether the resource is billable or what kind it is, which
+            is what makes it stronger than either gate that exists
+already     `deadline_passed` in infra/self-service/src/sweep.py implements
+            exactly this, applied to a three-kind observation (ECS service, ALB,
+            RDS). The predicate is in the repository; its reach is not
+caveat      an owner-run cycle leaves ExpiresAt EMPTY by design (ADR-0035), so
+            this covers self-service launches only. That is a real limit, not a
+            reason to skip it - every orphan so far came from a launch
+where NOT   the watchdog. Its job is to stop the meter inside a TTL and a free
+            leftover does not tick (ADR-0041 D6)
 ```
-
-This is the third time the teardown has been found to leave something (ADR-0037,
-ADR-0038), and the first time the leftover cost nothing and broke everything.
 
 ### 20e — the page is compact, and the map is the page  [$0, layout only]
 

@@ -2195,6 +2195,79 @@ were the same shape — a page saying something it was not in a position to say:
   free leftover. `docs/next-phases.md` carries the three decisions it needs.
   Whatever is chosen has to redden on a planted orphan before it counts.
 
+### Ops — the gate that sees a free leftover  ✅ DONE 2026-08-08
+Not a phase. The teardown finding 20b.2 uncovered was assigned to nobody on
+purpose, and Phase 19 had been declared finished hours earlier — `19h` was
+proposed, questioned and withdrawn rather than reopen a phase a document had just
+closed. **ADR-0041**, and the summary in
+`docs/sessions/2026-08-08-ops-the-gate-that-sees-a-free-leftover.md`.
+- Criteria: the two IAM roles blocking every `deploy-stage` are gone, and the
+  teardown can see the class they belong to. Both met.
+- **The gate was green on a non-empty account, and that was reproduced BEFORE
+  anything was written:** `scripts/sweep-orphans.sh stage` said
+  `verdict: clean, exit 0` against the live account at 17:50 with both roles
+  alive. That run is the control for the whole session — at 19:20 the same
+  command in the same account said `orphans, exit 1`, and only the code had
+  changed. Both halves are in
+  `docs/sessions/2026-08-08-ops-live-break-test.log`.
+- Why nothing could see them: the teardown's gate asks about BILLABLE resources
+  and a role is free; a partial teardown had dropped them out of state; and the
+  tagging API does not index `iam:role`, so the sweep was never handed one. Its
+  fail-closed confirmation was blameless.
+- The wrong-region explanation was killed by a control INSIDE the same answer:
+  `get-resources` in us-east-1 returns the `token.actions.githubusercontent.com`
+  OIDC provider and no role at all, though the two permanent `github-deploy`
+  roles carry the same tags in the same state level. Only the resource type
+  differs.
+- **A prefix scan was approved and then found unrunnable by reading the policy
+  before writing the code.** The deploy role has `iam:GetRole` on exactly two
+  ARNs and neither `iam:ListRoles` nor `iam:ListRoleTags`; scanning needed a new
+  account-wide grant applied to a permanent state level, to build a gate. So
+  discovery comes from the CONFIGURATION instead — a collision can only happen on
+  a name the configuration will create — which also excludes the permanent
+  deploy role structurally rather than by trusting a tag.
+- **The session put a defect into its own patch and caught it on the specimen.**
+  Adopting the orphan role alone would have been worse than adopting nothing:
+  `DeleteRole` refuses while a policy is attached, so the import hands `destroy`
+  a `DeleteConflict` — red, and still leaking, with the launch lock kept and the
+  public button shut (ADR-0036 D2). Found by asking AWS what was attached BEFORE
+  removing anything; the teardown had leaked four objects, not two. Patch 1 was
+  applied on the devbox and deliberately not pushed until patch 2 mapped the
+  dependents.
+- Validation, offline first and then live:
+```bash
+  make test-unit          # 112
+  make docs-check
+  make site-data-check
+  make site-page-check
+  gh run watch -w ci      # green on 4d95caa, all four jobs
+  gh workflow run destroy.yml -f environment=stage -f confirm=DESTROY
+  aws iam get-role --profile demo-admin --role-name aws-devops-sdet-demo-stage-ecs-task
+```
+- The live run: `verdict: orphans` under the deploy role's own OIDC credential,
+  `adopted 4 of 4; 0 could not be imported`, destroy in dependency order with no
+  `DeleteConflict`, final sweep `clean` — and then `aws iam get-role` answered
+  `NoSuchEntity` for both, because every step of that workflow was green and this
+  project has been fooled by that exact shape before.
+- Two things found on the way and fixed here: CI went red on `site-data-check`
+  for the new ADR (the map publishes the ADR count, and its drift message named
+  `infra/` and `tests/` while the drift was in `docs/decisions/`), and one
+  measurement measured the wrong thing — `gh run list -L 1` returned the
+  `publish-site` run, so `ci exit: 0` was about a different workflow.
+- Chat session links are no longer published: `.claude/settings.json` sets
+  `attribution.sessionUrl: false`. **Unproven** — this session's commits arrived
+  by `git am`, where the trailer never appears, so the first commit from a Claude
+  Code session on the devbox is the test.
+- Cost: one `destroy.yml` run, no resource created, IAM deletions free. Under
+  $0.01.
+- Next allowed step: **20c — the tests panel.** The cycle is unblocked and the
+  account is empty, so 20c can have the cycle 20b.2 could not finish: its apply
+  half has still never been lit, `nodes-apply.json` has never existed, and the
+  map's service nodes are unobserved. `docs/next-phases.md` carries what 20c is
+  for; two items were added to it there rather than done here — a
+  `make session-close` check for chat links in unpushed commits, and the
+  `ExpiresAt` predicate as a second gate (ADR-0041 D6).
+
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,
 `phase complete`, `go next`, `ок`, `дальше`, `подтверждаю`.

@@ -6,6 +6,70 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
+**As of 2026-08-08 (Ops, the gate that sees a free leftover).** The teardown can
+see a leftover that costs nothing, and the two IAM roles that blocked every
+`deploy-stage` for three days are gone. **ADR-0041.** The account is empty and a
+cycle of any kind is unblocked; next is 20c, which can finally light the apply
+half 20b.2 never reached.
+
+The finding is not that a check was wrong. `scripts/sweep-orphans.sh` reported
+`verdict: clean, exit 0` against the live account with both roles alive, and
+every part of it behaved as designed: the teardown's own gate asks whether any
+BILLABLE resource remains and a role is free; a partial teardown had dropped the
+roles out of state; and the tagging API does not index `iam:role`, so the sweep's
+fail-closed confirmation — which would have gone red — was never handed one.
+Three gates, all green, all honest, and the environment was not empty.
+
+**The wrong-region explanation died to a control inside the same answer**, which
+is the methodological point of the session. `get-resources` in us-east-1 does
+answer and does return IAM: it hands back the
+`token.actions.githubusercontent.com` OIDC provider, and no role at all, though
+the two permanent `github-deploy` roles carry the same tags in the same state
+level and were asked for in the same call. Only the resource type differs. A
+second query built as its own control would have produced an empty result to
+interpret, and this project has a standing record of where that goes.
+
+So discovery inverts. For kinds nothing indexes, the names come from the
+CONFIGURATION — a collision can only happen on a name the configuration will
+create — and `adopt_orphans.RULES` already listed them. The prefix scan that was
+designed first, and approved, turned out to be unrunnable: the deploy role has
+`iam:GetRole` on exactly two ARNs and neither `iam:ListRoles` nor
+`iam:ListRoleTags`, so scanning needed a new account-wide grant applied to a
+PERMANENT state level in order to build a gate. Reading the policy before writing
+the code is what caught it.
+
+**The session then put a defect into its own patch.** Adopting the orphan role
+alone would have been worse than adopting nothing: `DeleteRole` refuses while a
+policy is attached, so the import hands `terraform destroy` a `DeleteConflict` —
+red, still leaking, launch lock kept, public button shut. It was caught by asking
+AWS what was attached BEFORE removing anything, and the answer was that the
+teardown had leaked four objects rather than two. The usual shape hides this
+entirely: when an apply COMPLETED the policies sit in state beside the role and
+`destroy` removes them first, so importing the role alone is correct — it is
+wrong in exactly the shape that orphans a role, which is the shape that recurs.
+Patch 1 stayed unpushed until patch 2 mapped the dependents.
+
+The break test was never planted. The same command said `clean, exit 0` at 17:50
+and `orphans, exit 1` at 19:20 in the same account with only the code changed;
+both halves are in the session log. Then `destroy.yml` adopted 4 of 4 and every
+step went green — which is the shape that has fooled this project before, so the
+verdict came from `aws iam get-role`: gone, gone.
+
+Two smaller things, both this session's own: CI went red on `site-data-check`
+because the map publishes the ADR count and 41 stopped being true, and the gate's
+message sent the reader to `infra/` and `tests/` while the drift was in
+`docs/decisions/`. And one measurement measured the wrong thing — `gh run list
+-L 1` returned the `publish-site` run, so a green `ci exit: 0` was about a
+different workflow. Same family as the layout check that measured the document
+instead of the box.
+
+Chat session links are no longer published (`.claude/settings.json`,
+`attribution.sessionUrl: false`). The six already in history stay: the URL
+resolves only for the account that owns the session, so it is not a credential,
+and rewriting them would change 32 SHAs and falsify a line in a recorded
+break-test log. The setting is UNPROVEN until a Claude Code session on the devbox
+commits something.
+
 **As of 2026-08-08 (20b.1, the stream and the fold).** Terraform's own `-json`
 event stream is captured in all eight apply and destroy invocations across the
 four AWS workflows, folded into `timeline/<env>/<run id>-<job>.json` and back
