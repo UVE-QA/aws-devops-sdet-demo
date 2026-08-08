@@ -11,7 +11,7 @@
     "modules": 9,
     "suites": 5,
     "workflows": 6,
-    "adrs": 40,
+    "adrs": 41,
     "repeated_blocks": 9
   },
   "measured_cycle": null,
@@ -159,6 +159,26 @@
       "n": 1,
       "label": "Build",
       "workflow": "deploy-stage.yml",
+      "live": [
+        {
+          "workflow": "deploy-stage.yml",
+          "path": ".github/workflows/deploy-stage.yml",
+          "job": "deploy",
+          "when": "step",
+          "steps": [
+            "Build, tag, and push image"
+          ]
+        },
+        {
+          "workflow": "self-service.yml",
+          "path": ".github/workflows/self-service.yml",
+          "job": "launch",
+          "when": "step",
+          "steps": [
+            "Build, tag, and push image"
+          ]
+        }
+      ],
       "nodes": [
         {
           "id": "build.ecr",
@@ -175,6 +195,27 @@
       "n": 2,
       "label": "Apply — stage",
       "workflow": "deploy-stage.yml",
+      "live": [
+        {
+          "workflow": "deploy-stage.yml",
+          "path": ".github/workflows/deploy-stage.yml",
+          "job": "deploy",
+          "when": "step",
+          "steps": [
+            "Terraform plan",
+            "Terraform apply"
+          ]
+        },
+        {
+          "workflow": "self-service.yml",
+          "path": ".github/workflows/self-service.yml",
+          "job": "launch",
+          "when": "step",
+          "steps": [
+            "Terraform apply"
+          ]
+        }
+      ],
       "nodes": [
         {
           "id": "stage.vpc",
@@ -289,6 +330,28 @@
       "n": 3,
       "label": "Provision — stage",
       "workflow": "deploy-stage.yml",
+      "live": [
+        {
+          "workflow": "deploy-stage.yml",
+          "path": ".github/workflows/deploy-stage.yml",
+          "job": "deploy",
+          "when": "step",
+          "steps": [
+            "Wait for ECS service to be stable",
+            "Run one-off tasks (migrate, seed, db-assert)"
+          ]
+        },
+        {
+          "workflow": "self-service.yml",
+          "path": ".github/workflows/self-service.yml",
+          "job": "launch",
+          "when": "step",
+          "steps": [
+            "Wait for ECS service to be stable",
+            "Run one-off tasks (migrate, seed, db-assert)"
+          ]
+        }
+      ],
       "nodes": [
         {
           "id": "stage.migrate",
@@ -305,6 +368,28 @@
       "n": 4,
       "label": "Quality gate — stage",
       "workflow": "deploy-stage.yml",
+      "live": [
+        {
+          "workflow": "deploy-stage.yml",
+          "path": ".github/workflows/deploy-stage.yml",
+          "job": "deploy",
+          "when": "step",
+          "steps": [
+            "API contract tests against the ALB",
+            "Playwright smoke + regression against the ALB",
+            "Assert the UI write reached RDS"
+          ]
+        },
+        {
+          "workflow": "self-service.yml",
+          "path": ".github/workflows/self-service.yml",
+          "job": "launch",
+          "when": "step",
+          "steps": [
+            "Playwright smoke against the ALB"
+          ]
+        }
+      ],
       "nodes": [
         {
           "id": "suite.db.stage",
@@ -357,6 +442,15 @@
       "n": 5,
       "label": "Approve",
       "workflow": "promote-prod.yml",
+      "live": [
+        {
+          "workflow": "promote-prod.yml",
+          "path": ".github/workflows/promote-prod.yml",
+          "job": "promote",
+          "when": "waiting",
+          "steps": []
+        }
+      ],
       "nodes": [
         {
           "id": "gate.human",
@@ -374,6 +468,18 @@
       "n": 6,
       "label": "Apply — prod",
       "workflow": "promote-prod.yml",
+      "live": [
+        {
+          "workflow": "promote-prod.yml",
+          "path": ".github/workflows/promote-prod.yml",
+          "job": "promote",
+          "when": "step",
+          "steps": [
+            "Terraform plan",
+            "Terraform apply"
+          ]
+        }
+      ],
       "nodes": [
         {
           "id": "prod.vpc",
@@ -500,6 +606,18 @@
       "n": 7,
       "label": "Quality gate — prod",
       "workflow": "promote-prod.yml",
+      "live": [
+        {
+          "workflow": "promote-prod.yml",
+          "path": ".github/workflows/promote-prod.yml",
+          "job": "promote",
+          "when": "step",
+          "steps": [
+            "Provision the prod database (migrate, seed, db-assert)",
+            "Read-only smoke against prod"
+          ]
+        }
+      ],
       "nodes": [
         {
           "id": "suite.db.prod",
@@ -530,6 +648,28 @@
       "n": 8,
       "label": "Destroy",
       "workflow": "destroy.yml",
+      "live": [
+        {
+          "workflow": "destroy.yml",
+          "path": ".github/workflows/destroy.yml",
+          "job": "destroy",
+          "when": "step",
+          "steps": [
+            "Destroy ALB first (release ENIs before the IGW)",
+            "Terraform destroy"
+          ]
+        },
+        {
+          "workflow": "self-service.yml",
+          "path": ".github/workflows/self-service.yml",
+          "job": "destroy",
+          "when": "step",
+          "steps": [
+            "Destroy ALB first (release ENIs before the IGW)",
+            "Terraform destroy"
+          ]
+        }
+      ],
       "nodes": [
         {
           "id": "destroy.stage",
@@ -559,7 +699,10 @@
       "group": "adopted-not-created",
       "label": "adopted, not created",
       "resources": 2,
-      "why": "aws_default_security_group does not create anything. The module's own comment says so: AWS makes the group with the VPC and cannot delete it, Terraform adopts it to empty its rules, and a destroy drops it from state. Drawing it beside resources that ARE created would be a claim about creation that the code contradicts."
+      "why": "aws_default_security_group does not create anything. The module's own comment says so: AWS makes the group with the VPC and cannot delete it, Terraform adopts it to empty its rules, and a destroy drops it from state. Drawing it beside resources that ARE created would be a claim about creation that the code contradicts.",
+      "members": [
+        "module.network.aws_default_security_group.this"
+      ]
     }
   ],
   "repeated": [

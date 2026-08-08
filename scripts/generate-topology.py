@@ -206,6 +206,106 @@ def spec_files(spec) -> int:
     return n
 
 
+# --------------------------------------------------------------- live phase
+#
+# ADR-0039 D4: a phase pulses while it is running, and the observer is the
+# GitHub Actions API, which reports the running job and step anonymously. Every
+# workflow here holds ONE job, so the job alone cannot tell "Build" from "Apply
+# — stage": the binding has to name a STEP.
+#
+# A step name is a string in a YAML file, and a binding to a string that has
+# quietly been renamed is a pulse that never fires again — silent, and invisible
+# to every other gate in this repository. So the binding is verified here: a
+# phase naming a step that its job does not have is a refusal, exactly like a
+# node drawing a group that owns nothing.
+
+WORKFLOWS = ROOT / ".github/workflows"
+JOB_KEY = re.compile(r"^  ([A-Za-z0-9_.-]+):\s*$")
+STEP_NAME = re.compile(r"^\s*-\s+name:\s*(.+?)\s*$")
+
+
+def workflow_jobs(path: pathlib.Path) -> dict[str, list[str]]:
+    """job id -> the step names it declares, read without a YAML library.
+
+    Deliberately a superset: anything shaped like `- name:` inside a job block
+    counts. The question asked of it is only ever "does this job declare a step
+    with exactly this name", so a false positive would have to be a step that
+    exists somewhere else in the same job — and a false NEGATIVE, which is the
+    dangerous direction, cannot happen.
+    """
+    jobs: dict[str, list[str]] = {}
+    current, in_jobs = None, False
+    for line in path.read_text().splitlines():
+        if line.startswith("jobs:"):
+            in_jobs = True
+            continue
+        if in_jobs and line.strip() and not line.startswith(" "):
+            break
+        if not in_jobs:
+            continue
+        m = JOB_KEY.match(line)
+        if m:
+            current = m.group(1)
+            jobs.setdefault(current, [])
+            continue
+        if current is None:
+            continue
+        s = STEP_NAME.match(line)
+        if s:
+            name = s.group(1)
+            if len(name) > 1 and name[0] == name[-1] and name[0] in "\"'":
+                name = name[1:-1]
+            jobs[current].append(name)
+    return jobs
+
+
+def live_bindings(phase: dict) -> tuple[list[dict], list[str]]:
+    """Resolve and CHECK one phase's live bindings."""
+    findings: list[str] = []
+    bindings = phase.get("live")
+    if not bindings:
+        # No phase is exempt. A phase with no binding is a phase that can never
+        # pulse, and the map would show a cycle running with a hole in it.
+        return [], [f"phase {phase['id']} declares no `live` binding"]
+
+    resolved = []
+    for b in bindings:
+        path = WORKFLOWS / b["workflow"]
+        if not path.is_file():
+            findings.append(f"phase {phase['id']}: no workflow {b['workflow']}")
+            continue
+        jobs = workflow_jobs(path)
+        if b["job"] not in jobs:
+            findings.append(
+                f"phase {phase['id']}: {b['workflow']} has no job {b['job']} "
+                f"(it has: {', '.join(sorted(jobs)) or 'none'})"
+            )
+            continue
+        steps = b.get("steps", [])
+        for step in steps:
+            if step not in jobs[b["job"]]:
+                findings.append(
+                    f"phase {phase['id']}: {b['workflow']} job {b['job']} has no step "
+                    f"named {step!r}. Renaming a step breaks the pulse silently; "
+                    f"this is that rename, caught."
+                )
+        when = b.get("when", "step")
+        if when == "step" and not steps:
+            findings.append(f"phase {phase['id']}: {b['workflow']} binding names no step")
+        if when not in ("step", "waiting"):
+            findings.append(f"phase {phase['id']}: unknown live trigger {when!r}")
+        resolved.append(
+            {
+                "workflow": b["workflow"],
+                "path": f".github/workflows/{b['workflow']}",
+                "job": b["job"],
+                "when": when,
+                "steps": steps,
+            }
+        )
+    return resolved, findings
+
+
 # ---------------------------------------------------------------- assembly
 
 
@@ -370,12 +470,16 @@ def build():
                 node = dict(n)
                 node.setdefault("env", p.get("env"))
                 nodes.append(node)
+        live, live_findings = live_bindings(p)
+        if live_findings:
+            raise Refusal("\n".join(live_findings))
         phases.append(
             {
                 "id": p["id"],
                 "n": p["n"],
                 "label": p["label"],
                 "workflow": p["workflow"],
+                "live": live,
                 "nodes": nodes,
             }
         )
@@ -387,7 +491,19 @@ def build():
         n = sum(count_in(d, g["id"]) for d in lv)
         if not n:
             raise Refusal(f"hidden group {g['id']} holds nothing. A group that hides nothing hides the fact that it hides nothing.")
-        not_shown.append({"group": g["id"], "label": g["label"], "resources": n, "why": g["why"]})
+        # The ADDRESSES, not only the count. scripts/node-states.py sorts every
+        # resource a cycle touches into a node, into this list, or into
+        # `unknown` - and without the addresses here it could only ever report
+        # the third. A group that hides a resource has to be able to say WHICH.
+        not_shown.append(
+            {
+                "group": g["id"],
+                "label": g["label"],
+                "resources": n,
+                "why": g["why"],
+                "members": sorted({a for d in lv for a in members_in(d, g["id"])}),
+            }
+        )
 
     # The band above the cycle: the two things a visitor cannot see in infra/
     # because neither is in it. A claim there is tied to a resource that must
