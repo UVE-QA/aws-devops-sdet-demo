@@ -6,6 +6,33 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
+**As of 2026-08-08 (20a, the generator and the drift gate).** The fixture is
+gone: `site/data/topology.json` is generated from `infra/` and `tests/` by
+`scripts/generate-topology.py`, and `make site-data-check` runs in `ci.yml`. It
+is a COVERAGE gate — every resource block under `infra/` belongs to exactly one
+display group, including the group meaning deliberately not shown — plus a drift
+check that the committed file is byte-identical to a fresh generation. Five ways
+to make it red were exercised, exit codes written to a file, the tree committed
+first.
+
+It refused on its FIRST run against unmodified `infra/`, and was right: nine
+resource blocks carry `count` or `for_each`, and the hand-built fixture had
+counted each as one, so "116 resources" was never the number of things AWS
+creates. The repair is a change of unit rather than a better guess — every count
+says resource BLOCKS, the nine are acknowledged by name with reasons, and a tenth
+arriving without an entry is red. Then the same check reported two blocks that do
+not repeat, because it matched `for_each` four spaces inside a `dynamic` block:
+Phase 19g's finding, in a different file, in a session that had read it that
+morning. Indentation is a claim about formatting; the question is about depth.
+
+Nothing observed is written by the generator — no duration, cost, identifier or
+result — so the map renders entirely unobserved until 20b and 20c. That is a
+visible regression in the exhibit and the honest one. Rendering it revealed a
+defect no check here could have named: a node with no `state` took the absent CSS
+class and the MEASURED body, printing `undefineds` where the seconds go. Nothing
+in the JSON was wrong. `site/index.html` was deliberately not touched, by
+agreement at the start of the session, so 20a stays open on that half. $0.
+
 **As of 2026-08-08 (20a, the layout pilot).** Half of 20a is done: the layout,
 built in a sandbox and LOOKED AT rather than reasoned about, because it is the
 only part of Phase 20 that cannot be derived from the repository. The finding is

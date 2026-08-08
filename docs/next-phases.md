@@ -872,9 +872,30 @@ numbers     the fixture's measured values are placeholders and say so. 20b
             replaces them with Terraform's own event stream
 ```
 
-Still to build in 20a: the generator itself, `make site-data-check`, its two
-break tests, and folding the map into `site/index.html` in place of the
-hand-written section. The pilot deliberately did not touch `index.html`.
+#### What the generator settled (2026-08-08, same day)
+
+Built, gated and break-tested. Two things it changed in the plan above:
+
+```text
+unit       every count says resource BLOCKS, not resources. Nine blocks carry
+           count or for_each and stand for a number that depends on variables;
+           each is acknowledged by name in the editorial file, and a tenth
+           appearing without an entry is red. The fixture's "116 resources" was
+           never the number of objects AWS creates
+numbers    the generator writes NO observation at all - no duration, cost,
+           identifier or result. Those are things a cycle says. The map renders
+           unobserved until 20b and 20c, which is a visible regression in the
+           exhibit and the honest one: the fixture's placeholders read as
+           measurements
+```
+
+The gate got five break tests rather than the two planned, plus one path that is
+green and recorded: the group meaning deliberately not shown, holding
+`aws_default_security_group`, which creates nothing.
+
+Still to build in 20a: folding the map into `site/index.html` in place of the
+hand-written section, and the prose rendering generated from the same JSON. Both
+pilots deliberately did not touch `index.html`.
 
 ### 20b — the timeline  [needs one cycle, about $0.03]
 

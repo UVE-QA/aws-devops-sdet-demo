@@ -1,0 +1,82 @@
+# Phase 20a — break tests for `make site-data-check`, 2026-08-08
+
+Every exit code below was written to a file rather than read off a pipe: a
+status taken after `| grep` is grep's status, and that reading is
+indistinguishable from a gate that will not break (primer, 2026-07-28).
+`exit=2` is make's status for a failed recipe; the script itself exits 1.
+
+The working tree was COMMITTED before anything was broken on purpose, so every
+restore below is `git checkout --` against a known state rather than against
+whatever was in the editor.
+
+## Two refusals that fired for real, before any were planted
+
+The generator refused on its FIRST run, against unmodified infra/:
+
+    site-data: REFUSED
+    infra/dns/main.tf: resource aws_route53_record.validation uses `for_each`.
+    One block would be counted as one resource and it is not.
+
+Nine blocks carry `count` or `for_each`, and the hand-built fixture had counted
+each as one. That is why every count in topology.json now says resource BLOCKS,
+and why each of the nine is acknowledged by name with a reason.
+
+The first version of that check then reported five, and two of them were wrong:
+
+    unacknowledged repetition: infra/modules/alb::aws_security_group.alb
+    unacknowledged repetition: infra/modules/alb::aws_lb_listener.http
+
+Neither is repeated. Both contain `for_each` four spaces in, inside a
+`dynamic "ingress"` block, and the check was anchored on indentation. This is
+Phase 19g's finding arriving again in a different file, in the same session that
+had read it: the test was measuring its own regex. Replaced with a brace walk,
+after which the three REAL ones in modules/network survived and the two
+false positives went away.
+
+=== 0. baseline, unmodified working copy
+### baseline
+python3 scripts/generate-topology.py --check
+site-data: clean - every resource assigned; 116 across 8 levels (55 permanent, 61 per cycle), 2 deliberately not shown
+exit=0
+
+### 1. a resource added to a module and assigned to no display group
+python3 scripts/generate-topology.py --check
+site-data: REFUSED
+unassigned: infra/modules/network :: aws_flow_log.unassigned belongs to no display group
+make: *** [Makefile:175: site-data-check] Error 1
+exit=2
+
+### 2. the generated file deleted
+python3 scripts/generate-topology.py --check
+site-data: REFUSED
+site/data/topology.json does not exist. The page fetches it; a missing file is a blank map, not an empty one.
+make: *** [Makefile:175: site-data-check] Error 1
+exit=2
+
+### 3. a count edited by hand in the committed file (the 2026-08-08 defect, planted)
+python3 scripts/generate-topology.py --check
+site-data: DRIFT
+site/data/topology.json disagrees with infra/ and tests/.
+Run `make site-data` and commit the result.
+make: *** [Makefile:175: site-data-check] Error 1
+exit=2
+
+### 4. an assigned resource deleted from a module (stale assignment)
+python3 scripts/generate-topology.py --check
+site-data: REFUSED
+stale assignment: infra/modules/observability :: aws_cloudwatch_metric_alarm.http_5xx is assigned but no longer declared
+make: *** [Makefile:175: site-data-check] Error 1
+exit=2
+
+### 5. a node removed from a phase while its module is still instantiated (undrawn)
+python3 scripts/generate-topology.py --check
+site-data: REFUSED
+undrawn: group cloudwatch owns resources in infra/envs/stage, which no phase node draws
+make: *** [Makefile:175: site-data-check] Error 1
+exit=2
+
+### 6. restored
+python3 scripts/generate-topology.py --check
+site-data: clean - every resource assigned; 116 across 8 levels (55 permanent, 61 per cycle), 2 deliberately not shown
+exit=0
+

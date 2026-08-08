@@ -38,7 +38,7 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 19f   | Teardown gates that see the remainder | ✅ done | sessions/2026-08-07-phase-19f-teardown-sees-what-it-leaves.md |
 | 19g   | Teardown that finishes on its own | ✅ done, uninterrupted run 2026-08-08 | sessions/2026-08-08-phase-19g-nobody-in-the-loop.md |
 | 20.0  | Visible cycle: decisions + plan | ✅ done | ADR-0039 |
-| 20a   | The generated map, and its drift gate | 🟡 layout settled; generator + gate pending | sessions/2026-08-08-phase-20a-layout-pilot.md |
+| 20a   | The generated map, and its drift gate | 🟡 generator + gate done; site/index.html pending | sessions/2026-08-08-phase-20a-generator-and-drift-gate.md |
 | 20b   | The timeline from Terraform's own events | ⬜ planned | — |
 | 20c   | The tests panel | ⬜ planned | — |
 | 20d   | Cost, computed and reconciled | ⬜ planned, blocked on 20b | — |
@@ -1802,6 +1802,63 @@ were the same shape — a page saying something it was not in a position to say:
   git diff --stat
 ```
 - Next allowed step: finish 20a — the generator and its drift gate.
+
+### Phase 20a (continued) — The generator, and the gate  [DONE 2026-08-08]
+- Criteria for this half: `site/data/topology.json` GENERATED from `infra/` and
+  `tests/`, the counts carried in the same file, `make site-data-check` wired
+  into `ci.yml`, and its break tests. **MET.** The remaining half —
+  `site/index.html` — was deliberately left out of this session for a smaller
+  surface and one publish instead of two, and 20a stays open on it.
+- **The generator refused on its first run against unmodified `infra/`, and was
+  right.** Nine resource blocks carry `count` or `for_each`; the fixture counted
+  each as one, so "116 resources" was never the number of things AWS creates.
+  The unit changed rather than the guess: every count now says resource BLOCKS,
+  each of the nine is acknowledged by name with its reason, and a tenth appearing
+  without an entry is red. They split three ways: four `for_each`, two
+  `count 0 or 1`, and three `count = 2` the fixture drew as one each.
+- **The same check then measured its own regex**, exactly as Phase 19g's did that
+  morning: `for_each` four spaces inside a `dynamic "ingress"` block reported the
+  ALB security group and the HTTP listener as repeated. Anchoring on indentation
+  is a claim about formatting; the question is about depth. Replaced with a brace
+  walk. Reading a documented trap does not make you avoid it.
+- What is derived and what is not, stated so it cannot spread:
+```text
+  derived    levels, module instantiations, every resource block and its level,
+             spec files per suite, workflows, ADRs, every count on the page
+  editorial  assets/topology-groups.json - grouping and phase arrangement only.
+             It holds no number and says so in its first field
+  absent     duration, cost, identifier, result. A cycle says those. 20b and
+             20c fill them, and until then the map renders unobserved
+```
+- Five break tests, all red, exit codes written to a FILE, tree committed first.
+  Evidence: `docs/sessions/2026-08-08-phase-20a-break-tests.log`.
+```text
+  1  a resource block added to a module and assigned to nothing
+  2  the generated file deleted
+  3  a count edited by hand in the committed file - "adrs": 40 -> 27, which is
+     the number docs/demo-script.md was carrying earlier the same day
+  4  an assigned resource deleted from a module - a stale assignment
+  5  a node removed from a phase while its module is still instantiated
+```
+  A sixth path is green AND RECORDED rather than red: the group meaning
+  deliberately not shown. It holds `aws_default_security_group`, which creates
+  nothing - the module's own comment says AWS makes it with the VPC and Terraform
+  adopts it. Break test 5 is what proves that skip is not blanket.
+- **The map printed `undefineds`, and only a screenshot said so.** The CSS class
+  defaulted a missing `state` to absent; the body branched on the raw field, so
+  every node in a generated file took the measured branch. Nothing in the JSON was
+  wrong and no check here would have spoken. Rendered through Playwright at real
+  viewports 1440/1180/834/390: `scrollWidth == clientWidth` at all four.
+- Cost: **$0**. Nothing applied, no AWS API called.
+- Validation:
+```bash
+  make site-data-check
+  make site-pilot && make docs-check
+  git diff --stat
+```
+- Next allowed step: the rest of 20a — fold the map into `site/index.html` in
+  place of the hand-written section, with the prose rendering generated from the
+  same JSON (ADR-0039 D1). Then 20b.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,
