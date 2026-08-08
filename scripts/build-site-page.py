@@ -1,13 +1,18 @@
 #!/usr/bin/env python3
-"""Fold the AWS Architecture Icons into one inline SVG sprite, and build the map page.
+"""Build site/index.html: the icons folded into one inline sprite, injected into the template.
 
-Why a sprite rather than 17 objects in the bucket: the public page has been one
-self-contained file with no build step and no runtime dependency since 11.1c, and
-one request per icon to render a picture is a worse trade than the inline
-markup, which is a few tens of KB and roughly a quarter of that over the wire,
-gzipped by CloudFront. The exact size is PRINTED by this script when it runs
-rather than written here, because a number in a comment goes stale the first
-time an icon is added - which it just did.
+Why a sprite rather than one bucket object per icon: the PUBLISHED page has been
+a single self-contained file with no runtime dependency since 11.1c, and one
+request per icon to render a picture is a worse trade than the inline markup,
+which is a few tens of KB and roughly a quarter of that over the wire, gzipped
+by CloudFront. The exact size is PRINTED by this script when it runs rather than
+written here, because a number in a comment goes stale the first time an icon is
+added - which it has now done twice, and the second time it was this sentence
+saying "17 objects" over a list of eighteen. The count is not written here
+either; it is len(KEYS), a few lines below.
+
+What 20a DID change is "no build step". There is one now, it is this script, and
+its output is committed - which is why `--check` exists.
 
 The icons are used UNMODIFIED. No recolouring, no reproportioning, no cropping —
 AWS's trademark guidelines prohibit altering the marks, and this script is the
@@ -24,7 +29,8 @@ there would be published too - and the template, served without its sprite, woul
 render a map with no icons. A page that quietly says something untrue is the
 defect this whole phase exists to remove.
 
-    python3 scripts/build-icon-sprite.py     # -> site/map-pilot.html
+    python3 scripts/build-site-page.py           # -> site/index.html
+    python3 scripts/build-site-page.py --check   # the drift gate; writes nothing
 """
 import pathlib
 import re
@@ -32,8 +38,8 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 ICONS = ROOT / "assets/aws-icons"
-TEMPLATE = ROOT / "assets/map-pilot.template.html"
-OUT = ROOT / "site/map-pilot.html"
+TEMPLATE = ROOT / "assets/index.template.html"
+OUT = ROOT / "site/index.html"
 MARKER = "<!--ICON-SPRITE-->"
 
 # The service keys the page asks for, by <use href="#ic-KEY">. A key here with no
@@ -67,21 +73,45 @@ def symbol(key: str) -> str:
     return f'<symbol id="ic-{key}" viewBox="{vb.group(1)}">{inner.strip()}</symbol>'
 
 
-def main() -> int:
+def build() -> str:
     template = TEMPLATE.read_text()
     if MARKER not in template:
-        print(f"{TEMPLATE} no longer contains {MARKER}; nothing to inject into")
-        return 1
+        raise SystemExit(f"{TEMPLATE} no longer contains {MARKER}; nothing to inject into")
 
     sprite = "\n".join(
         ['<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">']
         + [symbol(k) for k in KEYS]
         + ["</svg>"]
     )
-    OUT.write_text(template.replace(MARKER, sprite))
-    print(f"{OUT.relative_to(ROOT)}: {len(KEYS)} icons, {len(sprite)} bytes of sprite")
+    print(f"{len(KEYS)} icons, {len(sprite.encode()):,} bytes of sprite", file=sys.stderr)
+    return template.replace(MARKER, sprite)
+
+
+def main(argv: list[str]) -> int:
+    page = build()
+
+    # --check is the drift gate. site/index.html is a BUILD OUTPUT that is
+    # committed, and a committed output invites being edited in place: the edit
+    # then survives until the next build silently reverts it, which is a slower
+    # and quieter version of the defect this phase exists to remove. So the
+    # committed page must be byte-identical to a fresh build, and CI says so.
+    if "--check" in argv:
+        if not OUT.is_file():
+            print(f"site-page-check: {OUT.relative_to(ROOT)} does not exist. Run `make site-page`.")
+            return 1
+        if OUT.read_text() != page:
+            print(
+                f"site-page-check: {OUT.relative_to(ROOT)} is not what the template builds.\n"
+                "  Edit assets/index.template.html, not the built page, then run `make site-page`."
+            )
+            return 1
+        print(f"site-page-check: {OUT.relative_to(ROOT)} matches the template")
+        return 0
+
+    OUT.write_text(page)
+    print(f"{OUT.relative_to(ROOT)}: {len(page.encode()):,} bytes")
     return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(main(sys.argv[1:]))

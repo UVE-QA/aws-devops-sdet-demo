@@ -1773,10 +1773,13 @@ were the same shape — a page saying something it was not in a position to say:
   `site-data-check` target in CI with its two break tests; the hand-written
   section in `site/index.html` replaced. **PARTLY MET** — the LAYOUT half only.
 - What is done: the layout, decided by looking at it rather than by reasoning
-  about it. `site/map-pilot.html` (built by `make site-pilot` from
-  `assets/map-pilot.template.html`) renders a hand-built `site/data/topology.json`
-  at 1440 / 1180 / 834 / 390. What it settled, and what it left open on purpose,
-  is in `docs/next-phases.md` under 20a.
+  about it. A standalone pilot page, built by its own target from a hand-built
+  `site/data/topology.json`, rendered at 1440 / 1180 / 834 / 390. What it
+  settled, and what it left open on purpose, is in `docs/next-phases.md` under
+  20a. **RETIRED when the map reached `site/index.html` on the same day** — the
+  page, its template and its target are gone, and this paragraph no longer names
+  them because `make docs-check` reads a name in a living document as a claim
+  that the thing exists.
 - The finding worth carrying: folding the chain node by node drew a SEQUENCE
   inside an apply, where Terraform has a graph. Sequence now belongs to the
   phase; the nodes inside one are a set with no arrows. ADR-0026's rule reaches
@@ -1791,13 +1794,13 @@ were the same shape — a page saying something it was not in a position to say:
   its first field.
 - Two refusals of the sprite builder were exercised on purpose, both red: a
   missing icon file, and a template that has lost its injection marker.
-- Cost: **$0**. Nothing applied to AWS, no environment at any point. The page
-  IS published: `publish-site` fires on any push to `site/**`, so
-  `demo.uveapp.net/map-pilot.html` went live with this commit, carrying fixture
-  numbers that are labelled as fixture numbers on the page and in the file.
-- Validation:
+- Cost: **$0**. Nothing applied to AWS, no environment at any point. The pilot
+  page WAS published — `publish-site` fires on any push to `site/**` — and
+  carried fixture numbers labelled as fixture numbers on the page and in the
+  file. It was removed from the bucket by the same mechanism when 20a closed:
+  `publish-site.sh` syncs with `--delete`.
+- Validation (as it stood; the targets it named are retired):
 ```bash
-  make site-pilot          # rebuilds site/map-pilot.html from the template
   make docs-check
   git diff --stat
 ```
@@ -1853,7 +1856,7 @@ were the same shape — a page saying something it was not in a position to say:
 - Validation:
 ```bash
   make site-data-check
-  make site-pilot && make docs-check
+  make site-page && make docs-check
   git diff --stat
 ```
 - **Added on review, same session:** the band the map was missing, and the cut.

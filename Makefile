@@ -4,8 +4,8 @@
 .PHONY: local-up local-down migrate seed test-smoke test-regression test-api \
         test-unit test-db test-ui-db test-spec-coverage docker-build tf-fmt \
         tf-validate docs-check secret-scan iac-scan image-scan action-pins \
-        self-service-package self-service-cors-check site-pilot site-data \
-        site-data-check
+        self-service-package self-service-cors-check site-page site-page-check \
+        site-data site-data-check
 
 # Bring up postgres + app (build app image if needed), detached.
 local-up:
@@ -151,12 +151,21 @@ test-db:
 docs-check:
 	python3 scripts/check-docs-references.py
 
-# Phase 20a pilot. Folds the AWS Architecture Icons into an inline sprite and
-# injects it into assets/map-pilot.template.html. The built page is committed so
-# a reader can open it from a clone; this regenerates it. It refuses on a missing
-# icon and on a template that has lost its marker - both exercised on purpose.
-site-pilot:
-	python3 scripts/build-icon-sprite.py
+# site/index.html is a BUILD OUTPUT (20a). The source is
+# assets/index.template.html, which lives outside site/ because publish-site
+# syncs the whole of site/ to the public bucket. The build folds the AWS
+# Architecture Icons into one inline sprite and injects it, so the published page
+# stays a single file with no request-time dependency.
+#
+# site-page-check is the gate, and runs in ci.yml: the committed page must be
+# byte-identical to a fresh build. Without it an edit to the OUTPUT survives
+# until the next build silently reverts it. It refuses on a missing icon and on a
+# template that has lost its marker - both exercised on purpose.
+site-page:
+	python3 scripts/build-site-page.py
+
+site-page-check:
+	python3 scripts/build-site-page.py --check
 
 # The map's data, GENERATED from infra/ and tests/ rather than written (ADR-0039
 # D1). site-data rewrites it; site-data-check is the gate, and runs in ci.yml.

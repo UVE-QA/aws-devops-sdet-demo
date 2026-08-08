@@ -130,6 +130,13 @@ jobs:
         # resource block has been added that belongs to no display group.
         run: make site-data-check
 
+      - name: The published page is what its template builds
+        # site/index.html is a build output that is COMMITTED, so that the
+        # published page stays one self-contained file. A committed output
+        # invites being edited in place, and that edit survives only until the
+        # next build silently reverts it. Byte-identical or red.
+        run: make site-page-check
+
       - name: Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
