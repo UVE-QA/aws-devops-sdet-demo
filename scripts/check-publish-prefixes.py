@@ -68,7 +68,17 @@ def main() -> int:
             "green check."
         )
         return 1
-    if "--delete" not in syncer:
+    # As an ARGUMENT, not as a substring. `"--delete" in syncer` was the first
+    # version and it could not fail: the file's own comment explains what
+    # `aws s3 sync --delete` does, so the string is present whatever the command
+    # does. The break test refused to break, which is how that was found - the
+    # check was testing an assumption about the file rather than the file.
+    deleting = any(
+        re.match(r"\s*--delete\b", line)
+        for line in syncer.splitlines()
+        if not line.lstrip().startswith("#")
+    )
+    if not deleting:
         # If the sync stops deleting, this check is meaningless rather than
         # green - and someone should be told which of the two it is.
         print(
