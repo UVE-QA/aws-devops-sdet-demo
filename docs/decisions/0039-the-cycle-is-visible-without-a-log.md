@@ -174,13 +174,28 @@ Anything approximated says so where it renders, and links to the exact rendering
 An unlabelled approximation is a claim, which is the thing this ADR exists to
 stop.
 
-**One screen means one DESKTOP screen.** A map of six permanent levels, a
-per-cycle environment and seven phases does not fit a phone at any layout, and
-pretending otherwise produces either a scroll or an unreadable diagram. On narrow
-viewports the map degrades to the text chronometry instead. That gives the prose
-rendering of D1 an actual job rather than a courtesy: it is the small-screen
-version, and it is generated from the same file, so it cannot drift from what the
-map shows.
+**One screen means one DESKTOP screen. On a phone the map REFLOWS, it does not
+disappear.** Same nodes, same data, laid out as a single vertical column and
+scrolled — the ordinary mobile pattern, and one where the sequence reads top to
+bottom rather than across lanes, which is arguably clearer than the desktop
+layout rather than a concession.
+
+Two things this deliberately is not. It is not the desktop layout in a narrow
+window — tiny labels, horizontal scroll and pinch-zoom are visually worse than
+plain text, which is what makes "just let it scroll" the wrong answer. And it is
+not text-only: that was the first decision taken here and it was wrong, because it
+gives the least visual version of the artifact to the reader most likely to arrive
+from a link, and "one screen" is a means to legibility, not a goal that outranks
+it.
+
+**The reflow is nearly free, and only because of D1.** A generated map is laid out
+from data, so a second breakpoint is a second layout pass over the same
+`topology.json`. A hand-drawn SVG would have to be drawn twice and kept in sync —
+the choice to generate pays for itself a second time here, before it has finished
+paying the first.
+
+The text chronometry stays, as the route to exact per-resource detail from either
+layout. It is not the small-screen substitute for the map.
 
 ## Consequences
 

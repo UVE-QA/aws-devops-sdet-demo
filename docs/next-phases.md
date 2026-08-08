@@ -770,15 +770,19 @@ generator     site/data/topology.json, built from infra/: the state levels, the
               assigned to
 layout        ONE DESKTOP SCREEN, no scrolling (ADR-0039 D5). That is a budget,
               not an aspiration: a fixed number of visual slots, resources
-              GROUPED into stages rather than drawn one per box
+              GROUPED into services rather than drawn one per box
+mobile        the map REFLOWS to a single vertical column and scrolls - same
+              nodes, same data, a second layout pass over the same JSON. Not
+              the desktop layout squeezed, and not text instead of a map
 gate          make site-data-check, wired into ci.yml. It checks COVERAGE, not
               depiction: every resource in infra/ belongs to exactly one display
               group, including the group meaning "deliberately not shown". An
               unassigned resource is red; a hidden one is green and recorded
 page          the hand-written "What happens, in the order it happens" section
-              is replaced by the map. The prose rendering stays and earns its
-              place: it is the narrow-viewport version, generated from the same
-              JSON, never maintained separately (ADR-0039 D1, D5)
+              is replaced by the map. The prose rendering stays, generated from
+              the same JSON and never maintained separately (ADR-0039 D1): it
+              is the route to exact per-resource detail from either layout,
+              not the small-screen substitute for the map
 icons         establish AWS's terms for the Architecture Icons set and record
               the answer in ADR-0039, or use project glyphs. Do not guess
 break test    add a resource to a module without assigning it -> gate red.
