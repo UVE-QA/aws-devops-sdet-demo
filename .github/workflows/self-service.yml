@@ -190,6 +190,7 @@ jobs:
           CONTAINER: ${{ steps.tf.outputs.container }}
           SUBNETS: ${{ steps.tf.outputs.subnets }}
           SG: ${{ steps.tf.outputs.sg }}
+          TASK_LOG_DIR: /tmp/task-logs
         run: |
           scripts/ecs-run-task.sh migrate   '["alembic","upgrade","head"]'
           scripts/ecs-run-task.sh seed      '["python","scripts/seed.py"]'
@@ -244,6 +245,43 @@ jobs:
           --timeline /tmp/timeline-stage.json
           --out /tmp/nodes-stage.json
 
+      # The test reports, folded onto the map's suite nodes (ADR-0042 D5). Reads
+      # files only - the junit pytest wrote, the JSON the Playwright reporter
+      # left inside the report directory, and the db task's own log, which
+      # ecs-run-task.sh now captures because an exit code never said WHICH check
+      # failed.
+      #
+      # `if: always()`, for the reason the timeline fold has it: a run that died
+      # after the tests is exactly when their verdict matters. A run that died
+      # BEFORE them produces no report, and this publishes nothing rather than a
+      # fold of nothing - which would render as a page saying every suite passed.
+      - name: Fold the test reports onto the map's suite nodes
+        if: always()
+        env:
+          FOLD_ENV: stage
+        run: |
+          args=()
+          if [ -f /tmp/junit-api.xml ]; then
+            args+=(--junit "api=/tmp/junit-api.xml")
+          fi
+          if [ -f tests/playwright/playwright-report/results.json ]; then
+            args+=(--playwright tests/playwright/playwright-report/results.json)
+          fi
+          if [ -f /tmp/task-logs/db-assert.log ]; then
+            args+=(--db-log /tmp/task-logs/db-assert.log)
+          fi
+          if [ ${#args[@]} -eq 0 ]; then
+            echo "no test report was produced, so there is nothing to fold"
+            exit 0
+          fi
+          python3 scripts/fold-results.py \
+            --environment "$FOLD_ENV" \
+            --run-id "$GITHUB_RUN_ID" \
+            --workflow "$GITHUB_WORKFLOW" \
+            --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+            "${args[@]}" \
+            --out /tmp/results-stage.json
+
       - name: Configure AWS credentials (OIDC, publish role)
         if: always()
         uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
@@ -260,6 +298,7 @@ jobs:
           JOB_STATUS: ${{ job.status }}
           TIMELINE_JSON: /tmp/timeline-stage.json
           NODE_STATES_JSON: /tmp/nodes-stage.json
+          RESULTS_JSON: /tmp/results-stage.json
         run: scripts/publish-status.sh stage /tmp/observation.json
 
   # The in-band half of guardrail 3. `if: always()` so a failed deploy, a failed

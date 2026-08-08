@@ -27,7 +27,17 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   workers: 1,
-  reporter: [["html", { open: "never" }], ["list"]],
+  // THREE reporters, and the JSON one is not decoration. The HTML report is
+  // evidence for a person; the map's suite nodes are filled by a machine, and
+  // scripts/fold-results.py reads this file (ADR-0042 D5). It is written INTO
+  // playwright-report/ so that publishing the report publishes the data behind
+  // it - one directory, one upload, and a reader can check the picture against
+  // the same bytes the picture was drawn from.
+  reporter: [
+    ["html", { open: "never" }],
+    ["json", { outputFile: "playwright-report/results.json" }],
+    ["list"],
+  ],
   // EVIDENCE FOR THE GREEN RUNS TOO, not only for the red ones.
   //
   // `only-on-failure` and `on-first-retry` are the sensible defaults when a

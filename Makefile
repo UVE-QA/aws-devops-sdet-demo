@@ -68,12 +68,16 @@ test-spec-coverage:
 # interpreter externally-managed (PEP 668) and refuses to install into it, and
 # pytest has no business in the application image.
 API_VENV := .venv-api
+# Set API_JUNIT to a path and pytest also writes a junit report there, which is
+# what scripts/fold-results.py reads (ADR-0042 D5). Empty by default: a local
+# run should not scatter report files, and a workflow asks for one explicitly.
+API_JUNIT ?=
 test-api:
 	@python3 -m venv $(API_VENV) 2>/dev/null || { \
 	  echo "could not create a virtualenv - install python3-venv (apt install python3-venv)"; exit 1; }
 	@$(API_VENV)/bin/pip install -q --upgrade pip
 	$(API_VENV)/bin/pip install -q -r tests/api/requirements.txt
-	BASE_URL=$(BASE_URL) $(API_VENV)/bin/pytest tests/api -q
+	BASE_URL=$(BASE_URL) $(API_VENV)/bin/pytest tests/api -q $(if $(API_JUNIT),--junitxml=$(API_JUNIT))
 
 # In-process tests: things no HTTP client can observe from outside. Today that
 # is the SHAPE of the JSON access line the 5xx alarm reads (ADR-0032), and the

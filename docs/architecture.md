@@ -378,6 +378,26 @@ assert only what it observes — and it carries its own refusal: a stream whose
 exit code was never recorded folds to `incomplete`, however finished its events
 look.
 
+A fourth is **wired and has never run in AWS** (Phase 20c):
+
+```text
+results/<env>/<run id>-<job>.json    what the suites said, folded by
+                                     scripts/fold-results.py from the reporters'
+                                     own output: pytest's junit, the Playwright
+                                     JSON reporter, and the db assertion's stdout
+                                     captured from its ECS task's log
+results/<env>/latest.json            the same, for whatever ran LAST. Published
+                                     whatever the verdict — a failed suite is a
+                                     result, not a half-measurement
+```
+
+ADR-0042. The inventory it is joined against — `site/data/suites.json` — is
+collected from the suites themselves by `make suite-inventory`, so what a node
+claims to contain is never a sentence someone maintained beside it. Anything the
+report does not cover is named rather than coloured: `unobserved` for a suite
+this environment did not run, `not_run` for a test the report never mentioned,
+`unknown` for a result the inventory has never heard of.
+
 The split between the last two entries is **ADR-0040**, and it is what stops a
 cancelled run from erasing a good measurement: `latest.json` says what happened
 last, the `nodes-*.json` pair says what the last cycle that FINISHED measured,

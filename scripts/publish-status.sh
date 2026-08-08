@@ -17,6 +17,8 @@
 #   timeline/<environment>/latest.json                  the last run, ANY status
 #   timeline/<environment>/nodes-apply.json             the map's at-rest numbers
 #   timeline/<environment>/nodes-destroy.json           ... for the teardown node
+#   results/<environment>/<run id>-<job>.json           what the suites said
+#   results/<environment>/latest.json                   ... the last run's
 #
 # ONE FILE PER ENVIRONMENT, not the single status.json ADR-0026 describes. Two
 # workflows can be in flight at once - destroying prod while stage deploys is a
@@ -112,6 +114,34 @@ if [ -n "$timeline_json" ] && [ -s "$timeline_json" ]; then
   echo "published timeline (${timeline_status}): ${base_url}/timeline/${env_name}/${timeline_key}.json"
 else
   echo "no timeline to publish (looked at: '${timeline_json:-<none>}')"
+fi
+
+# ---- what the tests said, keyed like the timeline ---------------------------
+# ADR-0042 D5. Same two objects as the timeline and for the same reason: the
+# run-id one is immutable evidence, latest.json is what the page draws at rest.
+#
+# Unlike the node states, this publishes whatever the fold produced, including a
+# failed or incomplete one. A cancelled run's node NUMBERS are worth withholding
+# because a half-measured duration is a wrong measurement; a suite that failed
+# is not a half-measurement, it is the result. Withholding it would leave the
+# page showing the last GREEN run's tests beside a status that says the cycle
+# broke - the exact combination this dashboard exists to make impossible.
+#
+# The key carries the job for the reason the timeline's does: self-service.yml
+# launches and destroys inside one run, in two jobs.
+results_json="${RESULTS_JSON:-}"
+if [ -n "$results_json" ] && [ -s "$results_json" ]; then
+  results_key="${run_id}${GITHUB_JOB:+-${GITHUB_JOB}}"
+  results_line="$(jq -r '[.nodes | to_entries[] | "\(.key)=\(.value.status)"] | join(" ")' "$results_json")"
+  for key in "$results_key" latest; do
+    aws s3 cp "$results_json" "s3://${SITE_BUCKET}/results/${env_name}/${key}.json" \
+      --content-type application/json \
+      --cache-control "max-age=60" \
+      --only-show-errors
+  done
+  echo "published results: ${results_line:-<no node>}"
+else
+  echo "no test results to publish (looked at: '${results_json:-<none>}')"
 fi
 
 # ---- the node states, ONLY from a cycle that finished -----------------------

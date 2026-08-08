@@ -53,6 +53,57 @@ code="$(aws ecs describe-tasks --cluster "$CLUSTER" --tasks "$arn" \
 echo "exitCode: $code"
 echo "::endgroup::"
 
+# ---- what the task actually SAID -------------------------------------------
+#
+# Until Phase 20c this script observed an exit code and nothing else. A db
+# assertion that failed in AWS printed `exitCode: 1` and never which check
+# failed - the answer was in CloudWatch, and nobody was looking. Since ADR-0042
+# the map reads those lines too, so they are fetched here, once, for both
+# readers.
+#
+# The log group and stream prefix come from the TASK DEFINITION rather than from
+# a variable this script would have to be told: the definition is what actually
+# configured the driver, and a second copy of that name is a second thing to
+# keep in step. The stream is <prefix>/<container>/<task id>, which is the awslogs
+# driver's own layout.
+#
+# Nothing here can fail the task. A log that cannot be fetched is reported as
+# exactly that; it is not silence dressed as success, and the fold downstream
+# refuses on a log with no PASS/FAIL line rather than calling it a pass.
+task_id="${arn##*/}"
+log_options="$(aws ecs describe-task-definition --task-definition "$TASK_DEF" \
+  --query "taskDefinition.containerDefinitions[?name=='${CONTAINER}'].logConfiguration.options | [0]" \
+  --output json 2>/dev/null || echo '{}')"
+log_group="$(printf '%s' "$log_options" | jq -r '."awslogs-group" // empty')"
+log_prefix="$(printf '%s' "$log_options" | jq -r '."awslogs-stream-prefix" // empty')"
+
+if [ -n "$log_group" ] && [ -n "$log_prefix" ]; then
+  stream="${log_prefix}/${CONTAINER}/${task_id}"
+  events=""
+  # The task has stopped, which does not mean its last line has been delivered.
+  for _ in 1 2 3 4 5; do
+    events="$(aws logs get-log-events \
+      --log-group-name "$log_group" --log-stream-name "$stream" \
+      --start-from-head --query 'events[].message' --output text 2>/dev/null || true)"
+    [ -n "$events" ] && break
+    sleep 3
+  done
+  if [ -n "$events" ]; then
+    echo "::group::log $label"
+    printf '%s\n' "$events"
+    echo "::endgroup::"
+    if [ -n "${TASK_LOG_DIR:-}" ]; then
+      mkdir -p "$TASK_LOG_DIR"
+      printf '%s\n' "$events" > "${TASK_LOG_DIR}/${label}.log"
+      echo "log written: ${TASK_LOG_DIR}/${label}.log"
+    fi
+  else
+    echo "no log events for $label at ${log_group}:${stream} after 15s"
+  fi
+else
+  echo "no awslogs configuration on ${TASK_DEF} for container ${CONTAINER}; no log to fetch"
+fi
+
 if [ "$code" != "0" ]; then
   echo "::error::$label failed (exitCode=$code)"
   exit 1
