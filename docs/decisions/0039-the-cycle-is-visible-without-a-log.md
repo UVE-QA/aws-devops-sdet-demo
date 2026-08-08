@@ -141,16 +141,34 @@ not, once the line is drawn in the right place:
 ```text
 generated, exact       which nodes exist, that they exist, the order events
                        actually happened in, the measured numbers
-editorial, approximate the grouping of resources into stages, the layout, and
-                       any non-linear rendering of duration - a four-second
-                       security group and a four-minute database cannot share
-                       one screen at true scale
+aggregated, exact      a node is a SERVICE, not a resource. It is busy while
+                       ANY of its resources is in flight, and its duration runs
+                       from the first apply_start in the group to the last
+                       apply_complete. Computed, not estimated
+editorial, approximate the layout, and any non-linear rendering of duration -
+                       a four-second security group and a four-minute database
+                       cannot share one screen at true scale
 ```
 
+**The middle row is the one the requirement is actually about**, and it is worth
+separating from the third because it is not an approximation at all. A service a
+reader recognises is several Terraform resources — RDS is an instance, a subnet
+group and a parameter group; the ALB is a load balancer, a target group and a
+listener; ECS is a cluster, a task definition and a service. The map draws one
+node per service and shows it as active, without splitting it into the internal
+steps that got it there. Anyone who wants those opens the text chronometry, where
+every resource keeps its own line.
+
+Note what is NOT available to drop: Terraform reports resources, not a service's
+own lifecycle. RDS moving `creating → backing-up → available` never reaches the
+stream — `apply_progress` only counts the seconds Terraform spent waiting. So
+service-level granularity is the finest the page could honestly draw anyway; the
+decision is to stop there rather than to discard something we had.
+
 So approximation is permitted and BOUNDED: bounded by generated data, never
-free-hand. A stage may be a convenient grouping; it may not contain a service the
-repository does not have, or omit one without the coverage gate above having been
-told.
+free-hand. A node may aggregate several resources; it may not contain a service
+the repository does not have, or omit one without the coverage gate above having
+been told.
 
 Anything approximated says so where it renders, and links to the exact rendering.
 An unlabelled approximation is a claim, which is the thing this ADR exists to

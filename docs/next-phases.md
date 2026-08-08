@@ -785,11 +785,17 @@ break test    add a resource to a module without assigning it -> gate red.
               Delete the generated file -> gate red. Keep both outputs
 ```
 
-Approximation is allowed here and is expected — stages are a convenient grouping,
-and duration will not be rendered at true scale, because a four-second security
-group and a four-minute database cannot share a screen honestly at one. What is
-not allowed is an approximation that does not say it is one, or a stage
-containing a service the repository does not have.
+**A node is a service, not a resource.** RDS is three Terraform resources, the
+ALB is three, ECS is three; the map draws one node each, active while any member
+is in flight, with the group's duration measured from its first `apply_start` to
+its last `apply_complete`. That is an aggregate and it is exact — the per-resource
+steps stay one click away in the text chronometry rather than being lost. Nothing
+finer is available in any case: Terraform reports resources, never a service's
+own `creating → available` progression.
+
+What is genuinely approximate is only the visual scale, and it says so where it
+renders. What is never allowed is a node containing a service the repository does
+not have, or omitting one without the coverage gate having been told.
 
 Closes the structural half of the 2026-08-08 finding: the architecture section
 can no longer disagree with `infra/`, because it is built from it.
