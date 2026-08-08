@@ -75,14 +75,29 @@ the steps whose side effect is the venvs and `node_modules`. It does not join
 inventory are therefore gated in two different jobs, which is the price of D1 and
 is cheaper than either installing the world twice or parsing the files.
 
-### D3. The collected versions are part of the answer
+### D3. The versions are compared, and deliberately not recorded
 The pinned versions are read from `tests/*/requirements.txt` and
-`tests/playwright/package.json`, compared against the tool actually invoked, and
-recorded in the output. Discovery through a tool is a version-dependent fact:
-`docker compose config --images app` filtered by service on the devbox and
-ignored the filter on a GitHub runner, with a byte-identical recipe. A host
-collecting with a different pytest is told which two versions differ, instead of
-being handed a diff of 780 lines of JSON.
+`tests/playwright/package.json` and compared against the tool actually invoked.
+Discovery through a tool is a version-dependent fact: `docker compose config
+--images app` filtered by service on the devbox and ignored the filter on a
+GitHub runner, with a byte-identical recipe. A host collecting with a different
+pytest is told which two versions differ, instead of being handed a diff of 780
+lines of JSON.
+
+**They were written into `site/data/suites.json` first, and taken out before the
+patch was pushed.** The repository has two open Dependabot pull requests, and
+one of them bumps `@playwright/test` — the exact input this file records. With
+the version in the artifact, that PR goes red on DRIFT saying nothing: the set of
+tests is identical, and the only fix is a human commit onto a branch the bot
+owns, on every bump, for ever. This project has already recorded what that costs
+(four Dependabot PRs reddened by the image scan, none of them about their own
+contents), and the lesson was "land the fix first, or expect to explain red
+checks that mean nothing".
+
+Nothing is lost. A bump that changes what the map SHOWS — a renamed title, a
+collector that stops finding a case — still reddens the gate, on the names
+themselves. The version is printed by the run instead, which is where a
+provenance question is asked and which no bot has to regenerate.
 
 ### D4. The mirror is asserted, and the observed copy is the one AWS runs
 Both copies of the db assertion are collected and compared; a disagreement is a
@@ -114,6 +129,10 @@ recorded four times.
   right.
 - Collection costs about 35 seconds in CI, almost all of it Playwright's
   TypeScript compile, and nothing in AWS.
+- A dependency bump does not redden this gate by itself (D3). That is asserted by
+  inspection - the artifact contains no version string - and NOT by a live bump:
+  installing a newer Playwright to watch the gate stay green was not done, and
+  the first real Dependabot run is therefore the first evidence.
 
 ### The refusals, each fired on purpose
 Recorded in `docs/sessions/2026-08-08-phase-20c-the-suites-answer-for-themselves.log`,
