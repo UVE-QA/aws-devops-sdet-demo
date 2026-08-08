@@ -1,0 +1,78 @@
+{
+  "_comment": [
+    "EDITORIAL, like assets/topology-groups.json, and it says so for the same reason.",
+    "Prices are captured from AWS (site/data/rates.json). Shapes are read from infra/",
+    "(scripts/sizing.py). What is left over is a JUDGEMENT — which kind of resource is",
+    "worth metering at all — and a judgement does not belong in either of those files.",
+    "",
+    "THE RULE THIS FILE EXISTS TO ENFORCE: no silent zero. Every resource kind the",
+    "per-cycle levels declare appears in exactly one of the three buckets below, and the",
+    "two that are not priced carry a reason. `make rates-check` reads the kinds out of",
+    "infra/ and refuses when one of them is in none of the buckets, so adding a NAT",
+    "gateway to the configuration reddens a gate instead of costing money invisibly.",
+    "That is ADR-0041's channel — found from the configuration — pointed at money."
+  ],
+  "schema": "cost-model/1",
+
+  "priced": {
+    "aws_lb": {
+      "meter": "lifetime",
+      "components": [
+        { "unit_price": "alb_hour", "quantity": 1 }
+      ],
+      "note": "LCU charges are real and are NOT included: an LCU is a usage measurement, not a lifetime, and nothing in a timeline can see one. A demo cycle serves a handful of requests, so the omission is small and it is stated rather than hidden."
+    },
+    "aws_db_instance": {
+      "meter": "lifetime",
+      "components": [
+        { "unit_price": "rds_instance_hour", "quantity": 1 },
+        { "unit_price": "rds_gp3_gb_month", "quantity_from": ["db_allocated_gb"], "per": "month" }
+      ],
+      "minimum_seconds": 600,
+      "note": "AWS bills a deleted RDS instance for a minimum of ten minutes. A cycle is about half an hour, so the minimum does not usually bind — it binds on a cycle that dies early, which is exactly the cycle whose cost somebody would otherwise report as nearly nothing."
+    },
+    "aws_ecs_service": {
+      "meter": "lifetime",
+      "components": [
+        { "unit_price": "fargate_vcpu_hour", "quantity_from": ["task_vcpu", "task_count"] },
+        { "unit_price": "fargate_gb_hour", "quantity_from": ["task_gb", "task_count"] }
+      ],
+      "minimum_seconds": 60,
+      "note": "Fargate bills TASKS, and a task is not a Terraform resource — nothing in the event stream has ever seen one start. The service's lifetime is used as a proxy for the task's, which overstates slightly (the service exists before its first task is running) and is labelled as a proxy wherever it renders."
+    }
+  },
+
+  "free": {
+    "aws_vpc": "no charge",
+    "aws_subnet": "no charge",
+    "aws_route_table": "no charge",
+    "aws_route_table_association": "no charge",
+    "aws_internet_gateway": "no charge while attached to a VPC; there is no NAT gateway in v0, which is the one that would cost money",
+    "aws_security_group": "no charge",
+    "aws_default_security_group": "no charge",
+    "aws_iam_role": "IAM is free",
+    "aws_iam_role_policy": "IAM is free",
+    "aws_iam_role_policy_attachment": "IAM is free",
+    "aws_ecs_cluster": "no charge for the cluster itself; the capacity under it is the aws_ecs_service line",
+    "aws_ecs_task_definition": "no charge to register a revision, and deregistered revisions are free for ever — which is why they are the documented exception to the leftover sweep (ADR-0041)",
+    "aws_db_subnet_group": "no charge",
+    "aws_lb_listener": "no charge; the load balancer hour is the aws_lb line",
+    "aws_lb_target_group": "no charge",
+    "aws_secretsmanager_secret_version": "a version is part of its secret and is not billed separately",
+    "aws_route53_record": "no charge for records inside a hosted zone; the zone is permanent and outside a cycle",
+    "aws_budgets_budget": "the first two budgets per account are free and this project has fewer than two per account at any time",
+    "random_password": "not an AWS resource"
+  },
+
+  "not_metered": {
+    "aws_cloudwatch_log_group": "billed on bytes ingested and bytes stored. Neither is a lifetime and neither is visible in a timeline; measuring it would need a CloudWatch API call, which this fold deliberately does not make (ADR-0039 D2).",
+    "aws_cloudwatch_log_metric_filter": "no charge for the filter; what it produces is a metric, and the alarm below is what is billable.",
+    "aws_cloudwatch_metric_alarm": "billed per alarm-month, which IS a lifetime this fold could price. Left out of v1 on purpose and named here rather than dropped: one alarm over half an hour is far below the width of the band the estimate already reports, and adding it would mean a fourth price lookup for a figure that cannot change the answer.",
+    "aws_secretsmanager_secret": "billed per secret-month plus API calls. Same shape and same reasoning as the alarm."
+  },
+
+  "notes": [
+    "Data transfer is not a resource and appears nowhere in a timeline. An egress charge is real and is not estimated here.",
+    "Everything above concerns the PER-CYCLE levels only. The permanent levels — the state bucket, the registry, the hosted zone, the dashboard — bill whether or not a cycle runs and are described in docs/cost-control.md."
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "description": "A resource kind the cost model has never heard of. It is reported UNPRICED and counted, never folded into the total as a zero - the silence ADR-0045 D4 is about.",
+  "cycle": {
+    "status": "closed",
+    "usd": {
+      "low": 1.8,
+      "high": 1.92
+    }
+  },
+  "counts": {
+    "created": 2,
+    "priced": 1,
+    "free": 0,
+    "not_metered": 0,
+    "unpriced": 1,
+    "orphan_deletes": 0
+  },
+  "unpriced": [
+    "module.network.aws_nat_gateway.this"
+  ],
+  "orphan_deletes": [],
+  "resources": {
+    "module.network.aws_nat_gateway.this": {
+      "bucket": "unpriced",
+      "state": "unpriced",
+      "seconds": {
+        "low": null,
+        "high": null
+      },
+      "usd": {
+        "low": null,
+        "high": null
+      }
+    },
+    "module.alb.aws_lb.this": {
+      "bucket": "priced",
+      "state": "closed",
+      "seconds": {
+        "low": 1800.0,
+        "high": 1920.0
+      },
+      "usd": {
+        "low": 1.8,
+        "high": 1.92
+      }
+    }
+  }
+}

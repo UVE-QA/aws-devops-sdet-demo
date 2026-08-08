@@ -1,0 +1,4 @@
+{
+  "description": "A cycle torn down two minutes after the database came up. AWS bills a deleted RDS instance for ten minutes whatever the clock says, so the honest estimate is HIGHER than the measured lifetime - the one direction a duration-only fold can never go.",
+  "environment": "stage"
+}

@@ -1,0 +1,4 @@
+{
+  "description": "A resource kind the cost model has never heard of. It is reported UNPRICED and counted, never folded into the total as a zero - the silence ADR-0045 D4 is about.",
+  "environment": "stage"
+}

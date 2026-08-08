@@ -1,0 +1,70 @@
+{
+  "description": "The real cycle of 2026-08-08 (apply 31276975666, destroy 31277877190), transcribed from the published timelines. The ALB took 173s to create and then stood for 1582 more: an estimate built on elapsed_seconds would report a ninth of the truth.",
+  "cycle": {
+    "status": "closed",
+    "usd": {
+      "low": 4.166917,
+      "high": 5.748361
+    }
+  },
+  "counts": {
+    "created": 4,
+    "priced": 3,
+    "free": 1,
+    "not_metered": 0,
+    "unpriced": 0,
+    "orphan_deletes": 0
+  },
+  "unpriced": [],
+  "orphan_deletes": [],
+  "resources": {
+    "module.alb.aws_lb_target_group.app": {
+      "bucket": "free",
+      "state": "free",
+      "seconds": {
+        "low": null,
+        "high": null
+      },
+      "usd": {
+        "low": null,
+        "high": null
+      }
+    },
+    "module.alb.aws_lb.this": {
+      "bucket": "priced",
+      "state": "closed",
+      "seconds": {
+        "low": 1582.0,
+        "high": 1772.0
+      },
+      "usd": {
+        "low": 1.582,
+        "high": 1.772
+      }
+    },
+    "module.rds.aws_db_instance.this": {
+      "bucket": "priced",
+      "state": "closed",
+      "seconds": {
+        "low": 852.0,
+        "high": 1381.0
+      },
+      "usd": {
+        "low": 1.727667,
+        "high": 2.800361
+      }
+    },
+    "module.ecs.aws_ecs_service.app": {
+      "bucket": "priced",
+      "state": "closed",
+      "seconds": {
+        "low": 1143.0,
+        "high": 1568.0
+      },
+      "usd": {
+        "low": 0.85725,
+        "high": 1.176
+      }
+    }
+  }
+}

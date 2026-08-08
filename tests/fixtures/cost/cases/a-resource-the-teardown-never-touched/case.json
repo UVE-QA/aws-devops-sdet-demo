@@ -1,0 +1,5 @@
+{
+  "description": "A closed cycle whose destroy left one priced resource behind - the leftover class ADR-0041 chased, seen from the money side. Its state is never_deleted and its meter does not stop at the teardown.",
+  "environment": "stage",
+  "as_of": "2026-07-15T11:00:00Z"
+}

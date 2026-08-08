@@ -287,6 +287,33 @@ live-state-check:
 publish-prefixes-check:
 	python3 scripts/check-publish-prefixes.py
 
+# What a cycle cost, COMPUTED from how long its resources existed (ADR-0045).
+#
+# `rates` is the only target here that needs AWS: it captures a dated table from
+# the Price List Query API, a free read-only call, and REFUSES rather than picks
+# when a filter matches more than one price. Everything else reads files.
+#
+# The claim under cost-check: the meter is a LIFETIME, not a creation. A timeline
+# carries `elapsed_seconds` per resource and it is the obvious number to multiply
+# by a rate; in the cycle of 2026-08-08 the load balancer took 173 seconds to
+# create and then stood for 1582 more, so the obvious number is wrong by a factor
+# of nine and looks entirely reasonable while being wrong.
+#
+# The claim under rates-check is the other half, and it is COVERAGE: every
+# resource kind the per-cycle levels declare is priced, declared free, or named as
+# deliberately not metered - never zero by silence. It reads the kinds out of
+# infra/ rather than from a list maintained beside it, so adding a NAT gateway to
+# the network module reddens a gate instead of costing money invisibly. That is
+# ADR-0041's second discovery channel, pointed at money.
+rates:
+	python3 scripts/fetch-rates.py
+
+rates-check:
+	python3 scripts/check-rates.py
+
+cost-check:
+	python3 scripts/check-cost.py
+
 # The two ends of a session, as commands rather than as prose in four documents
 # (ADR-0033). Local only: on a CI checkout the tree is always clean and HEAD
 # always matches, so the interesting checks could not fail there.

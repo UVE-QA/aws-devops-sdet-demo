@@ -1,0 +1,4 @@
+{
+  "description": "The destroy removes something this apply never created - the symptom of a destroy paired with the wrong apply, which is the one way a two-run fold can be quietly wrong. Named and counted rather than ignored.",
+  "environment": "stage"
+}

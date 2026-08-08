@@ -49,8 +49,11 @@ environment — see "The budget alarm" below.
 
 ## Per-cycle levels — what's billed only while a cycle is up
 
-Defaults, from `infra/envs/stage/terraform.tfvars.example` (prod matches unless
-noted):
+Defaults, from `infra/envs/stage/variables.tf` (prod matches unless noted). The
+variable defaults and not the `terraform.tfvars.example` beside them: no
+`.tfvars` file is committed and no workflow passes a sizing `-var`, so the
+defaults ARE the effective configuration — which is why `scripts/sizing.py` reads
+them, and refuses if a `.tfvars` ever appears:
 
 ```text
 ECS Fargate    task_cpu = 256, task_memory = 512, desired_count = 1
@@ -94,6 +97,42 @@ on-demand rather than always up.
 is ever needed, re-derive it from AWS Cost Explorer for the account, tagged by
 `Project = aws-devops-sdet-demo` — do not extrapolate further from the two data
 points above without checking.
+
+### Since Phase 20d the arithmetic is a command, not a paragraph
+
+The two figures above were worked out by hand in a session and written down. That
+is the shape this project keeps removing: a number beside the thing it describes,
+correct on the day, silent afterwards. `scripts/fold-cost.py` computes the same
+kind of figure from the cycle's own timelines and a captured rate table
+(**ADR-0045**):
+
+```text
+make rates        capture a dated table from the AWS Price List Query API into
+                  site/data/rates.json. Needs pricing:GetProducts, a free read
+make rates-check  every kind infra/ declares is priced, free, or named as not
+                  metered - never zero by silence
+make cost-check   the fold itself, against fixtures. No AWS, no credential
+```
+
+Three things it does that the hand arithmetic did not:
+
+```text
+lifetime    the meter runs from create-complete to delete-start, across the
+            APPLY and DESTROY runs. Terraform's own elapsed_seconds is how long
+            it took to build the thing, which for the ALB of 2026-08-08 was a
+            ninth of how long that thing existed
+a band      create START to delete FINISH is the other end. RDS in that cycle
+            was between 852 and 1381 seconds of meter, and a single number would
+            have hidden 62% of uncertainty behind two decimal places
+minimums    a database deleted two minutes after it came up still bills ten. The
+            one direction a duration-only estimate can never go
+```
+
+It is an ESTIMATE and says so in every rendering. No billing API is called
+anywhere in this project; AWS Budgets watches the actual spend from the other
+side, which is the guard that matters (see below). ADR-0039's promise to
+reconcile once against a real bill is retired in ADR-0045 D6 rather than left
+standing as pending work.
 
 ## The budget alarm
 

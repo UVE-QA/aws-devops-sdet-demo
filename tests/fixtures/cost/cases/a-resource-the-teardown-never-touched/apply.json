@@ -1,0 +1,32 @@
+{
+  "schema": "timeline/1",
+  "status": "complete",
+  "started_at": "2026-07-15T10:00:00Z",
+  "finished_at": "2026-07-15T10:02:00Z",
+  "run": {
+    "id": "fixture"
+  },
+  "operations": [
+    {
+      "label": "op",
+      "resources": [
+        {
+          "address": "module.alb.aws_lb.this",
+          "type": "aws_lb",
+          "action": "create",
+          "status": "complete",
+          "started_at": "2026-07-15T10:00:00Z",
+          "finished_at": "2026-07-15T10:01:00Z"
+        },
+        {
+          "address": "module.rds.aws_db_instance.this",
+          "type": "aws_db_instance",
+          "action": "create",
+          "status": "complete",
+          "started_at": "2026-07-15T10:00:00Z",
+          "finished_at": "2026-07-15T10:02:00Z"
+        }
+      ]
+    }
+  ]
+}

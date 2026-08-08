@@ -1,0 +1,36 @@
+{
+  "description": "The destroy removes something this apply never created - the symptom of a destroy paired with the wrong apply, which is the one way a two-run fold can be quietly wrong. Named and counted rather than ignored.",
+  "cycle": {
+    "status": "closed",
+    "usd": {
+      "low": 1.74,
+      "high": 1.86
+    }
+  },
+  "counts": {
+    "created": 1,
+    "priced": 1,
+    "free": 0,
+    "not_metered": 0,
+    "unpriced": 0,
+    "orphan_deletes": 1
+  },
+  "unpriced": [],
+  "orphan_deletes": [
+    "module.rds.aws_db_instance.this"
+  ],
+  "resources": {
+    "module.alb.aws_lb.this": {
+      "bucket": "priced",
+      "state": "closed",
+      "seconds": {
+        "low": 1740.0,
+        "high": 1860.0
+      },
+      "usd": {
+        "low": 1.74,
+        "high": 1.86
+      }
+    }
+  }
+}

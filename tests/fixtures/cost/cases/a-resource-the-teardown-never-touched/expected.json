@@ -1,0 +1,46 @@
+{
+  "description": "A closed cycle whose destroy left one priced resource behind - the leftover class ADR-0041 chased, seen from the money side. Its state is never_deleted and its meter does not stop at the teardown.",
+  "cycle": {
+    "status": "closed",
+    "usd": {
+      "low": 8.796667,
+      "high": 9.16
+    }
+  },
+  "counts": {
+    "created": 2,
+    "priced": 2,
+    "free": 0,
+    "not_metered": 0,
+    "unpriced": 0,
+    "orphan_deletes": 0
+  },
+  "unpriced": [],
+  "orphan_deletes": [],
+  "resources": {
+    "module.alb.aws_lb.this": {
+      "bucket": "priced",
+      "state": "closed",
+      "seconds": {
+        "low": 1740.0,
+        "high": 1860.0
+      },
+      "usd": {
+        "low": 1.74,
+        "high": 1.86
+      }
+    },
+    "module.rds.aws_db_instance.this": {
+      "bucket": "priced",
+      "state": "never_deleted",
+      "seconds": {
+        "low": 3480.0,
+        "high": 3600.0
+      },
+      "usd": {
+        "low": 7.056667,
+        "high": 7.3
+      }
+    }
+  }
+}

@@ -206,6 +206,19 @@ jobs:
         # result, unrecoverably (ADR-0044).
         run: make publish-prefixes-check
 
+      - name: A cycle's cost is metered from lifetimes, not from creations
+        # The gate over scripts/fold-cost.py (ADR-0045). Fixtures only: no rate
+        # table is fetched, no AWS call is made, and the prices in the fixtures
+        # are synthetic round numbers so the arithmetic can be checked by hand.
+        run: make cost-check
+
+      - name: Nothing billable is priced at zero by silence
+        # Coverage over the cost model, read out of infra/ rather than from a list
+        # maintained beside it: a kind the per-cycle levels declare and the model
+        # does not classify would contribute nothing to an estimate that still
+        # looks like an answer.
+        run: make rates-check
+
       - name: Every action is pinned to a commit SHA
         # Lives in this job because it is the repository-wide static check job,
         # despite the name - `make docs-check` is here for the same reason.

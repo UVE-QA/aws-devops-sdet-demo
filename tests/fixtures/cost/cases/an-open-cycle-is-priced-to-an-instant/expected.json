@@ -1,0 +1,34 @@
+{
+  "description": "No destroy timeline: the environment is still up. The meter is open, every priced row says so, and the figure is what has accrued by --as-of rather than a total.",
+  "cycle": {
+    "status": "open",
+    "usd": {
+      "low": 3.54,
+      "high": 3.6
+    }
+  },
+  "counts": {
+    "created": 1,
+    "priced": 1,
+    "free": 0,
+    "not_metered": 0,
+    "unpriced": 0,
+    "orphan_deletes": 0
+  },
+  "unpriced": [],
+  "orphan_deletes": [],
+  "resources": {
+    "module.alb.aws_lb.this": {
+      "bucket": "priced",
+      "state": "open",
+      "seconds": {
+        "low": 3540.0,
+        "high": 3600.0
+      },
+      "usd": {
+        "low": 3.54,
+        "high": 3.6
+      }
+    }
+  }
+}

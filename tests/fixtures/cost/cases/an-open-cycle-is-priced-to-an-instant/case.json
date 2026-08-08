@@ -1,0 +1,5 @@
+{
+  "description": "No destroy timeline: the environment is still up. The meter is open, every priced row says so, and the figure is what has accrued by --as-of rather than a total.",
+  "environment": "stage",
+  "as_of": "2026-07-15T11:00:00Z"
+}

@@ -1,0 +1,56 @@
+{
+  "_comment": [
+    "SYNTHETIC. These are not AWS prices and must never be mistaken for them: they are",
+    "round numbers chosen so the arithmetic in expected.json can be checked by hand.",
+    "3.6 USD/hour is exactly 0.001 USD/second, so an ALB that stood for 1582 seconds",
+    "costs 1.582 - a figure a reader can verify without running anything.",
+    "The real table is captured by scripts/fetch-rates.py into site/data/rates.json."
+  ],
+  "schema": "rates/1",
+  "region": "fixture",
+  "currency": "USD",
+  "captured_at": "2026-07-15T00:00:00Z",
+  "source": "synthetic fixture, not AWS",
+  "unit_prices": {
+    "alb_hour": {
+      "usd": 3.6,
+      "unit": "Hrs",
+      "sku": "FIXTUREALB",
+      "filters": {
+        "fixture": "true"
+      }
+    },
+    "fargate_vcpu_hour": {
+      "usd": 3.6,
+      "unit": "hours",
+      "sku": "FIXTURECPU",
+      "filters": {
+        "fixture": "true"
+      }
+    },
+    "fargate_gb_hour": {
+      "usd": 3.6,
+      "unit": "hours",
+      "sku": "FIXTUREGB",
+      "filters": {
+        "fixture": "true"
+      }
+    },
+    "rds_instance_hour": {
+      "usd": 7.2,
+      "unit": "Hrs",
+      "sku": "FIXTURERDS",
+      "filters": {
+        "fixture": "true"
+      }
+    },
+    "rds_gp3_gb_month": {
+      "usd": 3.65,
+      "unit": "GB-Mo",
+      "sku": "FIXTUREGP3",
+      "filters": {
+        "fixture": "true"
+      }
+    }
+  }
+}

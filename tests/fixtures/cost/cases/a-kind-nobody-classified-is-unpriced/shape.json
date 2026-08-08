@@ -1,0 +1,10 @@
+{
+  "task_vcpu": 0.25,
+  "task_gb": 0.5,
+  "task_count": 1,
+  "db_instance_class": "db.t4g.micro",
+  "db_allocated_gb": 20,
+  "from": {
+    "fixture": "not read from infra/ - see tests/fixtures/cost/README.md"
+  }
+}
