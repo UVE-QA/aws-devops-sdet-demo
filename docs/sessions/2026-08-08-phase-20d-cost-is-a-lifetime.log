@@ -1,0 +1,313 @@
+# Phase 20d break tests — cost-check and rates-check
+#
+# Two new gates, both broken on purpose before either was trusted. The controls
+# are the first and last runs of each block, and one defect below did NOT test
+# what it was aimed at - that is recorded where it happened rather than tidied
+# away.
+#
+# The offline block ran in the chat session's own clone; the last two entries
+# ran on the devbox, because they need the captured rate table that cannot be
+# fetched from the sandbox (its egress allowlist has no route to AWS pricing).
+
+### CONTROL before any defect — cost-check
+python3 scripts/check-cost.py
+  ok    a-delete-with-no-create-is-named
+  ok    a-kind-nobody-classified-is-unpriced
+  ok    a-lifetime-is-not-a-creation
+  ok    a-resource-the-teardown-never-touched
+  ok    an-open-cycle-is-priced-to-an-instant
+  ok    the-ten-minute-minimum-binds-on-a-short-cycle
+6/6 cost fixtures fold as expected
+exit=0
+
+### DEFECT 1 — the meter reads elapsed_seconds (how long terraform took to CREATE)
+python3 scripts/check-cost.py
+  FAIL  a-delete-with-no-create-is-named
+          a-delete-with-no-create-is-named.cycle.usd.low: expected 1.74, folded 0.0
+          a-delete-with-no-create-is-named.cycle.usd.high: expected 1.86, folded 0.0
+          a-delete-with-no-create-is-named.resources.module.alb.aws_lb.this.seconds.low: expected 1740.0, folded 0.0
+          a-delete-with-no-create-is-named.resources.module.alb.aws_lb.this.seconds.high: expected 1860.0, folded 0.0
+          a-delete-with-no-create-is-named.resources.module.alb.aws_lb.this.usd.low: expected 1.74, folded 0.0
+          a-delete-with-no-create-is-named.resources.module.alb.aws_lb.this.usd.high: expected 1.86, folded 0.0
+  FAIL  a-kind-nobody-classified-is-unpriced
+          a-kind-nobody-classified-is-unpriced.cycle.usd.low: expected 1.8, folded 0.0
+          a-kind-nobody-classified-is-unpriced.cycle.usd.high: expected 1.92, folded 0.0
+          a-kind-nobody-classified-is-unpriced.resources.module.alb.aws_lb.this.seconds.low: expected 1800.0, folded 0.0
+          a-kind-nobody-classified-is-unpriced.resources.module.alb.aws_lb.this.seconds.high: expected 1920.0, folded 0.0
+          a-kind-nobody-classified-is-unpriced.resources.module.alb.aws_lb.this.usd.low: expected 1.8, folded 0.0
+          a-kind-nobody-classified-is-unpriced.resources.module.alb.aws_lb.this.usd.high: expected 1.92, folded 0.0
+  FAIL  a-lifetime-is-not-a-creation
+          a-lifetime-is-not-a-creation.cycle.usd.low: expected 4.166917, folded 1.261667
+          a-lifetime-is-not-a-creation.cycle.usd.high: expected 5.748361, folded 1.261667
+          a-lifetime-is-not-a-creation.resources.module.alb.aws_lb.this.seconds.low: expected 1582.0, folded 0.0
+          a-lifetime-is-not-a-creation.resources.module.alb.aws_lb.this.seconds.high: expected 1772.0, folded 0.0
+          a-lifetime-is-not-a-creation.resources.module.alb.aws_lb.this.usd.low: expected 1.582, folded 0.0
+          a-lifetime-is-not-a-creation.resources.module.alb.aws_lb.this.usd.high: expected 1.772, folded 0.0
+          a-lifetime-is-not-a-creation.resources.module.rds.aws_db_instance.this.seconds.low: expected 852.0, folded 600
+          a-lifetime-is-not-a-creation.resources.module.rds.aws_db_instance.this.seconds.high: expected 1381.0, folded 600
+          a-lifetime-is-not-a-creation.resources.module.rds.aws_db_instance.this.usd.low: expected 1.727667, folded 1.216667
+          a-lifetime-is-not-a-creation.resources.module.rds.aws_db_instance.this.usd.high: expected 2.800361, folded 1.216667
+          a-lifetime-is-not-a-creation.resources.module.ecs.aws_ecs_service.app.seconds.low: expected 1143.0, folded 60
+          a-lifetime-is-not-a-creation.resources.module.ecs.aws_ecs_service.app.seconds.high: expected 1568.0, folded 60
+          a-lifetime-is-not-a-creation.resources.module.ecs.aws_ecs_service.app.usd.low: expected 0.85725, folded 0.045
+          a-lifetime-is-not-a-creation.resources.module.ecs.aws_ecs_service.app.usd.high: expected 1.176, folded 0.045
+  FAIL  a-resource-the-teardown-never-touched
+          a-resource-the-teardown-never-touched.cycle.usd.low: expected 8.796667, folded 1.216667
+          a-resource-the-teardown-never-touched.cycle.usd.high: expected 9.16, folded 1.216667
+          a-resource-the-teardown-never-touched.resources.module.alb.aws_lb.this.seconds.low: expected 1740.0, folded 0.0
+          a-resource-the-teardown-never-touched.resources.module.alb.aws_lb.this.seconds.high: expected 1860.0, folded 0.0
+          a-resource-the-teardown-never-touched.resources.module.alb.aws_lb.this.usd.low: expected 1.74, folded 0.0
+          a-resource-the-teardown-never-touched.resources.module.alb.aws_lb.this.usd.high: expected 1.86, folded 0.0
+          a-resource-the-teardown-never-touched.resources.module.rds.aws_db_instance.this.seconds.low: expected 3480.0, folded 600
+          a-resource-the-teardown-never-touched.resources.module.rds.aws_db_instance.this.seconds.high: expected 3600.0, folded 600
+          a-resource-the-teardown-never-touched.resources.module.rds.aws_db_instance.this.usd.low: expected 7.056667, folded 1.216667
+          a-resource-the-teardown-never-touched.resources.module.rds.aws_db_instance.this.usd.high: expected 7.3, folded 1.216667
+  FAIL  an-open-cycle-is-priced-to-an-instant
+          an-open-cycle-is-priced-to-an-instant.cycle.usd.low: expected 3.54, folded 0.0
+          an-open-cycle-is-priced-to-an-instant.cycle.usd.high: expected 3.6, folded 0.0
+          an-open-cycle-is-priced-to-an-instant.resources.module.alb.aws_lb.this.seconds.low: expected 3540.0, folded 0.0
+          an-open-cycle-is-priced-to-an-instant.resources.module.alb.aws_lb.this.seconds.high: expected 3600.0, folded 0.0
+          an-open-cycle-is-priced-to-an-instant.resources.module.alb.aws_lb.this.usd.low: expected 3.54, folded 0.0
+          an-open-cycle-is-priced-to-an-instant.resources.module.alb.aws_lb.this.usd.high: expected 3.6, folded 0.0
+  ok    the-ten-minute-minimum-binds-on-a-short-cycle
+1/6 cost fixtures fold as expected
+make: *** [Makefile:315: cost-check] Error 1
+exit=2
+
+### DEFECT 2 — the band collapsed: high computed from the low ends
+python3 scripts/check-cost.py
+  FAIL  a-delete-with-no-create-is-named
+          a-delete-with-no-create-is-named.cycle.usd.high: expected 1.86, folded 1.74
+          a-delete-with-no-create-is-named.resources.module.alb.aws_lb.this.seconds.high: expected 1860.0, folded 1740.0
+          a-delete-with-no-create-is-named.resources.module.alb.aws_lb.this.usd.high: expected 1.86, folded 1.74
+  FAIL  a-kind-nobody-classified-is-unpriced
+          a-kind-nobody-classified-is-unpriced.cycle.usd.high: expected 1.92, folded 1.8
+          a-kind-nobody-classified-is-unpriced.resources.module.alb.aws_lb.this.seconds.high: expected 1920.0, folded 1800.0
+          a-kind-nobody-classified-is-unpriced.resources.module.alb.aws_lb.this.usd.high: expected 1.92, folded 1.8
+  FAIL  a-lifetime-is-not-a-creation
+          a-lifetime-is-not-a-creation.cycle.usd.high: expected 5.748361, folded 4.166917
+          a-lifetime-is-not-a-creation.resources.module.alb.aws_lb.this.seconds.high: expected 1772.0, folded 1582.0
+          a-lifetime-is-not-a-creation.resources.module.alb.aws_lb.this.usd.high: expected 1.772, folded 1.582
+          a-lifetime-is-not-a-creation.resources.module.rds.aws_db_instance.this.seconds.high: expected 1381.0, folded 852.0
+          a-lifetime-is-not-a-creation.resources.module.rds.aws_db_instance.this.usd.high: expected 2.800361, folded 1.727667
+          a-lifetime-is-not-a-creation.resources.module.ecs.aws_ecs_service.app.seconds.high: expected 1568.0, folded 1143.0
+          a-lifetime-is-not-a-creation.resources.module.ecs.aws_ecs_service.app.usd.high: expected 1.176, folded 0.85725
+  FAIL  a-resource-the-teardown-never-touched
+          a-resource-the-teardown-never-touched.cycle.usd.high: expected 9.16, folded 8.796667
+          a-resource-the-teardown-never-touched.resources.module.alb.aws_lb.this.seconds.high: expected 1860.0, folded 1740.0
+          a-resource-the-teardown-never-touched.resources.module.alb.aws_lb.this.usd.high: expected 1.86, folded 1.74
+          a-resource-the-teardown-never-touched.resources.module.rds.aws_db_instance.this.seconds.high: expected 3600.0, folded 3480.0
+          a-resource-the-teardown-never-touched.resources.module.rds.aws_db_instance.this.usd.high: expected 7.3, folded 7.056667
+  FAIL  an-open-cycle-is-priced-to-an-instant
+          an-open-cycle-is-priced-to-an-instant.cycle.usd.high: expected 3.6, folded 3.54
+          an-open-cycle-is-priced-to-an-instant.resources.module.alb.aws_lb.this.seconds.high: expected 3600.0, folded 3540.0
+          an-open-cycle-is-priced-to-an-instant.resources.module.alb.aws_lb.this.usd.high: expected 3.6, folded 3.54
+  ok    the-ten-minute-minimum-binds-on-a-short-cycle
+1/6 cost fixtures fold as expected
+make: *** [Makefile:315: cost-check] Error 1
+exit=2
+
+### DEFECT 3 — the RDS ten-minute minimum ignored
+python3 scripts/check-cost.py
+  ok    a-delete-with-no-create-is-named
+  ok    a-kind-nobody-classified-is-unpriced
+  ok    a-lifetime-is-not-a-creation
+  ok    a-resource-the-teardown-never-touched
+  ok    an-open-cycle-is-priced-to-an-instant
+  FAIL  the-ten-minute-minimum-binds-on-a-short-cycle
+          the-ten-minute-minimum-binds-on-a-short-cycle.cycle.usd.low: expected 1.216667, folded 0.243333
+          the-ten-minute-minimum-binds-on-a-short-cycle.cycle.usd.high: expected 1.216667, folded 1.074722
+          the-ten-minute-minimum-binds-on-a-short-cycle.resources.module.rds.aws_db_instance.this.seconds.low: expected 600, folded 120.0
+          the-ten-minute-minimum-binds-on-a-short-cycle.resources.module.rds.aws_db_instance.this.seconds.high: expected 600, folded 530.0
+          the-ten-minute-minimum-binds-on-a-short-cycle.resources.module.rds.aws_db_instance.this.usd.low: expected 1.216667, folded 0.243333
+          the-ten-minute-minimum-binds-on-a-short-cycle.resources.module.rds.aws_db_instance.this.usd.high: expected 1.216667, folded 1.074722
+5/6 cost fixtures fold as expected
+make: *** [Makefile:315: cost-check] Error 1
+exit=2
+
+### DEFECT 4 — a kind the model never heard of is quietly counted as free
+python3 scripts/check-cost.py
+  ok    a-delete-with-no-create-is-named
+  FAIL  a-kind-nobody-classified-is-unpriced
+          a-kind-nobody-classified-is-unpriced.counts.free: expected 0, folded 1
+          a-kind-nobody-classified-is-unpriced.counts.unpriced: expected 1, folded 0
+          a-kind-nobody-classified-is-unpriced.unpriced: expected 1 item(s), folded 0
+          a-kind-nobody-classified-is-unpriced.resources.module.network.aws_nat_gateway.this.bucket: expected 'unpriced', folded 'free'
+          a-kind-nobody-classified-is-unpriced.resources.module.network.aws_nat_gateway.this.state: expected 'unpriced', folded 'free'
+  ok    a-lifetime-is-not-a-creation
+  ok    a-resource-the-teardown-never-touched
+  ok    an-open-cycle-is-priced-to-an-instant
+  ok    the-ten-minute-minimum-binds-on-a-short-cycle
+5/6 cost fixtures fold as expected
+make: *** [Makefile:315: cost-check] Error 1
+exit=2
+
+### DEFECT 5 — a delete with no create in this apply goes unreported
+python3 scripts/check-cost.py
+  FAIL  a-delete-with-no-create-is-named
+          a-delete-with-no-create-is-named.counts.orphan_deletes: expected 1, folded 0
+          a-delete-with-no-create-is-named.orphan_deletes: expected 1 item(s), folded 0
+  ok    a-kind-nobody-classified-is-unpriced
+  ok    a-lifetime-is-not-a-creation
+  ok    a-resource-the-teardown-never-touched
+  ok    an-open-cycle-is-priced-to-an-instant
+  ok    the-ten-minute-minimum-binds-on-a-short-cycle
+5/6 cost fixtures fold as expected
+make: *** [Makefile:315: cost-check] Error 1
+exit=2
+
+### DEFECT 6 — an environment still up is reported as a closed cycle
+python3 scripts/check-cost.py
+  ok    a-delete-with-no-create-is-named
+  ok    a-kind-nobody-classified-is-unpriced
+  ok    a-lifetime-is-not-a-creation
+  ok    a-resource-the-teardown-never-touched
+Traceback (most recent call last):
+  File "/tmp/repo/scripts/check-cost.py", line 166, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/tmp/repo/scripts/check-cost.py", line 152, in main
+    ok, problems = run_case(case_dir, fold_cost)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/repo/scripts/check-cost.py", line 124, in run_case
+    cost = fold_cost.build(case["environment"], apply_timeline, destroy_timeline,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/repo/scripts/fold-cost.py", line 198, in build
+    cycle_end = parse_ts(destroy_timeline.get("finished_at")) if closed else as_of
+                         ^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'NoneType' object has no attribute 'get'
+make: *** [Makefile:315: cost-check] Error 1
+exit=2
+
+### DEFECT 7 — a GB-month price applied as if it were per hour
+python3 scripts/check-cost.py
+  ok    a-delete-with-no-create-is-named
+  ok    a-kind-nobody-classified-is-unpriced
+  FAIL  a-lifetime-is-not-a-creation
+          a-lifetime-is-not-a-creation.cycle.usd.low: expected 4.166917, folded 21.419917
+          a-lifetime-is-not-a-creation.cycle.usd.high: expected 5.748361, folded 33.713611
+          a-lifetime-is-not-a-creation.resources.module.rds.aws_db_instance.this.usd.low: expected 1.727667, folded 18.980667
+          a-lifetime-is-not-a-creation.resources.module.rds.aws_db_instance.this.usd.high: expected 2.800361, folded 30.765611
+  FAIL  a-resource-the-teardown-never-touched
+          a-resource-the-teardown-never-touched.cycle.usd.low: expected 8.796667, folded 79.266667
+          a-resource-the-teardown-never-touched.cycle.usd.high: expected 9.16, folded 82.06
+          a-resource-the-teardown-never-touched.resources.module.rds.aws_db_instance.this.usd.low: expected 7.056667, folded 77.526667
+          a-resource-the-teardown-never-touched.resources.module.rds.aws_db_instance.this.usd.high: expected 7.3, folded 80.2
+  ok    an-open-cycle-is-priced-to-an-instant
+  FAIL  the-ten-minute-minimum-binds-on-a-short-cycle
+          the-ten-minute-minimum-binds-on-a-short-cycle.cycle.usd.low: expected 1.216667, folded 13.366667
+          the-ten-minute-minimum-binds-on-a-short-cycle.cycle.usd.high: expected 1.216667, folded 13.366667
+          the-ten-minute-minimum-binds-on-a-short-cycle.resources.module.rds.aws_db_instance.this.usd.low: expected 1.216667, folded 13.366667
+          the-ten-minute-minimum-binds-on-a-short-cycle.resources.module.rds.aws_db_instance.this.usd.high: expected 1.216667, folded 13.366667
+3/6 cost fixtures fold as expected
+make: *** [Makefile:315: cost-check] Error 1
+exit=2
+
+### CONTROL after the fold defects — cost-check
+python3 scripts/check-cost.py
+  ok    a-delete-with-no-create-is-named
+  ok    a-kind-nobody-classified-is-unpriced
+  ok    a-lifetime-is-not-a-creation
+  ok    a-resource-the-teardown-never-touched
+  ok    an-open-cycle-is-priced-to-an-instant
+  ok    the-ten-minute-minimum-binds-on-a-short-cycle
+6/6 cost fixtures fold as expected
+exit=0
+
+NOTE: defect 6 above did not test what it was aimed at. Forcing closed=True made
+the fold dereference a destroy timeline that is not there, so it CRASHED rather
+than producing a plausible wrong answer - loud, but not the assertion firing.
+Re-run below with the state lie only, which is the shape the gate has to catch.
+
+### DEFECT 6b — an open meter and a never-deleted leftover both reported as closed
+python3 scripts/check-cost.py
+  ok    a-delete-with-no-create-is-named
+  ok    a-kind-nobody-classified-is-unpriced
+  ok    a-lifetime-is-not-a-creation
+  FAIL  a-resource-the-teardown-never-touched
+          a-resource-the-teardown-never-touched.resources.module.rds.aws_db_instance.this.state: expected 'never_deleted', folded 'closed'
+  FAIL  an-open-cycle-is-priced-to-an-instant
+          an-open-cycle-is-priced-to-an-instant.resources.module.alb.aws_lb.this.state: expected 'open', folded 'closed'
+  ok    the-ten-minute-minimum-binds-on-a-short-cycle
+4/6 cost fixtures fold as expected
+make: *** [Makefile:315: cost-check] Error 1
+exit=2
+
+### CONTROL after 6b — cost-check
+python3 scripts/check-cost.py
+  ok    a-delete-with-no-create-is-named
+  ok    a-kind-nobody-classified-is-unpriced
+  ok    a-lifetime-is-not-a-creation
+  ok    a-resource-the-teardown-never-touched
+  ok    an-open-cycle-is-priced-to-an-instant
+  ok    the-ten-minute-minimum-binds-on-a-short-cycle
+6/6 cost fixtures fold as expected
+exit=0
+
+### RATES 1 — no rate table captured yet (seen for real, not planted)
+python3 scripts/check-rates.py
+rates: 1 finding(s)
+  - no rate table: site/data/rates.json is missing. Capture it with `make rates` — the estimate cannot be computed from a price nobody fetched
+make: *** [Makefile:312: rates-check] Error 1
+exit=2
+
+### RATES 2 — a declared kind (aws_lb) in none of the three buckets
+python3 scripts/check-rates.py
+rates: 2 finding(s)
+  - unclassified kind: aws_lb is declared in prod, stage and is in none of priced/free/not_metered — a silent zero
+  - no rate table: site/data/rates.json is missing. Capture it with `make rates` — the estimate cannot be computed from a price nobody fetched
+make: *** [Makefile:312: rates-check] Error 1
+exit=2
+
+### RATES 3 — a stale exemption for a kind no level declares
+python3 scripts/check-rates.py
+rates: 2 finding(s)
+  - stale entry: aws_nat_gateway is listed under free and no per-cycle level declares it
+  - no rate table: site/data/rates.json is missing. Capture it with `make rates` — the estimate cannot be computed from a price nobody fetched
+make: *** [Makefile:312: rates-check] Error 1
+exit=2
+
+### RATES 4 — one kind in two buckets at once
+python3 scripts/check-rates.py
+rates: 2 finding(s)
+  - aws_lb is in 2 buckets at once: priced, free
+  - no rate table: site/data/rates.json is missing. Capture it with `make rates` — the estimate cannot be computed from a price nobody fetched
+make: *** [Makefile:312: rates-check] Error 1
+exit=2
+
+### RATES 5 — a .tfvars appears, so variable defaults are no longer the shape
+python3 scripts/check-rates.py
+rates: 2 finding(s)
+  - no rate table: site/data/rates.json is missing. Capture it with `make rates` — the estimate cannot be computed from a price nobody fetched
+  - shape: /tmp/repo/infra/envs/stage: planted.tfvars present — variable defaults are no longer the effective configuration, so the shape cannot be read from them
+make: *** [Makefile:312: rates-check] Error 1
+exit=2
+
+### CONTROL after the rates defects (still red on the missing table, by design)
+python3 scripts/check-rates.py
+rates: 1 finding(s)
+  - no rate table: site/data/rates.json is missing. Capture it with `make rates` — the estimate cannot be computed from a price nobody fetched
+make: *** [Makefile:312: rates-check] Error 1
+exit=2
+
+### RATES 6 — the model prices something the captured table does not carry [devbox]
+$ sed -i 's/"alb_hour"/"alb_hour_typo"/' assets/cost-model.json && make rates-check
+python3 scripts/check-rates.py
+rates: 1 finding(s)
+  - aws_lb is priced by 'alb_hour_typo', which the rate table does not carry
+make: *** [Makefile:312: rates-check] Error 1
+exit=2
+
+### CONTROL — rates-check GREEN, with the real captured table [devbox]
+$ git checkout -- assets/cost-model.json && make rates-check
+python3 scripts/check-rates.py
+rates: clean — 26 kinds declared across 2 per-cycle levels; 3 priced, 19 free, 4 named but not metered
+rates: table captured 2026-08-08T23:13:42Z for us-west-2, 0 days old
+exit=0
+
+# NOTE on the rates block: every refusal above the last two was measured while
+# the table was still missing, so each of those runs carries the missing-table
+# finding as well as its own. That is honest but it is not a control - a gate
+# with two findings cannot show that the FIRST one fired for the reason claimed.
+# The green control above, taken after the capture, is what closes that gap, and
+# it is the only run in this file where rates-check has ever been green.

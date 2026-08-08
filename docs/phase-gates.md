@@ -42,7 +42,7 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 20b.1 | The stream captured, folded, gated | ✅ done, $0 | sessions/2026-08-08-phase-20b-1-a-killed-apply-is-not-a-cycle.md |
 | 20b.2 | The timeline from a live cycle, on the page | ✅ done — the apply half was never lit; see below | sessions/2026-08-08-phase-20b-2-a-cancelled-run-erases-nothing.md |
 | 20c   | The suites answer for themselves | ✅ done — the page reads both sources | sessions/2026-08-08-phase-20c-the-suites-answer-for-themselves.md + sessions/2026-08-08-phase-20c-a-node-answers-for-its-own-step.md |
-| 20d   | Cost, computed and reconciled | ⬜ planned, unblocked — 20c's cycle is the first one to reconcile against | — |
+| 20d   | Cost, computed from lifetimes  | ✅ done — the reconciliation clause retired, not deferred | sessions/2026-08-08-phase-20d-cost-is-a-lifetime.md |
 
 Phase 17 (prod data continuity) is still open and still optional, in
 `docs/next-phases.md`. Phase 18 was pulled forward of both remaining phases
@@ -2318,8 +2318,9 @@ Inventory, fold, wiring and ONE LIVE CYCLE. **ADR-0042**, and the summary in
 - Teardown confirmed against the AWS CLI under a live credential, not against
   Terraform state and not against the green run: account 993912191738, all of
   ecs, rds, alb, nat and eks empty.
-- Cost: one full cycle, about 25 minutes of RDS and ALB. Not yet reconciled
-  against a bill - that is 20d's job, and this is the first cycle it can use.
+- Cost: one full cycle, about 25 minutes of RDS and ALB. **20d computed it:
+  $0.0183 .. $0.0238.** Not reconciled against a bill, and that is no longer
+  pending work - the clause was retired in ADR-0045 D6.
 - Next allowed step: closed by the section below, on 2026-08-08.
 
 ### Phase 20c — A node answers for its own step  ✅ DONE 2026-08-08
@@ -2372,6 +2373,58 @@ The page. **ADR-0043**, and the summary in
   20b and is not any more, and 20c's cycle of 2026-08-08 is the first one a bill
   can be reconciled against. Start with the dated rate table; the reconciliation
   is the point, not the formality.
+  *(Written before 20d ran. The rate table was right; the reconciliation was
+  not - see the section below and ADR-0045 D6.)*
+
+### Phase 20d — Cost is a lifetime, not a creation  ✅ DONE 2026-08-08
+The computation. **ADR-0045**, and the summary in
+`docs/sessions/2026-08-08-phase-20d-cost-is-a-lifetime.md`.
+- Criteria: a dated rate table captured rather than typed; a fold from the
+  cycle's own timelines to a per-cycle figure, labelled COMPUTED; a gate over
+  each; the estimate applied to a real cycle. All met.
+- **Reading the cycle before writing the fold killed the obvious design.**
+  `elapsed_seconds` is in every timeline and is how long TERRAFORM took to build
+  a resource; the meter runs for as long as the resource EXISTS. The ALB of
+  2026-08-08 took 173 seconds to create and then stood for 1582 more. The same
+  read produced the second decision: the estimate is a BAND, because nothing in
+  the stream can see the instant AWS starts charging — 852 to 1381 seconds for
+  RDS, 62% apart.
+- Three inputs, three homes, no file holding two kinds of thing: prices CAPTURED
+  into `site/data/rates.json` with their SKUs, the shape DERIVED from `infra/` and
+  recorded nowhere, the judgement EDITORIAL in `assets/cost-model.json`.
+- `make rates-check` is coverage read from the configuration: every kind the
+  per-cycle levels declare is priced, free, or named as not metered. The fold
+  refuses from the other side for a kind it observes and cannot price — 0
+  UNPRICED across the 32 resources of the real cycle.
+- **The real cycle: $0.0183 .. $0.0238**, and five sixths of it accrued OUTSIDE
+  every phase. Cost per phase is not a property a lifetime has; overlap
+  attribution is, and the first thing it says is that the phases are not where
+  the money is.
+- Thirteen deliberate defects, green control either side, in
+  `docs/sessions/2026-08-08-phase-20d-cost-is-a-lifetime.log`. One did NOT test
+  what it was aimed at — a forced `closed = True` crashed the fold instead of
+  producing a plausible wrong answer, and was re-aimed at `state` alone. One gap
+  the log names: every coverage refusal but the last carried the missing-table
+  finding as well, so the green control after the capture is the only clean one.
+- ADR-0039 D3's promised reconciliation against a real bill is RETIRED
+  (ADR-0045 D6): an estimate is what was asked for, Cost Explorer needs another
+  credential and answers a day late, and Budgets watches actual spend already.
+- Validation:
+```bash
+  make cost-check          # 6/6 fixtures
+  make rates-check         # clean: 26 kinds, 3 priced, 19 free, 4 named
+  make docs-check          # 6 documents, 0 findings
+  make site-data-check
+  make rates               # needs pricing:GetProducts; run by hand
+```
+- Cost: nothing. One free read-only price-list call; no cycle, no environment.
+- Next allowed step: **20e — the page is compact, and the map is the page.** It
+  is layout only, changes no data and no gate, and it is where this phase's
+  numbers would first become visible. Before any of it, settle the two
+  collisions `docs/next-phases.md` already names: hover is not a carrier on a
+  phone, and a timer drawn on a node is a claim the page cannot make. Wiring the
+  fold into the destroy job is the other open thread, and it needs the pairing
+  rule broken on purpose first.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

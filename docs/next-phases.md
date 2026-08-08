@@ -1047,19 +1047,32 @@ The thing worth SEEING here rather than reading: ADR-0025's directory binding,
 drawn. Regression and the API contract cannot reach prod, and the map shows smoke
 standing there alone.
 
-### 20d — cost, computed and reconciled  [depends on 20b]
+### 20d — cost, computed from lifetimes  [DONE 2026-08-08, ADR-0045]
 
 ```text
-rates         a dated rate table in the repository, us-west-2
-computed      per-resource seconds from 20b x rates, per phase and per cycle,
-              labelled COMPUTED wherever it renders (ADR-0039 D3)
-reconcile     once, against a real bill for one cycle, with the delta recorded
+rates         a dated table CAPTURED from the AWS Price List Query API into
+              site/data/rates.json, each figure carrying its SKU and filters
+computed      per-resource LIFETIMES x rates, as a BAND, per cycle - and by
+              overlap where it accrued, which is mostly nowhere near a phase
+reconcile     RETIRED, not deferred (ADR-0045 D6)
 ```
 
-The reconciliation is the point, not the formality: "we computed $0.03 and the
-bill said $0.04, and here is the difference" is a stronger FinOps answer than any
-single figure. It also gives this document the per-launch numbers 19c never
-recorded.
+**Two of those three lines were wrong when this section was written, and the data
+said so before any code was.** "Per-resource seconds from 20b" meant terraform's
+`elapsed_seconds`, which is how long it took to BUILD a resource, not how long
+the resource existed: 173 seconds against 1582 for the load balancer of
+2026-08-08. And "per phase" is not a property a lifetime has — an ALB's half-hour
+cannot belong to the two minutes that created it. Overlap attribution is what is
+well defined, and its first finding is that five sixths of a cycle's money
+accrues while no phase is running at all.
+
+The reconciliation is retired rather than left pending. An estimate was what was
+wanted; Cost Explorer costs another credential in the demo account and answers a
+day late; AWS Budgets already watches the actual spend from the other side. A
+promise a project has decided not to keep is worse than one it never made.
+
+What this gives the document: the cycle of 2026-08-08 cost **$0.0183 .. $0.0238**,
+and the figure is now a command rather than a paragraph.
 
 ### The teardown finding  [found 2026-08-08, CLOSED the same day]
 
@@ -1162,9 +1175,13 @@ The size argument is worth checking rather than assuming: `site/index.html` is a
 single self-contained file with an inline icon sprite, and the sprite is 50 KB
 of the total. Measure before treating prose as the weight.
 
-Order: 20a, 20b, 20c, 20d. 20d cannot start before 20b. 20e is layout only and
-can happen at any point after 20b.2, because it changes no data and no gate.
-Whole phase under $0.20 of real money.
+Order: 20a, 20b, 20c, 20d — all four are done. 20e is layout only and can happen
+at any point, because it changes no data and no gate.
+
+Whole phase was budgeted under $0.20 of real money. It ran under it: the only
+cycle any of 20a-20d needed is 20c's, and 20d's own fold prices that cycle at
+$0.0183 .. $0.0238 — with the rest of the phase costing one free price-list read
+and nothing else.
 
 ## Deliberately out of scope
 

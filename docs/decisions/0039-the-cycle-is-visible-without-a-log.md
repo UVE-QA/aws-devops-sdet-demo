@@ -146,6 +146,25 @@ identically is making the claim this project keeps having to retract. Cost
 Explorer would give the observed half, at the price of another credential and a
 24-hour delay; deferred, not rejected.
 
+**AMENDED in Phase 20d (2026-08-08), by ADR-0045.** Three clauses of the
+paragraph above did not survive contact with the data:
+
+```text
+per-resource seconds   WRONG SOURCE. D2's seconds are how long TERRAFORM took to
+                       create a resource; the meter runs for as long as it
+                       EXISTS. The ALB of 2026-08-08 was created in 173s and
+                       stood for 1582 more
+a figure               it is a BAND. Nothing in the stream can see the instant
+                       AWS starts charging, and for RDS the two ends are 62%
+                       apart
+per phase              not a property a lifetime has. What is well defined is
+                       overlap, and it says five sixths of a cycle's money
+                       accrues outside every phase
+reconciled once        RETIRED, not deferred (ADR-0045 D6). An estimate is what
+                       was asked for; no billing API is called anywhere in this
+                       project
+```
+
 ### D4 — the map is permanent; run state is a layer on it
 
 The map is on the page always. A cycle lives about fifteen minutes and the

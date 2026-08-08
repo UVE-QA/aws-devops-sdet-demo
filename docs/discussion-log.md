@@ -6,6 +6,50 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
+**As of 2026-08-08 (20d — cost is a lifetime, not a creation).** A cycle's cost is
+computed by a command from the cycle's own timelines and a captured rate table,
+instead of being worked out by hand in a session and written into a document.
+**ADR-0045.**
+
+**The obvious design was killed by reading the cycle before writing the fold.**
+Every timeline carries `elapsed_seconds` per resource and it is the natural thing
+to multiply by a rate — and it is how long TERRAFORM took to create the resource,
+while the meter runs for as long as the resource EXISTS. The load balancer of
+2026-08-08 was created in 173 seconds and then stood for 1582 more. An estimate on
+the creation figures would have reported a ninth of its cost and looked entirely
+reasonable doing it.
+
+The same read produced the second decision: the estimate is a BAND, not a figure.
+Terraform reports when it started and finished creating a thing; AWS starts
+charging somewhere in between and the stream cannot see where. For RDS the two
+ends are 852 and 1381 seconds — 62% apart, which a single number with two decimal
+places would have hidden.
+
+Three inputs, three homes, none holding two kinds of thing: prices CAPTURED from
+the Price List API with their SKUs and filters, the shape DERIVED from `infra/`
+and recorded nowhere so nothing can go stale, the judgement about what is worth
+metering EDITORIAL and saying so. `make rates-check` reads the kinds out of the
+configuration — a NAT gateway added to the network module reddens a gate instead
+of costing money invisibly — and the fold refuses from the other side for a kind
+it observes and cannot price. On the real cycle: 0 UNPRICED across 32 resources.
+
+**The cycle came out at $0.0183 .. $0.0238, and five sixths of it accrued outside
+every phase.** The plan asked for cost per phase, which is not a property a
+lifetime has. Overlap attribution is what is well defined, and the first thing it
+says is that the phases are not where the money is: $0.0029 during the apply,
+$0.0154 while the environment was simply up.
+
+Thirteen break tests, green controls either side. One did not test what it was
+aimed at — a forced `closed = True` crashed the fold instead of producing a
+plausible wrong answer, and had to be re-aimed at `state` alone. One gap the log
+names rather than hides: every coverage refusal but the last was measured while
+the rate table was still missing, so each carried two findings, and the green
+control after the capture is the only clean one in the file.
+
+ADR-0039 D3 is amended in four clauses and its promised reconciliation against a
+real bill is RETIRED (ADR-0045 D6), not deferred. A promise the project has
+decided not to keep is worse than one it never made.
+
 **As of 2026-08-08 (Ops, the site sync deleted the results).** Twenty minutes
 after 20c closed, its own validation command returned 403.
 `scripts/publish-site.sh` syncs `site/` with `--delete` and excluded three
