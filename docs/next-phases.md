@@ -975,11 +975,11 @@ break test    DONE, on fixtures. Seven ways red, both controls green, and one
 **20b.2 — the live half** [one cycle, about $0.03]
 
 ```text
-schema        confirm the fold against terraform 1.15.5. The fixtures were
-              generated with OpenTofu 1.10.6, which shares the schema and is
-              not the same binary; regenerate on the devbox first
 modules       the fixtures use no modules, so `hook.resource.module` and what
-              `addr` looks like inside one are unconfirmed
+              `addr` looks like inside one are unconfirmed. This is the last
+              piece of the schema still read from the documentation rather than
+              observed - the rest was settled on the devbox against terraform
+              1.15.8, with every expectation unchanged
 publish       a real timeline object in the bucket, from an apply and from a
               destroy, at the key above
 page          nodes light from the timeline; identifiers appear as the provider

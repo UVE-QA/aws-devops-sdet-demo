@@ -61,13 +61,24 @@ fails to break is testing your assumption about the tool.
 `apply-killed` is not a truncated file. The generator starts a real apply whose
 second resource sleeps, and kills the process while it is inside it.
 
-**A caveat that belongs at the front, not the end: they were generated with
-OpenTofu 1.10.6**, which is what this authoring session could reach —
-`releases.hashicorp.com` is not fetchable from it. The schema is shared and the
-fold is written against it, but OpenTofu is not the binary the workflows run.
-Regenerating on the devbox with terraform 1.15.5 is the first validation step,
-and until that has run, everything here is confirmed against a fork of the tool
-rather than the tool.
+They were AUTHORED against **OpenTofu 1.10.6**, which is what this chat session
+could reach — `releases.hashicorp.com` is not fetchable from it — and that was
+the caveat this summary was first written with, at the front rather than the
+end. It is discharged: they were regenerated on the devbox with **terraform
+1.15.8**, and all six expectations held with no edit.
+
+The evidence for that is not the event counts, which came out identical (16, 15,
+14, 10, 13, 13) and would look exactly the same if nothing had been regenerated
+at all. It is the streams: `"terraform":"1.15.8"`, `@module: terraform.ui`,
+`ui: 1.3`, where the fork wrote `tofu` and `ui: 1.2`, across 8 files and 99
+lines. The fold was written against the schema rather than against a fork's
+quirk, and it survived a gap larger than any version bump — which is a better
+result than the one being tested for.
+
+One asymmetry recorded rather than fixed: **the devbox runs 1.15.8 and the
+workflows pin 1.15.5.** Changing what CI runs deserves its own reason and its
+own session, and `cases/GENERATED-BY` names whichever binary produced the
+fixtures, so the question can never be answered from memory.
 
 ## The over-determined case, and the one added to fix it
 
@@ -147,8 +158,8 @@ nothing has run in AWS      no timeline object exists in the bucket
 nothing draws it            the page is untouched; the map has no run layer yet
 modules unconfirmed         the fixtures use no modules, so what
                             hook.resource.module and addr look like inside one
-                            is read from the documentation, not observed
-terraform 1.15.5            unconfirmed. See the OpenTofu caveat above
+                            is read from the documentation, not observed. The
+                            last piece of the schema not settled on the devbox
 the workflow half           if: always() folding a cancelled RUN is proven
                             against fixtures, not against GitHub
 ```
@@ -157,8 +168,10 @@ All of it is 20b.2, and it costs about $0.03.
 
 ## Validation
 
+All of it run on the devbox, 2026-08-08.
+
 ```bash
-tests/fixtures/timeline/generate.sh   # with terraform 1.15.5 on the devbox
+tests/fixtures/timeline/generate.sh   # terraform 1.15.8, 6/6 unchanged
 make timeline-check
 make docs-check
 git diff --stat

@@ -37,10 +37,16 @@ destroys it again inside ONE run and the second timeline would have overwritten
 the first; and `publish-site.sh` syncs with `--delete`, so without a third
 `--exclude` the next push to `main` would have deleted every published timeline
 while the map kept working from the one published minutes earlier. Seven break
-tests red, both controls green, tree committed first. The caveat that belongs at
-the front: the fixtures were generated with OpenTofu 1.10.6, not terraform
-1.15.5 — the schema is shared, the binary is not, and regenerating on the devbox
-is validation step one.
+tests red, both controls green, tree committed first.
+
+The fixtures were AUTHORED against OpenTofu 1.10.6, the only binary the chat
+session could reach, and that caveat is discharged: regenerated on the devbox
+with terraform 1.15.8, all six expectations held with no edit. The evidence is
+not the identical event counts — those would look the same if nothing had been
+regenerated — but `"terraform":"1.15.8"`, `@module: terraform.ui`, `ui: 1.3`
+where the fork wrote `tofu` and `ui: 1.2`. The fold survived a gap larger than
+any version bump. Recorded rather than fixed: the devbox runs 1.15.8 while the
+workflows pin 1.15.5.
 
 **As of 2026-08-08 (20a CLOSED, the map on the page).** The front page renders
 the map. The hand-written "What happens, in the order it happens" section — the
