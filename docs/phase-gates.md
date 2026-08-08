@@ -40,7 +40,7 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 20.0  | Visible cycle: decisions + plan | ✅ done | ADR-0039 |
 | 20a   | The generated map, on the page | ✅ done | sessions/2026-08-08-phase-20a-the-map-on-the-page.md |
 | 20b.1 | The stream captured, folded, gated | ✅ done, $0 | sessions/2026-08-08-phase-20b-1-a-killed-apply-is-not-a-cycle.md |
-| 20b.2 | The timeline from a live cycle, on the page | 🟡 $0 half done and broken 6 ways; no cycle yet | ADR-0040 |
+| 20b.2 | The timeline from a live cycle, on the page | 🟡 cycle run 2026-08-08; apply failed on an orphan, teardown published | ADR-0040 |
 | 20c   | The tests panel | ⬜ planned | — |
 | 20d   | Cost, computed and reconciled | ⬜ planned, blocked on 20b | — |
 
@@ -2049,7 +2049,7 @@ were the same shape — a page saying something it was not in a position to say:
   the map's nodes from it, and break it the way fixtures cannot: a cancelled RUN
   must publish INCOMPLETE. About $0.03.
 
-### Phase 20b.2 — the timeline from a live cycle, on the page  🟡 the $0 half is DONE
+### Phase 20b.2 — the timeline from a live cycle, on the page  🟡 cycle RUN; closing
 - Criteria: the map's nodes carry the figures a real cycle measured; a run that
   did not finish is SAID rather than silently drawn; every resource a cycle
   touches lands on a node, is recorded as deliberately not drawn, or is named.
@@ -2134,12 +2134,60 @@ were the same shape — a page saying something it was not in a position to say:
   make site-page-check
   make docs-check
 ```
-- Next allowed step: **one live cycle**, about $0.03 — the only things left need
-  AWS. A timeline and node states published from a real apply and a real
-  destroy; the map drawn from figures AWS produced; and the break test fixtures
-  cannot give, because they prove the fold and not the workflow's
-  `if: always()`: a cancelled RUN must publish a timeline marked INCOMPLETE, and
-  the page must say so instead of drawing it.
+- **THE LIVE CYCLE RAN on 2026-08-08, and the apply FAILED — on a real defect,
+  not on this phase's code.** `EntityAlreadyExists` creating
+  `module.ecs.aws_iam_role.task` and `.execution`: both roles were in AWS and in
+  no Terraform state, orphans of an earlier cycle. **They survived because the
+  teardown is verified by "no billable resources remain", and an IAM role is not
+  billable.** The check was green and the environment was not empty. That is a
+  teardown finding, it belongs to nobody's current phase, and it is written up in
+  `docs/next-phases.md` rather than fixed here.
+- **The failure handed over the live break test for free, which is better than
+  arranging one.** The plan was to cancel a destroy mid-flight; reality produced
+  an unfinished cycle nobody staged:
+```text
+  latest.json          published, status "errored", reason "at least one
+                       resource errored"
+  nodes-apply.json     403 — never written
+  the page             "the most recent run did not finish", numbers unchanged
+```
+  ADR-0040 D1 proven on a real event. A cancelled run cannot erase a
+  measurement, and the timeline still says what happened.
+- **The teardown then ran green and published what the map draws**: 261 seconds,
+  26 resources, `nodes-destroy.json` complete. The `Adopt live resources
+  Terraform does not manage` step did its job on the way through.
+- **The coverage gate spoke, on real data, about something no fixture had:**
+  `module.network.data.aws_availability_zones.available`, action `read`. Terraform
+  emits `apply_start`/`apply_complete` for DATA SOURCES too, once per invocation.
+  A data block is not a resource block — `generate-topology.py` counts resources
+  and D1's gate is about resources — so a data source can never be assigned to a
+  group, and leaving it in `unknown` would be a permanent false positive in the
+  one channel that is supposed to be rare. It has its own bucket now, and a
+  fixture: `terraform_remote_state` reads a local state file, so the case is as
+  offline and free as the rest.
+- **Two defects only a live run could show, both in the layer written this
+  session.** The Destroy phase lit BOTH environment nodes while only stage was
+  being torn down — live is per phase, and that phase holds one node per
+  environment while `destroy.yml` tears down exactly one per run; the map now
+  takes the environments from the dashboard's own `run-name` parse rather than
+  re-deriving them. And a phase that says "running now" and nothing else cannot
+  be told apart from a page that has stopped updating, so the header carries how
+  long it has been running.
+- One more, found by reading the published file rather than the page:
+  `observed.unknown` counted EVENTS while the list beside it named unique
+  addresses — "unknown: 2" above one address. The counts are of the
+  deduplicated lists now.
+- Cost of the live half: one stage apply that failed after ~8 minutes with RDS
+  and ALB created, and one teardown. Under $0.05.
+- Next allowed step: **regenerate the fixtures on the devbox** — the
+  `apply-data-source` case has an expectation and no streams, so both timeline
+  gates are red until `tests/fixtures/timeline/generate.sh` runs, exactly as
+  `apply-module` was. Then close 20b.2. **One thing it will still not have
+  shown: a successful apply.** The map's service nodes are unlit because the
+  only apply this cycle produced failed on the orphan above; `nodes-apply.json`
+  has never existed. Whether to spend another cycle for it, or to let 20c's own
+  cycle produce it, is the first decision of the next session — the code path is
+  the same one the teardown already exercised end to end.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

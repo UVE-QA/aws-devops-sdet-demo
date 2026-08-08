@@ -1052,8 +1052,85 @@ bill said $0.04, and here is the difference" is a stronger FinOps answer than an
 single figure. It also gives this document the per-launch numbers 19c never
 recorded.
 
-Order: 20a, 20b, 20c, 20d. 20d cannot start before 20b. Whole phase under $0.20
-of real money.
+### A teardown finding, owned by nobody yet  [found 2026-08-08, unfixed]
+
+The first apply after eight days failed before it started anything interesting:
+
+```text
+EntityAlreadyExists: Role with name aws-devops-sdet-demo-stage-ecs-task
+  already exists     module.ecs.aws_iam_role.task   (and .execution)
+```
+
+Both roles existed in AWS and in no Terraform state. **They survived a teardown
+that verified itself green, because that verification asks whether any BILLABLE
+resource remains and an IAM role is free.** So the teardown's own gate cannot
+see the class of leftover that breaks the next apply, and nothing else looks.
+
+Not fixed in 20b.2, deliberately - it is a teardown defect and 20b.2 is a
+picture. What it needs is a decision, not a patch:
+
+```text
+scope     which free resources can be left behind at all? IAM roles are the
+          instance; log groups, parameters and secrets are the same shape
+where     `Verify no billable resources remain` is the wrong place by its own
+          name. Either it gains a second question, or `Sweep for resources
+          Terraform does not manage` grows to cover free ones too
+evidence  whatever is chosen has to redden on a planted orphan before it counts,
+          like every other gate here
+```
+
+This is the third time the teardown has been found to leave something (ADR-0037,
+ADR-0038), and the first time the leftover cost nothing and broke everything.
+
+### 20e — the page is compact, and the map is the page  [$0, layout only]
+
+Asked for while watching the first live cycle, which is the only condition under
+which any of it is visible. The complaint in one line: **the information is
+spread out, it takes scrolling, and the focus disperses.** More picture, less
+prose.
+
+```text
+order         the map goes UP. Today the page opens with two environment
+              panels, a step list and a history table, and the thing that
+              explains what this project IS sits below all of it
+step list     collapsed to three lines - previous, current, next - and expands
+              on demand. It is the longest block on the page and it is the one
+              a returning visitor least needs in full
+captions      the per-node prose moves into hover
+timers        onto the blocks themselves rather than beside them
+packing       TETRIS, not rows. Today the serpentine packs whole phases into
+              rows of equal height, so a one-node phase leaves a column of air
+              beside it. Provision should be able to sit UNDER Build with its
+              lower edge flush against Apply - a skyline pack rather than a
+              shelf pack. This is ADR-0039 D5's rule 2 done properly; the rule
+              already says "fold it serpentine", and a skyline is the same
+              intent with the wasted space removed
+```
+
+**Two of these collide with decisions already taken, and the collision is the
+work.** Neither is a reason to refuse; both are a reason to decide rather than
+to discover halfway through:
+
+```text
+hover is not  ADR-0039 D5 makes the phone layout a first-class rendering, and
+a carrier     there is no hover on a phone. Anything moved into hover needs a
+              second home there - or it is text that has been deleted for
+              small screens only, which is worse than the text
+a timer on a  live is per PHASE, not per resource (D4), deliberately and for a
+node is a     priced reason. A clock drawn ON a node says that node is what is
+claim         running, which the page does not know. Either the timer stays at
+              phase level while looking like it belongs to the block, or D4's
+              per-resource option gets bought - it has two costed variants in
+              that ADR and neither is taken by default
+```
+
+The size argument is worth checking rather than assuming: `site/index.html` is a
+single self-contained file with an inline icon sprite, and the sprite is 50 KB
+of the total. Measure before treating prose as the weight.
+
+Order: 20a, 20b, 20c, 20d. 20d cannot start before 20b. 20e is layout only and
+can happen at any point after 20b.2, because it changes no data and no gate.
+Whole phase under $0.20 of real money.
 
 ## Deliberately out of scope
 

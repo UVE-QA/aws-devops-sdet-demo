@@ -157,14 +157,76 @@ matched `## Completion criteria & validation` and not one of the thirty-three
 `### Phase` headings. Plain `/^### /` is what a phase section is. Caught by
 running it rather than by reading it, which is the whole argument for running it.
 
+## The live cycle, and what only it could show
+
+**The apply failed, and not on this session's code.** `EntityAlreadyExists` on
+`module.ecs.aws_iam_role.task` and `.execution` — both roles in AWS, neither in
+Terraform state, orphans of an earlier cycle. They survived because the teardown
+verifies itself by asking whether any BILLABLE resource remains, and an IAM role
+is free. A green check over a not-empty environment. Written up in
+`docs/next-phases.md`; it is a teardown defect and this phase is a picture.
+
+**The failure handed over the live break test for free, which is stronger than
+arranging one.** The plan was to cancel a destroy mid-flight. Reality produced an
+unfinished cycle nobody staged:
+
+```text
+latest.json        published, status "errored", reason "at least one resource
+                   errored"
+nodes-apply.json   403 — never written
+the page           says the most recent run did not finish, and draws nothing
+                   from it
+```
+
+That is ADR-0040 D1 on a real event rather than a fixture.
+
+The teardown then ran green: **261 seconds, 26 resources**, `nodes-destroy.json`
+complete and published, and the map drew it.
+
+**The coverage gate spoke about something no fixture contained.** Two unknowns,
+one address:
+
+```text
+module.network.data.aws_availability_zones.available   action: read
+```
+
+Terraform emits `apply_start`/`apply_complete` for DATA SOURCES too, once per
+invocation. A data block is not a resource block — `generate-topology.py` counts
+resources, and D1's coverage gate is about resources — so a data source can never
+be assigned to a display group. Leaving it in `unknown` would be a permanent
+false positive in the one channel that is supposed to be rare, and **a channel
+that always shouts stops being heard.** It has its own bucket now, and a fixture:
+`terraform_remote_state` reads a local state file, so the case is as offline and
+free as every other one here.
+
+Reading that same file found the smaller half of it: `observed.unknown` counted
+EVENTS while the list beside it named unique addresses — "unknown: 2" over one
+address. The counts are of the deduplicated lists now.
+
+## Two defects in the live layer, visible only while something was running
+
+**The Destroy phase lit both environments.** stage and prod both pulsing while
+only stage was being torn down. Live is per PHASE (ADR-0039 D4), and that phase
+holds one node per environment while `destroy.yml` tears down exactly one per
+run. The dashboard already parses `run-name: destroy <environment>` — which
+exists for precisely this — so the map now receives the answer instead of
+re-deriving it, and the two scripts still share no identifiers.
+
+**And a phase that says "running now" says nothing about whether the page is
+alive.** Asked for while watching the apply, and right: the header now carries
+how long the phase has been running, from the earliest bound step that is in
+flight. It ticks without re-rendering, because rebuilding the map once a second
+to change four characters would throw away the layout work sixty times a minute.
+
 ## What has NOT happened
 
 ```text
-no cycle          nothing has been applied and no AWS API has been called
-no object         no timeline and no node states exist in the bucket
-the workflow half if: always() folding a CANCELLED RUN is still proven against
-                  fixtures, not against GitHub. That is the live break test,
-                  and it is the reason the cycle is worth $0.03
+a successful      the only apply this cycle produced FAILED, on the orphan
+apply             above, so nodes-apply.json has never existed and the map's
+                  service nodes are still unlit. The path is the same one the
+                  teardown exercised end to end, but it has not been walked
+apply-data-source its expectation has no streams beside it until the devbox
+                  regenerates, exactly as apply-module did. Intended order
 ```
 
 ## Validation
