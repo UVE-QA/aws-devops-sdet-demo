@@ -82,7 +82,7 @@ flowchart TB
   P --> C
 ```
 
-**The exhibit cannot be destroyed by the thing it exhibits.** Three levels are
+**The exhibit cannot be destroyed by the thing it exhibits.** Four levels are
 permanent for that one reason, each discovered later than it should have been:
 
 ```text

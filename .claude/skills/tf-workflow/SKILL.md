@@ -24,7 +24,7 @@ S3 state. Higher-level skills (deploy-stage, teardown) call into this flow.
   demo-admin --use-device-code` first; SSO sessions expire).
 - CI: GitHub OIDC assumes the deploy role. No static keys anywhere.
 
-## The seven root levels
+## The eight root levels
 
 Terraform here is not one configuration. Root levels are DISCOVERED by
 `make tf-validate` — any directory with `.tf` files outside `infra/modules/` —
@@ -36,11 +36,13 @@ infra/bootstrap-oidc   permanent   OIDC provider + one deploy role per env
 infra/shared-ecr       permanent   the registry prod promotes from
 infra/dns              permanent   delegated zone + ALB certificate
 infra/public-site      permanent   the dashboard; a destroy must NEVER touch it
+infra/self-service     permanent   the public launch button and its refusals;
+                                   pinned ~> 6.0, alone among the levels
 infra/envs/stage       per cycle
 infra/envs/prod        per cycle
 ```
 
-On a fresh account the permanent five are applied LOCALLY, in that order
+On a fresh account the permanent six are applied LOCALLY, in that order
 (`docs/preflight-inventory.md`). On this account they exist; a cycle starts at
 `deploy-stage`.
 

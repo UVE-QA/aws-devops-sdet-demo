@@ -183,9 +183,22 @@ asked "does it do X" for either, the honest answer is "designed, not shipped -
 here's why it's next" rather than describing it as done.
 
 Phases 18 and 19 ARE built, and this paragraph said otherwise for six days after
-19 shipped. That is worth telling on purpose rather than hiding: five documents
-here described the self-service launch as unapplied while a public button had
-been live for a week, and none of the project's gates could see it, because
-`make docs-check` verifies that every path and target a document NAMES exists -
-not that what a document CLAIMS is true. Phase 20's first sub-phase generates the
-architecture section from the repository for exactly that reason.
+19 shipped. That is worth telling on purpose rather than hiding, and the second
+half is the better half.
+
+**Eleven places across eight files** described a live, publicly-pressed launch
+endpoint as unbuilt — including the live dashboard and the session primer every
+new session reads first. No gate could see any of it: `make docs-check` verifies
+that every path, target and route a document NAMES exists, never that what a
+document CLAIMS is true.
+
+**And the first sweep found only five of the eleven.** It searched for the
+wording it had already found — "not applied", "NOT BUILT" — while the other six
+were COUNTS: "three levels" above a list of four, "seven root levels: five
+permanent", "twenty-seven ADRs" against thirty-nine. A number goes stale without
+a word changing around it, and reads as precision while it does. The search was
+shaped by what it had already caught.
+
+Phase 20's first sub-phase generates the architecture section AND its counts from
+the repository, for exactly that reason: the answer to a class of defect that
+inspection keeps missing is to remove the class, not to inspect harder.

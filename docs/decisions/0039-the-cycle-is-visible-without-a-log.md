@@ -53,6 +53,20 @@ It is also `make docs-check`'s shape one level up: that gate checks that what a
 document NAMES exists; this one checks that what the repository CONTAINS has been
 decided about.
 
+**`topology.json` also carries the COUNTS, and prose renders them rather than
+spelling them out.** Added hours after the rest, when a second sweep found six
+more stale places the first had missed entirely — not phrases this time but
+numbers: "Three levels are permanent for that one reason" above a list of four,
+"Seven root levels: five permanent", "twenty-seven ADRs" against thirty-nine,
+and `docs/session-primer.md` listing seven levels with the sixth permanent one
+absent. The first sweep searched for the wording it had already seen, and was
+shaped by it.
+
+A number in prose is the most fragile claim a document can make. It goes stale
+without a single word changing around it, and it reads as precision while doing
+so. Any count a document states about the repository — levels, permanent levels,
+ADRs, suites — comes from the generated file or does not appear.
+
 A hand-drawn SVG was the alternative, and it is prettier. It is also the same
 class of artifact as the five places this session had to correct.
 

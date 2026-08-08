@@ -42,6 +42,23 @@ keeps it away from, so live is per PHASE and the two ways to buy more are priced
 and untaken. One cost figure was invented and caught in review — $0.09 and $0.17
 are 16a's and 16b's cycles, and 19c has no recorded figure at all.
 
+A second sweep, run after `session-close` had already printed clean, found SIX
+more stale places — and none of them a phrase. They were COUNTS: "Three levels
+are permanent for that one reason" above a list of four, "Seven root levels: five
+permanent", "twenty-seven ADRs" against thirty-nine, the `tf-workflow` skill's
+"seven root levels" with a list missing `infra/self-service`, and
+`docs/session-primer.md` itself listing seven levels without the sixth permanent
+one — the file every session reads first, wrong since 19b. Eleven stale places in
+total. The first sweep had grepped for the wording it had already found, and a
+count goes stale without a word changing around it.
+
+Two consequences taken rather than noted. ADR-0039 D1 now requires
+`topology.json` to carry the counts, with prose rendering them instead of
+spelling them out. And the working agreements gain a rule the day earned:
+**verify before reporting, without being asked** — this session reported the
+primer as fine on the strength of the Mac copy matching the repository, which was
+true and irrelevant, because the repository was wrong.
+
 Nothing applied. **$0.** Next allowed step: 20a.
 
 **As of 2026-08-08.** Phase 19g is CLOSED, and with it Phase 19. A launch was

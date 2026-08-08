@@ -59,14 +59,16 @@ and shows `unknown` when they disagree, naming the run it is waiting for.
 
 ### 1:30 — the shape of it (1.5 min)
 
-Repository, `infra/`. Seven root levels: five permanent, two per cycle.
+Repository, `infra/`. Eight root levels: six permanent, two per cycle.
 
-> Three of the five are permanent for the same reason, and each was found the
+> Four of the six are permanent for the same reason, and each was found the
 > hard way. The registry holds the image prod is running, so a stage teardown
-> would have deleted it. The hosted zone outlives the load balancer. And the
-> dashboard cannot live inside the thing it reports on.
+> would have deleted it. The hosted zone outlives the load balancer. The
+> dashboard cannot live inside the thing it reports on. And the launch button's
+> lock and day counter are state ABOUT a cycle, so they cannot live inside the
+> cycle they control.
 
-`docs/decisions/` — twenty-seven ADRs. Mention that this is the one artifact
+`docs/decisions/` — thirty-nine ADRs. Mention that this is the one artifact
 that cannot be reconstructed from the code afterwards.
 
 ### 3:00 — a cycle, per step (1.5 min)

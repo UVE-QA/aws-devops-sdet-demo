@@ -1746,6 +1746,23 @@ were the same shape — a page saying something it was not in a position to say:
 ```
   The grep must return only Phase 20's own "planned, not built" line in
   `docs/interview-talking-points.md`, which is true.
+- **A SECOND SWEEP, after `session-close` printed clean, found SIX more** - and
+  not one of them a phrase. They were counts: `docs/architecture.md` saying
+  "Three levels are permanent for that one reason" above a list of four,
+  `docs/demo-script.md` with "Seven root levels: five permanent" and
+  "twenty-seven ADRs" against thirty-nine, `.claude/skills/tf-workflow/SKILL.md`
+  with "the seven root levels" and a list missing `infra/self-service`, and -
+  the expensive one - `docs/session-primer.md` listing seven levels, the file
+  every new session reads first, missing the sixth permanent level since 19b.
+- The first sweep missed all six because it grepped for the wording it had
+  already found (`NOT APPLIED`, `never been applied`, `NOT BUILT`). A COUNT goes
+  stale without a word changing around it and reads as precision while it does.
+  The search was shaped by what it had already caught.
+- Also recorded, because it was reported wrongly in this session: the Mac copy
+  of the primer was IN SYNC with the repository and the repository was WRONG.
+  Synchronised and correct are separate questions.
+- Consequence taken rather than noted: ADR-0039 D1 now requires `topology.json`
+  to carry the counts, with prose rendering them instead of spelling them out.
 - Cost: **$0**. Nothing was applied to AWS and no environment existed at any
   point.
 - Next allowed step: 20a. It applies nothing and costs nothing.

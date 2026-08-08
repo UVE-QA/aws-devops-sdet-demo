@@ -147,8 +147,19 @@ a summary is honest as opposed to present:
 - ONE command at a time. Not one block of three — one. Wait for real terminal
   output before the next. Never assume a step ran.
 - Verify the previous step before starting the next one.
+- NEVER RUSH, AND NEVER WAIT TO BE ASKED TO CHECK. Verify before reporting, on
+  your own initiative. On 2026-08-08 a session reported "all the documents are
+  fixed" and "the primer is fine"; both were false, and both were disproved by
+  one grep run only because the user asked a second time. The primer copy on the
+  Mac did match the repository — synchronised and correct are different
+  questions, and only the first had been checked. A second sweep found six more
+  stale places the first had missed, because the first searched for the wording
+  it had already found.
 - Label every command [mac] or [devbox]. The wrong host has already cost a
-  wasted round trip.
+  wasted round trip — again on 2026-08-08, when two unlabelled blocks in one
+  reply sent a [mac] scp to the devbox and the [devbox] git am found no files.
+  The rule below about ONE block per message exists for the same reason, and
+  both were broken in the same message.
 - Explicit confirmation before ANY billable action. Review the plan first.
 - Never ask for secrets. Account ids, ARNs, regions, repo names are fine;
   keys, tokens, passwords are not. No exceptions: the clone needs no
@@ -511,6 +522,8 @@ Terraform state levels — only the last two are ever destroyed:
   infra/dns              hosted zone + ACM certificate, permanent  (ADR-0024)
   infra/public-site      dashboard S3+CloudFront, permanent   (ADR-0027,
                          APPLIED 2026-07-26; https://demo.uveapp.net)
+  infra/self-service     the public launch button and its refusals, permanent
+                         (ADR-0034, APPLIED in 19b; the button is LIVE)
   infra/envs/stage       workload, destroyed every cycle
   infra/envs/prod        workload, destroyed every cycle
 ```

@@ -111,10 +111,49 @@ Two things fell out of the correction that the plan did not have:
   document now says so, because a gap in the record is not a zero, and 20d exists
   partly so the gap stops recurring.
 
+## Second sweep, after the phase had closed: six more, all of them numbers
+
+`session-close` printed `clean`, the patches were pushed, the live page was
+verified by its content rather than by a green run. Then the question "are all
+the documents fixed?" was asked directly, and the answer was no — by six.
+
+```text
+docs/session-primer.md:507   seven levels listed; infra/self-service absent
+                             from the file every new session reads FIRST
+docs/architecture.md:85      "Three levels are permanent for that one reason",
+                             above a list of FOUR
+docs/demo-script.md:62       "Seven root levels: five permanent, two per cycle"
+docs/demo-script.md:64       "Three of the five are permanent for the same
+                             reason"
+docs/demo-script.md:69       "twenty-seven ADRs" - there are thirty-nine
+.claude/skills/tf-workflow/SKILL.md:27
+                             "The seven root levels", the list missing
+                             self-service, and "the permanent five"
+```
+
+**Why the first sweep missed every one.** It grepped for the wording it had
+already found: `NOT APPLIED`, `never been applied`, `NOT BUILT`, `planned, not
+built`. None of these six contains any of it. They are COUNTS — "three", "five",
+"seven", "twenty-seven" — and a count goes stale without a single word changing
+around it, while reading as precision. The search was shaped by what it had
+already caught. That is the negative half of "a claim about state is not state",
+and it is the half that feels like knowledge.
+
+The primer is the expensive one: the file that starts every session, missing the
+sixth permanent level since 19b. And note what "the Mac copy is in sync" does not
+mean. It WAS in sync, and it was wrong. Synchronised and correct are separate
+questions; this session answered the first while being asked the second.
+
+ADR-0039 D1 gains the consequence: `topology.json` carries the counts, and prose
+renders them rather than spelling them out.
+
 ## True now
 
 - Phase 19 closed; Phase 20.0 closed with ADR-0039 and the 20a–20d plan
-- five documents corrected, delivered as their own patch ahead of the plan
+- **eleven** stale places corrected in total: five phrases in the first sweep,
+  six numbers in the second, across README, architecture, cost-control,
+  interview-talking-points, demo-script, the session primer, the tf-workflow
+  skill and the live dashboard
 - nothing applied, no environment existed at any point, **$0**
 - next allowed step is **20a**, which applies nothing and costs nothing
 

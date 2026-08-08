@@ -776,6 +776,11 @@ generator     site/data/topology.json, built from infra/ AND tests/: the state
               after stage comes up, and the display node each one is assigned
               to. Suite nodes are part of the chain from the start, not a
               later addition (ADR-0039 D2b)
+counts        the same file carries the COUNTS - levels, permanent levels,
+              ADRs, suites - and prose renders them instead of spelling them
+              out. Six of the stale places found on 2026-08-08 were numbers,
+              not phrases, and a number goes stale without a word changing
+              around it
 layout        legibility floor first, serpentine packing second, one screen
               third and it is the one that gives way (ADR-0039 D5). NEVER
               shrink to fit. Resources are GROUPED into services, and the
