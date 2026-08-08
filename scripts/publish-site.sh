@@ -15,6 +15,17 @@
 # forgetting it would have been silent: the map would keep working from the
 # timeline published minutes earlier and lose it at the next push to main.
 #
+# THE FOURTH IS WHY THAT SENTENCE IS NOW A CHECK. ADR-0042 added results/ to
+# publish-status.sh on 2026-08-08 and nothing added the line below. Nothing went
+# wrong for the rest of that day, because no push to main touched site/ - and
+# the push that finally did was the one publishing the page that READS those
+# results. It deleted every one of them. The bucket has no versioning: the
+# folded test results of cycle 31276975666 do not exist any more.
+#
+# `make publish-prefixes-check` now reads the prefixes out of publish-status.sh
+# and refuses if any is missing here (ADR-0044). Keep both - the comment says
+# why, the check says whether.
+#
 # Usage:
 #   scripts/publish-site.sh [source-dir]
 #
@@ -33,6 +44,7 @@ aws s3 sync "$src" "s3://${SITE_BUCKET}/" \
   --exclude "status/*" \
   --exclude "reports/*" \
   --exclude "timeline/*" \
+  --exclude "results/*" \
   --only-show-errors
 
 echo "::group::bucket contents"

@@ -198,6 +198,14 @@ jobs:
           CHECKOV_VERSION: "3.3.8"
         run: pip install --quiet "checkov==${CHECKOV_VERSION}"
 
+      - name: Every prefix the lifecycle writes survives the site sync
+        # publish-site.sh syncs site/ with --delete, so anything publish-status.sh
+        # wrote and the repository does not contain is removed unless its prefix
+        # is excluded. On 2026-08-08 results/ was missing from that list and the
+        # first push to main that touched site/ deleted every published test
+        # result, unrecoverably (ADR-0044).
+        run: make publish-prefixes-check
+
       - name: Every action is pinned to a commit SHA
         # Lives in this job because it is the repository-wide static check job,
         # despite the name - `make docs-check` is here for the same reason.

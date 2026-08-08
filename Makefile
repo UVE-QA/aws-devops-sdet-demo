@@ -6,7 +6,8 @@
         tf-validate docs-check secret-scan iac-scan image-scan action-pins \
         self-service-package self-service-cors-check site-page site-page-check \
         site-data site-data-check timeline-check node-states-check \
-        suite-inventory suite-inventory-check results-check live-state-check
+        suite-inventory suite-inventory-check results-check live-state-check \
+        publish-prefixes-check
 
 # Bring up postgres + app (build app image if needed), detached.
 local-up:
@@ -273,6 +274,18 @@ results-check:
 # the same property site-page-check exists for, arriving here for free.
 live-state-check:
 	node scripts/check-live-state.mjs
+
+# Two scripts share the public bucket and are not peers: publish-status.sh
+# WRITES what a run observed, publish-site.sh syncs site/ over the top of it with
+# --delete. The exclusion list in the second is therefore a piece of the first,
+# and keeping the two in step was a rule written in a comment.
+#
+# On 2026-08-08 the rule broke exactly as its own comment predicted: results/ was
+# added to the writer and never to the exclusions, and the first push to main
+# that touched site/ deleted every published test result. The bucket has no
+# versioning. This reads the correspondence out of both files instead (ADR-0044).
+publish-prefixes-check:
+	python3 scripts/check-publish-prefixes.py
 
 # The two ends of a session, as commands rather than as prose in four documents
 # (ADR-0033). Local only: on a CI checkout the tree is always clean and HEAD
