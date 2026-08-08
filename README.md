@@ -110,6 +110,13 @@ make timeline-check   an apply that was killed folds into an INCOMPLETE
 make node-states-check
                       every resource a cycle touches lands on a node of the map,
                       is recorded as deliberately not drawn, or is named unknown
+make results-check    a run's report decides what a suite node says, and what
+                      the report does not cover is named rather than coloured
+make live-state-check the page's own run-layer logic, lifted out of the BUILT
+                      page and folded against recorded Actions observations: a
+                      node with no step of its own never claims to be running,
+                      and a phase that finished mid-run says so instead of
+                      reading as one that never ran
 ```
 
 Each one refuses rather than passing when it cannot actually scan — a missing

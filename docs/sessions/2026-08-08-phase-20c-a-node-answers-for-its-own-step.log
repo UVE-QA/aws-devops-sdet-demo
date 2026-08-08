@@ -1,0 +1,193 @@
+Break tests — Phase 20c, the page reads the suites and a node answers for its own step
+Run on 2026-08-08 in the chat session's own clone, offline: no AWS, no cost.
+
+Ten deliberate defects, with a green control before the first and after the
+last. Every one was restored with `git checkout` and the page rebuilt, and the
+final control shows a clean tree.
+
+Numbers 6, 8 and 10 are the defects this session FIXED, put back on purpose:
+6 is the node in a running phase that claimed to be running itself, 8 is the
+suite that inherited its phase instead of asking its own step - the shape that
+left suite.db.stage dark while its step ran - and 10 is the phase clock that
+restarted every time the apply moved to the next bound step. 7 is finding two
+inverted: with the completed-run guard removed, a finished run keeps saying
+"finished in this run" over the top of the figures it published.
+
+One thing that broke without being planned, before this log was taken: the gate
+reads the BUILT page, so an edit to assets/index.template.html that had not been
+rebuilt made it fail against the previous build. That is site-page-check's
+property arriving here for free, and it is how the first run of these fixtures
+went red.
+
+
+==============================================================
+CONTROL — green before anything is broken
+==============================================================
+site-data: clean - every resource assigned; 116 across 8 levels (55 permanent, 61 per cycle), 2 deliberately not shown
+12/12 observations fold as the page says they do
+
+==============================================================
+1. a suite node declares no live binding of its own
+==============================================================
+python3 scripts/generate-topology.py --check
+site-data: REFUSED
+node suite.api.stage declares no `live` binding
+make: *** [Makefile:189: site-data-check] Error 1
+exit=2
+
+==============================================================
+2. the step a suite binds is renamed in the workflow
+==============================================================
+python3 scripts/generate-topology.py --check
+site-data: REFUSED
+node suite.db.stage: deploy-stage.yml job deploy has no step named 'Run one-off tasks (migrate, seed, db-asserts)'. Renaming a step breaks the pulse silently; this is that rename, caught.
+make: *** [Makefile:189: site-data-check] Error 1
+exit=2
+
+==============================================================
+3. the marker the gate couples to is renamed in the built page
+==============================================================
+live-state-check: REFUSED
+expected exactly one begin marker and one end marker in site/index.html, found 0 and 1. The block this gate checks is identified by them; renaming one leaves the gate testing nothing at all.
+exit=1
+
+==============================================================
+4. the cases directory is moved away
+==============================================================
+live-state-check: REFUSED
+tests/fixtures/live-state/cases does not exist
+exit=1
+
+==============================================================
+5. the frozen phase snapshot is moved away
+==============================================================
+live-state-check: REFUSED
+tests/fixtures/live-state/phases.json does not exist
+exit=1
+
+==============================================================
+6. FINDING ONE, restored: a node with no step of its own claims to be running
+==============================================================
+ok    a-completed-run-says-nothing
+FAIL  a-failed-step-reddens-the-suites-that-are-in-it
+      nodes.stage.migrate: expected {"since":"2026-08-08T14:00:00Z","state":"finished","via":"phase"}, got {"state":"finished","since":"2026-08-08T14:00:00Z","via":"own"}
+ok    a-skipped-step-is-not-a-finished-one
+FAIL  a-suite-with-its-own-step-does-not-inherit-the-gate
+      nodes.stage.vpc: expected {"since":"2026-08-08T12:00:00Z","state":"finished","via":"phase"}, got {"state":"finished","since":"2026-08-08T12:00:00Z","via":"own"}
+      nodes.stage.secrets: expected {"since":"2026-08-08T12:00:00Z","state":"finished","via":"phase"}, got {"state":"finished","since":"2026-08-08T12:00:00Z","via":"own"}
+      nodes.stage.rds: expected {"since":"2026-08-08T12:00:00Z","state":"finished","via":"phase"}, got {"state":"finished","since":"2026-08-08T12:00:00Z","via":"own"}
+      nodes.stage.alb: expected {"since":"2026-08-08T12:00:00Z","state":"finished","via":"phase"}, got {"state":"finished","since":"2026-08-08T12:00:00Z","via":"own"}
+      nodes.stage.ecs: expected {"since":"2026-08-08T12:00:00Z","state":"finished","via":"phase"}, got {"state":"finished","since":"2026-08-08T12:00:00Z","via":"own"}
+      nodes.stage.cloudwatch: expected {"since":"2026-08-08T12:00:00Z","state":"finished","via":"phase"}, got {"state":"finished","since":"2026-08-08T12:00:00Z","via":"own"}
+      nodes.stage.budgets: expected {"since":"2026-08-08T12:00:00Z","state":"finished","via":"phase"}, got {"state":"finished","since":"2026-08-08T12:00:00Z","via":"own"}
+      nodes.stage.migrate: expected {"since":"2026-08-08T13:00:00Z","state":"finished","via":"phase"}, got {"state":"finished","since":"2026-08-08T13:00:00Z","via":"own"}
+FAIL  a-teardown-lights-the-environment-it-names
+      nodes.destroy.stage: expected {"since":"2026-08-08T11:00:00Z","state":"running","via":"phase"}, got {"state":"running","since":"2026-08-08T11:00:00Z","via":"own"}
+FAIL  a-teardown-that-names-no-environment-lights-both
+      nodes.destroy.stage: expected {"since":"2026-08-08T12:00:00Z","state":"running","via":"phase"}, got {"state":"running","since":"2026-08-08T12:00:00Z","via":"own"}
+      nodes.destroy.prod: expected {"since":"2026-08-08T12:00:00Z","state":"running","via":"phase"}, got {"state":"running","since":"2026-08-08T12:00:00Z","via":"own"}
+ok    an-api-that-answered-nothing-lights-nothing
+FAIL  an-apply-lights-the-phase-not-a-resource
+      nodes.build.ecr: expected {"since":"2026-08-08T10:00:00Z","state":"finished","via":"phase"}, got {"state":"finished","since":"2026-08-08T10:00:00Z","via":"own"}
+      nodes.stage.vpc: expected {"since":"2026-08-08T11:00:00Z","state":"running","via":"phase"}, got {"state":"running","since":"2026-08-08T11:00:00Z","via":"own"}
+      nodes.stage.secrets: expected {"since":"2026-08-08T11:00:00Z","state":"running","via":"phase"}, got {"state":"running","since":"2026-08-08T11:00:00Z","via":"own"}
+      nodes.stage.rds: expected {"since":"2026-08-08T11:00:00Z","state":"running","via":"phase"}, got {"state":"running","since":"2026-08-08T11:00:00Z","via":"own"}
+      nodes.stage.alb: expected {"since":"2026-08-08T11:00:00Z","state":"running","via":"phase"}, got {"state":"running","since":"2026-08-08T11:00:00Z","via":"own"}
+      nodes.stage.ecs: expected {"since":"2026-08-08T11:00:00Z","state":"running","via":"phase"}, got {"state":"running","since":"2026-08-08T11:00:00Z","via":"own"}
+      nodes.stage.cloudwatch: expected {"since":"2026-08-08T11:00:00Z","state":"running","via":"phase"}, got {"state":"running","since":"2026-08-08T11:00:00Z","via":"own"}
+      nodes.stage.budgets: expected {"since":"2026-08-08T11:00:00Z","state":"running","via":"phase"}, got {"state":"running","since":"2026-08-08T11:00:00Z","via":"own"}
+FAIL  an-approval-that-has-been-given-is-finished
+      nodes.gate.human: expected {"since":"2026-08-08T11:00:00Z","state":"finished","via":"phase"}, got {"state":"finished","since":"2026-08-08T11:00:00Z","via":"own"}
+      nodes.prod.vpc: expected {"since":"2026-08-08T12:00:00Z","state":"running","via":"phase"}, got {"state":"running","since":"2026-08-08T12:00:00Z","via":"own"}
+      nodes.prod.secrets: expected {"since":"2026-08-08T12:00:00Z","state":"running","via":"phase"}, got {"state":"running","since":"2026-08-08T12:00:00Z","via":"own"}
+      nodes.prod.rds: expected {"since":"2026-08-08T12:00:00Z","state":"running","via":"phase"}, got {"state":"running","since":"2026-08-08T12:00:00Z","via":"own"}
+      nodes.prod.alb: expected {"since":"2026-08-08T12:00:00Z","state":"running","via":"phase"}, got {"state":"running","since":"2026-08-08T12:00:00Z","via":"own"}
+      nodes.prod.ecs: expected {"since":"2026-08-08T12:00:00Z","state":"running","via":"phase"}, got {"state":"running","since":"2026-08-08T12:00:00Z","via":"own"}
+      nodes.prod.cloudwatch: expected {"since":"2026-08-08T12:00:00Z","state":"running","via":"phase"}, got {"state":"running","since":"2026-08-08T12:00:00Z","via":"own"}
+      nodes.prod.dnsrec: expected {"since":"2026-08-08T12:00:00Z","state":"running","via":"phase"}, got {"state":"running","since":"2026-08-08T12:00:00Z","via":"own"}
+      nodes.prod.budgets: expected {"since":"2026-08-08T12:00:00Z","state":"running","via":"phase"}, got {"state":"running","since":"2026-08-08T12:00:00Z","via":"own"}
+ok    another-workflow-is-not-this-cycle
+FAIL  the-approval-is-a-gap-not-a-step
+      nodes.gate.human: expected {"since":"2026-08-08T11:00:00Z","state":"running","via":"phase"}, got {"state":"running","since":"2026-08-08T11:00:00Z","via":"own"}
+FAIL  the-db-suite-lights-in-the-phase-its-step-is-in
+      nodes.build.ecr: expected {"since":"2026-08-08T10:00:00Z","state":"finished","via":"phase"}, got {"state":"finished","since":"2026-08-08T10:00:00Z","via":"own"}
+      nodes.stage.vpc: expected {"since":"2026-08-08T11:00:00Z","state":"finished","via":"phase"}, got {"state":"finished","since":"2026-08-08T11:00:00Z","via":"own"}
+      nodes.stage.secrets: expected {"since":"2026-08-08T11:00:00Z","state":"finished","via":"phase"}, got {"state":"finished","since":"2026-08-08T11:00:00Z","via":"own"}
+      nodes.stage.rds: expected {"since":"2026-08-08T11:00:00Z","state":"finished","via":"phase"}, got {"state":"finished","since":"2026-08-08T11:00:00Z","via":"own"}
+      nodes.stage.alb: expected {"since":"2026-08-08T11:00:00Z","state":"finished","via":"phase"}, got {"state":"finished","since":"2026-08-08T11:00:00Z","via":"own"}
+      nodes.stage.ecs: expected {"since":"2026-08-08T11:00:00Z","state":"finished","via":"phase"}, got {"state":"finished","since":"2026-08-08T11:00:00Z","via":"own"}
+      nodes.stage.cloudwatch: expected {"since":"2026-08-08T11:00:00Z","state":"finished","via":"phase"}, got {"state":"finished","since":"2026-08-08T11:00:00Z","via":"own"}
+      nodes.stage.budgets: expected {"since":"2026-08-08T11:00:00Z","state":"finished","via":"phase"}, got {"state":"finished","since":"2026-08-08T11:00:00Z","via":"own"}
+      nodes.stage.migrate: expected {"since":"2026-08-08T13:00:00Z","state":"running","via":"phase"}, got {"state":"running","since":"2026-08-08T13:00:00Z","via":"own"}
+
+live-state-check: 8 of 12 cases disagree with the page
+exit=1
+
+==============================================================
+7. FINDING TWO, inverted: a completed run keeps saying 'finished in this run'
+==============================================================
+FAIL  a-completed-run-says-nothing
+      phases.stage-apply: the machine reported {"state":"finished","since":"2026-08-08T12:00:00Z"}, the case expects nothing
+      phases.stage-gate: the machine reported {"state":"finished","since":"2026-08-08T15:00:00Z"}, the case expects nothing
+      nodes.stage.vpc: the machine reported {"state":"finished","since":"2026-08-08T12:00:00Z","via":"phase"}, the case expects nothing
+      nodes.stage.secrets: the machine reported {"state":"finished","since":"2026-08-08T12:00:00Z","via":"phase"}, the case expects nothing
+      nodes.stage.rds: the machine reported {"state":"finished","since":"2026-08-08T12:00:00Z","via":"phase"}, the case expects nothing
+      nodes.stage.alb: the machine reported {"state":"finished","since":"2026-08-08T12:00:00Z","via":"phase"}, the case expects nothing
+      nodes.stage.ecs: the machine reported {"state":"finished","since":"2026-08-08T12:00:00Z","via":"phase"}, the case expects nothing
+...
+
+==============================================================
+8. FINDING THREE, restored: a suite inherits its phase instead of asking its own step
+==============================================================
+FAIL  a-failed-step-reddens-the-suites-that-are-in-it
+      nodes.suite.db.stage: expected {"since":"2026-08-08T14:00:00Z","state":"finished","via":"own"}, got {"state":"failed","since":"2026-08-08T15:00:00Z","via":"phase"}
+      nodes.suite.api.stage: expected {"since":"2026-08-08T15:00:00Z","state":"finished","via":"own"}, got {"state":"failed","since":"2026-08-08T15:00:00Z","via":"phase"}
+      nodes.suite.smoke.stage: expected {"since":"2026-08-08T16:00:00Z","state":"failed","via":"own"}, got {"state":"failed","since":"2026-08-08T15:00:00Z","via":"phase"}
+      nodes.suite.regression.stage: expected {"since":"2026-08-08T16:00:00Z","state":"failed","via":"own"}, got {"state":"failed","since":"2026-08-08T15:00:00Z","via":"phase"}
+FAIL  a-suite-with-its-own-step-does-not-inherit-the-gate
+      nodes.suite.db.stage: expected {"since":"2026-08-08T14:00:00Z","state":"finished","via":"own"}, got {"state":"running","since":"2026-08-08T15:00:00Z","via":"phase"}
+      nodes.suite.api.stage: expected {"since":"2026-08-08T15:00:00Z","state":"running","via":"own"}, got {"state":"running","since":"2026-08-08T15:00:00Z","via":"phase"}
+      nodes.suite.regression.stage: the machine reported {"state":"running","since":"2026-08-08T15:00:00Z","via":"phase"}, the case expects nothing
+      nodes.suite.smoke.stage: the machine reported {"state":"running","since":"2026-08-08T15:00:00Z","via":"phase"}, the case expects nothing
+FAIL  the-db-suite-lights-in-the-phase-its-step-is-in
+      nodes.suite.db.stage: expected {"state":"running","since":"2026-08-08T14:00:00Z","via":"own"}, the machine reported nothing
+live-state-check: 3 of 12 cases disagree with the page
+exit above
+
+==============================================================
+9. a skipped step counts as a finished one
+==============================================================
+FAIL  a-skipped-step-is-not-a-finished-one
+      phases.build: the machine reported {"state":"finished","since":"2026-08-08T10:00:00Z"}, the case expects nothing
+      phases.stage-apply: the machine reported {"state":"finished","since":"2026-08-08T11:00:00Z"}, the case expects nothing
+      nodes.build.ecr: the machine reported {"state":"finished","since":"2026-08-08T10:00:00Z","via":"phase"}, the case expects nothing
+      nodes.stage.vpc: the machine reported {"state":"finished","since":"2026-08-08T11:00:00Z","via":"phase"}, the case expects nothing
+      nodes.stage.secrets: the machine reported {"state":"finished","since":"2026-08-08T11:00:00Z","via":"phase"}, the case expects nothing
+      nodes.stage.rds: the machine reported {"state":"finished","since":"2026-08-08T11:00:00Z","via":"phase"}, the case expects nothing
+      nodes.stage.alb: the machine reported {"state":"finished","since":"2026-08-08T11:00:00Z","via":"phase"}, the case expects nothing
+      nodes.stage.ecs: the machine reported {"state":"finished","since":"2026-08-08T11:00:00Z","via":"phase"}, the case expects nothing
+      nodes.stage.cloudwatch: the machine reported {"state":"finished","since":"2026-08-08T11:00:00Z","via":"phase"}, the case expects nothing
+      nodes.stage.budgets: the machine reported {"state":"finished","since":"2026-08-08T11:00:00Z","via":"phase"}, the case expects nothing
+live-state-check: 1 of 12 cases disagree with the page
+
+==============================================================
+10. the phase clock restarts at the step running now (the behaviour before this session)
+==============================================================
+FAIL  a-failed-step-reddens-the-suites-that-are-in-it
+FAIL  a-suite-with-its-own-step-does-not-inherit-the-gate
+      phases.stage-apply: expected {"since":"2026-08-08T12:00:00Z","state":"finished"}, got {"state":"finished","since":null}
+FAIL  a-teardown-lights-the-environment-it-names
+      phases.destroy: expected {"since":"2026-08-08T11:00:00Z","state":"running"}, got {"state":"running","since":"2026-08-08T12:00:00Z"}
+FAIL  an-apply-lights-the-phase-not-a-resource
+      phases.stage-apply: expected {"since":"2026-08-08T11:00:00Z","state":"running"}, got {"state":"running","since":"2026-08-08T12:00:00Z"}
+FAIL  an-approval-that-has-been-given-is-finished
+FAIL  the-db-suite-lights-in-the-phase-its-step-is-in
+      phases.stage-apply: expected {"since":"2026-08-08T11:00:00Z","state":"finished"}, got {"state":"finished","since":null}
+live-state-check: 6 of 12 cases disagree with the page
+
+==============================================================
+CONTROL — green again, and the tree is as it was
+==============================================================
+site-data: clean - every resource assigned; 116 across 8 levels (55 permanent, 61 per cycle), 2 deliberately not shown
+site-page-check: site/index.html matches the template
+12/12 observations fold as the page says they do

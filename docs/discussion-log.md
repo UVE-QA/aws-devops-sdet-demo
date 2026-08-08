@@ -6,6 +6,35 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
+**As of 2026-08-08 (20c CLOSED, a node answers for its own step).** The page
+reads the two files the previous session filled and never opened, so 180
+collected tests and a real cycle's verdicts stop being true and invisible. The
+three findings from watching that cycle turned out to be one structural mistake:
+**liveness was attached to the box a node is drawn in, and a box is a layout
+decision.** **ADR-0043.**
+
+A suite node now carries its own `live` binding, checked against the workflow by
+the same code that checks a phase's — four refusals at build time. A node with no
+binding inherits its phase and is MARKED as having inherited, so seven nodes stop
+claiming to be running while Terraform creates one. A phase whose steps are over
+in a run still going says so, instead of showing the sentence a phase that has
+NEVER run shows. And stage and prod stop disagreeing about `db`: prod's gate
+phase happened to bind its db step and stage's did not, which is why one suite
+behaved differently in two environments with nothing looking wrong in either.
+
+The state machine is the one fold that cannot move to Python — it reads the
+Actions API in the visitor's browser, and there is no run afterwards to fold — so
+the gate lifts the marked block OUT OF THE BUILT PAGE and runs it verbatim
+against twelve recorded observations. Ten break tests, all three findings put
+back among them; the sharpest line in the log is `suite.db.stage` reported as
+nothing while its step ran. A fourth defect surfaced writing the gate rather than
+watching the cycle: the phase clock restarted at every bound step, so a
+four-minute apply read as ten seconds old — and the comment sitting above that
+code had been describing the correct behaviour all along.
+
+$0, no AWS call, verified offline against fixtures and a headless render. Next is
+20d, unblocked, with 20c's cycle as the first bill to reconcile against.
+
 **As of 2026-08-08 (20c, the suites answer for themselves).** The map's suite
 nodes stop being described and start being asked: an inventory COLLECTED by the
 tools that run the suites, and a fold from the reporters' own output onto the

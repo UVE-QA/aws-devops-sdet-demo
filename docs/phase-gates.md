@@ -41,8 +41,8 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 20a   | The generated map, on the page | ✅ done | sessions/2026-08-08-phase-20a-the-map-on-the-page.md |
 | 20b.1 | The stream captured, folded, gated | ✅ done, $0 | sessions/2026-08-08-phase-20b-1-a-killed-apply-is-not-a-cycle.md |
 | 20b.2 | The timeline from a live cycle, on the page | ✅ done — the apply half was never lit; see below | sessions/2026-08-08-phase-20b-2-a-cancelled-run-erases-nothing.md |
-| 20c   | The suites answer for themselves | 🟡 inventory, fold and one live cycle done; the page remains | sessions/2026-08-08-phase-20c-the-suites-answer-for-themselves.md |
-| 20d   | Cost, computed and reconciled | ⬜ planned, blocked on 20b | — |
+| 20c   | The suites answer for themselves | ✅ done — the page reads both sources | sessions/2026-08-08-phase-20c-the-suites-answer-for-themselves.md + sessions/2026-08-08-phase-20c-a-node-answers-for-its-own-step.md |
+| 20d   | Cost, computed and reconciled | ⬜ planned, unblocked — 20c's cycle is the first one to reconcile against | — |
 
 Phase 17 (prod data continuity) is still open and still optional, in
 `docs/next-phases.md`. Phase 18 was pulled forward of both remaining phases
@@ -2320,10 +2320,50 @@ Inventory, fold, wiring and ONE LIVE CYCLE. **ADR-0042**, and the summary in
   ecs, rds, alb, nat and eks empty.
 - Cost: one full cycle, about 25 minutes of RDS and ALB. Not yet reconciled
   against a bill - that is 20d's job, and this is the first cycle it can use.
-- Next allowed step: **the page.** `site/index.html` reads neither
-  `site/data/suites.json` nor `results/<env>/latest.json`, so everything above is
-  true and invisible. The three findings above are its first work, and a suite
-  node needs its own `live.steps` binding the way a phase already has one.
+- Next allowed step: closed by the section below, on 2026-08-08.
+
+### Phase 20c — A node answers for its own step  ✅ DONE 2026-08-08
+The page. **ADR-0043**, and the summary in
+`docs/sessions/2026-08-08-phase-20c-a-node-answers-for-its-own-step.md`.
+- Criteria: `site/index.html` reads `site/data/suites.json` and
+  `results/<env>/latest.json`; the three findings above are answered; a suite
+  node has its own `live` binding. All met.
+- **The three findings were one mistake**: liveness was attached to the BOX a
+  node is drawn in, and a box is a layout decision. A suite node now carries its
+  own `live` binding, checked against the workflow by the same code that checks
+  a phase's; a node without one inherits its phase and is MARKED as having
+  inherited, so seven nodes stop claiming to run while Terraform creates one; and
+  a phase whose steps are over in a run still going says so, instead of showing
+  the sentence a phase that has never run shows. stage and prod stop disagreeing
+  about `db` because neither is guessing.
+- **The one fold that cannot move to Python** is gated where it lives.
+  `make live-state-check` lifts the marked block out of the BUILT page and runs
+  it against twelve recorded Actions observations - the code the visitor's
+  browser executes, not a copy. It reads the built page, so a template edited
+  without rebuilding reddens it, which is how the first run of the fixtures went
+  red.
+- Ten deliberate defects, green control either side, in
+  `docs/sessions/2026-08-08-phase-20c-a-node-answers-for-its-own-step.log`,
+  including all three findings put back. The sharpest line: `suite.db.stage` -
+  "the machine reported nothing" - while its step was running.
+- **A fourth defect, found writing the gate rather than watching the cycle**: the
+  phase clock restarted at every bound step, so a four-minute apply read as ten
+  seconds old. The old code's own comment said it should run from the first step
+  to begin; the code under it did the other thing.
+- Validation:
+```bash
+  make site-data-check     # clean, 116 resources across 8 levels
+  make site-page-check     # byte-identical to a fresh build
+  make live-state-check    # 12/12
+  make results-check       # 10/10
+  make docs-check          # 6 documents, 0 findings
+```
+- Cost: nothing. No AWS call, no cycle, no credential; verified offline against
+  fixtures and a headless render.
+- Next allowed step: **20d - cost, computed and reconciled.** It was blocked on
+  20b and is not any more, and 20c's cycle of 2026-08-08 is the first one a bill
+  can be reconciled against. Start with the dated rate table; the reconciliation
+  is the point, not the formality.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,
