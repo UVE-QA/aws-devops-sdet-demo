@@ -233,6 +233,13 @@
         letter-spacing: 0.01em;
       }
       .phase > header .wf { font-family: ui-monospace, Menlo, monospace; font-size: 0.66rem; }
+      /* How long the running phase has been running, in the header, where the
+         Actions UI puts it. Pushed to the right so it does not move the title
+         as the digits grow. */
+      .phase > header .elapsed {
+        margin-left: auto; font-variant-numeric: tabular-nums;
+        color: var(--accent); font-weight: 700;
+      }
       .phase .set { display: grid; gap: var(--gap); }
       .phase.live { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 7%, transparent); }
 
@@ -1304,7 +1311,10 @@
               if (b.p.nodes.some((n) => n.state === "live")) ph.classList.add("live");
               ph.style.flex = "0 0 auto";
               ph.style.width = b.width + "px";
-              ph.innerHTML = `<header><b>${b.p.n}. ${b.p.label}</b><span class="wf">${b.p.workflow}</span></header>`;
+              const since = RUNSTATE.liveSince[b.p.id];
+              ph.innerHTML = `<header><b>${b.p.n}. ${b.p.label}</b><span class="wf">${b.p.workflow}</span>${
+                since ? `<span class="elapsed" data-since="${since}">${elapsedText(since)}</span>` : ``
+              }</header>`;
               const set = document.createElement("div");
               set.className = "set";
               set.style.gridTemplateColumns = `repeat(${b.cols}, minmax(${nodeMin}px, 1fr))`;
@@ -1349,7 +1359,7 @@
            Nothing is joined here. Which resource belongs to which node is decided
            once, in Python, on the runner - see scripts/node-states.py for why. */
         const ENVS = ["stage", "prod"];
-        const RUNSTATE = { nodes: {}, cycles: [], unfinished: [], unknown: [], hidden: [], live: [] };
+        const RUNSTATE = { nodes: {}, cycles: [], unfinished: [], unknown: [], hidden: [], live: [], liveSince: {} };
 
         function readJSON(path) {
           return fetch(path, { cache: "no-store" })
@@ -1401,28 +1411,64 @@
            following it is a refusal at build time, not a pulse that silently
            never fires again. */
         function livePhases(observation) {
-          if (!observation || !observation.run || observation.error) return [];
+          // Returns the live phase ids AND when each started, because a phase
+          // that says "running now" and nothing else cannot be told apart from
+          // a page that has stopped updating. The Actions UI puts the elapsed
+          // time next to the job for the same reason.
+          const ids = [];
+          const since = {};
+          if (!observation || !observation.run || observation.error) return { ids, since };
           const run = observation.run;
           const jobs = observation.jobs || [];
-          const ids = [];
+          const mark = (id, at) => {
+            if (ids.indexOf(id) === -1) ids.push(id);
+            // The EARLIEST start among a phase's bound steps. A phase is busy
+            // from the moment its first step began, and taking the latest would
+            // reset the clock every time the apply moved on to the next one.
+            if (at && (!since[id] || at < since[id])) since[id] = at;
+          };
           (DATA ? DATA.phases : []).forEach((p) => {
             (p.live || []).forEach((b) => {
               if (run.path !== b.path) return;
               if (b.when === "waiting") {
-                if (run.status === "waiting") ids.push(p.id);
+                // Not a step: the approval is the gap BEFORE the job starts, so
+                // the clock runs from when the run itself was created.
+                if (run.status === "waiting") mark(p.id, run.run_started_at || run.created_at);
                 return;
               }
               if (run.status !== "in_progress") return;
               jobs.forEach((job) => {
                 if (job.name !== b.job || job.status !== "in_progress") return;
                 (job.steps || []).forEach((s) => {
-                  if (s.status === "in_progress" && b.steps.indexOf(s.name) !== -1) ids.push(p.id);
+                  if (s.status === "in_progress" && b.steps.indexOf(s.name) !== -1) {
+                    mark(p.id, s.started_at || job.started_at);
+                  }
                 });
               });
             });
           });
-          return ids;
+          return { ids, since };
         }
+
+        const elapsedText = (iso) => {
+          const started = Date.parse(iso);
+          if (!started) return "";
+          const s = Math.max(0, Math.round((Date.now() - started) / 1000));
+          if (s < 60) return s + "s";
+          const m = Math.floor(s / 60);
+          if (m < 60) return m + "m " + (s % 60) + "s";
+          return Math.floor(m / 60) + "h " + (m % 60) + "m";
+        };
+
+        /* The clock ticks WITHOUT re-rendering. render() rebuilds the whole map
+           from scratch, and doing that once a second would throw away the
+           layout work sixty times a minute to change four characters. */
+        function tickElapsed() {
+          document.querySelectorAll("#rows .phase > header .elapsed").forEach((el) => {
+            el.textContent = elapsedText(el.dataset.since);
+          });
+        }
+        setInterval(tickElapsed, 1000);
 
         /* One place where a node's state is decided, because there are two
            sources for it and they are not equal: what a finished cycle measured,
@@ -1523,9 +1569,11 @@
         let livePrev = "";
         document.addEventListener("cycle:observed", (e) => {
           if (!DATA) return;
-          RUNSTATE.live = livePhases(e.detail);
-          const now = RUNSTATE.live.slice().sort().join(",");
-          if (now === livePrev) return;
+          const live = livePhases(e.detail);
+          RUNSTATE.live = live.ids;
+          RUNSTATE.liveSince = live.since;
+          const now = live.ids.slice().sort().join(",");
+          if (now === livePrev) { tickElapsed(); return; }
           livePrev = now;
           paint();
           render();
