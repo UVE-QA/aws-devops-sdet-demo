@@ -1099,7 +1099,24 @@
         renderEnvironments();
         renderCycle();
         renderHistory();
+        announceCycle();
         scheduleRefresh();
+      }
+
+      // The map needs the GitHub reading this script has just done, and must NOT
+      // fetch it again: 60 anonymous requests per hour per IP is the whole budget
+      // (ADR-0026), and a second reader would halve the rate at which either of
+      // them notices anything. So the observation is handed over, and the two
+      // scripts stay otherwise ignorant of each other - the map learns a run and a
+      // job list, never this file's identifiers or its state object.
+      function announceCycle() {
+        document.dispatchEvent(new CustomEvent("cycle:observed", {
+          detail: {
+            run: currentRun(),
+            jobs: state.jobs ? state.jobs.jobs : null,
+            error: state.githubError
+          }
+        }));
       }
 
       // TWO SOURCES, TWO CADENCES, because they cost different things. Reading this
@@ -1191,8 +1208,15 @@
           AWS_ICON.has(service)
             ? `<span class="icon aws"><svg><use href="#ic-${service}"></use></svg></span>`
             : `<span class="icon">${GLYPH[service] || "&middot;"}</span>`;
-        const secs = (s) => (s >= 60 ? Math.floor(s / 60) + "m " + (s % 60) + "s" : s + "s");
-        const MAXDUR = 261;
+        const secs = (s) => {
+          const v = Math.round(s);
+          return v >= 60 ? Math.floor(v / 60) + "m " + (v % 60) + "s" : v + "s";
+        };
+        // The longest node in whatever cycle is on the page. It was a CONSTANT -
+        // 261, measured once by hand and written down here - which is the exact
+        // shape of stale number ADR-0039 D1 exists to end, sitting in the file
+        // that ADR made generated. Recomputed whenever node states arrive.
+        let MAXDUR = 1;
 
         function nodeEl(n) {
           const el = document.createElement("div");
@@ -1222,6 +1246,21 @@
                 : `<div class="meta">${n.resources ? blocks(n.resources) + " &mdash; " : ""}no observation yet</div>`;
           } else if (st === "live") {
             body = `<div class="meta">running now &mdash; ${n.observer}</div>`;
+          } else if (st === "incomplete") {
+            // A node whose members did not all finish: no bar and no duration,
+            // because a figure taken from a group that stopped in the middle of
+            // itself is a plausible number, which is worse than none.
+            //
+            // publish-status.sh does not currently publish node states from an
+            // incomplete timeline, so this branch is a GUARD rather than a path
+            // the page takes today. It is here deliberately: the alternative to
+            // the guard is not "nothing renders", it is `undefined` seconds on a
+            // public page - which is exactly what the comment above records
+            // happening the last time a state arrived that this function had no
+            // branch for.
+            body = `<div class="meta">${n.resources_complete} of ${n.resources_observed} finished
+                    &mdash; the cycle did not complete</div>
+                    ${n.identifier ? `<div class="ident" title="${n.identifier}">${n.identifier}</div>` : ""}`;
           } else if (n.kind === "suite") {
             body = `<div class="asserts">${n.asserts || ""}</div>
                     <div class="figures"><span class="result ${n.result}">${n.result}</span><span><b>${secs(n.duration_s)}</b></span></div>`;
@@ -1291,6 +1330,27 @@
 
           h += `<h3>Blocks that stand for more than one object</h3>`;
           h += dl(d.repeated.map((r) => [esc(r.address), esc(r.why)]));
+
+          // What the last cycle touched and the map above did not draw. Two
+          // lists, and the difference between them is the whole coverage claim:
+          // the first was decided about, the second was not.
+          if (RUNSTATE.hidden.length || RUNSTATE.unknown.length) {
+            h += `<h3>Observed in the last cycle, not drawn above</h3>`;
+            const items = [];
+            if (RUNSTATE.hidden.length)
+              items.push([
+                `assigned, and given no mark <span class="note">${RUNSTATE.hidden.length}</span>`,
+                RUNSTATE.hidden.map(esc).join("<br>"),
+              ]);
+            if (RUNSTATE.unknown.length)
+              items.push([
+                `on no node at all <span class="note">${RUNSTATE.unknown.length}</span>`,
+                `Terraform created or destroyed these and nothing on this page claims them.
+                 Assign them in <code>assets/topology-groups.json</code>.<br>` +
+                  RUNSTATE.unknown.map(esc).join("<br>"),
+              ]);
+            h += dl(items);
+          }
 
           $("#detail-body").innerHTML = h;
         }
@@ -1378,24 +1438,160 @@
           });
         }
 
+        /* ---------------------------------------------------------------- the
+           RUN LAYER (ADR-0039 D4). The map above is permanent and comes from the
+           repository; everything below is what a CYCLE said, and it is a layer
+           on top rather than a different picture.
+
+           Three objects per environment, and the split is the point:
+
+             timeline/<env>/nodes-apply.json     node states from the last apply
+             timeline/<env>/nodes-destroy.json   ... and from the last destroy
+                 Both written by scripts/node-states.py and published ONLY when
+                 the timeline was complete. So a cancelled run cannot wipe a good
+                 measurement - the numbers a visitor sees are always from a cycle
+                 that actually finished, and they are dated
+             timeline/<env>/latest.json          the last run, whatever happened
+                 The raw timeline, published every time. It is not read for
+                 numbers; it is read so the page can SAY that the most recent
+                 attempt did not finish, instead of quietly showing older figures
+                 as if nothing had happened
+
+           Nothing is joined here. Which resource belongs to which node is decided
+           once, in Python, on the runner - see scripts/node-states.py for why. */
+        const ENVS = ["stage", "prod"];
+        const RUNSTATE = { nodes: {}, cycles: [], unfinished: [], unknown: [], hidden: [], live: [] };
+
+        function readJSON(path) {
+          return fetch(path, { cache: "no-store" })
+            .then((r) => (r.ok ? r.json() : null))
+            .catch(() => null);
+        }
+
+        function readRunLayer() {
+          const wanted = [];
+          ENVS.forEach((env) => {
+            wanted.push(["nodes", readJSON(`timeline/${env}/nodes-apply.json`)]);
+            wanted.push(["nodes", readJSON(`timeline/${env}/nodes-destroy.json`)]);
+            wanted.push(["latest", readJSON(`timeline/${env}/latest.json`)]);
+          });
+          return Promise.all(wanted.map((w) => w[1])).then((results) => {
+            results.forEach((doc, i) => {
+              if (!doc) return;
+              if (wanted[i][0] === "nodes") {
+                Object.keys(doc.nodes || {}).forEach((id) => { RUNSTATE.nodes[id] = doc.nodes[id]; });
+                RUNSTATE.cycles.push(doc.cycle);
+                // Carried onto the page rather than only into the apply log. A
+                // resource a cycle created and the map does not draw is the
+                // silence ADR-0039 D1 exists to end, and a reader is entitled to
+                // see the size of it.
+                (doc.unknown || []).forEach((a) => RUNSTATE.unknown.push(`${doc.environment} :: ${a}`));
+                (doc.not_shown || []).forEach((a) => RUNSTATE.hidden.push(`${doc.environment} :: ${a}`));
+              } else if (doc.status && doc.status !== "complete") {
+                RUNSTATE.unfinished.push({ environment: doc.environment, status: doc.status, at: doc.written_at });
+              }
+            });
+            let longest = 1;
+            Object.keys(RUNSTATE.nodes).forEach((id) => {
+              const n = RUNSTATE.nodes[id];
+              if (n.duration_s) longest = Math.max(longest, n.duration_s);
+            });
+            MAXDUR = longest;
+          });
+        }
+
+        /* LIVE IS PER PHASE, not per resource, and that is a deliberate limit
+           (ADR-0039 D4): the Actions API reports the running job and step
+           anonymously, while per-resource pulsing would need the timeline
+           published DURING the apply by the one step holding the deploy role -
+           which ADR-0026 keeps away from the bucket that reports on it.
+
+           Every workflow here holds one job, so the binding names a STEP. Those
+           bindings live in topology.json because scripts/generate-topology.py
+           CHECKS them against the workflow: a step renamed without the binding
+           following it is a refusal at build time, not a pulse that silently
+           never fires again. */
+        function livePhases(observation) {
+          if (!observation || !observation.run || observation.error) return [];
+          const run = observation.run;
+          const jobs = observation.jobs || [];
+          const ids = [];
+          (DATA ? DATA.phases : []).forEach((p) => {
+            (p.live || []).forEach((b) => {
+              if (run.path !== b.path) return;
+              if (b.when === "waiting") {
+                if (run.status === "waiting") ids.push(p.id);
+                return;
+              }
+              if (run.status !== "in_progress") return;
+              jobs.forEach((job) => {
+                if (job.name !== b.job || job.status !== "in_progress") return;
+                (job.steps || []).forEach((s) => {
+                  if (s.status === "in_progress" && b.steps.indexOf(s.name) !== -1) ids.push(p.id);
+                });
+              });
+            });
+          });
+          return ids;
+        }
+
+        /* One place where a node's state is decided, because there are two
+           sources for it and they are not equal: what a finished cycle measured,
+           and what is happening right now. Live wins while it lasts and leaves
+           nothing behind - the measured numbers are held in RUNSTATE, never
+           overwritten in DATA, so a phase that stops running goes back to its
+           figures instead of to "no observation yet". */
+        function paint() {
+          if (!DATA) return;
+          DATA.phases.forEach((p) => {
+            const live = RUNSTATE.live.indexOf(p.id) !== -1;
+            p.nodes.forEach((n) => {
+              const observed = RUNSTATE.nodes[n.id];
+              if (observed) {
+                n.duration_s = observed.duration_s;
+                n.identifier = observed.identifier;
+                n.resources_observed = observed.resources_observed;
+                n.resources_complete = observed.resources_complete;
+              }
+              n.state = live ? "live" : observed ? observed.state : undefined;
+            });
+          });
+        }
+
+        function measuredOn() {
+          const dates = RUNSTATE.cycles.map((c) => c && c.date).filter(Boolean).sort();
+          return dates.length ? dates[dates.length - 1] : null;
+        }
+
         fetch("data/topology.json")
           .then((r) => r.json())
+          .then((d) => readRunLayer().then(() => d))
           .then((d) => {
             DATA = d;
-            // measured_cycle is null until 20b observes one. Saying "the last
-            // measured cycle" over placeholder numbers is the exact defect this
-            // phase exists to remove, so the sentence changes rather than the data.
+            paint();
+            // The sentence is rewritten from what actually arrived, never from a
+            // field in the generated file: the repository cannot know whether a
+            // cycle has run. Saying "the last measured cycle" over numbers that
+            // are not there is the exact defect this phase exists to remove.
+            const date = measuredOn();
+            const stalled = RUNSTATE.unfinished
+              .map((u) => `${u.environment} (${u.status})`)
+              .join(", ");
             $("#map-sub").innerHTML =
               `Generated from <code>infra/</code> and <code>tests/</code>. ` +
-              (d.measured_cycle
-                ? `At rest the map shows the last measured cycle, dated ${d.measured_cycle.date}; `
+              (date
+                ? `At rest it shows the last cycle that finished, dated ${date}; `
                 : `Nothing has been measured into it yet, so every node below is unobserved; `) +
-              `the map is on the page whether or not anything is running.`;
+              `the map is on the page whether or not anything is running.` +
+              (stalled
+                ? `<br><b>The most recent run did not finish: ${stalled}.</b> Its numbers are not
+                   drawn — what is below is the last cycle that completed.`
+                : ``);
             // The bar-length note describes bars, and says the seconds beside them
             // are exact. With no cycle observed there are neither, and a paragraph
             // explaining a thing that is not on the page is the same defect in
             // miniature as a count that has gone stale.
-            $("#approx").hidden = !d.measured_cycle;
+            $("#approx").hidden = !date;
 
             $("#outside-note").innerHTML = "&mdash; " + d.outside.note;
             const outside = $("#outside");
@@ -1429,6 +1625,22 @@
             render();
           })
           .catch((e) => { $("#map-sub").textContent = "topology.json did not load: " + e; });
+
+        /* The dashboard script above reads the Actions API and hands the result
+           over; this listener is the map's only view of it. Deliberately not a
+           second fetch - see the comment on announceCycle() and ADR-0026's rate
+           budget. Re-rendering only when the set of live phases CHANGES keeps a
+           30-second ticker from rebuilding the map every 30 seconds for nothing. */
+        let livePrev = "";
+        document.addEventListener("cycle:observed", (e) => {
+          if (!DATA) return;
+          RUNSTATE.live = livePhases(e.detail);
+          const now = RUNSTATE.live.slice().sort().join(",");
+          if (now === livePrev) return;
+          livePrev = now;
+          paint();
+          render();
+        });
 
         let t;
         addEventListener("resize", () => { clearTimeout(t); t = setTimeout(render, 120); });
