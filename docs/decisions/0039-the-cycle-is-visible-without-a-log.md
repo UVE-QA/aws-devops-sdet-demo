@@ -89,6 +89,36 @@ Publishing them on a public page changes no exposure:
 identifiers rather than credentials, and the page has printed the account id in
 every environment header since 11.1b.
 
+### D2b — a test suite is a node, like a service
+
+The map's chain does not stop at infrastructure. Once stage is up, each suite
+that runs appears as its own node in the sequence — api contract, regression,
+smoke, the seed assertion — beside the services, not in a panel next to them. A
+separate tests panel would be a second place telling the same story, in a project
+that has just spent a session on what happens when two places tell one story.
+
+Two consequences that would otherwise be found during implementation.
+
+**Two kinds of node have two different observers.** Terraform's event stream
+knows nothing about a test run; a suite is observed by its report and, live, by
+the Actions step running it. ADR-0026's rule is unchanged — each source asserts
+only what it observes — but this is the first time two sources draw ADJACENT
+nodes on one picture, so each node records which observer it came from.
+
+**A node is a suite × ENVIRONMENT, not a suite.** Smoke runs twice per cycle:
+against stage before the approval, against prod after the promotion. One node
+labelled "smoke" cannot hold two results. This is the same rule the service nodes
+already follow — a node is `(thing, environment)` — and it falls out of ADR-0025's
+directory binding rather than being invented here.
+
+That binding is the part worth SEEING rather than reading: the map shows
+regression and the API contract physically unable to reach prod, with smoke the
+only suite standing there. It is a claim the repository already enforces, drawn.
+
+The coverage gate of D1 extends to suites unchanged: a spec directory belonging
+to no display node is a red build. That is the spec-coverage guard's own
+territory, which is where the shape came from.
+
 ### D3 — cost is computed, and says so
 
 Per-resource seconds from D2 multiplied by a dated rate table in the repository,

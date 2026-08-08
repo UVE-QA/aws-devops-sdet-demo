@@ -765,9 +765,11 @@ when something happens.
 ### 20a — the generated map  [$0, nothing applied]
 
 ```text
-generator     site/data/topology.json, built from infra/: the state levels, the
-              resources each module declares, and the display group each one is
-              assigned to
+generator     site/data/topology.json, built from infra/ AND tests/: the state
+              levels, the resources each module declares, the suites that run
+              after stage comes up, and the display node each one is assigned
+              to. Suite nodes are part of the chain from the start, not a
+              later addition (ADR-0039 D2b)
 layout        ONE DESKTOP SCREEN, no scrolling (ADR-0039 D5). That is a budget,
               not an aspiration: a fixed number of visual slots, resources
               GROUPED into services rather than drawn one per box
@@ -827,18 +829,29 @@ open          per-resource live pulsing, if phase-level proves too coarse. Two
               priced options in ADR-0039 D4; neither is taken by default
 ```
 
-### 20c — the tests panel  [$0 to write, one cycle to prove]
+### 20c — the suite nodes carry results  [$0 to write, one cycle to prove]
+
+Not a panel beside the map. The suite nodes are already ON the map from 20a
+(ADR-0039 D2b) — this is what fills them.
 
 ```text
 inventory     generated from the suites themselves - pytest --collect-only,
               playwright --list - not a list written beside them
-results       per suite, from the report already published to the bucket
-page          what each suite asserts, and where it is allowed to run
-              (the directory binding, ADR-0025)
+results       per node, from the report already published to the bucket:
+              passed/failed, duration, and what the suite asserts
+identity      a node is a suite x ENVIRONMENT. Smoke runs twice a cycle, on
+              stage before the approval and on prod after the promotion, and
+              one node cannot hold two results
+observer      a suite is observed by its report and, live, by the Actions step -
+              never by Terraform's stream, which knows nothing about it
 ```
 
 What a test checks is read from the test. A description maintained next to it is
 the sixth stale place waiting to happen.
+
+The thing worth SEEING here rather than reading: ADR-0025's directory binding,
+drawn. Regression and the API contract cannot reach prod, and the map shows smoke
+standing there alone.
 
 ### 20d — cost, computed and reconciled  [depends on 20b]
 
