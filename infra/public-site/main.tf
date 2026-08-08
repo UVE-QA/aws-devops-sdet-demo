@@ -103,10 +103,11 @@ resource "aws_s3_bucket_public_access_block" "site" {
   restrict_public_buckets = true
 }
 
-# The dashboard HTML is rebuilt from git, but status/ and reports/ are NOT:
-# they are written by the lifecycle workflows and exist nowhere else. Phase
-# 11.1b already added a guard to stop the site sync deleting them; versioning
-# is the half that survives the guard being wrong.
+# The dashboard HTML is rebuilt from git, but status/, reports/ and timeline/
+# are NOT: they are written by the lifecycle workflows and exist nowhere else.
+# Phase 11.1b already added a guard to stop the site sync deleting them, and
+# 20b.1 added the third prefix to it; versioning is the half that survives the
+# guard being wrong.
 resource "aws_s3_bucket_versioning" "site" {
   bucket = aws_s3_bucket.site.id
 

@@ -118,8 +118,9 @@ CKV2_AWS_12   the VPC default security group is declared with no rules, which
               revokes the allow-all pair every VPC ships with
 CKV2_AWS_32   the CloudFront distribution carries the managed security-headers
               policy (HSTS, nosniff, frame options, referrer policy, a CSP)
-CKV_AWS_21    versioning on the dashboard bucket - status/ and reports/ are
-              written by the workflows and exist nowhere else, not in git
+CKV_AWS_21    versioning on the dashboard bucket - status/, reports/ and
+              timeline/ are written by the workflows and exist nowhere else,
+              not in git
 ```
 
 The remaining 46 are listed in `.checkov.yaml` with the reason beside each
