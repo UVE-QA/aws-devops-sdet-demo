@@ -1,0 +1,138 @@
+Phase 20b.2 break tests
+date    2026-08-08T16:37:00Z
+head    bb29c28
+tf      Terraform v1.15.8
+
+== 0. control: the untouched tree
+--- OK  control before / site-data-check
+    expected green, got green (exit 0)
+    | python3 scripts/generate-topology.py --check
+    | site-data: clean - every resource assigned; 116 across 8 levels (55 permanent, 61 per cycle), 2 deliberately not shown
+
+--- OK  control before / node-states-check
+    expected green, got green (exit 0)
+    | python3 scripts/check-node-states.py
+    | node-states: clean — 5 cases, 4 folded from real terraform runs
+
+== 1. a live binding names a step the job does not have
+   Renaming a step is invisible to every other gate here: the failure is a
+   pulse that silently never fires again.
+--- OK  renamed step
+    expected red, got red (exit 2)
+    | python3 scripts/generate-topology.py --check
+    | site-data: REFUSED
+    | phase stage-apply: deploy-stage.yml job deploy has no step named 'Terraform  apply'. Renaming a step breaks the pulse silently; this is that rename, caught.
+    | make: *** [Makefile:184: site-data-check] Error 1
+
+== 2. a live binding names a job the workflow does not have
+--- OK  renamed job
+    expected red, got red (exit 2)
+    | python3 scripts/generate-topology.py --check
+    | site-data: REFUSED
+    | phase build: self-service.yml has no job lunch (it has: destroy, launch, release-lock)
+    | make: *** [Makefile:184: site-data-check] Error 1
+
+== 3. the environment filter is removed from the node index
+   stage and prod are the same modules in two state levels and hold
+   IDENTICAL member addresses. Without the filter every address maps to
+   whichever node was seen last, and half the map lights from the other
+   environment's cycle - which is why the stub topology carries a prod node
+   holding stage's members.
+--- OK  no environment filter
+    expected red, got red (exit 2)
+    | python3 scripts/check-node-states.py
+    | node-states: 4 finding(s)
+    | 
+    |   - apply-complete: node prod.alpha produced and not expected
+    |   - apply-complete: node stage.alpha expected and not produced
+    |   - synthetic: node prod.alpha produced and not expected
+    |   - synthetic: node stage.alpha expected and not produced
+    | make: *** [Makefile:213: node-states-check] Error 1
+
+== 4. the index stripping stops seeing count
+   members come from a static read of infra/ and carry no index; an apply
+   writes module.network.aws_subnet.public[0]. Stop stripping and nothing
+   with a count matches anything.
+--- OK  no index stripping
+    expected red, got red (exit 2)
+    | python3 scripts/check-node-states.py
+    | node-states: 11 finding(s)
+    | 
+    |   - apply-complete: observed
+    |      expected {"matched": 4, "nodes": 1, "not_shown": 0, "resources": 4, "unknown": 0}
+    |      got      {"matched": 2, "nodes": 1, "not_shown": 0, "resources": 4, "unknown": 2}
+    |   - apply-complete: unknown
+    |      expected []
+    |      got      ["terraform_data.gamma[0]", "terraform_data.gamma[1]"]
+    |   - apply-complete: node stage.alpha
+    |      expected {"identifier_present": true, "resources_complete": 4, "resources_observed": 4, "state": "measured"}
+    |      got      {"identifier_present": true, "resources_complete": 2, "resources_observed": 2, "state": "measured"}
+    |   - apply-module: observed
+    |      expected {"matched": 5, "nodes": 2, "not_shown": 4, "resources": 10, "unknown": 1}
+    |      got      {"matched": 1, "nodes": 1, "not_shown": 0, "resources": 10, "unknown": 9}
+    |   - apply-module: not_shown
+    |      expected ["module.pair[0].terraform_data.many[0]", "module.pair[0].terraform_data.many[1]", "module.pair[1].terraform_data.many[0]", "module.pair[1].terraform_data.many[1]"]
+    |      got      []
+    |   - apply-module: unknown
+    |      expected ["terraform_data.root"]
+    |      got      ["module.child.terraform_data.many[0]", "module.child.terraform_data.many[1]", "module.pair[0].terraform_data.many[0]", "module.pair[0].terraform_data.many[1]", "module.pair[0].terraform_data.only", "module.pair[1].terraform_data.many[0]", "module.pair[1].terraform_data.many[1]", "module.pair[1].terraform_data.only", "terraform_data.root"]
+    |   - apply-module: node stage.child
+    |      expected {"identifier_present": true, "resources_complete": 3, "resources_observed": 3, "state": "measured"}
+    |      got      {"identifier_present": true, "resources_complete": 1, "resources_observed": 1, "state": "measured"}
+    |   - apply-module: node stage.pair expected and not produced
+    |   - synthetic: observed
+    |      expected {"matched": 5, "nodes": 2, "not_shown": 0, "resources": 5, "unknown": 0}
+    |      got      {"matched": 4, "nodes": 2, "not_shown": 0, "resources": 5, "unknown": 1}
+    |   - synthetic: unknown
+    |      expected []
+    |      got      ["terraform_data.gamma[0]"]
+    |   - synthetic: node stage.alpha
+    |      expected {"duration_s": 122.0, "identifier": "beta-id-dominates", "identifier_from": "terraform_data.beta", "identifier_present": true, "resources_complete": 3, "resources_observed": 3, "state": "measured"}
+    |      got      {"duration_s": 122.0, "identifier": "beta-id-dominates", "identifier_from": "terraform_data.beta", "identifier_present": true, "resources_complete": 2, "resources_observed": 2, "state": "measured"}
+    | make: *** [Makefile:213: node-states-check] Error 1
+
+== 5. a hidden group forgets which addresses it hides
+   The coverage claim in one line: an address nothing claims must be
+   reported as UNKNOWN, not quietly counted as not-shown and not quietly
+   dropped.
+--- OK  hidden group with no members
+    expected red, got red (exit 2)
+    | python3 scripts/check-node-states.py
+    | node-states: 3 finding(s)
+    | 
+    |   - apply-module: observed
+    |      expected {"matched": 5, "nodes": 2, "not_shown": 4, "resources": 10, "unknown": 1}
+    |      got      {"matched": 5, "nodes": 2, "not_shown": 0, "resources": 10, "unknown": 5}
+    |   - apply-module: not_shown
+    |      expected ["module.pair[0].terraform_data.many[0]", "module.pair[0].terraform_data.many[1]", "module.pair[1].terraform_data.many[0]", "module.pair[1].terraform_data.many[1]"]
+    |      got      []
+    |   - apply-module: unknown
+    |      expected ["terraform_data.root"]
+    |      got      ["module.pair[0].terraform_data.many[0]", "module.pair[0].terraform_data.many[1]", "module.pair[1].terraform_data.many[0]", "module.pair[1].terraform_data.many[1]", "terraform_data.root"]
+    | make: *** [Makefile:213: node-states-check] Error 1
+
+== 6. the fixture directory is emptied
+   A gate that passes 0 of 0 has quietly stopped existing.
+   The directory is EMPTIED rather than deleted, on purpose: a missing
+   directory would only prove the script crashes, and what is under test is
+   the explicit refusal.
+--- OK  no cases at all
+    expected red, got red (exit 2)
+    | python3 scripts/check-node-states.py
+    | node-states: no cases found. Refusing to pass zero.
+    | make: *** [Makefile:213: node-states-check] Error 1
+
+== 7. control: the tree, restored
+--- OK  control after / site-data-check
+    expected green, got green (exit 0)
+    | python3 scripts/generate-topology.py --check
+    | site-data: clean - every resource assigned; 116 across 8 levels (55 permanent, 61 per cycle), 2 deliberately not shown
+
+--- OK  control after / node-states-check
+    expected green, got green (exit 0)
+    | python3 scripts/check-node-states.py
+    | node-states: clean — 5 cases, 4 folded from real terraform runs
+
+==================================================================
+break tests: every case behaved as stated. Log in docs/sessions/2026-08-08-phase-20b-2-break-tests.log
+?? docs/sessions/2026-08-08-phase-20b-2-break-tests.log
