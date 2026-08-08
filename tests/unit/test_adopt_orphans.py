@@ -23,6 +23,7 @@ import sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2] / "scripts"))
 
 import adopt_orphans  # noqa: E402
+import arns  # noqa: E402
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
 ACCOUNT = "111122223333"
@@ -279,3 +280,91 @@ def test_no_mapped_resource_is_counted():
         if re.search(r"^  (count|for_each)\s*=", body, re.M):
             counted.append(address)
     assert not counted, f"mapped but indexed: {counted}"
+
+
+# ---------------------------------------------------------------------------
+# The kinds nothing discovers (ADR-0041). Here the map is not just the
+# destination - it is the SOURCE of the question, so a gap in it is a resource
+# nobody ever asks about, which is how two roles blocked every apply for three
+# days while every gate in this repository stayed green.
+# ---------------------------------------------------------------------------
+TASK_ROLE = f"arn:aws:iam::{ACCOUNT}:role/{PREFIX}-ecs-task"
+DEPLOY_ROLE = f"arn:aws:iam::{ACCOUNT}:role/{PREFIX}-github-deploy"
+
+
+def test_the_two_roles_that_blocked_every_apply():
+    for arn, address in (
+        (TASK_ROLE, "module.ecs.aws_iam_role.task"),
+        (f"arn:aws:iam::{ACCOUNT}:role/{PREFIX}-ecs-execution", "module.ecs.aws_iam_role.execution"),
+    ):
+        plan = adopt_orphans.plan_one(arn, {}, PREFIX)
+        assert plan["verdict"] == "adopt"
+        assert plan["address"] == address
+        # Terraform imports a role by NAME, not by ARN.
+        assert plan["import_id"] == arn.rsplit("/", 1)[-1]
+
+
+def test_a_role_needs_no_name_tag():
+    """Unlike ec2 and secretsmanager, the ARN carries the name - which matters
+    because this repository BUILDS these ARNs from the configuration and has no
+    tags to build from."""
+    assert adopt_orphans.plan_one(TASK_ROLE, {}, PREFIX)["verdict"] == "adopt"
+
+
+def test_the_permanent_deploy_role_is_not_adoptable():
+    """It shares the environment's name prefix and outlives every cycle by
+    design (ADR-0015). It is excluded structurally - it is not in the
+    environment's configuration, so `unindexed_names` never asks about it - and
+    this asserts the map would refuse it even if something else handed it over."""
+    plan = adopt_orphans.plan_one(DEPLOY_ROLE, {}, PREFIX)
+    assert plan["verdict"] == "unadoptable"
+    assert "github-deploy" in plan["reason"]
+
+
+def test_the_names_to_probe_come_from_the_map():
+    names = adopt_orphans.unindexed_names(PREFIX, ACCOUNT)
+    assert [entry["name"] for entry in names] == [
+        f"{PREFIX}-ecs-execution",
+        f"{PREFIX}-ecs-task",
+    ]
+    assert all(entry["kind"] == "iam:role" for entry in names)
+
+
+def test_every_built_arn_parses_back_to_the_kind_it_claims():
+    """The one place this repository constructs an ARN rather than receiving one.
+    A wrong shape here would probe a name nothing has and report the environment
+    clean - the exact failure being fixed, rebuilt out of a typo."""
+    for entry in adopt_orphans.unindexed_names(PREFIX, ACCOUNT):
+        service, kind, name = arns.parse(entry["arn"])
+        assert f"{service}:{kind}" == entry["kind"]
+        assert name == entry["name"]
+
+
+def test_every_unindexed_kind_knows_how_to_build_its_arn():
+    """A kind added to UNINDEXED_KINDS without an ARN builder would raise
+    KeyError in the middle of a teardown."""
+    assert set(adopt_orphans.UNINDEXED_KINDS) <= set(adopt_orphans.UNINDEXED_ARN)
+    assert all(kind in adopt_orphans.RULES for kind in adopt_orphans.UNINDEXED_KINDS)
+
+
+def test_every_role_in_the_configuration_is_declared():
+    """THE DRIFT GATE, and the direction the map cannot check about itself.
+
+    A role added to a module tomorrow with no entry in `RULES["iam:role"]` is a
+    name nothing will ever probe: not by the tagging API, which does not index
+    roles, and not by this channel, which reads the map. It would be invisible
+    exactly the way the first two were, and the next apply would die on it.
+    """
+    sources = module_sources()
+    declared = set(adopt_orphans.RULES["iam:role"].addresses.values())
+    undeclared = []
+    for module, directory in sorted(sources.items()):
+        for path in sorted(directory.glob("*.tf")):
+            text = path.read_text(encoding="utf-8")
+            for name in re.findall(r'resource\s+"aws_iam_role"\s+"([^"]+)"', text):
+                address = f"module.{module}.aws_iam_role.{name}"
+                if address not in declared:
+                    undeclared.append(f"{address} ({path.name})")
+    assert not undeclared, (
+        "an aws_iam_role nothing will ever look for:\n" + "\n".join(undeclared)
+    )

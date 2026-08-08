@@ -60,8 +60,11 @@
 #
 # Usage:  scripts/sweep-orphans.sh <environment>
 #
-# The four BREAK_TEST_ variables replace one input each with a fixture, so a
+# The five BREAK_TEST_ variables replace one input each with a fixture, so a
 # planted orphan and a dead credential can both be exercised without an account.
+# BREAK_TEST_UNINDEXED_JSON is the newest: it stands in for what the
+# configuration declares, and an empty `names` list there is how the second
+# channel's own refusal is exercised (ADR-0041 D4).
 
 set -euo pipefail
 
@@ -72,6 +75,7 @@ if [ -z "$ENVIRONMENT" ]; then
 fi
 
 PROJECT="aws-devops-sdet-demo"
+PREFIX="${PROJECT}-${ENVIRONMENT}"
 REGION="${AWS_REGION:-us-west-2}"
 ENV_DIR="infra/envs/${ENVIRONMENT}"
 
@@ -99,12 +103,44 @@ if [ -n "${BREAK_TEST_TAGGED_JSON:-}" ]; then
   echo "!! BREAK_TEST_TAGGED_JSON is set: reading ${BREAK_TEST_TAGGED_JSON} instead of AWS"
   cp "$BREAK_TEST_TAGGED_JSON" "$WORK/tagged.json"
 else
-  echo "account: $(aws sts get-caller-identity --query Account --output text)"
+  ACCOUNT="$(aws sts get-caller-identity --query Account --output text)"
+  echo "account: $ACCOUNT"
   aws resourcegroupstaggingapi get-resources \
     --region "$REGION" \
     --tag-filters "Key=Project,Values=${PROJECT}" "Key=Environment,Values=${ENVIRONMENT}" \
     --output json > "$WORK/tagged.json"
 fi
+
+# --- what the tagging API cannot see at all (ADR-0041) -----------------------
+#
+# The second discovery channel, and it asks the CONFIGURATION rather than AWS.
+# `iam:role` is not in the tagging API's index - `iam:oidc-provider` is, from the
+# same state level with the same tags, which is how this was told apart from a
+# wrong region - so a role left behind by a teardown is invisible to the query
+# above, to `Verify no billable resources remain` (a role is free), and to
+# Terraform, which no longer holds it. Two of them blocked every apply for three
+# days after a teardown that verified itself green.
+#
+# There is nothing to scan with either: the deploy role has `iam:GetRole` on two
+# ARNs and neither `iam:ListRoles` nor `iam:ListRoleTags`. So the names come from
+# `adopt_orphans.py`, which already holds the map of what this configuration has,
+# and the loop below asks the owning service about each. A name that exists and
+# is not in state is an orphan; a name that does not exist is what a finished
+# teardown looks like.
+if [ -n "${BREAK_TEST_UNINDEXED_JSON:-}" ]; then
+  echo "!! BREAK_TEST_UNINDEXED_JSON is set: reading ${BREAK_TEST_UNINDEXED_JSON} instead of the configuration"
+  cp "$BREAK_TEST_UNINDEXED_JSON" "$WORK/declared.json"
+else
+  python3 scripts/adopt_orphans.py --unindexed "$PREFIX" \
+    --account "${ACCOUNT:-$(aws sts get-caller-identity --query Account --output text)}" \
+    > "$WORK/declared.json"
+fi
+
+# One file from here on: the decision, the log and the adoption step all work
+# from everything discovery found, by whichever channel.
+jq -c --slurpfile d "$WORK/declared.json" \
+  '.ResourceTagMappingList += [$d[0].names[] | {ResourceARN: .arn, Tags: []}]' \
+  "$WORK/tagged.json" > "$WORK/discovered.json"
 
 if [ -n "${BREAK_TEST_CONTROL_JSON:-}" ]; then
   echo "!! BREAK_TEST_CONTROL_JSON is set: reading ${BREAK_TEST_CONTROL_JSON} instead of AWS"
@@ -204,6 +240,23 @@ confirm_exists() {
                 --log-group-name-prefix "$id" --query "logGroups[0].arn" --output text 2>/dev/null | grep -v None)" ] ;;
     secretsmanager:secret)
       aws secretsmanager describe-secret --region "$region" --secret-id "$arn" >/dev/null 2>&1 ;;
+    iam:role)
+      # THE ONLY ARM THAT SEPARATES "it is gone" FROM "I could not ask", and the
+      # only one that has to (ADR-0041 D4). Every arm above returns non-zero for
+      # both, which is safe there for a reason that does not hold here: the
+      # tagging API had already proved the credential works by returning the ARN
+      # in the first place. This kind is discovered from the CONFIGURATION, so
+      # nothing has been proved about the credential, and an AccessDenied would
+      # otherwise read exactly like a role that is not there - the empty-result
+      # trap, one level below the one this file already guards.
+      #
+      # IAM is global; no --region, deliberately, rather than a region that would
+      # be ignored and look meaningful.
+      err="$(aws iam get-role --role-name "$id" 2>&1 >/dev/null)" && return 0
+      case "$err" in
+        *NoSuchEntity*) return 1 ;;
+        *) echo "::warning::get-role could not answer for ${id}: ${err}" >&2; return 2 ;;
+      esac ;;
     *)
       # No rule. `unconfirmed` is not `absent`: the ARN goes to the decision
       # marked, and the decision reports it.
@@ -231,13 +284,19 @@ else
       2) unconfirmed="$(echo "$unconfirmed" | jq -c --arg a "$arn" '. + [$a]')" ;;
       *) : ;;   # the service says it is not there
     esac
-  done < <(jq -r '.ResourceTagMappingList[].ResourceARN' "$WORK/tagged.json")
+  done < <(jq -r '.ResourceTagMappingList[].ResourceARN' "$WORK/discovered.json")
   jq -n --argjson p "$present" --argjson u "$unconfirmed" \
     '{present: $p, unconfirmed: $u}' > "$WORK/present.json"
 fi
 
-echo "::group::tagged in ${ENVIRONMENT}"
+# Printed per CHANNEL. A single list would hide which question found what, and
+# the whole finding behind ADR-0041 is that one of the two questions was not
+# being asked at all.
+echo "::group::discovered in ${ENVIRONMENT}"
+echo "-- tagging API, Project + Environment"
 jq -r '.ResourceTagMappingList[].ResourceARN' "$WORK/tagged.json" || true
+echo "-- the configuration, for kinds the tagging API does not index"
+jq -r '.names[] | "\(.arn)   (\(.kind))"' "$WORK/declared.json" || true
 echo "::endgroup::"
 
 # SWEEP_KEEP_DIR is how `scripts/adopt-orphans.sh` gets at the answer without
@@ -248,8 +307,9 @@ echo "::endgroup::"
 # has work to do in. The code is re-raised at the end, so this script's contract
 # to every existing caller is unchanged.
 DECIDE=(python3 scripts/sweep_orphans.py
-  --tagged "$WORK/tagged.json"
+  --tagged "$WORK/discovered.json"
   --control "$WORK/control.json"
+  --declared "$WORK/declared.json"
   --state "$WORK/state.json"
   --present "$WORK/present.json"
   --environment "$ENVIRONMENT")

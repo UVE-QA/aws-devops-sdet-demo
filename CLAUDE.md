@@ -85,3 +85,15 @@ See `session-protocol` for the exact steps and templates.
 - Secrets → Secrets Manager / GitHub Secrets. Never committed.
 
 Do NOT commit: `.env`, `*.tfstate`, secrets, raw chat transcripts, large logs.
+
+And not a LINK to a chat either. The `Claude-Session: https://claude.ai/code/…`
+trailer reached six commits before anyone looked; the repository is public
+(ADR-0023), and a session URL on a portfolio repo is noise at best. It is not a
+credential — the link resolves only for the account that owns the session — so
+the six already pushed are left alone rather than force-rewritten over 32 SHAs,
+one of which is quoted in a recorded break-test log.
+
+`.claude/settings.json` sets `attribution.sessionUrl: false`, which is why this
+is a configured fact and not a rule to remember. The key is UNDOCUMENTED, so it
+was proven by one real commit rather than trusted; if a trailer ever reappears,
+check the file before assuming the setting still works.

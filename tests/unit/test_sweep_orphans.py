@@ -24,6 +24,8 @@ import json
 import pathlib
 import sys
 
+import pytest
+
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2] / "scripts"))
 
 import sweep_orphans  # noqa: E402
@@ -59,13 +61,25 @@ def state(*values: str) -> dict:
     }
 
 
-def decide(tagged_list, control, state_doc, present=None, unconfirmed=()):
+ROLE = f"arn:aws:iam::{ACCOUNT}:role/aws-devops-sdet-demo-stage-ecs-task"
+
+# What the second discovery channel declares (ADR-0041). Non-empty by default in
+# these tests for the same reason it is non-empty in reality: the configuration
+# always has at least one name of a kind the tagging API cannot index, so an
+# empty list means the declaration went missing, not that there is nothing there.
+DECLARED = [{"kind": "iam:role", "name": "aws-devops-sdet-demo-stage-ecs-task", "arn": ROLE}]
+
+
+def decide(tagged_list, control, state_doc, present=None, unconfirmed=(), declared=None):
     """`present` defaults to everything tagged - the pre-amendment assumption."""
     if present is None:
         present = [r["ResourceARN"] for r in tagged_list]
     return sweep_orphans.decide_sweep(
         tagged_list,
-        control,
+        {
+            "tagging-api": control,
+            "configured-names": DECLARED if declared is None else declared,
+        },
         sweep_orphans.state_identifiers(state_doc),
         present,
         unconfirmed,
@@ -88,6 +102,57 @@ def test_an_empty_control_refuses_even_when_orphans_were_found():
     """
     decision = decide(tagged(CLUSTER), tagged(), state())
     assert decision["verdict"] == "refuse"
+    assert decision["orphans"] == []
+
+
+# ------------------------------------------- one control per channel (ADR-0041)
+def test_a_silent_second_channel_refuses_while_the_first_one_is_loud():
+    """The failure this gate is FOR, reproduced inside the gate.
+
+    Two IAM roles survived a green teardown because a check that could not see
+    them called the environment clean. A single shared control would repeat that
+    exactly: the tagging API answers, so the run goes green, while the channel
+    that looks for the roles has quietly stopped answering.
+    """
+    decision = decide(tagged(CLUSTER), tagged(PERMANENT), state(CLUSTER), declared=[])
+    assert decision["verdict"] == "refuse"
+    assert decision["silent_channels"] == ["configured-names"]
+    assert "declaration went missing" in decision["reason"]
+
+
+def test_the_refusal_names_every_silent_channel_not_just_the_first():
+    """A refusal that stops at the first cause sends the reader to one of two
+    places to look, with no way to tell it was not both."""
+    decision = decide(tagged(), tagged(), state(), declared=[])
+    assert decision["verdict"] == "refuse"
+    assert decision["silent_channels"] == ["configured-names", "tagging-api"]
+    assert "tagging API returned nothing" in decision["reason"]
+    assert "declaration went missing" in decision["reason"]
+
+
+def test_a_declared_name_nothing_created_is_not_an_orphan():
+    """What a FINISHED teardown looks like from this channel: the name is asked
+    about, the service says there is no such role, and nothing is reported."""
+    decision = decide(tagged(ROLE), tagged(PERMANENT), state(), present=[])
+    assert decision["verdict"] == "clean"
+    assert decision["not_present"] == 1
+
+
+def test_a_declared_name_that_exists_and_is_unmanaged_is_the_orphan():
+    """2026-08-05, and it blocked every apply for three days. The role exists,
+    Terraform holds nothing, and no other check in this repository can see it -
+    a role is free, so the billable-resource step is silent by design."""
+    decision = decide(tagged(ROLE), tagged(PERMANENT), state(), present=[ROLE])
+    assert decision["verdict"] == "orphans"
+    assert decision["orphans"] == [ROLE]
+
+
+def test_a_declared_name_that_could_not_be_asked_about_is_unconfirmed():
+    """`AccessDenied` and `NoSuchEntity` must not read the same. Nothing proved
+    the credential works for this channel - discovery never touched AWS."""
+    decision = decide(tagged(ROLE), tagged(PERMANENT), state(), present=[], unconfirmed=[ROLE])
+    assert decision["verdict"] == "orphans"
+    assert decision["unconfirmed"] == [ROLE]
     assert decision["orphans"] == []
 
 
@@ -223,11 +288,34 @@ def test_the_cli_exit_code_is_the_verdict(tmp_path):
     argv = [
         "--tagged", write("tagged.json", {"ResourceTagMappingList": tagged(CLUSTER)}),
         "--control", write("control.json", {"ResourceTagMappingList": tagged(PERMANENT)}),
+        "--declared", write("declared.json", {"names": DECLARED}),
         "--state", write("state.json", state()),
         "--present", write("present.json", {"present": [CLUSTER], "unconfirmed": []}),
         "--environment", "stage",
     ]
     assert sweep_orphans.main(argv) == 1
 
-    argv[7] = write("gone.json", {"present": [], "unconfirmed": []})
+    present_at = argv.index("--present") + 1
+    argv[present_at] = write("gone.json", {"present": [], "unconfirmed": []})
     assert sweep_orphans.main(argv) == 0
+
+
+def test_the_cli_refuses_to_run_without_the_second_channel(tmp_path, capsys):
+    """`--declared` is required, and that is the point: a channel that can be
+    left out of a call silently is a channel that will be. The old signature
+    accepted exactly this command line and answered `clean`."""
+    def write(name: str, payload) -> str:
+        path = tmp_path / name
+        path.write_text(json.dumps(payload), encoding="utf-8")
+        return str(path)
+
+    argv = [
+        "--tagged", write("tagged.json", {"ResourceTagMappingList": tagged(CLUSTER)}),
+        "--control", write("control.json", {"ResourceTagMappingList": tagged(PERMANENT)}),
+        "--state", write("state.json", state()),
+        "--present", write("present.json", {"present": [], "unconfirmed": []}),
+        "--environment", "stage",
+    ]
+    with pytest.raises(SystemExit) as raised:
+        sweep_orphans.main(argv)
+    assert raised.value.code == 2

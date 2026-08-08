@@ -27,6 +27,16 @@ the dashboard and the self-service level are permanent and all carry
 question was not answered, and an unanswered question is a refusal, never a
 pass.
 
+ONE CONTROL PER CHANNEL, NOT ONE CONTROL (ADR-0041 D4)
+
+There are two discovery channels since 2026-08-08: the tagging API, and the
+names the configuration declares for kinds the tagging API does not index. Each
+carries its own control and each has to be non-empty on its own. Sharing one
+control was right while there was one channel and is exactly wrong with two -
+the loud channel would vouch for the silent one, which is this gate's own
+failure mode reproduced inside it: two IAM roles were left behind precisely
+because a check that could not see them reported the environment clean.
+
 ARNs ARE NOT SPELLED THE SAME ON BOTH SIDES
 
 CloudWatch log groups are the reason this is not a set intersection: the tagging
@@ -138,9 +148,30 @@ def is_managed(arn: str, identifiers: set[str]) -> bool:
     return bool(tail) and tail in identifiers
 
 
+# Why an empty answer from each discovery channel is a refusal rather than a
+# clean account. One entry per channel, because "no answer" has a different
+# cause on each and a refusal that cannot say which channel went quiet sends the
+# reader to the wrong place (ADR-0041 D4).
+CONTROL_WHY = {
+    "tagging-api": (
+        "the tagging API returned nothing for the project as a whole. The "
+        "permanent levels (registry, hosted zone, dashboard, self-service) are "
+        "always tagged, so an empty answer means the question was not answered - "
+        "expired credentials, the wrong region, or a missing tag:GetResources "
+        "grant"
+    ),
+    "configured-names": (
+        "the configuration declared no names for the kinds the tagging API does "
+        "not index. It always declares at least one, so an empty list means the "
+        "declaration went missing - a renamed module, a bad parse - rather than "
+        "that there is nothing to look for (ADR-0041 D4)"
+    ),
+}
+
+
 def decide_sweep(
     tagged: Iterable[dict[str, Any]],
-    control: Iterable[dict[str, Any]],
+    controls: dict[str, Iterable[Any]],
     identifiers: set[str],
     present: Iterable[str] = (),
     unconfirmed: Iterable[str] = (),
@@ -148,43 +179,53 @@ def decide_sweep(
     """`refuse`, `orphans` or `clean`, in that order of precedence.
 
     The order matters: an unanswered question must not be reported as a clean
-    account, so the control is settled before anything is counted.
+    account, so every control is settled before anything is counted.
+
+    `controls` is one entry per DISCOVERY CHANNEL, and each has to be non-empty
+    on its own. A single control was enough while the tagging API was the only
+    channel; it is exactly wrong once there are two, because the loud one would
+    then vouch for the silent one - which is the failure this whole gate is
+    about, one level up.
 
     `present` and `unconfirmed` come from the caller, which asked the owning
     service. Anything in `tagged` and in neither of them is a resource the
-    service says is gone - the tagging API had simply not caught up - and it is
-    dropped without comment beyond the count.
+    service says is gone - discovery had simply not caught up, or asked about a
+    name nothing has created - and it is dropped without comment beyond the
+    count.
     """
     # Materialised before anything is counted. A generator walked once answers
     # empty the second time, and empty is the one answer this file exists to
     # distrust.
     tagged_list = list(tagged)
-    control_list = list(control)
+    answered = {name: list(items) for name, items in controls.items()}
     present_set = set(present)
     unconfirmed_list = sorted(set(unconfirmed))
 
-    if not control_list:
+    silent = sorted(name for name, items in answered.items() if not items)
+    if silent:
         return {
             "verdict": "refuse",
             "reason": (
-                "the tagging API returned nothing for the project as a whole. "
-                "The permanent levels (registry, hosted zone, dashboard, "
-                "self-service) are always tagged, so an empty answer means the "
-                "question was not answered - expired credentials, the wrong "
-                "region, or a missing tag:GetResources grant. Refusing rather "
-                "than reporting an account nobody looked at as empty."
+                "; ".join(
+                    CONTROL_WHY.get(name, f"the {name} channel answered nothing")
+                    for name in silent
+                )
+                + ". Refusing rather than reporting an account nobody looked at "
+                "as empty."
             ),
             "orphans": [],
             "unconfirmed": [],
             "not_present": 0,
+            "silent_channels": silent,
         }
 
     arns = [r.get("ResourceARN", "") for r in tagged_list]
     arns = [a for a in arns if a]
-    # Reported by the tagging API, and not there according to the service:
-    # either deleted and not yet dropped from the index, or a kind that is never
-    # live. Counted rather than listed - the count is what would make a sudden
-    # change visible.
+    # Discovered, and not there according to the service: deleted and not yet
+    # dropped from the index, a kind that is never live, or - since ADR-0041 - a
+    # name the configuration will need that nothing has created, which is what a
+    # finished teardown looks like. Counted rather than listed; the count is what
+    # would make a sudden change visible.
     not_present = [a for a in arns if a not in present_set and a not in unconfirmed_list]
 
     orphans = sorted(a for a in arns if a in present_set and not is_managed(a, identifiers))
@@ -206,9 +247,9 @@ def decide_sweep(
     return {
         "verdict": "clean",
         "reason": (
-            f"{len(arns)} tagged, {len(present_set & set(arns))} still there and "
-            f"all of them managed, {len(not_present)} reported by the tagging "
-            "API and not there according to the service. Nothing was left behind."
+            f"{len(arns)} discovered, {len(present_set & set(arns))} still there "
+            f"and all of them managed, {len(not_present)} discovered and not "
+            "there according to the service. Nothing was left behind."
         ),
         "orphans": [],
         "unconfirmed": [],
@@ -220,8 +261,14 @@ def main(argv: list[str]) -> int:
     import argparse
 
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--tagged", required=True, help="get-resources for this environment")
+    parser.add_argument("--tagged", required=True, help="everything discovery found")
     parser.add_argument("--control", required=True, help="get-resources for the whole project")
+    # ADR-0041 D4. The second channel's own control: the names the configuration
+    # declares for kinds the tagging API does not index. Required, because a
+    # channel that can be left out silently is a channel that will be.
+    parser.add_argument(
+        "--declared", required=True, help="{names: [...]} from adopt_orphans.py --unindexed"
+    )
     parser.add_argument("--state", required=True, help="terraform show -json output")
     parser.add_argument(
         "--present",
@@ -239,6 +286,8 @@ def main(argv: list[str]) -> int:
         tagged = json.load(handle).get("ResourceTagMappingList", [])
     with open(args.control, encoding="utf-8") as handle:
         control = json.load(handle).get("ResourceTagMappingList", [])
+    with open(args.declared, encoding="utf-8") as handle:
+        declared = json.load(handle).get("names", [])
     with open(args.state, encoding="utf-8") as handle:
         state = json.load(handle)
     with open(args.present, encoding="utf-8") as handle:
@@ -247,15 +296,16 @@ def main(argv: list[str]) -> int:
     identifiers = state_identifiers(state)
     decision = decide_sweep(
         tagged,
-        control,
+        {"tagging-api": control, "configured-names": declared},
         identifiers,
         confirmed.get("present", []),
         confirmed.get("unconfirmed", []),
     )
 
     print(f"environment: {args.environment}")
-    print(f"tagged in AWS: {len(tagged)}   in Terraform state: {len(identifiers)} identifier(s)")
+    print(f"discovered in AWS: {len(tagged)}   in Terraform state: {len(identifiers)} identifier(s)")
     print(f"control (whole project): {len(control)} resource(s)")
+    print(f"control (names the configuration declares): {len(declared)}")
     print(f"confirmed present: {len(confirmed.get('present', []))}   "
           f"tagged but not there: {decision['not_present']}")
     print(f"verdict: {decision['verdict']}")

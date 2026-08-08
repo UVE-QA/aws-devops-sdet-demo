@@ -60,6 +60,10 @@ SAMPLES = {
     "secretsmanager:secret": (
         f"arn:aws:secretsmanager:us-west-2:{ACCOUNT}:secret:demo-db-credentials-AbCdEf"
     ),
+    # No region, because IAM is global. The empty field is the shape the parser
+    # has to survive, not a typo - and this is the one kind whose ARN this
+    # repository BUILDS rather than receives (ADR-0041).
+    "iam:role": f"arn:aws:iam::{ACCOUNT}:role/aws-devops-sdet-demo-stage-ecs-task",
 }
 
 
@@ -114,6 +118,18 @@ def test_a_malformed_arn_answers_empty_rather_than_raising():
 
 def test_an_arn_with_no_resource_name_keeps_its_kind():
     assert arns.parse("arn:aws:s3:::my-bucket") == ("s3", "my-bucket", "")
+
+
+def test_a_global_arn_has_no_region_and_still_parses():
+    """The empty region field is two colons in a row, which is where a parser
+    that counted fields loosely would go wrong. `iam:role` is the kind this
+    repository constructs itself (ADR-0041), so getting it wrong would produce
+    a probe against a name nobody has."""
+    assert arns.parse(SAMPLES["iam:role"]) == (
+        "iam",
+        "role",
+        "aws-devops-sdet-demo-stage-ecs-task",
+    )
 
 
 # ---------------------------------------------------------------------------

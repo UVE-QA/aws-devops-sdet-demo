@@ -82,9 +82,13 @@ else
     exit 2
   fi
 
+  # `discovered.json`, not `tagged.json`: since ADR-0041 the sweep has two
+  # discovery channels and this is the merged answer. Adopting from the tagging
+  # API's half alone would refuse to import exactly the orphan that motivated
+  # the second channel.
   python3 scripts/adopt_orphans.py \
     --decision "$WORK/decision.json" \
-    --tagged "$WORK/tagged.json" \
+    --tagged "$WORK/discovered.json" \
     --environment "$ENVIRONMENT" \
     --out "$WORK/plan.json"
 fi

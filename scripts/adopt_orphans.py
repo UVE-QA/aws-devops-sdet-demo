@@ -52,6 +52,33 @@ do not:
 Both use the Name tag instead. A resource without one is `unadoptable` rather
 than guessed. Matching is EXACT in every case: a looser rule starts matching on
 substrings, and `sweep_orphans.py` already records where that ends.
+
+THE MAP IS ALSO THE DISCOVERY, FOR KINDS NOTHING DISCOVERS (ADR-0041)
+
+Everything above assumes an ARN arrives from somewhere. For `iam:role` nothing
+brings one: the Resource Groups Tagging API does not index roles, so a role left
+behind by a teardown is invisible to the sweep, invisible to the billable-resource
+check, and gone from Terraform, which no longer holds it. Two of them survived a
+teardown that verified itself GREEN on 2026-08-05 and made every `deploy-stage`
+fail at the ECS module for three days with `EntityAlreadyExists`.
+
+There is nothing to scan with, either: the deploy role is granted `iam:GetRole`
+on exactly two ARNs and neither `iam:ListRoles` nor `iam:ListRoleTags`. A prefix
+scan would need a new account-wide grant, applied to a PERMANENT state level, to
+build a gate.
+
+So discovery inverts. A name collision can only happen on a name THIS
+configuration will create, and the map below already lists them:
+`unindexed_names` turns `RULES["iam:role"]` into the names to ask about, and the
+caller asks the owning service whether each one is there. Two consequences worth
+naming, because a scan would have had neither:
+
+    the permanent `<prefix>-github-deploy` role can never be reported, and not
+    because a tag says so - it is not in the environment's configuration at all
+
+    a role somebody created by hand can never be reported either. That reads
+    like a gap and is the opposite: a gate that reddens on something nobody has
+    to act on is a gate on its way to being switched off
 """
 from __future__ import annotations
 
@@ -206,7 +233,52 @@ RULES: dict[str, Rule] = {
         import_id=_arn_itself,
         from_tag=True,
     ),
+    # Nothing DISCOVERS these - see the docstring. The ARN carries the role name
+    # and Terraform imports a role by name, so no tag is involved on either side.
+    "iam:role": Rule(
+        {
+            "ecs-task": "module.ecs.aws_iam_role.task",
+            "ecs-execution": "module.ecs.aws_iam_role.execution",
+        },
+        import_id=_tail,
+    ),
 }
+
+
+# --- the kinds the tagging API does not index (ADR-0041) ---------------------
+#
+# Separated from "the wrong region" by a control that was inside the same answer:
+# `iam:oidc-provider` comes back from `get-resources` and `iam:role` does not,
+# while both live in `infra/bootstrap-oidc`, carry the same tags and were asked
+# for in the same call. Only the resource type differs.
+UNINDEXED_KINDS = ("iam:role",)
+
+# How a name becomes an ARN, per kind. Here rather than in the shell so that one
+# file knows about kinds: a second unindexed kind added tomorrow cannot be half
+# taught. `tests/unit/test_adopt_orphans.py` asserts each of these round-trips
+# back through `arns.parse` to the kind it claims to be.
+UNINDEXED_ARN: dict[str, Callable[[str, str], str]] = {
+    "iam:role": lambda account, name: f"arn:aws:iam::{account}:role/{name}",
+}
+
+
+def unindexed_names(prefix: str, account: str = "ACCOUNT") -> list[dict[str, str]]:
+    """Every name this configuration will need, for kinds nothing discovers.
+
+    Derived from `RULES` rather than listed a second time, so a role added to the
+    map tomorrow is probed the day it is added. The other direction - an
+    `aws_iam_role` in the configuration with no entry in `RULES` - is asserted in
+    `tests/unit/test_adopt_orphans.py`, because that is the half a map cannot
+    check about itself.
+    """
+    out: list[dict[str, str]] = []
+    for kind in UNINDEXED_KINDS:
+        for discriminator in sorted(RULES[kind].addresses):
+            name = f"{prefix}-{discriminator}"
+            out.append(
+                {"kind": kind, "name": name, "arn": UNINDEXED_ARN[kind](account, name)}
+            )
+    return out
 
 
 def discriminator(name: str, prefix: str) -> str:
@@ -288,11 +360,33 @@ def main(argv: list[str]) -> int:
     import json
 
     parser = argparse.ArgumentParser(description="Map orphan ARNs to Terraform addresses")
-    parser.add_argument("--decision", required=True, help="sweep_orphans.py --json output")
-    parser.add_argument("--tagged", required=True, help="get-resources for this environment")
-    parser.add_argument("--environment", required=True)
-    parser.add_argument("--out", required=True, help="where to write the plan")
+    parser.add_argument("--decision", help="sweep_orphans.py --json output")
+    parser.add_argument("--tagged", help="get-resources for this environment")
+    parser.add_argument("--environment")
+    parser.add_argument("--out", help="where to write the plan")
+    # The second mode, and the reason the four above are not `required`: the sweep
+    # asks this file what to LOOK FOR before anything has been found (ADR-0041
+    # D3). Same table, read the other way round.
+    parser.add_argument("--unindexed", metavar="PREFIX", help="names to probe, as JSON")
+    parser.add_argument("--account", default="ACCOUNT", help="account id for --unindexed")
     args = parser.parse_args(argv)
+
+    if args.unindexed:
+        print(json.dumps({"names": unindexed_names(args.unindexed, args.account)}))
+        return 0
+
+    missing = [
+        flag
+        for flag, value in (
+            ("--decision", args.decision),
+            ("--tagged", args.tagged),
+            ("--environment", args.environment),
+            ("--out", args.out),
+        )
+        if not value
+    ]
+    if missing:
+        parser.error("missing: " + ", ".join(missing))
 
     with open(args.decision, encoding="utf-8") as handle:
         decision = json.load(handle)
