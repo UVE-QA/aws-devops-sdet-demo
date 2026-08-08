@@ -36,8 +36,9 @@ Closed with two fixes to the session machinery that this day earned twice:
 `make session-close` printed the wrong summary whenever a day held more than one
 — `ls | tail -1` sorts alphabetically, and 2026-08-08 held four — and the same
 assumption appeared a second time in the same script, where it also counted
-`*.log` evidence as sessions and happened to land on the right file, which is
-the worst kind of green. Both orderings now come from INDEX's last row, which
+`*.log` evidence as sessions. That one landed on the right file by accident on
+the tree it was measured against, and returned the LOG as soon as this session
+added one: the accident was one commit deep. Both orderings now come from INDEX's last row, which
 this script already refuses to let go non-chronological: one ordering, not two.
 And the primer's WORKING chat name was taken from the phase title in the cursor,
 which does not change while a sub-phase spans sessions — 20a took three and all

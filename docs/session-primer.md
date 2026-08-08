@@ -243,7 +243,9 @@ before it means anything. Decided closing Phase 19a.
   commit, not only the one being exercised.
 - A gate that has only ever been seen GREEN is indistinguishable from a gate
   that cannot fail. Break each new one on purpose, once, and keep the output.
-  Fifteen have been confirmed this way: the tf-validate discovery check, the
+  Every gate here has been confirmed this way, and the list below carries no
+  total, because a total is exactly the kind of number that goes stale without
+  a word changing around it: the tf-validate discovery check, the
   Playwright spec-coverage guard, the UI-write assertion, `make docs-check` (six
   ways, including its own document list going missing), the Mermaid parse check
   (on a malformed diagram AND on a file containing no diagram at all), the prod
@@ -264,8 +266,11 @@ before it means anything. Decided closing Phase 19a.
   (`expected exactly one access line, got 0`), the formatter's drop-list removed
   so uvicorn's ANSI-coloured `color_message` reaches the payload, and one nobody
   planned — `make docs-check` refusing a README change because `tests/unit` was
-  not yet tracked, the gate reading `git ls-files` and being right. Only the
-  rollback cost more than a minute.
+  not yet tracked, the gate reading `git ls-files` and being right. Then 20a's
+  two: `make site-data-check` (five ways, plus one path green AND recorded) and
+  `make site-page-check` (five, including the one it exists for — the template
+  edited and the built page not rebuilt — with a control green either side of
+  them). Only the rollback cost more than a minute.
 - A BREAK TEST THAT FAILS TO BREAK is testing your assumption about the tool,
   not the tool. On 2026-07-28 a planted AWS access key id was committed and the
   secret gate scanned it GREEN. The wiring was blameless — 120 commits scanned,
@@ -308,6 +313,15 @@ before it means anything. Decided closing Phase 19a.
   target asks a tool to DISCOVER something, the answer is a version-dependent
   fact, not a definition - prefer a literal that both sides can be checked
   against.
+- AN INSTRUMENT AIMED AT THE WRONG SCOPE READS GREEN. The map's layout was
+  checked with `scrollWidth == clientWidth` on the DOCUMENT, at four viewports,
+  and passed at all four while a phase row was 7px wider than the box it had
+  been packed into and every node head was up to 22px wider than its own node. A
+  box that overflows its PARENT never reaches the document, so that measure
+  could not have spoken. Both were found in minutes by measuring each box
+  against its own container. Sibling of the pipe: there the shell was in the
+  way, here the question was asked about the wrong box. When a check has been
+  green for a while, ask what it is actually looking at.
 - COMMIT BEFORE BREAKING THINGS ON PURPOSE. Restoring a file with `git checkout`
   after a deliberate break discards whatever was uncommitted in it. On
   2026-07-28 a completed pinning edit to `ci.yml` vanished that way, silently,

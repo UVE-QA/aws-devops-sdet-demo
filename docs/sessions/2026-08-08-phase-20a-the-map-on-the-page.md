@@ -116,8 +116,10 @@ session-close.sh:32  the summary it prints came from `ls <today>-*.md | tail -1`
                      already enforces - one ordering, not two
 session-close.sh:93  the same assumption again, finding the previous session to
                      locate the base commit for the ADR block. It also counted
-                     *.log files as sessions. Today it happened to land on the
-                     right file, which is the worst kind of green
+                     *.log evidence files as sessions. On the tree it was
+                     measured against it landed on the right file BY ACCIDENT;
+                     adding this session's own break-test log made the same line
+                     return the LOG. Both were run, before and after
 session-primer       the WORKING name for a chat was taken from the phase title
                      in the cursor. A sub-phase routinely takes more than one
                      session and the title does not change while it does: 20a
