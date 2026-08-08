@@ -740,6 +740,99 @@ described as parked in two documents while the control store held no kill-switch
 item at all; the state those documents should have described is the one Phase 19
 was built to make safe, and it is now the recorded one.
 
+## Phase 20 — The cycle, visible without a log
+
+Decided 2026-08-08 in **ADR-0039**. The dashboard reports STATE — which
+environments exist, which run is where. It does not show what the project DOES,
+and the one section that tries is hand-written prose. The same session found that
+section telling every visitor there were five permanent state levels while
+standing on the sixth, so the phase has two jobs: build the picture, and build it
+out of something that cannot drift.
+
+The criterion, stated so it cannot spread:
+
+```text
+A visitor who has never seen this project, and has no access to GitHub Actions,
+can see on demo.uveapp.net: which AWS services a cycle creates and destroys and
+in what order, how long each took and what it cost, and which tests ran and what
+they assert. Without opening a single log.
+```
+
+The map is on the page ALWAYS (ADR-0039 D4). Idle it shows the last measured
+cycle, dated. Running, the current phase pulses. It is not a panel that appears
+when something happens.
+
+### 20a — the generated map  [$0, nothing applied]
+
+```text
+generator     site/data/topology.json, built from infra/: the state levels and
+              the resources each module declares
+gate          make site-data-check regenerates and diffs; wired into ci.yml
+page          the hand-written "What happens, in the order it happens" section
+              is replaced by the map. A prose rendering may stay, rendered from
+              the same JSON - never maintained separately (ADR-0039 D1)
+icons         establish AWS's terms for the Architecture Icons set and record
+              the answer in ADR-0039, or use project glyphs. Do not guess
+break test    add a resource to a module -> gate red. Delete the generated
+              file -> gate red. Keep both outputs
+```
+
+Closes the structural half of the 2026-08-08 finding: the architecture section
+can no longer disagree with `infra/`, because it is built from it.
+
+### 20b — the timeline  [needs one cycle, about $0.03]
+
+```text
+-json         on apply and destroy in deploy-stage, promote-prod, destroy and
+              self-service
+fold          scripts/ turns the event stream into
+              timeline/<env>/<run id>.json plus latest
+publish       scripts/publish-status.sh, under the narrow publish role, exactly
+              as it already publishes the Playwright report
+readable log  a step that folds the JSON stream back into a legible apply
+              summary. NOT optional - -json replaces the human-readable log in
+              the Actions UI, and losing that to gain a picture is a bad trade
+cache         short Cache-Control on the timeline object; no CloudFront
+              invalidation per write
+page          nodes light from the timeline; identifiers appear as the provider
+              assigned them (ADR-0039 D2); the phase pulses live from the
+              Actions API
+break test    a run that dies mid-apply must publish a timeline marked
+              INCOMPLETE, never a plausible complete one
+open          per-resource live pulsing, if phase-level proves too coarse. Two
+              priced options in ADR-0039 D4; neither is taken by default
+```
+
+### 20c — the tests panel  [$0 to write, one cycle to prove]
+
+```text
+inventory     generated from the suites themselves - pytest --collect-only,
+              playwright --list - not a list written beside them
+results       per suite, from the report already published to the bucket
+page          what each suite asserts, and where it is allowed to run
+              (the directory binding, ADR-0025)
+```
+
+What a test checks is read from the test. A description maintained next to it is
+the sixth stale place waiting to happen.
+
+### 20d — cost, computed and reconciled  [depends on 20b]
+
+```text
+rates         a dated rate table in the repository, us-west-2
+computed      per-resource seconds from 20b x rates, per phase and per cycle,
+              labelled COMPUTED wherever it renders (ADR-0039 D3)
+reconcile     once, against a real bill for one cycle, with the delta recorded
+```
+
+The reconciliation is the point, not the formality: "we computed $0.03 and the
+bill said $0.04, and here is the difference" is a stronger FinOps answer than any
+single figure. It also gives this document the per-launch numbers 19c never
+recorded.
+
+Order: 20a, 20b, 20c, 20d. 20d cannot start before 20b. Whole phase under $0.20
+of real money.
+
 ## Deliberately out of scope
 
 Not "someday" — considered and excluded, with reasons. Being able to explain why

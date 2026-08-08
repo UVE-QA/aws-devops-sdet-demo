@@ -6,6 +6,44 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
+**As of 2026-08-08 (later the same night).** Phase 20.0 is closed: the project
+has a cursor forward again, and it points at making the cycle visible without a
+log. The session that decided it found its own subject first — FIVE
+reader-facing places described the applied, publicly-pressed, closed
+`infra/self-service` as written and never applied, including the live dashboard,
+which told every visitor there were five permanent state levels while standing on
+the sixth. README contradicted itself inside one file. A sixth fell out on the
+way past: architecture's "seven state levels" heading, correct while there were
+five permanent ones and never revisited.
+
+No gate could have seen any of it. `make docs-check` verifies that every path,
+target, route and workflow a document NAMES exists; nothing checks that what a
+document CLAIMS is true, and two of the five files are not even in its document
+list. Third arrival of the species in three days, and the largest: 19g found two
+documents disagreeing with the control store, this found five disagreeing with
+the account, in the files an outside reader opens, on a public repository, for
+six days.
+
+The answer is deliberately not a bigger linter — a check for "not applied"
+catches this instance and nothing else, and the next stale claim will be a number
+or a tense. **ADR-0039 D1** generates the architecture section from `infra/`
+behind a drift gate, so the class ends instead of being policed, and prose
+survives only as a second rendering of the same generated file. Phase 20 is
+planned as 20a (map + gate, $0), 20b (timeline from Terraform's own `-json`
+events), 20c (tests panel generated from the suites) and 20d (cost computed from
+measured seconds, reconciled once against a real bill). Whole phase under $0.20.
+
+D4 was corrected mid-session by the user and the correction is better: the map is
+PERMANENT, not a panel that appears while a cycle runs — at rest it carries the
+last measured cycle with its date, which is what a visitor almost always sees.
+Two consequences the plan did not have: an identifier is not an ARN, and
+per-resource live pulsing would need the deploy role writing the bucket ADR-0026
+keeps it away from, so live is per PHASE and the two ways to buy more are priced
+and untaken. One cost figure was invented and caught in review — $0.09 and $0.17
+are 16a's and 16b's cycles, and 19c has no recorded figure at all.
+
+Nothing applied. **$0.** Next allowed step: 20a.
+
 **As of 2026-08-08.** Phase 19g is CLOSED, and with it Phase 19. A launch was
 cancelled mid-apply at 00:44:15 and the run's own teardown reclaimed it by
 00:49:09 — 4m45s, zero manual AWS calls, no watchdog, no blunt path, nobody

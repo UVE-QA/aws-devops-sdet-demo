@@ -37,6 +37,11 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 19e   | Break test; teardown claim narrowed | ✅ done | sessions/2026-08-06-phase-19e-break-test-and-teardown-gap.md |
 | 19f   | Teardown gates that see the remainder | ✅ done | sessions/2026-08-07-phase-19f-teardown-sees-what-it-leaves.md |
 | 19g   | Teardown that finishes on its own | ✅ done, uninterrupted run 2026-08-08 | sessions/2026-08-08-phase-19g-nobody-in-the-loop.md |
+| 20.0  | Visible cycle: decisions + plan | ✅ done | ADR-0039 |
+| 20a   | The generated map, and its drift gate | ⬜ next | — |
+| 20b   | The timeline from Terraform's own events | ⬜ planned | — |
+| 20c   | The tests panel | ⬜ planned | — |
+| 20d   | Cost, computed and reconciled | ⬜ planned, blocked on 20b | — |
 
 Phase 17 (prod data continuity) is still open and still optional, in
 `docs/next-phases.md`. Phase 18 was pulled forward of both remaining phases
@@ -1695,6 +1700,46 @@ were the same shape — a page saying something it was not in a position to say:
   account re-read every tick.
 - Cost: about $0.03 - one launch, an ALB and an RDS instance for six minutes.
   The 2026-08-07 pair cost about $0.10.
+
+### Phase 20.0 — The cycle visible without a log: decisions and plan  [DONE 2026-08-08]
+- Criteria: the shape of the visible-cycle work decided and recorded as an ADR
+  before any of it is written, and the plan in `docs/next-phases.md`. **MET** -
+  **ADR-0039** (four decisions) and the Phase 20 section with 20a-20d.
+- The phase exists because the dashboard reports STATE and not what the project
+  DOES. Its one section that tries is hand-written prose, and that prose was
+  telling every visitor there were five permanent state levels while standing on
+  the sixth.
+- Found before any of it was planned, and fixed in its own commit: FIVE
+  reader-facing places described the applied, live, publicly-pressed
+  `infra/self-service` as written-and-never-applied - README, architecture,
+  cost-control, interview-talking-points, and the dashboard itself. A sixth,
+  `docs/architecture.md`'s "seven state levels" heading, was correct while there
+  were five permanent levels and never revisited.
+- **No gate could have caught any of it.** `make docs-check` verifies that every
+  path, target, route and workflow a document NAMES exists; nothing checks that
+  what a document CLAIMS is true. This is the third arrival of the species in
+  three days and the largest: 19g found two documents disagreeing with the
+  control store, this found five disagreeing with the account, in the files an
+  outside reader actually opens.
+- The structural answer is not a bigger linter. ADR-0039 D1 GENERATES the
+  architecture section from `infra/`, so the class of defect ends rather than
+  being policed - and the prose is allowed to survive only as a second rendering
+  of the same generated file.
+- Also corrected: `docs/cost-control.md` said "none of this is running" and
+  carried no measured figures. It now carries 19f's $0.02, 19g's $0.03 and the
+  $0.10 pair, and records that **19c closed without a cost figure at all** - a
+  gap in the record rather than a zero, and one that 20d is meant to stop
+  recurring.
+- Validation:
+```bash
+  make docs-check
+  grep -rn "NOT APPLIED\|never been applied\|NOT BUILT" README.md docs/*.md site/index.html
+```
+  The grep must return only Phase 20's own "planned, not built" line in
+  `docs/interview-talking-points.md`, which is true.
+- Cost: **$0**. Nothing was applied to AWS and no environment existed at any
+  point.
+- Next allowed step: 20a. It applies nothing and costs nothing.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,
