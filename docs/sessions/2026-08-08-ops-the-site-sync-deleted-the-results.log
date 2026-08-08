@@ -1,0 +1,103 @@
+Break tests — the site sync and the prefixes the lifecycle writes (ADR-0044)
+Run on 2026-08-08 in the chat session's own clone, offline: no AWS, no cost.
+
+Number 0 is not a planted failure. It is `scripts/publish-site.sh` exactly as it
+stood at 4600aeb, the commit whose push deleted every published test result, run
+against the new check. The check reddens on the real defect, which is the
+strongest form this evidence takes.
+
+Two things went wrong while producing this log, and both are kept here because
+each is a documented trap in docs/session-primer.md walked into again:
+
+  COMMIT BEFORE BREAKING THINGS ON PURPOSE. The first attempt at this sweep used
+  `git checkout --` to restore each deliberate break while the FIX to
+  publish-site.sh was still uncommitted. It restored the file to HEAD - which is
+  the broken version - and silently discarded the fix. Same shape as the ci.yml
+  pinning edit lost on 2026-07-28. Everything below was run from a committed
+  tree.
+
+  A BREAK TEST THAT FAILS TO BREAK is testing your assumption about the tool.
+  Number 2 came back GREEN: the check asked whether the string "--delete" was in
+  publish-site.sh, and the file's own comment explains what `aws s3 sync
+  --delete` does, so that refusal could never fire under any rewrite. Fixed to
+  look for it as an ARGUMENT on a non-comment line, and re-run at the end of
+  this file, where it fires with the word still present in the comment.
+
+
+==============================================================
+0. THE DEFECT ITSELF, unplanted: the repository exactly as it stood at
+==============================================================
+
+==============================================================
+   4600aeb, the commit whose push deleted the objects.
+==============================================================
+publish-prefixes: MISSING EXCLUSION
+  publish-status.sh writes s3://<bucket>/results/ and publish-site.sh does not exclude it: add --exclude "results/*"
+
+The next push to main that touches site/ will delete everything under those prefixes. On 2026-08-08 that was results/, and the bucket has no versioning.
+exit=1
+
+==============================================================
+CONTROL — green with the fix in place
+==============================================================
+publish-prefixes: 4 written, all excluded - reports, results, status, timeline
+exit=0
+
+==============================================================
+1. a FIFTH prefix is added to the writer and not to the exclusions
+==============================================================
+publish-prefixes: MISSING EXCLUSION
+  publish-status.sh writes s3://<bucket>/costs/ and publish-site.sh does not exclude it: add --exclude "costs/*"
+
+The next push to main that touches site/ will delete everything under those prefixes. On 2026-08-08 that was results/, and the bucket has no versioning.
+exit=1
+
+==============================================================
+2. the sync stops passing --delete
+==============================================================
+1
+publish-prefixes: 4 written, all excluded - reports, results, status, timeline
+exit=0
+
+==============================================================
+3. the writer is moved away
+==============================================================
+publish-prefixes: REFUSED
+scripts/publish-status.sh does not exist
+exit=1
+
+==============================================================
+4. the writer stops naming any prefix the regex can see
+==============================================================
+publish-prefixes: REFUSED
+no s3://${SITE_BUCKET}/<prefix>/ destination found in scripts/publish-status.sh. A check that found nothing to check is not a green check.
+exit=1
+
+==============================================================
+5. an exclusion for a prefix nothing writes - a NOTE, and still green
+==============================================================
+note: publish-site.sh excludes archive, which nothing writes now
+publish-prefixes: 4 written, all excluded - reports, results, status, timeline
+exit=0
+
+==============================================================
+CONTROL — green again, and the tree is as it was
+==============================================================
+publish-prefixes: 4 written, all excluded - reports, results, status, timeline
+exit=0
+(no output above = clean)
+
+##############################################################
+# The re-run of number 2, after the guard stopped being a substring test
+##############################################################
+==============================================================
+2. the sync stops passing --delete   [re-run after the guard was fixed]
+==============================================================
+-- the word still appears in the comment, which is the point:
+1
+publish-prefixes: REFUSED
+scripts/publish-site.sh no longer passes --delete. Either the danger this check guards is gone, in which case delete the check, or the sync was rewritten and it needs rereading.
+exit=1
+-- control:
+publish-prefixes: 4 written, all excluded - reports, results, status, timeline
+exit=0

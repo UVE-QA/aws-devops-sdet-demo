@@ -2360,6 +2360,14 @@ The page. **ADR-0043**, and the summary in
 ```
 - Cost: nothing. No AWS call, no cycle, no credential; verified offline against
   fixtures and a headless render.
+- **Found after this section was written, by running its own validation:**
+  publishing the page deleted the results it had just learned to read. The site
+  sync excludes the prefixes the lifecycle writes and `results/` was never added
+  to that list (**ADR-0044**, and
+  `docs/sessions/2026-08-08-ops-the-site-sync-deleted-the-results.md`). Fixed,
+  and gated by `make publish-prefixes-check`. Nothing above is untrue - but the
+  suite half of the published map is EMPTY until a cycle runs again, and that is
+  the reason, not a regression in the page.
 - Next allowed step: **20d - cost, computed and reconciled.** It was blocked on
   20b and is not any more, and 20c's cycle of 2026-08-08 is the first one a bill
   can be reconciled against. Start with the dated rate table; the reconciliation

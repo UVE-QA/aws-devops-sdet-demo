@@ -6,6 +6,32 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
+**As of 2026-08-08 (Ops, the site sync deleted the results).** Twenty minutes
+after 20c closed, its own validation command returned 403.
+`scripts/publish-site.sh` syncs `site/` with `--delete` and excluded three
+prefixes; ADR-0042 had added a fourth thing the lifecycle writes - `results/` -
+hours earlier, and nothing added the line. **ADR-0044.**
+
+It stayed harmless because the two scripts only meet on a push to `main` that
+touches `site/`, and the push that finally did was 20c's own page release: the
+commit teaching the map to read those results is the commit that deleted them.
+The bucket has no versioning, so cycle 31276975666's folded results are gone.
+The timeline, the node states and every Playwright report survive, being under
+excluded prefixes - so the map's Terraform half is intact and its suite half is
+empty until a cycle runs, which is expected rather than a defect in the page.
+
+**It was established by a control that differs in one variable**, after a 403, an
+empty listing and a silent `gh run view --log` had each decided nothing on its
+own: `timeline/` and `results/` are written by the same script in the same run,
+minutes apart, and one is excluded and present while the other is not excluded
+and empty. Fixed in one line, and the rule - which had been a comment predicting
+its own breach - is now `make publish-prefixes-check`.
+
+Two documented traps were walked into while break-testing it, both in the
+primer, both read that morning: a `git checkout --` restored a deliberate break
+and discarded the still-uncommitted fix, and the `--delete` guard was a substring
+test that the file's own comment made impossible to fire.
+
 **As of 2026-08-08 (20c CLOSED, a node answers for its own step).** The page
 reads the two files the previous session filled and never opened, so 180
 collected tests and a real cycle's verdicts stop being true and invisible. The
