@@ -80,3 +80,50 @@ python3 scripts/generate-topology.py --check
 site-data: clean - every resource assigned; 116 across 8 levels (55 permanent, 61 per cycle), 2 deliberately not shown
 exit=0
 
+
+## Added with the band and the cut (second patch, same session)
+
+Test 7 below is kept BECAUSE IT PROVED THE WRONG THING. Deleting the OIDC
+provider from infra/ turned the gate red - and red on `stale assignment`, which
+fires earlier, so the `backed_by` check under test never ran at all. A break test
+that goes red for a different reason is a green check wearing a red coat: the
+control has to differ in exactly the one thing being tested. 7b is that control -
+the citation is pointed at a resource that does not exist while infra/ is left
+alone, and only the band check can speak.
+
+### 0. baseline after the band
+python3 scripts/generate-topology.py --check
+site-data: clean - every resource assigned; 116 across 8 levels (55 permanent, 61 per cycle), 2 deliberately not shown
+exit=0
+
+### 7. the resource a band card CITES is deleted (backed_by)
+python3 scripts/generate-topology.py --check
+site-data: REFUSED
+stale assignment: infra/modules/iam_github_oidc_provider :: aws_iam_openid_connect_provider.github is assigned but no longer declared
+make: *** [Makefile:175: site-data-check] Error 1
+exit=2
+
+### 8. the band removed from the editorial file altogether
+python3 scripts/generate-topology.py --check
+site-data: REFUSED
+assets/topology-groups.json has no `outside` band. The devbox and GitHub are not in infra/, so nothing else can put them on the page.
+make: *** [Makefile:175: site-data-check] Error 1
+exit=2
+
+### 9. restored
+python3 scripts/generate-topology.py --check
+site-data: clean - every resource assigned; 116 across 8 levels (55 permanent, 61 per cycle), 2 deliberately not shown
+exit=0
+
+### 7b. the band cites a resource that does not exist, infra/ untouched
+python3 scripts/generate-topology.py --check
+site-data: REFUSED
+unbacked claim: out.github cites infra/modules/iam_github_oidc_provider::aws_iam_openid_connect_provider.gitlab, which is not declared
+make: *** [Makefile:175: site-data-check] Error 1
+exit=2
+
+### 7c. restored
+python3 scripts/generate-topology.py --check
+site-data: clean - every resource assigned; 116 across 8 levels (55 permanent, 61 per cycle), 2 deliberately not shown
+exit=0
+
