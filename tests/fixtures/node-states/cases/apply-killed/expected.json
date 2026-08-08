@@ -1,0 +1,16 @@
+{
+  "description": "The case the whole thing exists for, one level up. terraform was killed with one resource still in flight, so the node holding it is INCOMPLETE rather than a node reporting a duration that stops in the middle of itself. The member that did finish still carries an identifier, and saying so is the point: partial observation is reported as partial, not discarded and not rounded up.",
+  "environment": "stage",
+  "kind": "apply",
+  "observed": { "resources": 2, "matched": 2, "not_shown": 0, "unknown": 0, "nodes": 1 },
+  "not_shown": [],
+  "unknown": [],
+  "nodes": {
+    "stage.slow": {
+      "state": "incomplete",
+      "resources_observed": 2,
+      "resources_complete": 1,
+      "identifier_present": true
+    }
+  }
+}

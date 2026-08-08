@@ -148,6 +148,16 @@ jobs:
         # fixtures is the built-in terraform_data.
         run: make timeline-check
 
+      - name: Every resource a cycle touches lands on a node, or is named
+        # The gate over the join from that timeline onto the map (ADR-0039 D4).
+        # Coverage, in the same shape as the spec-coverage guard and as
+        # site-data-check one level up: site-data-check asks whether every
+        # resource in the REPOSITORY has been decided about, this asks the same
+        # of every resource a cycle actually touched. A resource created in AWS
+        # and drawn nowhere is reported as UNKNOWN rather than being missing from
+        # a picture that looks complete.
+        run: make node-states-check
+
       - name: Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:

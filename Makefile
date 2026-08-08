@@ -5,7 +5,7 @@
         test-unit test-db test-ui-db test-spec-coverage docker-build tf-fmt \
         tf-validate docs-check secret-scan iac-scan image-scan action-pins \
         self-service-package self-service-cors-check site-page site-page-check \
-        site-data site-data-check timeline-check
+        site-data site-data-check timeline-check node-states-check
 
 # Bring up postgres + app (build app image if needed), detached.
 local-up:
@@ -196,6 +196,21 @@ site-data-check:
 # satisfy that sentence and be useless.
 timeline-check:
 	python3 scripts/check-timeline.py
+
+# The join from a timeline onto the map's nodes (ADR-0039 D4), and the reason it
+# is a script on the runner rather than a few lines on the page: written twice,
+# in JavaScript there and in Python here, it would be one definition on two
+# hosts - which has already cost this project a scan of the wrong image.
+#
+# The claim under gate: a resource a cycle created is drawn on the map, is
+# recorded as deliberately not drawn, or is reported as UNKNOWN - never silently
+# absent. Most cases fold a real terraform run from tests/fixtures/timeline/,
+# including the one whose resources live inside MODULES, which is the shape every
+# resource in infra/ actually has. One case is hand-written and says so:
+# terraform_data finishes in zero seconds, so no real run can tell "the longest
+# member" apart from "the first member".
+node-states-check:
+	python3 scripts/check-node-states.py
 
 # The two ends of a session, as commands rather than as prose in four documents
 # (ADR-0033). Local only: on a CI checkout the tree is always clean and HEAD

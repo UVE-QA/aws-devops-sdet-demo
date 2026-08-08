@@ -1,0 +1,121 @@
+{
+  "_": "A STUB topology, hand-written, for tests/fixtures/node-states. It is not site/data/topology.json and never generated from infra/: the timeline fixtures are terraform_data resources, so a stub is the only thing whose members can name them. What is under test here is the JOIN — which address lands on which node — and that rule does not care whether a member is an AWS resource or a terraform_data one.",
+  "_env": "prod.alpha carries the SAME members as stage.alpha, deliberately. The two environments are the same modules in two state levels, so an index built without filtering by environment would map every address to whichever node it saw last, and half the map would light from the other environment's cycle. If that filter is ever removed, these fixtures go red.",
+  "schema": 2,
+  "not_shown": [
+    {
+      "group": "hidden",
+      "label": "deliberately not drawn",
+      "resources": 1,
+      "why": "stands for the adopted-not-created group in the real topology: observed in a cycle, assigned, and given no mark on purpose.",
+      "members": ["module.pair.terraform_data.many"]
+    }
+  ],
+  "phases": [
+    {
+      "id": "stage-apply",
+      "n": 1,
+      "label": "Apply — stage",
+      "workflow": "deploy-stage.yml",
+      "nodes": [
+        {
+          "id": "stage.alpha",
+          "label": "the plain group",
+          "service": "vpc",
+          "kind": "service",
+          "env": "stage",
+          "observer": "terraform",
+          "resources": 3,
+          "members": [
+            "terraform_data.alpha",
+            "terraform_data.beta",
+            "terraform_data.gamma"
+          ]
+        },
+        {
+          "id": "stage.slow",
+          "label": "the group that gets killed",
+          "service": "rds",
+          "kind": "service",
+          "env": "stage",
+          "observer": "terraform",
+          "resources": 2,
+          "members": ["terraform_data.quick", "terraform_data.slow"]
+        },
+        {
+          "id": "stage.child",
+          "label": "a module",
+          "service": "ecs",
+          "kind": "service",
+          "env": "stage",
+          "observer": "terraform",
+          "resources": 2,
+          "members": [
+            "module.child.terraform_data.only",
+            "module.child.terraform_data.many"
+          ]
+        },
+        {
+          "id": "stage.pair",
+          "label": "a module with count",
+          "service": "elb",
+          "kind": "service",
+          "env": "stage",
+          "observer": "terraform",
+          "resources": 1,
+          "members": ["module.pair.terraform_data.only"]
+        }
+      ]
+    },
+    {
+      "id": "prod-apply",
+      "n": 2,
+      "label": "Apply — prod",
+      "workflow": "promote-prod.yml",
+      "nodes": [
+        {
+          "id": "prod.alpha",
+          "label": "the same modules, the other level",
+          "service": "vpc",
+          "kind": "service",
+          "env": "prod",
+          "observer": "terraform",
+          "resources": 3,
+          "members": [
+            "terraform_data.alpha",
+            "terraform_data.beta",
+            "terraform_data.gamma"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "destroy",
+      "n": 3,
+      "label": "Destroy",
+      "workflow": "destroy.yml",
+      "nodes": [
+        {
+          "id": "destroy.stage",
+          "label": "stage — everything above",
+          "service": "destroy",
+          "kind": "service",
+          "env": "stage",
+          "observer": "terraform",
+          "resources": 5,
+          "level": "infra/envs/stage"
+        },
+        {
+          "id": "destroy.prod",
+          "label": "prod — everything above",
+          "service": "destroy",
+          "kind": "service",
+          "env": "prod",
+          "observer": "terraform",
+          "resources": 3,
+          "level": "infra/envs/prod"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "description": "Four resources, one of them a count at the ROOT, all onto one node. terraform_data.gamma[0] and [1] match the member terraform_data.gamma because every index is stripped before comparison. prod.alpha holds the same members and must NOT be lit: this timeline says stage.",
+  "environment": "stage",
+  "kind": "apply",
+  "observed": { "resources": 4, "matched": 4, "not_shown": 0, "unknown": 0, "nodes": 1 },
+  "not_shown": [],
+  "unknown": [],
+  "nodes": {
+    "stage.alpha": {
+      "state": "measured",
+      "resources_observed": 4,
+      "resources_complete": 4,
+      "identifier_present": true
+    }
+  }
+}

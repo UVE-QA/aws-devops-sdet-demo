@@ -1,0 +1,98 @@
+{
+  "_": "HAND-WRITTEN, on purpose, and the only file under tests/fixtures that is. Everything under tests/fixtures/timeline/ is a real terraform run because what those cases test is TERRAFORM'S schema, and a fixture invented from the documentation would only ever test what its author believed the schema was. This one tests arithmetic that is entirely ours — how a node's duration is taken across its members, and which member's identifier the node shows — and for that a real run is worse, not better: every terraform_data resource finishes in zero seconds, so a run cannot produce members whose durations differ enough to tell the rules apart.",
+  "schema": "timeline/1",
+  "environment": "stage",
+  "status": "complete",
+  "written_at": "2026-08-08T12:00:00Z",
+  "tool": "1.15.5",
+  "run": { "id": "synthetic", "workflow": "deploy-stage.yml" },
+  "started_at": "2026-08-08T10:00:00Z",
+  "finished_at": "2026-08-08T10:02:02Z",
+  "duration_seconds": 122.0,
+  "totals": {
+    "operations": 1,
+    "resources_observed": 5,
+    "resources_created": 5,
+    "resources_destroyed": 0
+  },
+  "operations": [
+    {
+      "order": 1,
+      "label": "apply",
+      "command": "apply",
+      "reached": "apply",
+      "status": "complete",
+      "exit_code": 0,
+      "resources": [
+        {
+          "address": "terraform_data.alpha",
+          "module": "",
+          "type": "terraform_data",
+          "name": "alpha",
+          "action": "create",
+          "status": "complete",
+          "started_at": "2026-08-08T10:00:00Z",
+          "finished_at": "2026-08-08T10:00:05Z",
+          "elapsed_seconds": 5,
+          "id_key": "id",
+          "id_value": "alpha-id"
+        },
+        {
+          "address": "terraform_data.beta",
+          "module": "",
+          "type": "terraform_data",
+          "name": "beta",
+          "action": "create",
+          "status": "complete",
+          "started_at": "2026-08-08T10:00:02Z",
+          "finished_at": "2026-08-08T10:02:02Z",
+          "elapsed_seconds": 120,
+          "id_key": "id",
+          "id_value": "beta-id-dominates"
+        },
+        {
+          "address": "terraform_data.gamma[0]",
+          "module": "",
+          "type": "terraform_data",
+          "name": "gamma",
+          "action": "create",
+          "status": "complete",
+          "started_at": "2026-08-08T10:00:00Z",
+          "finished_at": "2026-08-08T10:00:03Z",
+          "elapsed_seconds": 3,
+          "id_key": null,
+          "id_value": null
+        },
+        {
+          "address": "terraform_data.quick",
+          "module": "",
+          "type": "terraform_data",
+          "name": "quick",
+          "action": "create",
+          "status": "complete",
+          "started_at": "2026-08-08T10:00:00Z",
+          "finished_at": "2026-08-08T10:05:00Z",
+          "elapsed_seconds": 300,
+          "id_key": null,
+          "id_value": null
+        },
+        {
+          "address": "terraform_data.slow",
+          "module": "",
+          "type": "terraform_data",
+          "name": "slow",
+          "action": "create",
+          "status": "complete",
+          "started_at": "2026-08-08T10:00:10Z",
+          "finished_at": "2026-08-08T10:00:20Z",
+          "elapsed_seconds": 10,
+          "id_key": "id",
+          "id_value": "slow-id"
+        }
+      ],
+      "diagnostics": [],
+      "counts": {},
+      "stream": { "file": "01-apply.jsonl", "events": 0, "unparsed_lines": 0, "unknown_types": [], "event_types": {} }
+    }
+  ]
+}
