@@ -75,6 +75,12 @@ jobs:
       TF_VAR_budget_email: ${{ secrets.TF_VAR_BUDGET_EMAIL }}
       TF_VAR_owner: ${{ vars.TF_VAR_owner }}
       TF_VAR_launch_id: ${{ inputs.launch_id }}
+      # Where scripts/tf-stream.sh drops every terraform event stream, and where
+      # scripts/fold-timeline.py looks for them (ADR-0039 D2). Per JOB, and this
+      # workflow is why the published key carries the job name as well as the run
+      # id: one self-service run creates an environment and destroys it again, so
+      # a key of run id alone would have the second timeline overwrite the first.
+      TF_STREAM_DIR: /tmp/tf-streams
     steps:
       - name: Compute the deadline this environment carries
         id: deadline
@@ -152,8 +158,10 @@ jobs:
           TF_VAR_app_image: ${{ steps.repo.outputs.ecr_url }}:${{ github.sha }}
           TF_VAR_expires_at: ${{ steps.deadline.outputs.expires_at }}
         run: |
+          set -euo pipefail
           terraform plan -input=false -out=tfplan
-          terraform apply -input=false -auto-approve tfplan
+          "$GITHUB_WORKSPACE/scripts/tf-stream.sh" apply \
+            apply -input=false -auto-approve -json tfplan
 
       - name: Read stage outputs
         id: tf
@@ -212,6 +220,14 @@ jobs:
           APP_URL: ${{ steps.tf.outputs.alb_url }}
         run: scripts/observe-environment.sh stage > /tmp/observation.json
 
+      - name: Fold the terraform event stream into a timeline
+        if: always()
+        run: >
+          python3 scripts/fold-timeline.py
+          --environment stage
+          --stream-dir "$TF_STREAM_DIR"
+          --out /tmp/timeline-stage.json
+
       - name: Configure AWS credentials (OIDC, publish role)
         if: always()
         uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
@@ -226,6 +242,7 @@ jobs:
           SITE_DISTRIBUTION_ID: ${{ vars.SITE_DISTRIBUTION_ID }}
           SITE_BASE_URL: ${{ vars.SITE_URL }}
           JOB_STATUS: ${{ job.status }}
+          TIMELINE_JSON: /tmp/timeline-stage.json
         run: scripts/publish-status.sh stage /tmp/observation.json
 
   # The in-band half of guardrail 3. `if: always()` so a failed deploy, a failed
@@ -243,6 +260,7 @@ jobs:
       TF_VAR_owner: ${{ vars.TF_VAR_owner }}
       TF_VAR_launch_id: ${{ inputs.launch_id }}
       TF_VAR_expires_at: ${{ needs.launch.outputs.expires_at }}
+      TF_STREAM_DIR: /tmp/tf-streams
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -315,11 +333,15 @@ jobs:
       # with the rule that points at it.
       - name: Destroy ALB first (release ENIs before the IGW)
         working-directory: infra/envs/stage
-        run: terraform destroy -input=false -auto-approve -target=module.alb.aws_lb.this
+        run: >
+          $GITHUB_WORKSPACE/scripts/tf-stream.sh destroy-alb
+          destroy -input=false -auto-approve -json -target=module.alb.aws_lb.this
 
       - name: Terraform destroy
         working-directory: infra/envs/stage
-        run: terraform destroy -input=false -auto-approve
+        run: >
+          $GITHUB_WORKSPACE/scripts/tf-stream.sh destroy
+          destroy -input=false -auto-approve -json
 
       # `if: always()` (ADR-0037 D3). Skipped exactly when a destroy failed,
       # which is the only time its answer is news. The `sts` line below was
@@ -361,6 +383,14 @@ jobs:
         if: always()
         run: scripts/observe-environment.sh stage > /tmp/observation.json
 
+      - name: Fold the terraform event stream into a timeline
+        if: always()
+        run: >
+          python3 scripts/fold-timeline.py
+          --environment stage
+          --stream-dir "$TF_STREAM_DIR"
+          --out /tmp/timeline-stage.json
+
       - name: Configure AWS credentials (OIDC, publish role)
         if: always()
         uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
@@ -375,6 +405,7 @@ jobs:
           SITE_DISTRIBUTION_ID: ${{ vars.SITE_DISTRIBUTION_ID }}
           SITE_BASE_URL: ${{ vars.SITE_URL }}
           JOB_STATUS: ${{ job.status }}
+          TIMELINE_JSON: /tmp/timeline-stage.json
         run: scripts/publish-status.sh stage /tmp/observation.json
 
   # Guardrail 1's other half: the lock is taken by the Lambda and released here -

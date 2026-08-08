@@ -13,6 +13,8 @@
 #   status/<environment>.json                          the state panel's source
 #   reports/<environment>/<run id>/                     immutable evidence
 #   reports/<environment>/latest/                       a link that stays valid
+#   timeline/<environment>/<run id>-<job>.json          what terraform did, when
+#   timeline/<environment>/latest.json                  the map's at-rest source
 #
 # ONE FILE PER ENVIRONMENT, not the single status.json ADR-0026 describes. Two
 # workflows can be in flight at once - destroying prod while stage deploys is a
@@ -31,6 +33,11 @@
 #   JOB_STATUS            required. GitHub's ${{ job.status }} at the moment
 #                         this step runs - the workflow's own observation about
 #                         itself, and the only thing it is entitled to assert.
+#   TIMELINE_JSON         optional. The file scripts/fold-timeline.py wrote. An
+#                         environment variable rather than a fourth positional
+#                         argument, because two of the four callers publish no
+#                         report and would have had to pass an empty slot to
+#                         reach it.
 set -euo pipefail
 
 env_name="${1:?usage: publish-status.sh <environment> <observation-json> [report-dir]}"
@@ -60,6 +67,45 @@ if [ -n "$report_dir" ] && [ -d "$report_dir" ] && [ -n "$(ls -A "$report_dir" 2
   echo "published report: ${base_url}/reports/${env_name}/${run_id}/index.html"
 else
   echo "no report directory to publish (looked at: '${report_dir:-<none>}')"
+fi
+
+# ---- the timeline, if terraform ran ----------------------------------------
+# ADR-0039 D2/D4. Two objects, and the difference between them is the whole
+# design of the map: the run-id one is immutable evidence, and latest.json is
+# what the page draws when nothing is running - the at-rest state, carrying the
+# date of the cycle it came from.
+#
+# NO invalidation, deliberately. Every write here would be one, several per
+# cycle, and the object is small and read by a script rather than by a person
+# waiting on a reload. A short max-age costs a minute of staleness on a picture
+# whose subject takes fifteen; an invalidation per write costs a request quota
+# for that minute. The status file keeps its no-cache and its invalidation
+# because a viewer refreshes THAT one on purpose.
+#
+# fold-timeline.py writes nothing at all when terraform never ran, and this
+# block publishes nothing when it finds nothing. A run that died before
+# terraform must not leave a timeline behind claiming anything about a cycle
+# that did not happen.
+#
+# THE KEY IS RUN ID PLUS JOB, not the run id alone. self-service.yml launches an
+# environment and destroys it again inside ONE run, in two jobs, and both publish
+# here: a key of run id alone would have the teardown's timeline silently
+# overwrite the launch's, leaving one object that looks like a complete record
+# and is half of one. latest.json is overwritten on purpose - it is the at-rest
+# state, and the last thing that happened is what it is for.
+timeline_json="${TIMELINE_JSON:-}"
+if [ -n "$timeline_json" ] && [ -s "$timeline_json" ]; then
+  timeline_status="$(jq -r '.status // "unknown"' "$timeline_json")"
+  timeline_key="${run_id}${GITHUB_JOB:+-${GITHUB_JOB}}"
+  for key in "$timeline_key" latest; do
+    aws s3 cp "$timeline_json" "s3://${SITE_BUCKET}/timeline/${env_name}/${key}.json" \
+      --content-type application/json \
+      --cache-control "max-age=60" \
+      --only-show-errors
+  done
+  echo "published timeline (${timeline_status}): ${base_url}/timeline/${env_name}/${timeline_key}.json"
+else
+  echo "no timeline to publish (looked at: '${timeline_json:-<none>}')"
 fi
 
 # ---- the run block ---------------------------------------------------------

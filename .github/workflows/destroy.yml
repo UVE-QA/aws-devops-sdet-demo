@@ -54,6 +54,12 @@ jobs:
       # variable it replaces was.
       TF_VAR_budget_email: ${{ secrets.TF_VAR_BUDGET_EMAIL }}
       TF_VAR_owner: ${{ vars.TF_VAR_owner }}
+      # Where scripts/tf-stream.sh drops every terraform event stream, and where
+      # scripts/fold-timeline.py looks for them (ADR-0039 D2). BOTH destroys
+      # write into it, in filename order, and fold into one timeline: the
+      # targeted ALB destroy is a real operation in the teardown, not a
+      # preliminary to it.
+      TF_STREAM_DIR: /tmp/tf-streams
     steps:
       - name: Validate confirmation
         run: |
@@ -147,11 +153,15 @@ jobs:
       # with the rule that points at it.
       - name: Destroy ALB first (release ENIs before the IGW)
         working-directory: infra/envs/${{ inputs.environment }}
-        run: terraform destroy -input=false -auto-approve -target=module.alb.aws_lb.this
+        run: >
+          $GITHUB_WORKSPACE/scripts/tf-stream.sh destroy-alb
+          destroy -input=false -auto-approve -json -target=module.alb.aws_lb.this
 
       - name: Terraform destroy
         working-directory: infra/envs/${{ inputs.environment }}
-        run: terraform destroy -input=false -auto-approve
+        run: >
+          $GITHUB_WORKSPACE/scripts/tf-stream.sh destroy
+          destroy -input=false -auto-approve -json
 
       # `if: always()` (ADR-0037 D3). This step is last of the substantive ones,
       # so it was skipped exactly when a teardown failed - the moment its answer
@@ -281,6 +291,19 @@ jobs:
         # address the environment happened to have.
         run: scripts/observe-environment.sh ${{ inputs.environment }} > /tmp/observation.json
 
+      # The readable destroy log, and the timeline the map draws. Needs no
+      # credential: it reads only the streams tf-stream.sh captured. A teardown
+      # cancelled between the two destroys folds into INCOMPLETE, which is the
+      # honest shape of the state this workflow spent Phase 19f and 19g learning
+      # to describe.
+      - name: Fold the terraform event stream into a timeline
+        if: always()
+        run: >
+          python3 scripts/fold-timeline.py
+          --environment ${{ inputs.environment }}
+          --stream-dir "$TF_STREAM_DIR"
+          --out /tmp/timeline-${{ inputs.environment }}.json
+
       - name: Configure AWS credentials (OIDC, publish role)
         if: always()
         uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
@@ -295,4 +318,5 @@ jobs:
           SITE_DISTRIBUTION_ID: ${{ vars.SITE_DISTRIBUTION_ID }}
           SITE_BASE_URL: ${{ vars.SITE_URL }}
           JOB_STATUS: ${{ job.status }}
+          TIMELINE_JSON: /tmp/timeline-${{ inputs.environment }}.json
         run: scripts/publish-status.sh ${{ inputs.environment }} /tmp/observation.json

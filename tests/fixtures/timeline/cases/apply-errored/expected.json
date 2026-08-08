@@ -1,0 +1,30 @@
+{
+  "description": "A resource fails and the ones depending on it never start. Exit 1, one error diagnostic, and it must not read as complete.",
+  "status": "errored",
+  "totals": {
+    "operations": 1,
+    "resources_created": 1,
+    "resources_destroyed": 0
+  },
+  "operations": [
+    {
+      "label": "apply",
+      "command": "apply",
+      "status": "errored",
+      "exit_code": 1,
+      "resources": {
+        "complete": 1,
+        "errored": 1,
+        "incomplete": 0
+      },
+      "diagnostics": {
+        "error": 1,
+        "warning": 0
+      },
+      "stream": {
+        "unparsed_lines": 0,
+        "unknown_types": []
+      }
+    }
+  ]
+}

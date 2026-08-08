@@ -1,0 +1,30 @@
+{
+  "description": "THE case this gate exists for. terraform was killed mid-apply: no exit code was ever recorded, one resource started and never finished. Must be INCOMPLETE.",
+  "status": "incomplete",
+  "totals": {
+    "operations": 1,
+    "resources_created": 1,
+    "resources_destroyed": 0
+  },
+  "operations": [
+    {
+      "label": "apply",
+      "command": "apply",
+      "status": "incomplete",
+      "exit_code": null,
+      "resources": {
+        "complete": 1,
+        "errored": 0,
+        "incomplete": 1
+      },
+      "diagnostics": {
+        "error": 0,
+        "warning": 0
+      },
+      "stream": {
+        "unparsed_lines": 0,
+        "unknown_types": []
+      }
+    }
+  ]
+}

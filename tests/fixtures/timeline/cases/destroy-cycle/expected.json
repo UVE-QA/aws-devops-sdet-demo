@@ -1,0 +1,49 @@
+{
+  "description": "destroy.yml's shape: a targeted destroy first, then the full one. Two operations in one timeline; the targeting warnings are warnings, not errors.",
+  "status": "complete",
+  "totals": {
+    "operations": 2,
+    "resources_created": 0,
+    "resources_destroyed": 4
+  },
+  "operations": [
+    {
+      "label": "destroy-alpha",
+      "command": "destroy",
+      "status": "complete",
+      "exit_code": 0,
+      "resources": {
+        "complete": 2,
+        "errored": 0,
+        "incomplete": 0
+      },
+      "diagnostics": {
+        "error": 0,
+        "warning": 2
+      },
+      "stream": {
+        "unparsed_lines": 0,
+        "unknown_types": []
+      }
+    },
+    {
+      "label": "destroy",
+      "command": "destroy",
+      "status": "complete",
+      "exit_code": 0,
+      "resources": {
+        "complete": 2,
+        "errored": 0,
+        "incomplete": 0
+      },
+      "diagnostics": {
+        "error": 0,
+        "warning": 0
+      },
+      "stream": {
+        "unparsed_lines": 0,
+        "unknown_types": []
+      }
+    }
+  ]
+}

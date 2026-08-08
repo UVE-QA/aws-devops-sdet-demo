@@ -5,7 +5,7 @@
         test-unit test-db test-ui-db test-spec-coverage docker-build tf-fmt \
         tf-validate docs-check secret-scan iac-scan image-scan action-pins \
         self-service-package self-service-cors-check site-page site-page-check \
-        site-data site-data-check
+        site-data site-data-check timeline-check
 
 # Bring up postgres + app (build app image if needed), detached.
 local-up:
@@ -182,6 +182,20 @@ site-data:
 
 site-data-check:
 	python3 scripts/generate-topology.py --check
+
+# The fold from Terraform's own -json event stream to a timeline (ADR-0039 D2),
+# checked against fixtures that are REAL terraform output - including one stream
+# from a terraform process that was killed mid-apply, which is the case the whole
+# thing exists for. Regenerate them with tests/fixtures/timeline/generate.sh;
+# they cost nothing and touch no cloud, because every resource in them is the
+# built-in terraform_data.
+#
+# The claim under gate: a run that dies mid-apply produces a timeline marked
+# INCOMPLETE, never a plausible complete one. The complete and errored cases are
+# checked just as exactly, because a fold that called everything incomplete would
+# satisfy that sentence and be useless.
+timeline-check:
+	python3 scripts/check-timeline.py
 
 # The two ends of a session, as commands rather than as prose in four documents
 # (ADR-0033). Local only: on a CI checkout the tree is always clean and HEAD

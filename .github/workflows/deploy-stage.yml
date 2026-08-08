@@ -27,6 +27,11 @@ jobs:
     env:
       AWS_REGION: ${{ vars.AWS_REGION }}
       TF_VAR_demo_account_id: ${{ vars.TF_VAR_demo_account_id }}
+      # Where scripts/tf-stream.sh drops every terraform event stream, and where
+      # scripts/fold-timeline.py looks for them (ADR-0039 D2). Job level, because
+      # the capture and the fold are different steps and a path repeated in two
+      # of them is a path that can disagree with itself.
+      TF_STREAM_DIR: /tmp/tf-streams
       # A SECRET, not a variable (Phase 15). GitHub does not mask variables, so
       # this address was printed in the step env dump of a PUBLIC repository's
       # logs. It is scoped to the `stage` and `prod` environments, exactly as the
@@ -118,9 +123,15 @@ jobs:
           TF_VAR_app_image: ${{ steps.repo.outputs.ecr_url }}:${{ github.sha }}
         run: terraform plan -input=false -out=tfplan
 
+      # `-json` replaces terraform's human-readable output with an event stream,
+      # which is what the timeline is folded from (ADR-0039 D2). The legible
+      # summary comes back in the fold step below - that is not optional, and
+      # losing the readable log to gain a picture would be a bad trade.
       - name: Terraform apply
         working-directory: infra/envs/stage
-        run: terraform apply -input=false -auto-approve tfplan
+        run: >
+          $GITHUB_WORKSPACE/scripts/tf-stream.sh apply
+          apply -input=false -auto-approve -json tfplan
 
       - name: Read stage outputs
         id: tf
@@ -234,6 +245,19 @@ jobs:
           APP_URL: ${{ steps.tf.outputs.alb_url }}
         run: scripts/observe-environment.sh stage > /tmp/observation.json
 
+      # The readable apply log, and the timeline the map draws. Uses no
+      # credential of any kind: it reads only the streams tf-stream.sh captured.
+      # `if: always()`, because the run that died half way is the one whose
+      # timeline matters - and a stream with no exit code beside it folds into
+      # INCOMPLETE rather than into a plausible complete cycle.
+      - name: Fold the terraform event stream into a timeline
+        if: always()
+        run: >
+          python3 scripts/fold-timeline.py
+          --environment stage
+          --stream-dir "$TF_STREAM_DIR"
+          --out /tmp/timeline-stage.json
+
       - name: Configure AWS credentials (OIDC, publish role)
         if: always()
         uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
@@ -248,4 +272,5 @@ jobs:
           SITE_DISTRIBUTION_ID: ${{ vars.SITE_DISTRIBUTION_ID }}
           SITE_BASE_URL: ${{ vars.SITE_URL }}
           JOB_STATUS: ${{ job.status }}
+          TIMELINE_JSON: /tmp/timeline-stage.json
         run: scripts/publish-status.sh stage /tmp/observation.json tests/playwright/playwright-report

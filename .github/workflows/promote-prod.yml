@@ -45,6 +45,11 @@ jobs:
       # variable it replaces was.
       TF_VAR_budget_email: ${{ secrets.TF_VAR_BUDGET_EMAIL }}
       TF_VAR_owner: ${{ vars.TF_VAR_owner }}
+      # Where scripts/tf-stream.sh drops every terraform event stream, and where
+      # scripts/fold-timeline.py looks for them (ADR-0039 D2). A promotion that
+      # rolls back writes TWO applies into it, and the timeline shows both:
+      # the rollback is part of what happened to prod, not a footnote to it.
+      TF_STREAM_DIR: /tmp/tf-streams
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -132,10 +137,14 @@ jobs:
           TF_VAR_app_image: ${{ steps.image.outputs.ref }}
         run: terraform plan -input=false -out=tfplan
 
+      # `-json` replaces terraform's human-readable output with an event stream
+      # (ADR-0039 D2); the legible summary comes back in the fold step below.
       - name: Terraform apply
         id: apply
         working-directory: infra/envs/prod
-        run: terraform apply -input=false -auto-approve tfplan
+        run: >
+          $GITHUB_WORKSPACE/scripts/tf-stream.sh apply
+          apply -input=false -auto-approve -json tfplan
 
       - name: Read prod outputs
         id: tf
@@ -338,7 +347,8 @@ jobs:
           # leave the running revision and the Terraform state disagreeing, and
           # here the next apply IS the next release - it would quietly undo the
           # rollback without anyone asking for that.
-          terraform apply -input=false -auto-approve
+          "$GITHUB_WORKSPACE/scripts/tf-stream.sh" rollback-apply \
+            apply -input=false -auto-approve -json
           aws ecs wait services-stable \
             --cluster "$(terraform output -raw ecs_cluster_name)" \
             --services "$(terraform output -raw ecs_service_name)"
@@ -407,6 +417,16 @@ jobs:
           APP_URL: ${{ steps.tf.outputs.app_url }}
         run: scripts/observe-environment.sh prod > /tmp/observation.json
 
+      # The readable apply log, and the timeline the map draws. Needs no
+      # credential: it reads only the streams tf-stream.sh captured.
+      - name: Fold the terraform event stream into a timeline
+        if: always()
+        run: >
+          python3 scripts/fold-timeline.py
+          --environment prod
+          --stream-dir "$TF_STREAM_DIR"
+          --out /tmp/timeline-prod.json
+
       - name: Configure AWS credentials (OIDC, publish role)
         if: always()
         uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
@@ -421,4 +441,5 @@ jobs:
           SITE_DISTRIBUTION_ID: ${{ vars.SITE_DISTRIBUTION_ID }}
           SITE_BASE_URL: ${{ vars.SITE_URL }}
           JOB_STATUS: ${{ job.status }}
+          TIMELINE_JSON: /tmp/timeline-prod.json
         run: scripts/publish-status.sh prod /tmp/observation.json tests/playwright/playwright-report

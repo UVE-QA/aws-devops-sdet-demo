@@ -1,0 +1,30 @@
+{
+  "description": "A plain apply that finished. Four resources created (one of them a count), a terminal change_summary, exit 0.",
+  "status": "complete",
+  "totals": {
+    "operations": 1,
+    "resources_created": 4,
+    "resources_destroyed": 0
+  },
+  "operations": [
+    {
+      "label": "apply",
+      "command": "apply",
+      "status": "complete",
+      "exit_code": 0,
+      "resources": {
+        "complete": 4,
+        "errored": 0,
+        "incomplete": 0
+      },
+      "diagnostics": {
+        "error": 0,
+        "warning": 0
+      },
+      "stream": {
+        "unparsed_lines": 0,
+        "unknown_types": []
+      }
+    }
+  ]
+}

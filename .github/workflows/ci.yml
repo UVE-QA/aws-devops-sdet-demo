@@ -137,6 +137,17 @@ jobs:
         # next build silently reverts it. Byte-identical or red.
         run: make site-page-check
 
+      - name: A killed apply folds into an INCOMPLETE timeline
+        # The gate over the fold that turns Terraform's -json stream into the
+        # timeline the page will draw (ADR-0039 D2). Its fixtures are real
+        # terraform output, one of them from a process killed mid-apply - a
+        # stream that ends in the middle of a resource with no exit code beside
+        # it, which is exactly what a cancelled workflow step leaves behind. A
+        # timeline that read that as complete would be the most confident lie
+        # this dashboard could tell. No AWS and no cost: every resource in the
+        # fixtures is the built-in terraform_data.
+        run: make timeline-check
+
       - name: Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
