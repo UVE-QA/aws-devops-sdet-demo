@@ -1,0 +1,67 @@
+=== CONTROL, before anything is broken ===
+suite-inventory: clean - 180 tests across 5 suites, collected with @playwright/test 1.62.0, pytest 9.1.1
+exit: 0
+
+=== B1 a test is renamed and the inventory is not regenerated ===
+suite-inventory: DRIFT
+site/data/suites.json disagrees with what the collectors just reported for tests/unit, tests/api, tests/db or tests/playwright/tests/.
+Run `make suite-inventory` and commit the result.
+exit: 1
+
+=== B2 the two copies of the db assertion disagree ===
+suite-inventory: REFUSED
+the two copies of the db assertion disagree about their checks.
+  tests/db/assert_seed.py: ['table_exists', 'seed_row_present']
+  app/scripts/assert_seed.py: ['table_exists', 'seed_row_exists']
+They mirror each other on purpose; the cloud runs app/scripts/assert_seed.py.
+exit: 1
+
+=== B3 a suite collects zero tests (db: the list emptied) ===
+suite-inventory: REFUSED
+suite 'db' collected zero tests. Refusing to report zero.
+exit: 1
+
+=== B3b a pytest suite collects zero tests (files moved away) ===
+suite-inventory: REFUSED
+collector exited 5: .venv-api/bin/pytest tests/api --collect-only -q -p no:cacheprovider
+--- stdout ---
+no tests collected in 0.00s
+--- stderr ---
+
+exit: 1
+
+=== B4 the machine's pytest is not the pinned one ===
+suite-inventory: REFUSED
+pytest version mismatch: the repository pins 9.1.0, this machine ran 9.1.1.
+Collected inventories from two versions are not comparable, and the gate would report the difference as drift in the suites.
+exit: 1
+
+=== B5 a spec answers to a project from outside its directory ===
+suite-inventory: REFUSED
+spec tests/playwright/tests/nested/smoke/rogue.spec.ts runs in project 'smoke' but lives outside tests/playwright/tests/smoke. ADR-0025 binds the suite to the directory; the map would draw it in the wrong place.
+exit: 1
+
+=== B6 the map names a suite nothing can be asked about ===
+suite-inventory: REFUSED
+no collector for suite(s): contract. A suite the map draws and nothing can be asked about is exactly what this file exists to prevent.
+exit: 1
+
+=== CONTROL, after every break was restored ===
+suite-inventory: clean - 180 tests across 5 suites, collected with @playwright/test 1.62.0, pytest 9.1.1
+exit: 0
+
+=== the refactored assertion actually runs (sqlite, both copies, both outcomes) ===
+--- empty database ---
+FAIL: table_exists - table 'demo_items' does not exist
+SKIP: seed_row_exists (an earlier check failed)
+exit: 1
+--- seeded, tests/db copy ---
+PASS: table_exists - table 'demo_items' exists
+PASS: seed_row_exists - row name='seed-item-001' exists (id=1)
+DB assertion: all checks passed
+exit: 0
+--- seeded, app/scripts copy (the one AWS runs) ---
+PASS: table_exists - table 'demo_items' exists
+PASS: seed_row_exists - row name='seed-item-001' exists (id=1)
+DB assertion: all checks passed
+exit: 0

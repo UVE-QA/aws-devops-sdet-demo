@@ -1019,6 +1019,15 @@ open          per-resource live pulsing, if phase-level proves too coarse. Two
 Not a panel beside the map. The suite nodes are already ON the map from 20a
 (ADR-0039 D2b) — this is what fills them.
 
+**Amended by ADR-0042 while the first half was being built.** Three things in
+the sketch below did not survive contact with the repository. `tests/db` has no
+collector to be generated from — it is a standalone script, so it was GIVEN
+`--list` rather than described from outside. The inventory gate cannot sit beside
+the map's own gate, because collecting needs the suites' dependencies and the
+job that holds `site-data-check` installs none of them. And the db assertion
+exists in two copies, of which the map observes the one baked into the image, not
+the one `make test-db` runs.
+
 ```text
 inventory     generated from the suites themselves - pytest --collect-only,
               playwright --list - not a list written beside them
