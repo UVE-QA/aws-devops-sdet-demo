@@ -6,6 +6,33 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
+**As of 2026-08-08 (20c, the suites answer for themselves).** The map's suite
+nodes stop being described and start being asked: an inventory COLLECTED by the
+tools that run the suites, and a fold from the reporters' own output onto the
+nodes. **ADR-0042.** 180 tests across five suites, byte-identical on three hosts;
+the db suite was GIVEN a collector rather than a description, and the two copies
+of its assertion - the local gate and the one baked into the image, which is what
+AWS runs - can no longer drift silently.
+
+Then the cycle, which is the half nothing offline can stand in for. Apply
+`31276975666` lit the apply half 20b.2 never reached: `nodes-apply.json` had
+never existed, and the map now carries real per-group durations and identifiers.
+Real results reached the suite nodes - api 52, regression 12, smoke 2 - and
+**db came back `incomplete, 1 passed, 1 not_run` for a suite that had passed
+both checks.** A race was assumed, a fix for it was written before the log was
+read, and one `grep` refuted it: `aws logs get-log-events --output text` joins an
+array with TABS, so three events arrived as one line. Fixed at the capture; the
+real bytes are a fixture, and what that fixture pins is that the fold NAMED the
+gap instead of filling it in.
+
+Teardown confirmed against the AWS CLI under a live credential, not against
+Terraform state and not against the green run: the account is empty. Next is the
+page - it reads neither the inventory nor the results, so all of the above is
+true and invisible - carrying three findings that came from WATCHING the cycle:
+a running phase pulses every node while terraform creates one, a finished phase
+falls back to "nothing recorded yet" until the run publishes at the end, and
+`suite.db.stage` is drawn in a phase where its step does not run.
+
 **As of 2026-08-08 (Ops, the gate that sees a free leftover).** The teardown can
 see a leftover that costs nothing, and the two IAM roles that blocked every
 `deploy-stage` for three days are gone. **ADR-0041.** The account is empty and a

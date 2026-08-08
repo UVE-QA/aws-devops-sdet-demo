@@ -173,8 +173,10 @@ it broke, in `ecs-run-task.sh`, with `--output json` and `jq -r` per message; th
 stability wait stays as an unproven precaution and says so in place.
 
 ### The fold's own refusals, in the same log
-`scripts/fold-results.py` is gated by nine fixtures, six of them real reporter
-output. Four deliberate defects were put into the fold to see the gate bite:
+`scripts/fold-results.py` is gated by ten fixtures, seven of them real reporter
+output - the tenth arrived from the cycle above. Four deliberate defects were put
+into the fold to see the gate bite (the counts below are from the nine that
+existed when it was broken):
 
 ```text
 every suite called passed                      3 of 9 cases red, on status
