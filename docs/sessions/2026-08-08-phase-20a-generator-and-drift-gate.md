@@ -165,12 +165,31 @@ claim about the trust path, so the claim is tied to a resource: `backed_by` name
 resource is not declared. A card that says "GitHub reaches this account through
 OIDC" now stops being printable the moment the provider is deleted.
 
-`Lightsail` is the awkward one and is left visibly so. It IS an AWS service, but
-its official icon is not among the seventeen this page inlines, and inventing a
-mark or recolouring another would break the single rule
-`assets/aws-icons/NOTICE.md` makes. It carries a project glyph until the icon can
-be taken from AWS's package on the devbox — recorded as open in
-`docs/next-phases.md`.
+**Lightsail's icon was added; GitHub's was not, and the reasons differ.** The
+first draft of this gave Lightsail a project glyph on the grounds that its icon
+was not among the ones inlined here — which was true and was not a reason. The
+package it would come from, release `Icon-package_07312026`, is on the same
+machine as the transfer buffer, and the icon went in unmodified from its `48`
+set, so it shares the others' viewBox. Taking it from `64` first would have made
+it a different visual weight; caught by listing every file's viewBox rather than
+by trusting the filename.
+
+GitHub is a different question and got a different answer. Its brand page
+**names this case and permits it** — "use a permitted GitHub logo to inform
+others that your project integrates with GitHub", "less prominently than your own
+product name" — where AWS's three pages neither permit nor exclude a public web
+page. But the mark may not be modified, and a redrawn Octocat is a modified one,
+so the asset has to be downloaded rather than produced here. The node keeps the
+glyph `CI`, and `assets/github-logo/NOTICE.md` records the terms so the next
+person does not assume the AWS reasoning applies.
+
+**Adding one icon made four written numbers false at once.** "Seventeen" in the
+sprite builder's docstring twice, in the template's comment, and in the plan; and
+"~48 KB" for a sprite that is now 50,168 bytes. One of them was in
+`assets/aws-icons/NOTICE.md` — the file whose whole job is to explain why the
+icons are safe to use. All four are gone: the builder prints the count and the
+size it just measured, and the prose no longer carries either. This is the sixth
+time in two days that the stale thing was a NUMBER rather than a phrase.
 
 **The prose is generated, not hidden.** The front page's hand-written "What
 happens, in the order it happens" is the text this asked to keep. Keeping it as

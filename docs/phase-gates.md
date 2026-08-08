@@ -1864,10 +1864,17 @@ were the same shape — a page saying something it was not in a position to say:
             GitHub card's claim about the trust path is TIED to a resource -
             `backed_by` names aws_iam_openid_connect_provider.github and the
             gate is red if it is not declared
-  glyph     Lightsail IS an AWS service and its official icon is not among the
-            seventeen inlined here. A project glyph rather than an invented or
-            recoloured mark, which NOTICE.md forbids. Open: take the icon from
-            AWS's package on the devbox
+  icons     Lightsail's official icon WAS added, from the same package release
+            and the same `48` set as the others, so it shares their viewBox.
+            GitHub keeps a glyph: its brand page NAMES this case and permits it
+            (assets/github-logo/NOTICE.md) - a different kind of answer from
+            AWS's, which neither permits nor excludes a public page - but the
+            mark may not be redrawn, so the asset has to be downloaded
+  counts    adding one icon made four written numbers false at once: "seventeen"
+            in two comments and in a plan, and "~48 KB" for the sprite. All four
+            replaced by measurement or by no number. One of them was in
+            assets/aws-icons/NOTICE.md, the file that exists to explain why the
+            icons are safe to use
   cut       the front page's prose, GENERATED from topology.json rather than
             kept (ADR-0039 D1). The generator now emits `members` - the exact
             terraform address behind every node - so the cut names all 116

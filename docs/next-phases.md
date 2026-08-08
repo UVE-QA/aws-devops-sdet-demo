@@ -854,7 +854,8 @@ priority   desktop and laptop are the intended view, and the page SAYS so. The
            phone works and flattens the shape; that is stated rather than
            engineered around. Revisit after a real cycle, not before
 icons      official AWS Architecture Icons, unmodified, inlined as ONE sprite
-           (~48 KB, ~12 KB gzipped) so the page stays a single file with no
+           (a few tens of KB, a quarter of that gzipped) so the page stays a
+           single file with no
            request-time dependency. Anything that is not an AWS service keeps a
            project glyph. Terms and position: assets/aws-icons/NOTICE.md
 absent     a node with no observation is the same icon in greyscale, never a
@@ -902,9 +903,11 @@ behind every node.
 Open, and carried forward:
 
 ```text
-lightsail   its official AWS icon is not among the seventeen inlined here, so it
-            carries a project glyph. Take the icon from AWS's package on the
-            devbox rather than inventing or recolouring one
+github      GitHub's mark is NOT an open question the way AWS's was: its brand
+            page names this case and permits it (assets/github-logo/NOTICE.md).
+            The asset has to be DOWNLOADED, not drawn - a redrawn Octocat is a
+            modified one - and the page needs a third icon case, being neither
+            an AWS service nor a project glyph. Glyph `CI` until then
 .node .head up to 22px wider than its own node, at every width - pre-dates the
             generator and was invisible to the pilot's document-level measure.
             A layout question, so it waits for the map to be on a screen again

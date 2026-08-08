@@ -34,9 +34,16 @@ neither is in `infra/` and the map is generated from `infra/`; they are not
 phases either, since nothing creates or destroys them, so they became a band
 ABOVE the cycle — and the GitHub card's claim about the trust path is tied to
 `aws_iam_openid_connect_provider.github` through a `backed_by` field, so deleting
-the provider turns the card red rather than leaving it lying. Lightsail keeps a
-project glyph: its official icon is not among the seventeen inlined here, and
-inventing or recolouring one is the single thing `NOTICE.md` forbids. And the
+the provider turns the card red rather than leaving it lying. Lightsail's icon was then
+added from the same package release and the same `48` set as the others, so it
+shares their viewBox — the `64` set was taken first and would have been a
+different visual weight. GitHub keeps a glyph, and for a different reason: its
+brand page NAMES this case and permits it, where AWS's pages neither permit nor
+exclude a public page, but the mark may not be redrawn, so the asset has to be
+downloaded. Adding that one icon made four written numbers false at once —
+"seventeen" three times and "~48 KB" once, one of them inside the very file that
+explains why the icons are safe to use. Sixth time in two days that the stale
+thing was a number. And the
 front page's prose was asked to survive under a cut — it does, GENERATED from the
 same file, because keeping it as prose would have preserved the exact class of
 defect this phase exists to end. The generator now emits every resource's

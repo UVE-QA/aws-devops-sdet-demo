@@ -1,9 +1,16 @@
 # AWS Architecture Icons — provenance and the position taken
 
-These seventeen SVG files are unmodified members of the **AWS Architecture Icons**
-asset package, release `Icon-package_07312026` (Q3 2026), downloaded from
-<https://aws.amazon.com/architecture/icons/>. They are renamed to the service key
-the page uses (`rds.svg`, `elb.svg`, …) and nothing else about them is changed.
+The SVG files in this directory are unmodified members of the **AWS Architecture
+Icons** asset package, release `Icon-package_07312026` (Q3 2026), downloaded from
+<https://aws.amazon.com/architecture/icons/>, all taken from its `48` set so they
+share one viewBox. They are renamed to the service key the page uses (`rds.svg`,
+`elb.svg`, …) and nothing else about them is changed.
+
+How many there are is deliberately not written here. It was — "these seventeen
+SVG files" — and it went stale the first time one was added, which is the exact
+defect Phase 20 exists to end, in the file explaining why the icons are safe to
+use. `scripts/build-icon-sprite.py` prints the count from the directory it just
+read, and that number is measured rather than remembered.
 
 ## What AWS actually says
 

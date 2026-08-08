@@ -255,16 +255,16 @@
       const AWS_ICON = new Set([
         "s3", "iam", "secretsmanager", "acm", "ecr", "ecs", "route53", "cloudfront",
         "vpc", "elb", "rds", "dynamodb", "cloudwatch", "budgets", "lambda", "sns", "eventbridge",
+        "lightsail",
       ]);
       // Everything that is NOT an AWS service keeps a project glyph. Drawing one
       // of these in AWS's visual language would be a claim about what it is.
       //
-      // `devbox` is the awkward one and is left here deliberately: Lightsail IS
-      // an AWS service, but its official icon is not among the seventeen this
-      // page inlines, and inventing a mark or recolouring another would break
-      // the one rule assets/aws-icons/NOTICE.md makes. Adding it means going
-      // back to AWS's package - recorded as open in docs/next-phases.md.
-      const GLYPH = { suite: "TEST", human: "YOU", destroy: "DEL", devbox: "SSH", github: "CI" };
+      // `github` is the one left waiting. GitHub's terms, unlike AWS's, name this
+      // case explicitly and permit it - see assets/github-logo/NOTICE.md - but
+      // the mark may not be modified or recreated, and the official asset has to
+      // be fetched rather than drawn. Until it is, a project glyph.
+      const GLYPH = { suite: "TEST", human: "YOU", destroy: "DEL", github: "CI" };
 
       const iconEl = (service) =>
         AWS_ICON.has(service)
@@ -322,9 +322,9 @@
 
       /* The text under the cut. It is the SECOND RENDERING of data/topology.json
          and not a copy of it in words (ADR-0039 D1): the map groups resources
-         into services because seventeen marks fit on a screen and a hundred and
-         sixteen do not, and this is where the ones the map folded away are named
-         individually. Nothing here is written by hand except the sentences that
+         into services because a couple of dozen marks fit on a screen and a
+         hundred and sixteen do not, and this is where the ones the map folded
+         away are named individually. Nothing here is written by hand except the sentences that
          are judgements rather than facts about state. */
       function renderDetail(d) {
         const esc = (s) => String(s).replace(/[<>&]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[c]));

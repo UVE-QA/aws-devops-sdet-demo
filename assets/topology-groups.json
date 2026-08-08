@@ -11,7 +11,7 @@
       {
         "id": "out.devbox",
         "label": "Lightsail devbox",
-        "service": "devbox",
+        "service": "lightsail",
         "kind": "host",
         "why": "an Ubuntu instance reached over SSH, and the one machine here built by hand. Docker Compose, the Terraform and AWS CLIs and the test suites run on it while the work is being written; nothing in a cycle touches it. Deliberately outside Terraform — it is where the code is written, not where it runs."
       },

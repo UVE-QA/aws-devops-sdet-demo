@@ -3,14 +3,17 @@
 
 Why a sprite rather than 17 objects in the bucket: the public page has been one
 self-contained file with no build step and no runtime dependency since 11.1c, and
-seventeen extra requests to render a picture is a worse trade than ~48 KB of
-inline markup (~12 KB over the wire, gzipped by CloudFront).
+one request per icon to render a picture is a worse trade than the inline
+markup, which is a few tens of KB and roughly a quarter of that over the wire,
+gzipped by CloudFront. The exact size is PRINTED by this script when it runs
+rather than written here, because a number in a comment goes stale the first
+time an icon is added - which it just did.
 
 The icons are used UNMODIFIED. No recolouring, no reproportioning, no cropping —
 AWS's trademark guidelines prohibit altering the marks, and this script is the
 one place that could have done it, so it says so here. The only rewriting is to
-namespace each icon's internal element ids: seventeen files that each call an
-element "Rectangle" cannot share one DOM without colliding. Geometry, colour and
+namespace each icon's internal element ids: a directory of files that each call
+an element "Rectangle" cannot share one DOM without colliding. Geometry, colour and
 viewBox are untouched.
 
 Provenance and the licence position are in assets/aws-icons/NOTICE.md.
@@ -38,7 +41,7 @@ MARKER = "<!--ICON-SPRITE-->"
 KEYS = [
     "s3", "iam", "secretsmanager", "acm", "ecr", "ecs", "route53", "cloudfront",
     "vpc", "elb", "rds", "dynamodb", "cloudwatch", "budgets", "lambda", "sns",
-    "eventbridge",
+    "eventbridge", "lightsail",
 ]
 
 
