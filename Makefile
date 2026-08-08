@@ -5,7 +5,8 @@
         test-unit test-db test-ui-db test-spec-coverage docker-build tf-fmt \
         tf-validate docs-check secret-scan iac-scan image-scan action-pins \
         self-service-package self-service-cors-check site-page site-page-check \
-        site-data site-data-check timeline-check node-states-check
+        site-data site-data-check timeline-check node-states-check \
+        suite-inventory suite-inventory-check
 
 # Bring up postgres + app (build app image if needed), detached.
 local-up:
@@ -182,6 +183,27 @@ site-data:
 
 site-data-check:
 	python3 scripts/generate-topology.py --check
+
+# The suites' inventory, COLLECTED from the suites by the tools that run them
+# (ADR-0042 D1): pytest --collect-only, playwright --list, assert_seed.py --list.
+# A file count is not an inventory and a sentence written beside a suite is the
+# sixth stale place waiting to happen.
+#
+# Unlike site-data-check this needs the suites' own dependencies, so it belongs
+# to ci.yml's `tests` job, after the targets that build them, and NOT beside the
+# map's gate in `checks` (ADR-0042 D2). The venv paths are passed in from here,
+# where `make test-unit` and `make test-api` already define them - the script
+# refuses rather than guessing a location.
+#
+# Refusals exercised on purpose: a renamed test, the two copies of the db
+# assertion disagreeing, a suite collecting zero, a pinned version the machine
+# does not have, and a spec answering to a project from outside its directory.
+INVENTORY_ENV := UNIT_PYTEST=$(UNIT_VENV)/bin/pytest API_PYTEST=$(API_VENV)/bin/pytest
+suite-inventory:
+	$(INVENTORY_ENV) python3 scripts/collect-suites.py
+
+suite-inventory-check:
+	$(INVENTORY_ENV) python3 scripts/collect-suites.py --check
 
 # The fold from Terraform's own -json event stream to a timeline (ADR-0039 D2),
 # checked against fixtures that are REAL terraform output - including one stream

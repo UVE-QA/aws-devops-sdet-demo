@@ -83,6 +83,13 @@ jobs:
       - name: Seed DB assertion
         run: make test-db
 
+      - name: The map's inventory still matches the suites
+        # Last in this job on purpose: collecting needs the unit venv, the api
+        # venv and playwright's node_modules, and each one is a side effect of a
+        # step above. It cannot join the map's own gate in `terraform-checks`,
+        # which installs none of them (ADR-0042 D2).
+        run: make suite-inventory-check
+
       - name: Tear down local stack
         if: always()
         run: make local-down
