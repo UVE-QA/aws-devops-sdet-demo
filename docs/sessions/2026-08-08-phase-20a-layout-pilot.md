@@ -4,7 +4,7 @@ The layout is the only part of Phase 20 that cannot be derived from the
 repository, so it was built in a chat sandbox with a clone and a headless
 Chromium, rendered against a hand-built fixture, and LOOKED AT — three times,
 each time changing something the previous picture had made obvious. Nothing was
-applied, nothing was published, `site/index.html` was not touched.
+applied to AWS and `site/index.html` was not touched.
 
 ## The finding: a picture makes claims too
 
@@ -121,3 +121,25 @@ the two large phases by default, and a node labelled "Route 53 + ACM" carrying
 one mark for two services.
 
 Cost: **$0**. No AWS API was called and no environment existed at any point.
+
+## Postscript: the artifact went stale in the minutes after it was written
+
+The push was the validation, and the validation found this session's own
+document making a false claim. `site/data/topology.json` ended its first field
+with **"Nothing here is published"**, `docs/phase-gates.md` recorded "nothing
+published" beside the cost, and the opening line above said the same. All three
+were true when written and false about ninety seconds later, because
+`publish-site` fires on any push to `site/**` and the fixture went to the public
+bucket with everything else.
+
+Nobody could have found it by reading. It is the tense defect ADR-0039 D1 names —
+a claim that goes stale without a word changing around it — committed in the
+phase whose whole subject is that class of defect, by the session documenting it.
+That is not irony worth enjoying; it is the measurement that says the class is
+real and that discipline alone does not close it. The generator and its drift
+gate are what close it, and they are still unwritten.
+
+What the publish DID confirm, checked rather than assumed: the page is served,
+`/data/topology.json` is served beside it, and the counts the page renders come
+from that file. The static fetch showed no phase headings and no counts sentence,
+which is what a fetch with no JavaScript shows and is not evidence of anything.

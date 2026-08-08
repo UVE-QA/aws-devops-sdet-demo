@@ -1791,7 +1791,10 @@ were the same shape — a page saying something it was not in a position to say:
   its first field.
 - Two refusals of the sprite builder were exercised on purpose, both red: a
   missing icon file, and a template that has lost its injection marker.
-- Cost: **$0**. Nothing applied, nothing published, no environment at any point.
+- Cost: **$0**. Nothing applied to AWS, no environment at any point. The page
+  IS published: `publish-site` fires on any push to `site/**`, so
+  `demo.uveapp.net/map-pilot.html` went live with this commit, carrying fixture
+  numbers that are labelled as fixture numbers on the page and in the file.
 - Validation:
 ```bash
   make site-pilot          # rebuilds site/map-pilot.html from the template
