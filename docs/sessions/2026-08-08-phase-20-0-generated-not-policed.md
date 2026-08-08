@@ -165,6 +165,6 @@ renders them rather than spelling them out.
   was checked anyway.
 - `docs/cost-control.md` and `docs/interview-talking-points.md` are NOT in
   `docs-check`'s document list (README, architecture, demo-script, phase-gates,
-  session-primer, transfer-buffer). Two of the five stale places were in files
+  session-primer, transfer-buffer). Two of the first sweep's five were in files
   the gate does not even open — worth knowing before assuming a green
   `docs-check` says anything about them.
