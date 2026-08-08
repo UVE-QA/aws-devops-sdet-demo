@@ -770,12 +770,18 @@ generator     site/data/topology.json, built from infra/ AND tests/: the state
               after stage comes up, and the display node each one is assigned
               to. Suite nodes are part of the chain from the start, not a
               later addition (ADR-0039 D2b)
-layout        ONE DESKTOP SCREEN, no scrolling (ADR-0039 D5). That is a budget,
-              not an aspiration: a fixed number of visual slots, resources
-              GROUPED into services rather than drawn one per box
+layout        legible at rest with NO MANUAL SCROLLING (ADR-0039 D5), packed
+              serpentine so a long chain folds into a rectangle. That is still
+              a budget: resources GROUPED into services, and the at-rest
+              legibility test is what the budget is measured by
+autoscroll    while a cycle runs the view may follow the active node, at phase
+              granularity. It YIELDS to any manual scroll, drag or zoom and
+              does not resume until asked or idle. It is a comfort during a
+              run, never a licence for a map that grew too big
 mobile        the map REFLOWS to a single vertical column and scrolls - same
               nodes, same data, a second layout pass over the same JSON. Not
-              the desktop layout squeezed, and not text instead of a map
+              the desktop layout squeezed, and not text instead of a map. The
+              serpentine is desktop-only; one column has nothing to fold
 gate          make site-data-check, wired into ci.yml. It checks COVERAGE, not
               depiction: every resource in infra/ belongs to exactly one display
               group, including the group meaning "deliberately not shown". An

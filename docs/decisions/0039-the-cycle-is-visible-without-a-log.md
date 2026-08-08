@@ -163,8 +163,35 @@ it.
 ### D5 — the drawing may approximate; the data behind it may not
 
 Added the same evening, after the first four were written. The requirement is
-**one screen, no scrolling** — legibility beats fidelity, and anyone who wants
-exactness has the text chronometry a click away. Taken naively that contradicts
+**legible without manual scrolling** — legibility beats fidelity, and anyone who
+wants exactness has the text chronometry a click away.
+
+It began as "one screen, no scrolling" and was relaxed in the same session, in a
+way that has to be written down carefully or it stops constraining anything:
+
+```text
+at rest    the whole chain is legible with no manual scrolling. A serpentine
+           layout is the packing strategy - it folds a long chain into a
+           rectangle instead of a strip. Alternate rows then read right to
+           left, so direction arrows stop being decoration
+running    the view MAY follow the active node. It moves at phase
+           granularity (D4), so this is a few calm movements per cycle, not a
+           tracking shot
+```
+
+Two rules that come with autoscroll, both cheap now and expensive to
+retrofit:
+
+- **It yields.** The moment a reader scrolls, drags or zooms, following stops,
+  and it does not resume until they ask or until they have been idle. An
+  autoscroll that pulls the view back while someone is reading is worse than no
+  autoscroll at all.
+- **It is not a licence for an unbounded map.** The reason "one screen" was a
+  useful rule is that it made the node budget mean something; a map that may
+  scroll can grow forever and become the diagram nobody reads. The budget
+  survives in its new form — the at-rest legibility test is the budget, and D1's
+  coverage gate still forces a decision about every resource, including the
+  decision not to show it. Taken naively that contradicts
 D1, which exists precisely so the picture cannot say something untrue. It does
 not, once the line is drawn in the right place:
 
@@ -204,11 +231,12 @@ Anything approximated says so where it renders, and links to the exact rendering
 An unlabelled approximation is a claim, which is the thing this ADR exists to
 stop.
 
-**One screen means one DESKTOP screen. On a phone the map REFLOWS, it does not
+**The at-rest rule is a DESKTOP rule. On a phone the map REFLOWS, it does not
 disappear.** Same nodes, same data, laid out as a single vertical column and
 scrolled — the ordinary mobile pattern, and one where the sequence reads top to
 bottom rather than across lanes, which is arguably clearer than the desktop
-layout rather than a concession.
+layout rather than a concession. The serpentine is a desktop packing strategy
+only; on one column there is nothing to fold.
 
 Two things this deliberately is not. It is not the desktop layout in a narrow
 window — tiny labels, horizontal scroll and pinch-zoom are visually worse than
