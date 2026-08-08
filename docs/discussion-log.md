@@ -27,7 +27,30 @@ morning. Indentation is a claim about formatting; the question is about depth.
 
 Nothing observed is written by the generator — no duration, cost, identifier or
 result — so the map renders entirely unobserved until 20b and 20c. That is a
-visible regression in the exhibit and the honest one. Rendering it revealed a
+visible regression in the exhibit and the honest one.
+
+Two things were added on review. The map had no devbox and no GitHub, because
+neither is in `infra/` and the map is generated from `infra/`; they are not
+phases either, since nothing creates or destroys them, so they became a band
+ABOVE the cycle — and the GitHub card's claim about the trust path is tied to
+`aws_iam_openid_connect_provider.github` through a `backed_by` field, so deleting
+the provider turns the card red rather than leaving it lying. Lightsail keeps a
+project glyph: its official icon is not among the seventeen inlined here, and
+inventing or recolouring one is the single thing `NOTICE.md` forbids. And the
+front page's prose was asked to survive under a cut — it does, GENERATED from the
+same file, because keeping it as prose would have preserved the exact class of
+defect this phase exists to end. The generator now emits every resource's
+terraform address, so the cut names all 116 blocks the map folds into 26 marks.
+
+Looking at it again found three things, and the third is older than the session:
+a terraform address is one unbroken token and pushed the phone 103px past its
+viewport with the cut OPEN, while the same page with the cut SHUT fitted and said
+nothing; opening the cut summoned a scrollbar and the map had been laid out
+against the wider viewport; and `.node .head` is up to 22px wider than its own
+node at every width, on the pre-patch build too. The pilot's
+`scrollWidth == clientWidth` was true — of the DOCUMENT. The head spills into the
+node's own padding, where neither a screenshot nor that measure could see it.
+Left unfixed on purpose: layout here is decided by looking, not by reasoning. Rendering it revealed a
 defect no check here could have named: a node with no `state` took the absent CSS
 class and the MEASURED body, printing `undefineds` where the seconds go. Nothing
 in the JSON was wrong. `site/index.html` was deliberately not touched, by

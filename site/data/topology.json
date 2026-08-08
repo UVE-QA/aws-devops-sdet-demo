@@ -15,6 +15,27 @@
     "repeated_blocks": 9
   },
   "measured_cycle": null,
+  "outside": {
+    "label": "Outside the cycle",
+    "note": "Neither is created or destroyed by a cycle, and neither appears in infra/. Everything below runs on a GitHub runner holding a token that lasts one job; no human runs an AWS command during a cycle, and there is no static AWS key in this project.",
+    "nodes": [
+      {
+        "id": "out.devbox",
+        "label": "Lightsail devbox",
+        "service": "devbox",
+        "kind": "host",
+        "why": "an Ubuntu instance reached over SSH, and the one machine here built by hand. Docker Compose, the Terraform and AWS CLIs and the test suites run on it while the work is being written; nothing in a cycle touches it. Deliberately outside Terraform — it is where the code is written, not where it runs."
+      },
+      {
+        "id": "out.github",
+        "label": "GitHub — repository + Actions",
+        "service": "github",
+        "kind": "ci",
+        "backed_by": "infra/modules/iam_github_oidc_provider::aws_iam_openid_connect_provider.github",
+        "why": "every phase below is a job on a GitHub runner. It reaches this AWS account by assuming a role through the OIDC provider in infra/bootstrap-oidc, for the length of one job. The provider is cited rather than described: delete it and this card goes red."
+      }
+    ]
+  },
   "permanent": [
     {
       "id": "perm.tfstate",
@@ -22,6 +43,12 @@
       "service": "s3",
       "level": "infra/bootstrap",
       "resources": 4,
+      "members": [
+        "infra/bootstrap :: aws_s3_bucket.tfstate",
+        "infra/bootstrap :: aws_s3_bucket_versioning.tfstate",
+        "infra/bootstrap :: aws_s3_bucket_server_side_encryption_configuration.tfstate",
+        "infra/bootstrap :: aws_s3_bucket_public_access_block.tfstate"
+      ],
       "why": "the bucket every other level keeps its state in"
     },
     {
@@ -30,6 +57,13 @@
       "service": "iam",
       "level": "infra/bootstrap-oidc",
       "resources": 5,
+      "members": [
+        "infra/bootstrap-oidc :: module.oidc_provider.aws_iam_openid_connect_provider.github",
+        "infra/bootstrap-oidc :: module.deploy_role_stage.aws_iam_role.deploy",
+        "infra/bootstrap-oidc :: module.deploy_role_stage.aws_iam_role_policy.deploy",
+        "infra/bootstrap-oidc :: module.deploy_role_prod.aws_iam_role.deploy",
+        "infra/bootstrap-oidc :: module.deploy_role_prod.aws_iam_role_policy.deploy"
+      ],
       "why": "GitHub Actions assumes these; no static AWS key exists"
     },
     {
@@ -38,6 +72,11 @@
       "service": "ecr",
       "level": "infra/shared-ecr",
       "resources": 3,
+      "members": [
+        "infra/shared-ecr :: aws_ssm_parameter.prod_last_good_digest",
+        "infra/shared-ecr :: module.ecr.aws_ecr_repository.app",
+        "infra/shared-ecr :: module.ecr.aws_ecr_lifecycle_policy.app"
+      ],
       "why": "prod promotes the digest stage tested; a teardown must not delete it"
     },
     {
@@ -46,6 +85,12 @@
       "service": "route53",
       "level": "infra/dns",
       "resources": 4,
+      "members": [
+        "infra/dns :: aws_route53_zone.demo",
+        "infra/dns :: aws_acm_certificate.wildcard",
+        "infra/dns :: aws_route53_record.validation",
+        "infra/dns :: aws_acm_certificate_validation.wildcard"
+      ],
       "why": "delegated zone and the wildcard certificate the ALB serves"
     },
     {
@@ -54,6 +99,22 @@
       "service": "cloudfront",
       "level": "infra/public-site",
       "resources": 14,
+      "members": [
+        "infra/public-site :: aws_s3_bucket.site",
+        "infra/public-site :: aws_s3_bucket_public_access_block.site",
+        "infra/public-site :: aws_s3_bucket_versioning.site",
+        "infra/public-site :: aws_s3_bucket_server_side_encryption_configuration.site",
+        "infra/public-site :: aws_acm_certificate.site",
+        "infra/public-site :: aws_route53_record.cert_validation",
+        "infra/public-site :: aws_acm_certificate_validation.site",
+        "infra/public-site :: aws_cloudfront_origin_access_control.site",
+        "infra/public-site :: aws_cloudfront_distribution.site",
+        "infra/public-site :: aws_s3_bucket_policy.site",
+        "infra/public-site :: aws_route53_record.site_a",
+        "infra/public-site :: aws_route53_record.site_aaaa",
+        "infra/public-site :: aws_iam_role.publish",
+        "infra/public-site :: aws_iam_role_policy.publish"
+      ],
       "why": "the exhibit cannot be destroyed by the thing it exhibits"
     },
     {
@@ -62,6 +123,33 @@
       "service": "lambda",
       "level": "infra/self-service",
       "resources": 25,
+      "members": [
+        "infra/self-service :: aws_cloudwatch_log_group.launch",
+        "infra/self-service :: aws_iam_role.launch",
+        "infra/self-service :: aws_iam_role_policy.launch",
+        "infra/self-service :: aws_lambda_function.launch",
+        "infra/self-service :: aws_lambda_permission.launch_url_invoke",
+        "infra/self-service :: aws_lambda_function_url.launch",
+        "infra/self-service :: aws_iam_role.callback",
+        "infra/self-service :: aws_iam_role_policy.callback",
+        "infra/self-service :: aws_dynamodb_table.control",
+        "infra/self-service :: aws_secretsmanager_secret.github_app_key",
+        "infra/self-service :: aws_sns_topic.budget",
+        "infra/self-service :: aws_cloudwatch_log_group.watchdog",
+        "infra/self-service :: aws_iam_role.watchdog",
+        "infra/self-service :: aws_iam_role_policy.watchdog",
+        "infra/self-service :: aws_lambda_function.watchdog",
+        "infra/self-service :: aws_iam_role.scheduler",
+        "infra/self-service :: aws_iam_role_policy.scheduler",
+        "infra/self-service :: aws_scheduler_schedule.watchdog",
+        "infra/self-service :: aws_cloudwatch_log_group.killswitch",
+        "infra/self-service :: aws_iam_role.killswitch",
+        "infra/self-service :: aws_iam_role_policy.killswitch",
+        "infra/self-service :: aws_lambda_function.killswitch",
+        "infra/self-service :: aws_lambda_permission.killswitch_sns",
+        "infra/self-service :: aws_sns_topic_subscription.killswitch",
+        "infra/self-service :: aws_sns_topic_policy.budget"
+      ],
       "why": "the public launch button, its TTL and its watchdog"
     }
   ],
@@ -95,7 +183,15 @@
           "kind": "service",
           "env": "stage",
           "observer": "terraform",
-          "resources": 6
+          "resources": 6,
+          "members": [
+            "module.network.aws_vpc.this",
+            "module.network.aws_internet_gateway.this",
+            "module.network.aws_subnet.public",
+            "module.network.aws_subnet.private_db",
+            "module.network.aws_route_table.public",
+            "module.network.aws_route_table_association.public"
+          ]
         },
         {
           "id": "stage.secrets",
@@ -104,7 +200,11 @@
           "kind": "service",
           "env": "stage",
           "observer": "terraform",
-          "resources": 2
+          "resources": 2,
+          "members": [
+            "module.rds.aws_secretsmanager_secret.db",
+            "module.rds.aws_secretsmanager_secret_version.db"
+          ]
         },
         {
           "id": "stage.rds",
@@ -113,7 +213,13 @@
           "kind": "service",
           "env": "stage",
           "observer": "terraform",
-          "resources": 4
+          "resources": 4,
+          "members": [
+            "module.rds.aws_db_subnet_group.this",
+            "module.rds.aws_security_group.rds",
+            "module.rds.random_password.db",
+            "module.rds.aws_db_instance.this"
+          ]
         },
         {
           "id": "stage.alb",
@@ -122,7 +228,14 @@
           "kind": "service",
           "env": "stage",
           "observer": "terraform",
-          "resources": 5
+          "resources": 5,
+          "members": [
+            "module.alb.aws_security_group.alb",
+            "module.alb.aws_lb.this",
+            "module.alb.aws_lb_target_group.app",
+            "module.alb.aws_lb_listener.http",
+            "module.alb.aws_lb_listener.https"
+          ]
         },
         {
           "id": "stage.ecs",
@@ -131,7 +244,17 @@
           "kind": "service",
           "env": "stage",
           "observer": "terraform",
-          "resources": 8
+          "resources": 8,
+          "members": [
+            "module.ecs.aws_ecs_cluster.this",
+            "module.ecs.aws_security_group.app",
+            "module.ecs.aws_iam_role.execution",
+            "module.ecs.aws_iam_role_policy_attachment.execution_managed",
+            "module.ecs.aws_iam_role_policy.execution_read_secret",
+            "module.ecs.aws_iam_role.task",
+            "module.ecs.aws_ecs_task_definition.app",
+            "module.ecs.aws_ecs_service.app"
+          ]
         },
         {
           "id": "stage.cloudwatch",
@@ -140,7 +263,12 @@
           "kind": "service",
           "env": "stage",
           "observer": "terraform",
-          "resources": 3
+          "resources": 3,
+          "members": [
+            "module.observability.aws_cloudwatch_log_group.app",
+            "module.observability.aws_cloudwatch_log_metric_filter.http_5xx",
+            "module.observability.aws_cloudwatch_metric_alarm.http_5xx"
+          ]
         },
         {
           "id": "stage.budgets",
@@ -149,7 +277,10 @@
           "kind": "service",
           "env": "stage",
           "observer": "terraform",
-          "resources": 1
+          "resources": 1,
+          "members": [
+            "module.budgets.aws_budgets_budget.monthly"
+          ]
         }
       ]
     },
@@ -251,7 +382,15 @@
           "kind": "service",
           "env": "prod",
           "observer": "terraform",
-          "resources": 6
+          "resources": 6,
+          "members": [
+            "module.network.aws_vpc.this",
+            "module.network.aws_internet_gateway.this",
+            "module.network.aws_subnet.public",
+            "module.network.aws_subnet.private_db",
+            "module.network.aws_route_table.public",
+            "module.network.aws_route_table_association.public"
+          ]
         },
         {
           "id": "prod.secrets",
@@ -260,7 +399,11 @@
           "kind": "service",
           "env": "prod",
           "observer": "terraform",
-          "resources": 2
+          "resources": 2,
+          "members": [
+            "module.rds.aws_secretsmanager_secret.db",
+            "module.rds.aws_secretsmanager_secret_version.db"
+          ]
         },
         {
           "id": "prod.rds",
@@ -269,7 +412,13 @@
           "kind": "service",
           "env": "prod",
           "observer": "terraform",
-          "resources": 4
+          "resources": 4,
+          "members": [
+            "module.rds.aws_db_subnet_group.this",
+            "module.rds.aws_security_group.rds",
+            "module.rds.random_password.db",
+            "module.rds.aws_db_instance.this"
+          ]
         },
         {
           "id": "prod.alb",
@@ -278,7 +427,14 @@
           "kind": "service",
           "env": "prod",
           "observer": "terraform",
-          "resources": 5
+          "resources": 5,
+          "members": [
+            "module.alb.aws_security_group.alb",
+            "module.alb.aws_lb.this",
+            "module.alb.aws_lb_target_group.app",
+            "module.alb.aws_lb_listener.http",
+            "module.alb.aws_lb_listener.https"
+          ]
         },
         {
           "id": "prod.ecs",
@@ -287,7 +443,17 @@
           "kind": "service",
           "env": "prod",
           "observer": "terraform",
-          "resources": 8
+          "resources": 8,
+          "members": [
+            "module.ecs.aws_ecs_cluster.this",
+            "module.ecs.aws_security_group.app",
+            "module.ecs.aws_iam_role.execution",
+            "module.ecs.aws_iam_role_policy_attachment.execution_managed",
+            "module.ecs.aws_iam_role_policy.execution_read_secret",
+            "module.ecs.aws_iam_role.task",
+            "module.ecs.aws_ecs_task_definition.app",
+            "module.ecs.aws_ecs_service.app"
+          ]
         },
         {
           "id": "prod.cloudwatch",
@@ -296,7 +462,12 @@
           "kind": "service",
           "env": "prod",
           "observer": "terraform",
-          "resources": 3
+          "resources": 3,
+          "members": [
+            "module.observability.aws_cloudwatch_log_group.app",
+            "module.observability.aws_cloudwatch_log_metric_filter.http_5xx",
+            "module.observability.aws_cloudwatch_metric_alarm.http_5xx"
+          ]
         },
         {
           "id": "prod.dnsrec",
@@ -305,7 +476,10 @@
           "kind": "service",
           "env": "prod",
           "observer": "terraform",
-          "resources": 1
+          "resources": 1,
+          "members": [
+            "aws_route53_record.app"
+          ]
         },
         {
           "id": "prod.budgets",
@@ -314,7 +488,10 @@
           "kind": "service",
           "env": "prod",
           "observer": "terraform",
-          "resources": 1
+          "resources": 1,
+          "members": [
+            "module.budgets.aws_budgets_budget.monthly"
+          ]
         }
       ]
     },

@@ -154,6 +154,42 @@
          more honest, than engineering the phone layout to pretend otherwise. */
       .legend .best { flex-basis: 100%; font-style: italic; opacity: 0.85; }
       .approx { font-size: 0.74rem; color: var(--muted); margin: 0.7rem 0 0; }
+
+      /* The band above the cycle, and the text under the cut. Both are second
+         renderings of data/topology.json - never maintained beside it. */
+      .outside { display: grid; gap: var(--gap); grid-template-columns: repeat(auto-fit, minmax(var(--node-min), 1fr)); }
+      .outside .node { opacity: 1; border-style: solid; background: var(--panel); }
+      .outside .node .icon { border-style: solid; }
+      /* Reserve the scrollbar always. Opening the cut makes the page taller, the
+         scrollbar appears, the viewport narrows by its width - and the map had
+         already been laid out against the wider one, so it spilled. The layout
+         must not depend on how much text happens to be expanded below it. */
+      html { scrollbar-gutter: stable; }
+      details.detail { margin: 1.6rem 0 0; border-top: 1px solid var(--line); padding-top: 0.9rem; }
+      details.detail > summary {
+        cursor: pointer; font-size: 0.82rem; color: var(--muted);
+        list-style: none; display: flex; align-items: center; gap: 0.4rem;
+      }
+      details.detail > summary::before { content: "▸"; font-size: 0.8rem; }
+      details.detail[open] > summary::before { content: "▾"; }
+      details.detail > summary::-webkit-details-marker { display: none; }
+      .detail h3 { font-size: 0.86rem; margin: 1.4rem 0 0.4rem; }
+      .detail p { font-size: 0.84rem; color: var(--muted); max-width: 46rem; margin: 0.3rem 0; }
+      .detail dl { margin: 0.5rem 0 0; }
+      /* `dt` carries terraform addresses too - the repeated-blocks section lists
+         them as the term. One unbroken token there pushed the page 103px wider
+         than the phone viewport, and the first fix had covered only `dd`. */
+      .detail dt { font-size: 0.82rem; font-weight: 600; margin: 0.7rem 0 0.15rem; overflow-wrap: anywhere; }
+      .detail dd {
+        margin: 0 0 0 1rem; font-size: 0.75rem; color: var(--muted);
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        /* A terraform address is one long unbroken token, and at 390 it pushed
+           the whole document wider than the viewport - which the map itself
+           never does. Caught by measuring with the cut OPEN; closed, the page
+           fitted and said nothing. */
+        overflow-wrap: anywhere;
+      }
+      .detail .links { font-size: 0.84rem; margin-top: 1.4rem; }
       .fixture {
         border: 1px solid var(--line); border-left: 4px solid var(--warn);
         background: var(--warn-bg); border-radius: 8px;
@@ -177,6 +213,9 @@
         arrive in 20b and 20c, and until they do every node says so.
       </p>
 
+      <h2>Outside the cycle <span class="note" id="outside-note"></span></h2>
+      <div class="outside" id="outside"></div>
+
       <h2>Permanent <span class="note">&mdash; no destroy workflow touches these</span></h2>
       <div class="perm" id="perm"></div>
 
@@ -197,6 +236,15 @@
         chronometry.
       </p>
 
+      <details class="detail" id="detail">
+        <summary>The same thing in words, with every resource named</summary>
+        <div id="detail-body"></div>
+        <p class="links">
+          Source, and every decision record behind the design:
+          <a href="https://github.com/UVE-QA/aws-devops-sdet-demo">github.com/UVE-QA/aws-devops-sdet-demo</a>
+        </p>
+      </details>
+
       <h2>Counts <span class="note">&mdash; rendered from the same file, never spelled out in prose</span></h2>
       <p class="sub" id="counts"></p>
     </main>
@@ -208,8 +256,15 @@
         "s3", "iam", "secretsmanager", "acm", "ecr", "ecs", "route53", "cloudfront",
         "vpc", "elb", "rds", "dynamodb", "cloudwatch", "budgets", "lambda", "sns", "eventbridge",
       ]);
-      // everything that is not an AWS service
-      const GLYPH = { suite: "TEST", human: "YOU", destroy: "DEL" };
+      // Everything that is NOT an AWS service keeps a project glyph. Drawing one
+      // of these in AWS's visual language would be a claim about what it is.
+      //
+      // `devbox` is the awkward one and is left here deliberately: Lightsail IS
+      // an AWS service, but its official icon is not among the seventeen this
+      // page inlines, and inventing a mark or recolouring another would break
+      // the one rule assets/aws-icons/NOTICE.md makes. Adding it means going
+      // back to AWS's package - recorded as open in docs/next-phases.md.
+      const GLYPH = { suite: "TEST", human: "YOU", destroy: "DEL", devbox: "SSH", github: "CI" };
 
       const iconEl = (service) =>
         AWS_ICON.has(service)
@@ -263,6 +318,60 @@
             ${n.env ? `<span class="envtag ${n.env}">${n.env}</span>` : ""}
           </div>${body}`;
         return el;
+      }
+
+      /* The text under the cut. It is the SECOND RENDERING of data/topology.json
+         and not a copy of it in words (ADR-0039 D1): the map groups resources
+         into services because seventeen marks fit on a screen and a hundred and
+         sixteen do not, and this is where the ones the map folded away are named
+         individually. Nothing here is written by hand except the sentences that
+         are judgements rather than facts about state. */
+      function renderDetail(d) {
+        const esc = (s) => String(s).replace(/[<>&]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[c]));
+        const dl = (items) =>
+          `<dl>${items.map(([t, body]) => `<dt>${t}</dt><dd>${body}</dd>`).join("")}</dl>`;
+        let h = "";
+
+        h += `<h3>Outside the cycle</h3><p>${esc(d.outside.note)}</p>`;
+        h += dl(d.outside.nodes.map((n) => [esc(n.label), esc(n.why)]));
+
+        h += `<h3>Permanent &mdash; ${d.counts.permanent_levels} state levels, ${d.counts.resources_permanent} resource blocks</h3>`;
+        h += `<p>Applied once, by hand, under a human SSO session. Anything that has to
+              survive a teardown &mdash; including the artifact that PROVES the teardown
+              worked &mdash; lives above the environments.</p>`;
+        h += dl(
+          d.permanent.map((c) => [
+            `${esc(c.label)} <span class="note">${esc(c.level)} &mdash; ${c.resources} blocks</span>`,
+            esc(c.why) + "<br>" + c.members.map(esc).join("<br>"),
+          ])
+        );
+
+        h += `<h3>Per cycle &mdash; ${d.counts.resources_per_cycle} resource blocks across ${d.counts.cycle_levels} levels</h3>`;
+        h += `<p>Every phase is a job on a GitHub runner under a short-lived OIDC token.
+              Inside one apply Terraform works from a graph, so the order below is the
+              order of the PHASES; the entries within a phase are a set.</p>`;
+        d.phases.forEach((p) => {
+          h += `<h3>${p.n}. ${esc(p.label)} <span class="note">${esc(p.workflow)}</span></h3>`;
+          h += dl(
+            p.nodes.map((n) => {
+              const head = `${esc(n.label)}${n.env ? ` <span class="note">${esc(n.env)}</span>` : ""}`;
+              if (n.kind === "suite")
+                return [head, `${esc(n.suite_dir)} &mdash; ${n.spec_files} spec file${n.spec_files === 1 ? "" : "s"}<br>${esc(n.asserts)}`];
+              if (n.members && n.members.length) return [head, n.members.map(esc).join("<br>")];
+              return [head, esc(n.level || n.note || n.observer)];
+            })
+          );
+        });
+
+        if (d.not_shown.length) {
+          h += `<h3>Deliberately not shown</h3>`;
+          h += dl(d.not_shown.map((g) => [`${esc(g.label)} <span class="note">${g.resources} blocks</span>`, esc(g.why)]));
+        }
+
+        h += `<h3>Blocks that stand for more than one object</h3>`;
+        h += dl(d.repeated.map((r) => [esc(r.address), esc(r.why)]));
+
+        $("#detail-body").innerHTML = h;
       }
 
       function arrowEl(dir) {
@@ -361,6 +470,14 @@
           // miniature as a count that has gone stale.
           $("#approx").hidden = !d.measured_cycle;
 
+          $("#outside-note").innerHTML = "&mdash; " + d.outside.note;
+          const outside = $("#outside");
+          d.outside.nodes.forEach((n) => {
+            const el = nodeEl({ ...n, state: "perm" });
+            el.insertAdjacentHTML("beforeend", `<div class="asserts">${n.why}</div>`);
+            outside.appendChild(el);
+          });
+
           const perm = $("#perm");
           d.permanent.forEach((n) => {
             const el = nodeEl({ ...n, state: "perm" });
@@ -381,12 +498,16 @@
             `<code>count</code> or <code>for_each</code> and stand for a number that depends on ` +
             `variables. ${hidden} ${hidden === 1 ? "block is" : "blocks are"} deliberately given no ` +
             `mark &mdash; ${d.not_shown.map((g) => g.label).join(", ")}.</span>`;
+          renderDetail(d);
           render();
         })
         .catch((e) => { $("#sub").textContent = "topology.json did not load: " + e; });
 
       let t;
       addEventListener("resize", () => { clearTimeout(t); t = setTimeout(render, 120); });
+      // Belt as well as braces: the gutter above keeps the width steady, and this
+      // re-lays the map if anything else about opening the cut moves it.
+      $("#detail").addEventListener("toggle", () => DATA && render());
     </script>
   </body>
 </html>

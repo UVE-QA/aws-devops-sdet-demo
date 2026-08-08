@@ -1856,9 +1856,43 @@ were the same shape — a page saying something it was not in a position to say:
   make site-pilot && make docs-check
   git diff --stat
 ```
-- Next allowed step: the rest of 20a — fold the map into `site/index.html` in
-  place of the hand-written section, with the prose rendering generated from the
-  same JSON (ADR-0039 D1). Then 20b.
+- **Added on review, same session:** the band the map was missing, and the cut.
+```text
+  outside   the Lightsail devbox and GitHub - repo + Actions. Neither is in
+            infra/, which is why neither had appeared, and neither is a phase:
+            nothing creates or destroys them. A band ABOVE the cycle. The
+            GitHub card's claim about the trust path is TIED to a resource -
+            `backed_by` names aws_iam_openid_connect_provider.github and the
+            gate is red if it is not declared
+  glyph     Lightsail IS an AWS service and its official icon is not among the
+            seventeen inlined here. A project glyph rather than an invented or
+            recoloured mark, which NOTICE.md forbids. Open: take the icon from
+            AWS's package on the devbox
+  cut       the front page's prose, GENERATED from topology.json rather than
+            kept (ADR-0039 D1). The generator now emits `members` - the exact
+            terraform address behind every node - so the cut names all 116
+            blocks the map folds into 26 marks. Only judgements and links stay
+            hand-written
+```
+- Three measurements, and the third dates a defect to BEFORE this session:
+```text
+  phone, cut OPEN   a terraform address is one unbroken token; `dt` and `dd`
+                    carried them and pushed the page 103px past a 390 viewport.
+                    With the cut SHUT it fitted and said nothing
+  scrollbar         opening the cut made the page taller, the scrollbar
+                    appeared, the viewport narrowed, and the map had been laid
+                    out against the wider one. scrollbar-gutter: stable, plus a
+                    re-render on toggle
+  .node .head       up to 22px wider than its own node, at every width, with
+                    the cut shut, and on the PRE-PATCH build measured by
+                    stashing this one
+```
+  The pilot's `scrollWidth == clientWidth` was true of the DOCUMENT. The head
+  spills into the node's own padding, which no screenshot and no document-level
+  measure can see. NOT fixed here: `.node .head` is layout, and layout in this
+  project is decided by looking.
+- Next allowed step: the last piece of 20a — fold the map and its cut into
+  `site/index.html` in place of the hand-written section. Then 20b.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

@@ -2,6 +2,30 @@
   "_": "EDITORIAL INPUT to scripts/generate-topology.py. This file carries the two things that cannot be derived from infra/: which display group each resource BLOCK belongs to, and how the groups are arranged into phases. Everything countable - how many levels, how many resources, how many of them each node holds - is computed from the repository and never written here. Every resource block declared under infra/ must appear in `assign` exactly once, including the ones deliberately given no mark of their own; `make site-data-check` is red on any that does not.",
   "schema": 2,
 
+  "_outside": "The two things the map cannot derive from infra/, because neither is in it: the machine the code is written on, and the system that runs every phase below. A node here may cite a resource in `backed_by`; the generator is red if that resource is not declared, so a claim about the trust path stops being printable the moment the trust path is deleted.",
+
+  "outside": {
+    "label": "Outside the cycle",
+    "note": "Neither is created or destroyed by a cycle, and neither appears in infra/. Everything below runs on a GitHub runner holding a token that lasts one job; no human runs an AWS command during a cycle, and there is no static AWS key in this project.",
+    "nodes": [
+      {
+        "id": "out.devbox",
+        "label": "Lightsail devbox",
+        "service": "devbox",
+        "kind": "host",
+        "why": "an Ubuntu instance reached over SSH, and the one machine here built by hand. Docker Compose, the Terraform and AWS CLIs and the test suites run on it while the work is being written; nothing in a cycle touches it. Deliberately outside Terraform — it is where the code is written, not where it runs."
+      },
+      {
+        "id": "out.github",
+        "label": "GitHub — repository + Actions",
+        "service": "github",
+        "kind": "ci",
+        "backed_by": "infra/modules/iam_github_oidc_provider::aws_iam_openid_connect_provider.github",
+        "why": "every phase below is a job on a GitHub runner. It reaches this AWS account by assuming a role through the OIDC provider in infra/bootstrap-oidc, for the length of one job. The provider is cited rather than described: delete it and this card goes red."
+      }
+    ]
+  },
+
   "groups": [
     {
       "id": "perm.tfstate",

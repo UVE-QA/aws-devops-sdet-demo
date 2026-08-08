@@ -893,9 +893,26 @@ The gate got five break tests rather than the two planned, plus one path that is
 green and recorded: the group meaning deliberately not shown, holding
 `aws_default_security_group`, which creates nothing.
 
-Still to build in 20a: folding the map into `site/index.html` in place of the
-hand-written section, and the prose rendering generated from the same JSON. Both
-pilots deliberately did not touch `index.html`.
+Added on review, in the same session: a band ABOVE the cycle for the two things
+that are not in `infra/` and therefore could not appear — the Lightsail devbox
+and GitHub's repository and Actions — and the front page's prose moved under a
+cut and GENERATED from `topology.json`, with `members` naming every resource
+behind every node.
+
+Open, and carried forward:
+
+```text
+lightsail   its official AWS icon is not among the seventeen inlined here, so it
+            carries a project glyph. Take the icon from AWS's package on the
+            devbox rather than inventing or recolouring one
+.node .head up to 22px wider than its own node, at every width - pre-dates the
+            generator and was invisible to the pilot's document-level measure.
+            A layout question, so it waits for the map to be on a screen again
+```
+
+Still to build in 20a: folding the map and its cut into `site/index.html` in
+place of the hand-written section. Both pilots deliberately did not touch
+`index.html`.
 
 ### 20b — the timeline  [needs one cycle, about $0.03]
 

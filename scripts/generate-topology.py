@@ -260,12 +260,15 @@ def build():
     def group_of(site_rel, decl):
         return assign.get(site_rel, {}).get(decl)
 
-    def count_in(level_dir, group_id):
-        return sum(
-            1
-            for _, site, decl in owned[level_dir]
+    def members_in(level_dir, group_id):
+        return [
+            addr
+            for addr, site, decl in owned[level_dir]
             if group_of(str(site.relative_to(ROOT)), decl) == group_id
-        )
+        ]
+
+    def count_in(level_dir, group_id):
+        return len(members_in(level_dir, group_id))
 
     # 2. every group that owns resources in a level is drawn by that level's phase,
     #    or is explicitly not shown. A module instantiated into a level nobody draws
@@ -320,6 +323,7 @@ def build():
                 "service": g["service"],
                 "level": " + ".join(rel[d] for d in holders),
                 "resources": sum(count_in(d, g["id"]) for d in holders),
+                "members": [f"{rel[d]} :: {a}" for d in holders for a in members_in(d, g["id"])],
                 "why": g["why"],
             }
         )
@@ -339,6 +343,7 @@ def build():
                         "env": p["env"],
                         "observer": "terraform",
                         "resources": count_in(ROOT / p["level"], g["id"]),
+                        "members": members_in(ROOT / p["level"], g["id"]),
                     }
                 )
             elif "suite" in n:
@@ -384,6 +389,23 @@ def build():
             raise Refusal(f"hidden group {g['id']} holds nothing. A group that hides nothing hides the fact that it hides nothing.")
         not_shown.append({"group": g["id"], "label": g["label"], "resources": n, "why": g["why"]})
 
+    # The band above the cycle: the two things a visitor cannot see in infra/
+    # because neither is in it. A claim there is tied to a resource that must
+    # exist - "GitHub reaches this account through OIDC" is checkable, and stops
+    # being true the moment the provider is deleted.
+    outside = spec.get("outside")
+    if not outside or not outside.get("nodes"):
+        raise Refusal("assets/topology-groups.json has no `outside` band. The devbox and GitHub are not in infra/, so nothing else can put them on the page.")
+    for n in outside["nodes"]:
+        backing = n.get("backed_by")
+        if not backing:
+            continue
+        site, _, addr = backing.partition("::")
+        if addr not in declared.get(site, set()):
+            findings.append(f"unbacked claim: {n['id']} cites {backing}, which is not declared")
+    if findings:
+        raise Refusal("\n".join(findings))
+
     workflows = sorted(p.name for p in (ROOT / ".github/workflows").glob("*.yml"))
     adrs = list((ROOT / "docs/decisions").glob("*.md"))
     if not workflows or not adrs:
@@ -406,6 +428,7 @@ def build():
             "repeated_blocks": len(repeated),
         },
         "measured_cycle": None,
+        "outside": outside,
         "permanent": perm_cards,
         "phases": phases,
         "not_shown": not_shown,
