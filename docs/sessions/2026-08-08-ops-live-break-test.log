@@ -1,0 +1,81 @@
+account: 993912191738
+::group::discovered in stage
+-- tagging API, Project + Environment
+arn:aws:ecs:us-west-2:993912191738:task-definition/aws-devops-sdet-demo-stage-app:21
+arn:aws:ecs:us-west-2:993912191738:task-definition/aws-devops-sdet-demo-stage-app:6
+arn:aws:ecs:us-west-2:993912191738:task-definition/aws-devops-sdet-demo-stage-app:20
+arn:aws:ecs:us-west-2:993912191738:task-definition/aws-devops-sdet-demo-stage-app:4
+arn:aws:ecs:us-west-2:993912191738:task-definition/aws-devops-sdet-demo-stage-app:2
+arn:aws:ecs:us-west-2:993912191738:task-definition/aws-devops-sdet-demo-stage-app:14
+arn:aws:ecs:us-west-2:993912191738:task-definition/aws-devops-sdet-demo-stage-app:16
+arn:aws:ecs:us-west-2:993912191738:task-definition/aws-devops-sdet-demo-stage-app:11
+arn:aws:ecs:us-west-2:993912191738:task-definition/aws-devops-sdet-demo-stage-app:3
+arn:aws:ecs:us-west-2:993912191738:task-definition/aws-devops-sdet-demo-stage-app:8
+arn:aws:ecs:us-west-2:993912191738:task-definition/aws-devops-sdet-demo-stage-app:1
+arn:aws:ecs:us-west-2:993912191738:task-definition/aws-devops-sdet-demo-stage-app:12
+arn:aws:ecs:us-west-2:993912191738:task-definition/aws-devops-sdet-demo-stage-app:9
+arn:aws:ecs:us-west-2:993912191738:task-definition/aws-devops-sdet-demo-stage-app:5
+arn:aws:ecs:us-west-2:993912191738:task-definition/aws-devops-sdet-demo-stage-app:7
+arn:aws:ecs:us-west-2:993912191738:task-definition/aws-devops-sdet-demo-stage-app:17
+arn:aws:ecs:us-west-2:993912191738:task-definition/aws-devops-sdet-demo-stage-app:19
+arn:aws:ecs:us-west-2:993912191738:task-definition/aws-devops-sdet-demo-stage-app:18
+arn:aws:ecs:us-west-2:993912191738:task-definition/aws-devops-sdet-demo-stage-app:10
+arn:aws:ec2:us-west-2:993912191738:subnet/subnet-00ff915ceb3140397
+arn:aws:ecs:us-west-2:993912191738:task-definition/aws-devops-sdet-demo-stage-app:22
+arn:aws:ecs:us-west-2:993912191738:cluster/aws-devops-sdet-demo-stage-cluster
+arn:aws:ecs:us-west-2:993912191738:task-definition/aws-devops-sdet-demo-stage-app:13
+arn:aws:ecs:us-west-2:993912191738:task-definition/aws-devops-sdet-demo-stage-app:15
+-- the configuration, for kinds the tagging API does not index
+arn:aws:iam::993912191738:role/aws-devops-sdet-demo-stage-ecs-execution   (iam:role)
+arn:aws:iam::993912191738:role/aws-devops-sdet-demo-stage-ecs-task   (iam:role)
+::endgroup::
+environment: stage
+discovered in AWS: 26   in Terraform state: 0 identifier(s)
+control (whole project): 47 resource(s)
+control (names the configuration declares): 2
+confirmed present: 2   tagged but not there: 24
+verdict: orphans
+2 confirmed live resource(s) absent from Terraform state, 0 that could not be checked at all. A partially failed teardown drops resources out of state; an unchecked kind is not a clean one.
+  ORPHAN  arn:aws:iam::993912191738:role/aws-devops-sdet-demo-stage-ecs-execution
+  ORPHAN  arn:aws:iam::993912191738:role/aws-devops-sdet-demo-stage-ecs-task
+exit: 1
+
+--- the same command after the teardown, 2026-08-08T19:11:27Z ---
+account: 993912191738
+::group::discovered in stage
+-- tagging API, Project + Environment
+arn:aws:ecs:us-west-2:993912191738:task-definition/aws-devops-sdet-demo-stage-app:21
+arn:aws:ecs:us-west-2:993912191738:task-definition/aws-devops-sdet-demo-stage-app:6
+arn:aws:ecs:us-west-2:993912191738:task-definition/aws-devops-sdet-demo-stage-app:20
+arn:aws:ecs:us-west-2:993912191738:task-definition/aws-devops-sdet-demo-stage-app:4
+arn:aws:ecs:us-west-2:993912191738:task-definition/aws-devops-sdet-demo-stage-app:2
+arn:aws:ecs:us-west-2:993912191738:task-definition/aws-devops-sdet-demo-stage-app:14
+arn:aws:ecs:us-west-2:993912191738:task-definition/aws-devops-sdet-demo-stage-app:16
+arn:aws:ecs:us-west-2:993912191738:task-definition/aws-devops-sdet-demo-stage-app:11
+arn:aws:ecs:us-west-2:993912191738:task-definition/aws-devops-sdet-demo-stage-app:3
+arn:aws:ecs:us-west-2:993912191738:task-definition/aws-devops-sdet-demo-stage-app:8
+arn:aws:ecs:us-west-2:993912191738:task-definition/aws-devops-sdet-demo-stage-app:1
+arn:aws:ecs:us-west-2:993912191738:task-definition/aws-devops-sdet-demo-stage-app:12
+arn:aws:ecs:us-west-2:993912191738:task-definition/aws-devops-sdet-demo-stage-app:9
+arn:aws:ecs:us-west-2:993912191738:task-definition/aws-devops-sdet-demo-stage-app:5
+arn:aws:ecs:us-west-2:993912191738:task-definition/aws-devops-sdet-demo-stage-app:7
+arn:aws:ecs:us-west-2:993912191738:task-definition/aws-devops-sdet-demo-stage-app:17
+arn:aws:ecs:us-west-2:993912191738:task-definition/aws-devops-sdet-demo-stage-app:19
+arn:aws:ecs:us-west-2:993912191738:task-definition/aws-devops-sdet-demo-stage-app:18
+arn:aws:ecs:us-west-2:993912191738:task-definition/aws-devops-sdet-demo-stage-app:10
+arn:aws:ecs:us-west-2:993912191738:task-definition/aws-devops-sdet-demo-stage-app:22
+arn:aws:ecs:us-west-2:993912191738:cluster/aws-devops-sdet-demo-stage-cluster
+arn:aws:ecs:us-west-2:993912191738:task-definition/aws-devops-sdet-demo-stage-app:13
+arn:aws:ecs:us-west-2:993912191738:task-definition/aws-devops-sdet-demo-stage-app:15
+-- the configuration, for kinds the tagging API does not index
+arn:aws:iam::993912191738:role/aws-devops-sdet-demo-stage-ecs-execution   (iam:role)
+arn:aws:iam::993912191738:role/aws-devops-sdet-demo-stage-ecs-task   (iam:role)
+::endgroup::
+environment: stage
+discovered in AWS: 25   in Terraform state: 0 identifier(s)
+control (whole project): 46 resource(s)
+control (names the configuration declares): 2
+confirmed present: 0   tagged but not there: 25
+verdict: clean
+25 discovered, 0 still there and all of them managed, 25 discovered and not there according to the service. Nothing was left behind.
+sweep after: 0
