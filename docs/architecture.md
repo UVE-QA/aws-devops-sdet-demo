@@ -55,12 +55,13 @@ logs         CloudWatch, stream `app/app/<task-id>`. The prefix is `app`, so the
              stream name is not `ecs/app/<task-id>`; that cost a search once.
 ```
 
-## The seven state levels
+## The eight state levels
 
 Six permanent, two per cycle. This split is the single most important line in
-the design. The sixth, `infra/self-service`, is written and **not applied** -
-Phase 19a; it is drawn below because `make tf-validate` discovers it and CI
-validates it, not because anything in AWS answers for it yet.
+the design. The sixth, `infra/self-service`, was applied in Phase 19b, pressed
+anonymously in 19c, and since 19g a launch cancelled mid-apply reclaims itself
+without a human. The heading said "seven" for as long as there were five
+permanent levels, and kept saying it afterwards.
 
 ```mermaid
 flowchart TB
@@ -71,7 +72,7 @@ flowchart TB
     e[shared-ecr<br/>the registry prod<br/>promotes from]
     d[dns<br/>delegated zone<br/>ALB certificate]
     s[public-site<br/>dashboard S3 + CloudFront<br/>us-east-1 certificate]
-    ss[self-service<br/>launch endpoint + refusals<br/>WRITTEN, NOT APPLIED]
+    ss[self-service<br/>launch endpoint + refusals<br/>LIVE - a public button]
   end
   subgraph C[Per cycle - created and destroyed every time]
     direction LR

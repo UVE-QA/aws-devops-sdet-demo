@@ -115,11 +115,11 @@ prone to: an environment brought up, then forgotten. AWS Budgets itself is
 free; the cost of running it is zero and the cost of not running it is
 unbounded.
 
-## Worst case if the button is ever public (Phase 19, NOT BUILT)
+## Worst case now that the button IS public (Phase 19, LIVE)
 
-Until now nobody but the owner could start a run, so this document has never
-needed a number for what a stranger could spend. **ADR-0035** decides one, and
-it is a real number rather than an adjective:
+Until Phase 19b nobody but the owner could start a run, so this document had
+never needed a number for what a stranger could spend. **ADR-0035** decides one,
+and it is a real number rather than an adjective:
 
 ```text
 TTL per launch     90 minutes, enforced in-band by the workflow's own destroy
@@ -137,9 +137,24 @@ $0.40/month, a DynamoDB table holding four items, and three Lambdas invoked a
 handful of times a day - cents, fixed, the same trade ADR-0027 made for the
 dashboard.
 
-None of this is running. The level is written and unapplied, and the numbers
-above are what it is designed to bound, not what has been observed. The first
-measured public cycle is Phase 19c's closing figure.
+All of this is running. The numbers above are what the level is designed to
+bound; what has actually been observed since it went live is an order of
+magnitude smaller, because no launch has yet survived anywhere near its TTL:
+
+```text
+19f  a cancelled launch, RDS up for 100 minutes    about $0.02
+19g  the 2026-08-07 pair                           about $0.10
+19g  cancelled 00:44:15, reclaimed by 00:49:09     about $0.03
+```
+
+19c, the first public launch, has no recorded figure — the phase closed without
+one. That is a gap in the record rather than a zero, and it is why the rows above
+start at 19f.
+
+The distance between $0.30/day and $0.03 is the TTL never being reached: every
+measured launch so far ended in minutes, by its own teardown, rather than in 90.
+The worst case stays the number to quote, because it is the one that does not
+depend on how the launches happened to go.
 
 ## Idempotency and the "always destroy" rule
 
@@ -175,7 +190,9 @@ measured public cycle is Phase 19c's closing figure.
 - Phase 17 (prod data continuity), if ever built: a restore-from-S3 step or
   Aurora Serverless v2 both add storage cost that survives teardown - the
   first genuinely new category since infra/dns.
-- Phase 19 (self-service launch), if ever built: a per-run TTL and a per-day
-  run cap exist specifically to bound this document's per-cycle numbers
-  against a stranger triggering them, not just this project's own sessions.
+- Phase 19 (self-service launch) is BUILT and live: the per-run TTL and the
+  per-day cap bound this document's per-cycle numbers against a stranger
+  triggering them, not just this project's own sessions. What would change the
+  document now is the cap or the TTL moving, or a launch that actually runs to
+  its TTL - none has yet.
 ```

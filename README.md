@@ -140,15 +140,17 @@ infra/shared-ecr       the registry prod promotes from            permanent
 infra/dns              delegated zone + ALB certificate           permanent
 infra/public-site      the dashboard: S3 + CloudFront + OAC       permanent
 infra/self-service     the public launch button and its refusals  permanent
-                                                                  NOT APPLIED
 infra/envs/stage       VPC, ALB, ECS, RDS                         per cycle
 infra/envs/prod        the same, behind an approval gate          per cycle
 ```
 
-`infra/self-service` is written and validated and **has never been applied**.
-Every refusal it makes has to be broken on purpose first (**ADR-0035**), in
-Phases 19b and 19c. Until then the button does not exist and the dashboard
-control that would press it is hidden behind a flag.
+`infra/self-service` is applied and **the button is live**. Every refusal it
+makes was broken on purpose first (**ADR-0035**) in Phase 19b, it was pressed by
+an anonymous visitor in 19c, and since 19g a launch cancelled mid-apply reclaims
+itself: the run's own teardown adopts what never entered Terraform state and
+destroys it, with no human and no watchdog (**ADR-0038**). What bounds a stranger
+is a 90-minute TTL per launch and three launches per UTC day, both enforced
+server-side, and the reach is stage only, by IAM rather than by an input.
 
 Anything that must survive a teardown lives above the environments — including
 the container registry, whose image prod is running, and the dashboard, which is

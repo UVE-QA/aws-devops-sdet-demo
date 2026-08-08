@@ -17,9 +17,9 @@ The one-line framing, for whoever asks "what is this":
 ## DevOps
 
 ```text
-- Terraform split into SIX state levels, only two of which are ever
-  destroyed (docs/architecture.md). The sixth is written and not applied
-  (Phase 19a); five are live. The split exists because the container
+- Terraform split into SIX permanent state levels plus two that are
+  destroyed every cycle (docs/architecture.md). All six are applied; the
+  sixth went live in Phase 19b. The split exists because the container
   registry almost went the other way (ADR-0018): if it lived at the
   per-cycle level, a teardown would delete the image that PROVES the
   teardown works.
@@ -27,7 +27,7 @@ The one-line framing, for whoever asks "what is this":
   "rotated regularly," not present at all. Verifiable in one grep
   (docs/security-posture.md §1-4).
 - The qualifier, and it is a BETTER answer than the unqualified one
-  (ADR-0034, Phase 19a, written not applied). A public button on a static
+  (ADR-0034, live since Phase 19b). A public button on a static
   page reverses the one direction of trust: everywhere else GitHub
   authenticates to AWS over OIDC, and there AWS has to authenticate to
   GitHub, where no OIDC exists. So a long-lived GitHub credential enters
@@ -177,8 +177,15 @@ The one-line framing, for whoever asks "what is this":
 
 ## Questions this document does not answer on purpose
 
-Anything in `docs/next-phases.md` under Phase 17-19 is planned, not built:
-persistent prod data, a per-role documentation set beyond this file, and a
-guarded self-service launch with a TTL-bound blast radius. If asked "does it
-do X" for something in that list, the honest answer is "designed, not shipped
-- here's why it's next" rather than describing it as done.
+Phase 17 (persistent prod data) is planned and optional, and Phase 20 (the cycle
+made visible on the dashboard without opening a log) is planned, not built. If
+asked "does it do X" for either, the honest answer is "designed, not shipped -
+here's why it's next" rather than describing it as done.
+
+Phases 18 and 19 ARE built, and this paragraph said otherwise for six days after
+19 shipped. That is worth telling on purpose rather than hiding: five documents
+here described the self-service launch as unapplied while a public button had
+been live for a week, and none of the project's gates could see it, because
+`make docs-check` verifies that every path and target a document NAMES exists -
+not that what a document CLAIMS is true. Phase 20's first sub-phase generates the
+architecture section from the repository for exactly that reason.
