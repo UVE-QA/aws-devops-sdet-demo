@@ -36,7 +36,7 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 19d   | The record, the lock, the state lock | ✅ witnessed live 2026-08-06 | sessions/2026-08-05-phase-19d-cancelled-run-recovery.md |
 | 19e   | Break test; teardown claim narrowed | ✅ done | sessions/2026-08-06-phase-19e-break-test-and-teardown-gap.md |
 | 19f   | Teardown gates that see the remainder | ✅ done | sessions/2026-08-07-phase-19f-teardown-sees-what-it-leaves.md |
-| 19g   | Teardown that finishes on its own | 🟡 proven in parts, one run short | sessions/2026-08-07-phase-19g-the-teardown-reaches-the-end.md |
+| 19g   | Teardown that finishes on its own | ✅ done, uninterrupted run 2026-08-08 | sessions/2026-08-08-phase-19g-nobody-in-the-loop.md |
 
 Phase 17 (prod data continuity) is still open and still optional, in
 `docs/next-phases.md`. Phase 18 was pulled forward of both remaining phases
@@ -49,10 +49,19 @@ without a cycle) and 19c (one live launch, and the TTL proven by killing it).
 endpoint, pressed anonymously from a browser, and a full cycle completed; the TTL
 and BOTH watchdog paths were exercised against real environments. It is NOT
 closed, because it found a state its guardrails cannot leave on their own - see
-the 19c section below. The endpoint is parked again, by hand.
+the 19c section below. That state was closed by 19g on 2026-08-08.
 Its two decisions were made ahead of all three: **ADR-0034** for the trigger
 path and **ADR-0035** for the guardrails; 19c is the first evidence about
 whether they hold, and the answer is mostly yes with one structural gap.
+
+**The endpoint is LIVE, and that is the finished state of Phase 19** (decided
+2026-08-08). Two sentences in this file and in `docs/discussion-log.md` said it
+was parked behind a hand-thrown kill switch; the control store had no
+`killswitch` item at all, and had not had one since 19g's launches cleared it on
+2026-08-07. The finding is not the exposure - the guardrails standing behind
+that button are the subject of this whole phase - it is that two documents
+agreed with each other and neither agreed with the account. Turning it off again
+is one `delete-item`, documented in `infra/self-service/README.md`.
 
 Phases 9-19 are planned in `docs/next-phases.md` (MVP track 9-13, polish
 track 14-19), shaped by ADR-0017. This table tracks only what is done.
@@ -1576,7 +1585,7 @@ were the same shape — a page saying something it was not in a position to say:
   findings, iac-scan 290/0, action-pins 43, ci green on every push, and
   `destroy.yml` green end to end on the emptied account.
 
-### Phase 19g — Teardown that finishes on its own  [PROVEN IN PARTS 2026-08-07]
+### Phase 19g — Teardown that finishes on its own  [DONE 2026-08-08]
 - Plan: `docs/next-phases.md` 19g. **ADR-0038**, which completes ADR-0037 and
   demotes ADR-0035 guardrail 5 - the blunt path stops being a step in the
   ordinary recovery from a cancellation and goes back to being the recovery for
@@ -1655,12 +1664,37 @@ were the same shape — a page saying something it was not in a position to say:
   ninety minutes before it fired.
 - Criteria to close: a cancelled launch reclaimed with ZERO manual AWS calls and
   nobody in the loop, the account verified empty with a positive control in the
-  same command. **PARTLY MET.** No manual AWS call was made all day and the
-  account was verified empty twice; but the final destroy of each launch was
-  dispatched by hand to skip a 90-minute wait, so the uninterrupted run is still
-  a prediction. The day's three launches are spent.
-- Cost: about $0.10 - two launches, an RDS instance up for roughly ninety
-  minutes in total, two ALBs for ten minutes each.
+  same command. **MET on 2026-08-08**, on the first launch of the day and in one
+  run:
+```text
+  00:42:55  ALB active, cluster up, three SGs up, RDS creating - the fullest
+            orphan set any cancel here has produced
+  00:44:15  cancelled (normal cancel; a force-cancel would take the
+            `if: always()` destroy job with it, which is the thing under test)
+  00:44:24  destroy starts by itself
+  00:45:26  sweep before the teardown: verdict `orphans`, exit 1, five of them
+  00:45:43  adopted 4 of 4; 0 could not be imported; the fifth named
+            UNADOPTABLE (a listener, which leaves with its load balancer)
+  00:49:01  final sweep: verdict `clean`, present 0, control 49
+  00:49:09  destroy SUCCESS, 4m45s after the cancellation
+  00:49:12  release-lock SUCCESS - it releases only on destroy=success
+            (ADR-0036 D2), so it is a second, independent witness
+  00:56:57  verified from OUTSIDE the run: stage destroyed, no ACTIVE cluster,
+            no project-tagged security group, positive control non-empty
+```
+- The three defects of 2026-08-07 each met their own case for the first time in
+  that one run: `rds:db` was REPORTED (the colon/slash parser), the instance was
+  adopted at two minutes old and the destroy survived it (the null address), and
+  the live sweep printed ZERO `unconfirmed` lines where the day before it printed
+  two. The watchdog and the blunt path were not needed and did not fire.
+- Shipped alongside: `scripts/watch-launch.sh`. The watch loop had been typed
+  into a terminal on three separate days and broke the same two ways each time -
+  started outside the repository, and killed by an SSH disconnect. Both are
+  properties of where and how it was started, so they belong in the thing being
+  started. No field it prints may be blank: a value, `none`, or `ERR`, and the
+  account re-read every tick.
+- Cost: about $0.03 - one launch, an ALB and an RDS instance for six minutes.
+  The 2026-08-07 pair cost about $0.10.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

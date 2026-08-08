@@ -674,7 +674,7 @@ D2, D3 and D4 shipped and all three confirmed by a cancelled launch. The claim
 they were written for was disproved in the same run: the remainder still took
 three manual AWS calls. What changed is that the teardown now reports it.
 
-### 19g — teardown that finishes on its own  **PROVEN IN PARTS 2026-08-07**
+### 19g — teardown that finishes on its own  **DONE 2026-08-08**
 
 The gap 19f made exact. A cancelled apply creates resources that never enter
 state, so Terraform can neither delete them nor delete what depends on them —
@@ -719,11 +719,26 @@ four `case` arms in the 19f sweep that had never been reached, and a null
 endpoint address on an instance adopted while still `creating`. Both fixed, both
 with the account verified empty afterwards.
 
-What remains is ONE uninterrupted run: cancel a launch and watch the IN-BAND
+What remained was ONE uninterrupted run: cancel a launch and watch the IN-BAND
 destroy adopt and finish within minutes, with no watchdog, no blunt path and
-nobody dispatching anything. Today both destroys that finished were dispatched
-by hand to skip a 90-minute wait, so that sentence is a prediction rather than
-evidence. It is the first thing the next session does.
+nobody dispatching anything. On 2026-08-07 both destroys that finished were
+dispatched by hand to skip a 90-minute wait, so that sentence was a prediction
+rather than evidence.
+
+**It happened on 2026-08-08, first launch of the day, in one run.** Cancelled at
+00:44:15 with the fullest orphan set any cancel here has produced — ALB active,
+cluster up, three security groups, RDS `creating`. The destroy job started
+itself nine seconds later, the sweep returned `orphans`, adoption took 4 of 4
+and named the fifth UNADOPTABLE, and the destroy was green at 00:49:09 — 4m45s,
+zero manual AWS calls. `release-lock` then released, which by ADR-0036 D2 it
+does only on `destroy=success`, so a second job independently agrees. The
+account was verified empty afterwards from outside the run, with a positive
+control in the same command.
+
+**Phase 19 is complete, and the button stays live.** The endpoint had been
+described as parked in two documents while the control store held no kill-switch
+item at all; the state those documents should have described is the one Phase 19
+was built to make safe, and it is now the recorded one.
 
 ## Deliberately out of scope
 

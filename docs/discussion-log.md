@@ -6,6 +6,51 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
+**As of 2026-08-08.** Phase 19g is CLOSED, and with it Phase 19. A launch was
+cancelled mid-apply at 00:44:15 and the run's own teardown reclaimed it by
+00:49:09 — 4m45s, zero manual AWS calls, no watchdog, no blunt path, nobody
+dispatching anything. That sentence had ended four consecutive session summaries
+as a prediction; it is now evidence, and it arrived on the first launch of the
+day rather than after several.
+
+The mechanism was read, not assumed. The sweep returned `orphans` and exit 1 on
+five resources; adoption imported four of them, including
+`module.rds.aws_db_instance.this` at two minutes old, and named the fifth
+UNADOPTABLE rather than dropping it — a listener, which leaves with its load
+balancer, and did. Each of the three defects found on 2026-08-07 met its own
+case for the first time in that single run: `rds:db` was reported at all (the
+colon/slash parser), an instance adopted while still `creating` no longer killed
+the destroy on a null address, and the live sweep printed ZERO `unconfirmed`
+lines where the day before it printed two. `release-lock` released the lock,
+which by ADR-0036 D2 happens only on `destroy=success` — a second job agreeing
+independently with the first.
+
+Two findings arrived before the button was pressed, and both are about
+documents rather than infrastructure. The endpoint was NOT parked: two files
+said the kill switch had been thrown by hand after 19c, and the control store
+had no such item, so the public button had been live since 19g's launches
+cleared it. Decided this session, and now recorded: **it stays live** — that is
+the finished state of Phase 19, not an oversight in it. And a day's three
+launches belong to the UTC DAY, not to a session: 19f's break test and 19g's two
+launches shared one cap, which is why the counter read 3 where a summary
+described 2. The first explanation offered for that discrepancy — that session
+files are named locally and the counter bins by UTC — was wrong, and checking it
+took one command: 19f's file is named `2026-08-07` and its launch ran at 17:51
+local on 08-06. Both name the UTC day. A plausible cause arriving alongside a
+symptom is what ADR-0037 got wrong about the `creating` instance one day
+earlier.
+
+Shipped: `scripts/watch-launch.sh`, the watch loop as a checked-in script. It
+had been typed into a terminal on three separate days and broke the same two
+ways every time — started outside the repository, and killed by an SSH
+disconnect — neither of which is a property of the loop. No field it prints may
+be blank; every one is a value, `none`, or `ERR`, and the account is re-read on
+every tick, because `alb=none` is what a torn-down environment and an expired
+token look like alike.
+
+Phase 17 (prod data continuity) remains open and optional. Cost of the run:
+about $0.03.
+
 **As of 2026-08-07 (later that day).** Phase 19g SHIPPED and did not close. A
 teardown now ADOPTS what it does not manage before it destroys (ADR-0038). The
 shape was decided by reading the three candidates against the code rather than
