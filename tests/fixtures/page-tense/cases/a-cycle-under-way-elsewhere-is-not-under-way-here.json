@@ -1,0 +1,55 @@
+{
+  "description": "The second half of the mirror clause, and the half that would have been wrong quietly. `not reached yet` is only honest about an environment the running cycle is actually going to touch: a deploy to stage says nothing whatever about prod, and a map that told every prod node to expect figures would have replaced one false sentence with a louder one. The environment list is the dashboard's, handed over with the observation rather than re-derived here - one definition, one host. A COMPLETED run is not under way anywhere, which is the same rule figuresAreOlder() applies for the opposite purpose.",
+  "checks": [
+    {
+      "fn": "underWayHere",
+      "args": [
+        { "run": { "id": 31329925499, "status": "in_progress" }, "envs": ["stage"] },
+        "stage"
+      ],
+      "expect": true
+    },
+    {
+      "fn": "underWayHere",
+      "args": [
+        { "run": { "id": 31329925499, "status": "in_progress" }, "envs": ["stage"] },
+        "prod"
+      ],
+      "expect": false
+    },
+    {
+      "fn": "underWayHere",
+      "args": [
+        { "run": { "id": 31329925499, "status": "waiting" }, "envs": ["prod"] },
+        "prod"
+      ],
+      "expect": true
+    },
+    {
+      "fn": "underWayHere",
+      "args": [
+        { "run": { "id": 31329925499, "status": "completed" }, "envs": ["prod"] },
+        "prod"
+      ],
+      "expect": false
+    },
+    {
+      "fn": "underWayHere",
+      "args": [
+        { "run": { "id": 31329925499, "status": "in_progress" } },
+        "stage"
+      ],
+      "expect": false
+    },
+    {
+      "fn": "underWayHere",
+      "args": [null, "stage"],
+      "expect": false
+    },
+    {
+      "fn": "underWayHere",
+      "args": [{ "error": "rate limited", "run": { "status": "in_progress" }, "envs": ["stage"] }, "stage"],
+      "expect": false
+    }
+  ]
+}

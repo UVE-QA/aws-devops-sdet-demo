@@ -1,0 +1,45 @@
+{
+  "description": "FINDING, 20k - the mirror of `not run yet`. A node has no published record until the cycle it belongs to ENDS, so during a run every phase ahead of the front says the same words as a phase nothing has ever measured. On 2026-08-09 that was watched on prod: the map read `not run yet` while a promotion was running towards it, which is indistinguishable from the environment never having been built. The two are not the same claim and must not share a sentence. The contrast case below is the same node with nothing running, which must still say `not run yet` - a word that means `nothing recorded` has to keep meaning it.",
+  "checks": [
+    {
+      "fn": "nodeTense",
+      "args": [
+        { "id": "prod.rds", "kind": "service", "service": "rds", "observer": "terraform", "env": "prod" },
+        null,
+        "unknown",
+        true
+      ],
+      "expect": {
+        "word": "not reached yet",
+        "note": "a cycle is under way and has not got here",
+        "cls": "unobserved",
+        "gone": false
+      }
+    },
+    {
+      "fn": "nodeTense",
+      "args": [
+        { "id": "prod.rds", "kind": "service", "service": "rds", "observer": "terraform", "env": "prod" },
+        null,
+        "unknown",
+        false
+      ],
+      "expect": { "word": "not run yet", "note": "", "cls": "", "gone": false }
+    },
+    {
+      "fn": "nodeTense",
+      "args": [
+        { "id": "build.ecr", "kind": "service", "service": "ecr", "observer": "actions", "env": "stage" },
+        null,
+        "unknown",
+        true
+      ],
+      "expect": {
+        "word": "not measured here",
+        "note": "its step is in Actions, not in a timeline",
+        "cls": "unobserved",
+        "gone": false
+      }
+    }
+  ]
+}

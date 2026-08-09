@@ -1,0 +1,25 @@
+{
+  "schema": 1,
+  "environment": "stage",
+  "state": "destroyed",
+  "observed_at": "2026-08-08T20:59:51Z",
+  "account": "993912191738",
+  "region": "us-west-2",
+  "app_url": null,
+  "image": null,
+  "resources": {
+    "load_balancer": null,
+    "ecs_service": null,
+    "db_instance": null
+  },
+  "report_url": null,
+  "written_at": "2026-08-08T20:59:56Z",
+  "run": {
+    "id": "31277877190",
+    "number": "40",
+    "attempt": "1",
+    "workflow": "destroy",
+    "status": "success",
+    "url": "https://github.com/UVE-QA/aws-devops-sdet-demo/actions/runs/31277877190"
+  }
+}

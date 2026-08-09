@@ -7,7 +7,8 @@
         self-service-package self-service-cors-check site-page site-page-check \
         site-data site-data-check timeline-check node-states-check \
         suite-inventory suite-inventory-check results-check live-state-check \
-        page-tense-check publish-prefixes-check contrast-check measure-page
+        page-tense-check page-freshness-check publish-prefixes-check \
+        contrast-check measure-page
 
 # Bring up postgres + app (build app image if needed), detached.
 local-up:
@@ -298,6 +299,28 @@ live-state-check:
 # it, and there is no second copy of the rule in another language.
 page-tense-check:
 	node scripts/check-page-tense.mjs
+
+# WHEN THE PAGE ASKS (20l, ADR-0053). The two gates above lift a pure block out
+# of the built page and hand it data, so between them they can say what the page
+# ANSWERS and neither can say when it asks. On 2026-08-09 that was the whole
+# defect: the run layer was fetched once, in the bootstrap chain, while the poll
+# re-read the status files and the Actions API - the words refreshed, the figures
+# never did, and one hard reload fixed four symptoms at once.
+#
+# That reload is the property. Each case opens the page on one run-layer set,
+# swaps the bucket underneath it, pushes the clock past a bucket tick or presses
+# Refresh, and requires the open tab to render what a FRESH LOAD of the same
+# sources renders. A page that never re-reads fails it; so does one that re-reads
+# and declines to re-draw, one whose sentence was written in the bootstrap chain,
+# and one whose layer accumulates instead of being rebuilt.
+#
+# A control runs first and REFUSES rather than reporting: if the two fixture sets
+# render the same page there is nothing to converge on, and every case would be
+# green with the re-read deleted. Same Playwright and chromium as contrast-check
+# and measure-page, same CHROMIUM_PATH escape hatch, so it belongs beside them in
+# ci.yml's `local-ci` job rather than in `checks`.
+page-freshness-check:
+	node scripts/check-page-freshness.mjs
 
 # THE GATE UNDER ADR-0047 D6. Every state on the map carries a boundary, and a
 # boundary that identifies state has a 3:1 floor (WCAG 1.4.11). Three states

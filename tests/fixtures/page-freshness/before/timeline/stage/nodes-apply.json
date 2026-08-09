@@ -1,0 +1,63 @@
+{
+  "schema": 1,
+  "environment": "stage",
+  "kind": "apply",
+  "written_at": "2026-08-08T20:45:00Z",
+  "cycle": {
+    "status": "complete",
+    "date": "2026-08-08",
+    "started_at": "2026-08-08T20:30:00Z",
+    "finished_at": "2026-08-08T20:45:00Z",
+    "duration_seconds": 900,
+    "tool": "terraform",
+    "run": {
+      "id": "31328897257",
+      "number": "112",
+      "workflow": "deploy-stage",
+      "url": "https://github.com/UVE-QA/aws-devops-sdet-demo/actions/runs/31328897257"
+    }
+  },
+  "observed": {
+    "resources": 32,
+    "matched": 30,
+    "not_shown": 1,
+    "read": 0,
+    "unknown": 1,
+    "nodes": 2
+  },
+  "not_shown": [
+    "module.network.aws_route_table_association.public[0]"
+  ],
+  "unknown": [
+    "module.observability.aws_cloudwatch_log_metric_filter.spare"
+  ],
+  "nodes": {
+    "stage.rds": {
+      "state": "measured",
+      "duration_s": 300,
+      "identifier": "aws-devops-sdet-demo-stage",
+      "identifier_from": "module.rds.aws_db_instance.this",
+      "resources_observed": 4,
+      "resources_complete": 4
+    },
+    "stage.alb": {
+      "state": "measured",
+      "duration_s": 120,
+      "identifier": "demo-stage-alb",
+      "identifier_from": "module.alb.aws_lb.this",
+      "resources_observed": 6,
+      "resources_complete": 6
+    }
+  },
+  "phases": {
+    "stage-apply": {
+      "duration_s": 420,
+      "started_at": "2026-08-08T20:30:00Z",
+      "finished_at": "2026-08-08T20:45:00Z",
+      "nodes": 2
+    }
+  },
+  "phase_ids": [
+    "stage-apply"
+  ]
+}

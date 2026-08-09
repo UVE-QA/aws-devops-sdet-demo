@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "environment": "stage",
+  "kind": "apply",
+  "status": "complete",
+  "started_at": "2026-08-09T05:10:00Z",
+  "finished_at": "2026-08-09T05:27:47Z",
+  "duration_seconds": 900,
+  "written_at": "2026-08-09T05:27:47Z",
+  "run": {
+    "id": "31328897257",
+    "number": "112",
+    "workflow": "deploy-stage"
+  }
+}

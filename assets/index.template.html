@@ -879,6 +879,7 @@
           <summary>state encoding</summary>
           <div class="legend">
             <span><b>not run yet</b> nothing recorded &mdash; carried by the word alone, deliberately quiet</span>
+            <span><b>not reached yet</b> a cycle is under way and has not got here &mdash; figures arrive when it ends</span>
             <span><b>not measured here</b> its step is in Actions, not in a timeline &mdash; no cycle will ever carry it</span>
             <span><b>destroyed</b> dimmed like the above, and the figures beside it are the cycle that ended</span>
             <span><b>running now</b> accent edge and a beating dot &mdash; this node's own step</span>
@@ -1657,10 +1658,21 @@
         return Math.min(180000, Math.max(30000, msLeft / polls));
       }
 
+      // THE SENTENCE A READER TRUSTS ABOUT THIS PAGE'S CADENCE, and 20k caught
+      // it being untrue: it said the bucket was read every 30 seconds, which
+      // covered `status/*.json` and not one of the figures beside them. Since
+      // 20l the same tick re-reads the run layer, so the first half is now true
+      // of both - and the second half is the part this page cannot fix. The
+      // figures are published with max-age=60 and no invalidation, deliberately
+      // (scripts/publish-status.sh), so they arrive up to a minute after they
+      // were written whatever this timer does. Saying it is cheaper than the
+      // alternative, which is a reader watching a correct page and concluding it
+      // is broken.
       function scheduleRefresh() {
         if (state.timer) { clearTimeout(state.timer); state.timer = null; }
         var live = !state.githubError && currentRun() && currentRun().status !== "completed";
-        el("autorefresh").textContent = "auto: bucket every 30 s, GitHub every " +
+        el("autorefresh").textContent = "auto: bucket every 30 s — status and figures, " +
+          "the figures up to a minute behind the write; GitHub every " +
           Math.round(githubIntervalMs() / 1000) + " s" + (live ? " (paced by the remaining budget)" : "");
         state.timer = setTimeout(function () { tick(false); }, BUCKET_MS);
       }
@@ -1877,7 +1889,8 @@
             // a state the branches above are supposed to have caught. Falling
             // back to the word already on the node beats a thrown exception,
             // which blanks the whole map.
-            const t = nodeTense(n, rec, envTense(RUNSTATE.observation, n.env)) ||
+            const t = nodeTense(n, rec, envTense(RUNSTATE.observation, n.env),
+                                underWayHere(RUNSTATE.observation, n.env)) ||
               { word: st, note: "", cls: "", gone: false };
             if (t.gone) el.classList.add("gone");
             // The figures are assembled HERE, never in the block above: a node
@@ -2235,8 +2248,61 @@
             .catch(() => null);
         }
 
+        /* THE RUN LAYER IS RE-READ, AND REBUILT RATHER THAN APPENDED TO
+           (20l, ADR-0053 D1/D3).
+
+           It used to be fetched ONCE, in the bootstrap chain below, while the
+           dashboard's poll re-read `status/*.json` and the Actions API every 30
+           seconds. So the WORDS on this page refreshed and the FIGURES beside
+           them never did. 20k watched all four faces of that: a green promotion
+           left its phase reading `not run yet` - which is what a phase that has
+           never run says, minutes after the same phase had said `done` - a
+           priced prod teardown left its node the same way while the published
+           record said `measured` at 467s, prod's price could not reach the cost
+           box, and Refresh only ever changed the sentence around the old
+           numbers. Three minutes untouched did not converge; one hard reload
+           fixed all four.
+
+           THREE things had to change together, and each alone would have been
+           invisible on the page:
+
+             the layer is REBUILT. Every source below was accumulated into -
+             four `push`es and a merge - so a second call duplicated the cycle
+             list and the `unknown` ledger, and a node dropped from a
+             republished file lingered for as long as the tab stayed open. The
+             sources are assembled into a FRESH object and swapped in at the
+             end. `observation`, `envs`, `phase` and `node` are not touched:
+             they come from the dashboard's event, not from these files.
+
+             the SENTENCE under the map is written here, not in the bootstrap
+             chain. It carries the date of the last cycle and what the suites
+             said, so re-reading the figures and leaving it where it was would
+             have kept the old date over the new numbers - the same defect one
+             level up, and the kind this project keeps finding a second copy of.
+
+             the signature that decides whether to re-draw grew a FIGURES half,
+             at the listener below. It was made of states alone, and a price
+             arriving changes no state.
+
+           `data/suites.json` is not re-read while it has answered: it is
+           generated from the repository and cannot change without the page
+           itself being republished. `data/topology.json` is fetched once below
+           for the same reason. A suites read that FAILED is retried, which is
+           why the flag is set where the document arrives rather than where the
+           request is made.
+
+           The ceiling is not ours. These objects are published with
+           `max-age=60` and deliberately no CloudFront invalidation - see the
+           comment in scripts/publish-status.sh, which trades a minute of
+           staleness against an invalidation quota - so a figure converges
+           within about a minute and a half of being written, never instantly.
+           scheduleRefresh() says so beside the Refresh button, because the
+           sentence a reader trusts about this page's cadence is exactly what
+           20k caught being untrue. */
+        let inventoryRead = false;
         function readRunLayer() {
-          const wanted = [["inventory", readJSON("data/suites.json")]];
+          const wanted = [];
+          if (!inventoryRead) wanted.push(["inventory", readJSON("data/suites.json")]);
           ENVS.forEach((env) => {
             wanted.push(["nodes", readJSON(`timeline/${env}/nodes-apply.json`)]);
             wanted.push(["nodes", readJSON(`timeline/${env}/nodes-destroy.json`)]);
@@ -2248,33 +2314,55 @@
             wanted.push([`cost:${env}`, readJSON(`cost/${env}/latest.json`)]);
           });
           return Promise.all(wanted.map((w) => w[1])).then((results) => {
+            // The whole layer, assembled beside the live one. Nothing below
+            // writes into RUNSTATE until every document has been folded in, so
+            // a read that half-failed cannot leave the page holding half of one
+            // cycle and half of another.
+            const next = {
+              nodes: {}, cycles: [], unfinished: [], unknown: [], hidden: [],
+              phases: {}, results: {}, cost: {}
+            };
             results.forEach((doc, i) => {
               if (!doc) return;
-              if (wanted[i][0] === "nodes") {
-                Object.keys(doc.nodes || {}).forEach((id) => { RUNSTATE.nodes[id] = doc.nodes[id]; });
+              const kind = wanted[i][0];
+              if (kind === "nodes") {
+                Object.keys(doc.nodes || {}).forEach((id) => { next.nodes[id] = doc.nodes[id]; });
                 // The phase span, measured. Not the sum of its nodes: they
                 // overlap, so adding them up overstates it - which is why this
                 // arrives computed rather than being worked out here.
                 Object.keys(doc.phases || {}).forEach((id) => {
-                  RUNSTATE.phases[id] = { ...doc.phases[id], date: doc.cycle && doc.cycle.date };
+                  next.phases[id] = { ...doc.phases[id], date: doc.cycle && doc.cycle.date };
                 });
-                RUNSTATE.cycles.push(doc.cycle);
+                next.cycles.push(doc.cycle);
                 // Carried onto the page rather than only into the apply log. A
                 // resource a cycle created and the map does not draw is the
                 // silence ADR-0039 D1 exists to end, and a reader is entitled to
                 // see the size of it.
-                (doc.unknown || []).forEach((a) => RUNSTATE.unknown.push(`${doc.environment} :: ${a}`));
-                (doc.not_shown || []).forEach((a) => RUNSTATE.hidden.push(`${doc.environment} :: ${a}`));
-              } else if (wanted[i][0] === "inventory") {
+                (doc.unknown || []).forEach((a) => next.unknown.push(`${doc.environment} :: ${a}`));
+                (doc.not_shown || []).forEach((a) => next.hidden.push(`${doc.environment} :: ${a}`));
+              } else if (kind === "inventory") {
+                // Read once, and the flag is set HERE - where a document
+                // actually arrived - so a failed read is asked again next tick
+                // instead of leaving the collected-tests sentence off the page
+                // for as long as the tab is open.
                 RUNSTATE.inventory = doc.suites || null;
-              } else if (wanted[i][0].indexOf("results:") === 0) {
-                RUNSTATE.results[wanted[i][0].slice(8)] = doc;
-              } else if (wanted[i][0].indexOf("cost:") === 0) {
-                RUNSTATE.cost[wanted[i][0].slice(5)] = doc;
+                inventoryRead = true;
+              } else if (kind.indexOf("results:") === 0) {
+                next.results[kind.slice(8)] = doc;
+              } else if (kind.indexOf("cost:") === 0) {
+                next.cost[kind.slice(5)] = doc;
               } else if (doc.status && doc.status !== "complete") {
-                RUNSTATE.unfinished.push({ environment: doc.environment, status: doc.status, at: doc.written_at });
+                next.unfinished.push({ environment: doc.environment, status: doc.status, at: doc.written_at });
               }
             });
+            RUNSTATE.nodes = next.nodes;
+            RUNSTATE.cycles = next.cycles;
+            RUNSTATE.unfinished = next.unfinished;
+            RUNSTATE.unknown = next.unknown;
+            RUNSTATE.hidden = next.hidden;
+            RUNSTATE.phases = next.phases;
+            RUNSTATE.results = next.results;
+            RUNSTATE.cost = next.cost;
             let longest = 1;
             Object.keys(RUNSTATE.nodes).forEach((id) => {
               const n = RUNSTATE.nodes[id];
@@ -2282,6 +2370,7 @@
             });
             MAXDUR = longest;
             renderCostLine();
+            renderMapSub();
           });
         }
 
@@ -2482,16 +2571,30 @@
           return "partial";
         }
 
+        /* IS A CYCLE UNDER WAY, AND IS IT ABOUT THIS ENVIRONMENT? Two halves,
+           and the second is what keeps a prod node quiet while stage is being
+           built: `observation.envs` is the environment list the dashboard parsed
+           out of the run, handed over rather than re-derived (announceCycle()
+           says why). Without it every node on the map would claim to be waiting
+           for a run that will never touch it. */
+        function underWayHere(observation, env) {
+          if (!figuresAreOlder(observation)) return false;
+          const envs = (observation && observation.envs) || [];
+          return envs.indexOf(env) !== -1;
+        }
+
         /* What a node says when no run is speaking for it. Suites do not come
            here - they are observed by their report - and neither does a
            permanent card, which has no cycle to report.
 
-              node    as the generator wrote it: `observer` is the field that
-                      says WHAT COULD EVER MEASURE THIS, and it is on every node
-                      already (assets/topology-groups.json)
-              record  the published node state, or null
-              envs    the word from envTense() for this node's environment */
-        function nodeTense(node, record, envs) {
+              node     as the generator wrote it: `observer` is the field that
+                       says WHAT COULD EVER MEASURE THIS, and it is on every node
+                       already (assets/topology-groups.json)
+              record   the published node state, or null
+              envs     the word from envTense() for this node's environment
+              underWay underWayHere() for this node's environment: a cycle is
+                       running now and it is about this one */
+        function nodeTense(node, record, envs, underWay) {
           // NOTHING WILL EVER MEASURE THIS ONE. Terraform reports resources;
           // the image push, the migrate/seed task and the human approval are
           // not resources, so no timeline can carry them and `not run yet` about
@@ -2502,7 +2605,20 @@
             return { word: "not measured here", note: "its step is in Actions, not in a timeline",
                      cls: "unobserved", gone: false };
           }
-          if (!record) return { word: "not run yet", note: "", cls: "", gone: false };
+          // THE MIRROR CLAUSE (20l, ADR-0053 D6). `not run yet` was said by two
+          // nodes that are nothing like each other: one nothing has ever
+          // measured, and one this very cycle has not got to yet. 20k watched
+          // the second - a phase the run had not reached read exactly what a
+          // phase that never ran reads, and there was no way to tell them apart
+          // on the page. A record arrives only when the cycle ENDS, so during a
+          // run this is the state of every phase ahead of the front, which is
+          // most of the map for most of a cycle.
+          if (!record) {
+            return underWay
+              ? { word: "not reached yet", note: "a cycle is under way and has not got here",
+                  cls: "unobserved", gone: false }
+              : { word: "not run yet", note: "", cls: "", gone: false };
+          }
           if (record.state === "incomplete") return null; // the caller's own branch
           // THE RECORD OUTLIVES THE ENVIRONMENT. A destroy publishes states for
           // the destroy node alone, so an apply's figures sit there afterwards
@@ -2590,52 +2706,64 @@
           return dates.length ? dates[dates.length - 1] : null;
         }
 
+        /* The sentence under the map, rewritten from what actually arrived and
+           never from a field in the generated file: the repository cannot know
+           whether a cycle has run, and saying "the last measured cycle" over
+           numbers that are not there is the defect 20a-20k exist to remove.
+
+           It lives in a function of its own since 20l, and is called by
+           readRunLayer() rather than by the bootstrap chain. It is made ENTIRELY
+           of things that are re-read - the cycle dates, the stalled-run warning,
+           what the suites reported - so leaving it where it was written would
+           have refreshed every figure on the page and dated them all by whatever
+           was true when the tab was opened. */
+        function renderMapSub() {
+          const sub = $("#map-sub");
+          if (!sub) return;
+          const date = measuredOn();
+          const stalled = RUNSTATE.unfinished
+            .map((u) => `${u.environment} (${u.status})`)
+            .join(", ");
+          sub.innerHTML =
+          `Generated from <code>infra/</code> and <code>tests/</code>. ` +
+          (date
+            ? `At rest it shows the last cycle that finished, dated ${date}; `
+            : `Nothing has been measured into it yet, so every node below is unobserved; `) +
+          `the map is on the page whether or not anything is running.` +
+          (stalled
+            ? `<br><b>The most recent run did not finish: ${stalled}.</b> Its numbers are not
+               drawn — what is below is the last cycle that completed.`
+            : ``) +
+          // The suites are a SECOND source with a second date, and they are
+          // published on a different rule: every run, whatever happened. So
+          // they get their own sentence rather than being folded into the
+          // one above, which would date both by the older of them.
+          (() => {
+            const said = ENVS
+              .filter((env) => RUNSTATE.results[env] && RUNSTATE.results[env].run)
+              .map((env) => {
+                const r = RUNSTATE.results[env].run;
+                const label = r.url ? `<a href="${r.url}">${r.workflow || r.id}</a>` : (r.workflow || r.id);
+                return `${env} from ${label}`;
+              });
+            const collected = RUNSTATE.inventory
+              ? Object.keys(RUNSTATE.inventory)
+                  .reduce((t, k) => t + (RUNSTATE.inventory[k].count || 0), 0)
+              : null;
+            if (!collected) return ``;
+            return `<br>${collected} tests are collected from the suites themselves; ` +
+              (said.length
+                ? `the verdicts below are what a run reported — ${said.join(", ")}.`
+                : `no run has reported on them yet.`);
+          })();
+        }
+
         fetch("data/topology.json")
           .then((r) => r.json())
           .then((d) => readRunLayer().then(() => d))
           .then((d) => {
             DATA = d;
             paint();
-            // The sentence is rewritten from what actually arrived, never from a
-            // field in the generated file: the repository cannot know whether a
-            // cycle has run. Saying "the last measured cycle" over numbers that
-            // are not there is the exact defect this phase exists to remove.
-            const date = measuredOn();
-            const stalled = RUNSTATE.unfinished
-              .map((u) => `${u.environment} (${u.status})`)
-              .join(", ");
-            $("#map-sub").innerHTML =
-              `Generated from <code>infra/</code> and <code>tests/</code>. ` +
-              (date
-                ? `At rest it shows the last cycle that finished, dated ${date}; `
-                : `Nothing has been measured into it yet, so every node below is unobserved; `) +
-              `the map is on the page whether or not anything is running.` +
-              (stalled
-                ? `<br><b>The most recent run did not finish: ${stalled}.</b> Its numbers are not
-                   drawn — what is below is the last cycle that completed.`
-                : ``) +
-              // The suites are a SECOND source with a second date, and they are
-              // published on a different rule: every run, whatever happened. So
-              // they get their own sentence rather than being folded into the
-              // one above, which would date both by the older of them.
-              (() => {
-                const said = ENVS
-                  .filter((env) => RUNSTATE.results[env] && RUNSTATE.results[env].run)
-                  .map((env) => {
-                    const r = RUNSTATE.results[env].run;
-                    const label = r.url ? `<a href="${r.url}">${r.workflow || r.id}</a>` : (r.workflow || r.id);
-                    return `${env} from ${label}`;
-                  });
-                const collected = RUNSTATE.inventory
-                  ? Object.keys(RUNSTATE.inventory)
-                      .reduce((t, k) => t + (RUNSTATE.inventory[k].count || 0), 0)
-                  : null;
-                if (!collected) return ``;
-                return `<br>${collected} tests are collected from the suites themselves; ` +
-                  (said.length
-                    ? `the verdicts below are what a run reported — ${said.join(", ")}.`
-                    : `no run has reported on them yet.`);
-              })();
             const c = d.counts;
             $("#outside-note").innerHTML = d.outside.note;
             $("#perm-note").innerHTML =
@@ -2673,6 +2801,16 @@
             renderPath(d);
             renderDetail(d);
             render();
+            // The observation that arrived while this chain was still in the
+            // air. No re-read: the layer was fetched two steps ago, and asking
+            // the bucket for the same eleven objects again would be the cost of
+            // the fix rather than the fix.
+            if (pending) {
+              RUNSTATE.observation = pending;
+              RUNSTATE.envs = pending.envs || [];
+              pending = null;
+              redraw();
+            }
           })
           .catch((e) => { $("#map-sub").textContent = "topology.json did not load: " + e; });
 
@@ -2682,10 +2820,44 @@
            budget. Re-rendering only when the set of live phases CHANGES keeps a
            30-second ticker from rebuilding the map every 30 seconds for nothing. */
         let livePrev = "";
+        // One re-read at a time. The bucket tick is 30 seconds and a read is
+        // milliseconds, so this only ever fires on a stalled network - where
+        // queueing a second set of eleven requests behind a set that has not
+        // come back is the wrong answer. The words are drawn either way.
+        let rereading = false;
+        // FOUND BY check-page-freshness.mjs ON ITS FIRST RUN, and not by anyone
+        // watching a cycle: the gate compares an open tab against a FRESH LOAD,
+        // so it asks what a fresh load shows - a question 20k never had to ask,
+        // because in 20k the reload was the fix.
+        //
+        // The dashboard announces its first observation from load(), which fires
+        // before topology.json and the run layer have come back. `if (!DATA)`
+        // dropped it, and the next announcement is a bucket tick away - so for
+        // the first 30 seconds after a cold load the map drew every node of a
+        // DESTROYED environment as though it were still standing, which is the
+        // exact claim ADR-0051's destroy rule exists to prevent. Held and
+        // replayed rather than dropped.
+        let pending = null;
         document.addEventListener("cycle:observed", (e) => {
-          if (!DATA) return;
+          if (!DATA) { pending = e.detail; return; }
           RUNSTATE.observation = e.detail;
           RUNSTATE.envs = e.detail.envs || [];
+          // 20l, ADR-0053 D2: THE FIGURES RE-READ ON THE SAME CLOCK AS THE
+          // WORDS. This event fires once per bucket tick - tick() -> renderAll()
+          // -> announceCycle() - and the Refresh button is a forced tick, so
+          // hanging the run layer here gives both paths the same answer without
+          // a second timer and without the map learning anything about the
+          // dashboard's internals. The event is still the map's only view of the
+          // Actions API (ADR-0026's rate budget); what is added is the BUCKET,
+          // which has no such budget.
+          if (rereading) { redraw(); return; }
+          rereading = true;
+          readRunLayer()
+            .catch(() => {})
+            .then(() => { rereading = false; redraw(); });
+        });
+
+        function redraw() {
           paint();
           // The signature is now every state, not only the running ones: a phase
           // going from running to finished-in-this-run changes what the map says
@@ -2702,11 +2874,57 @@
             "|" + Object.keys(RUNSTATE.node).sort()
               .map((id) => id + ":" + RUNSTATE.node[id].state).join(",") +
             "|" + ENVS.map((env) => env + ":" + envTense(RUNSTATE.observation, env)).join(",") +
-            "|" + (figuresAreOlder(RUNSTATE.observation) ? "older" : "current");
+            "|" + (figuresAreOlder(RUNSTATE.observation) ? "older" : "current") +
+            // THE FIGURES HALF (20l, ADR-0053 D4). Everything above is a STATE,
+            // and the run layer can change without any of them moving: a
+            // teardown publishes a price, an apply publishes a duration, a suite
+            // publishes a verdict, and the map is drawn from all three. Without
+            // this the re-read above would fetch new numbers thirty seconds
+            // after they were written and then decline to draw them - the same
+            // page as before the fix, arriving by a different route.
+            "|" + layerSignature();
           if (now === livePrev) { tickElapsed(); return; }
           livePrev = now;
+          // The cut under the map is drawn from the run layer too - what the
+          // last cycle touched and this page does not draw, and which reported
+          // test the collected inventory has never heard of. It was built once,
+          // in the bootstrap chain, for the same reason everything else in 20l
+          // was: nothing re-read, so nothing needed re-drawing.
+          renderDetail(DATA);
           render();
-        });
+        }
+
+        /* What the run layer currently SAYS, as one string. Every field here is
+           drawn: the node word and its bar come from `state` and `duration_s`,
+           the cost box from the band and the date it closed, the suite verdicts
+           and the sentence under the map from the reports, and the map's date
+           from the cycles. `unknown`/`hidden` are in it because they are a
+           counted list on the page, and because their length is what a rebuild
+           that quietly went back to appending would double. */
+        function layerSignature() {
+          const nodes = Object.keys(RUNSTATE.nodes).sort()
+            .map((id) => {
+              const n = RUNSTATE.nodes[id];
+              return `${id}:${n.state}:${n.duration_s || ""}`;
+            }).join(",");
+          const money = ENVS.map((env) => {
+            const c = RUNSTATE.cost[env];
+            const usd = c && c.cycle && c.cycle.usd;
+            return env + ":" + (usd ? `${usd.low}-${usd.high}` : "") +
+              ":" + ((c && c.cycle && c.cycle.finished_at) || "");
+          }).join(",");
+          const reports = ENVS.map((env) => {
+            const r = RUNSTATE.results[env];
+            const run = r && r.run;
+            return env + ":" + ((run && (run.id || run.url)) || "") +
+              ":" + ((r && r.written_at) || "");
+          }).join(",");
+          return nodes +
+            "|" + RUNSTATE.cycles.map((c) => (c && c.date) || "").join(",") +
+            "|" + RUNSTATE.unfinished.map((u) => `${u.environment}:${u.status}`).join(",") +
+            "|" + RUNSTATE.unknown.length + ":" + RUNSTATE.hidden.length +
+            "|" + money + "|" + reports;
+        }
 
         let t;
         addEventListener("resize", () => { clearTimeout(t); t = setTimeout(render, 120); });

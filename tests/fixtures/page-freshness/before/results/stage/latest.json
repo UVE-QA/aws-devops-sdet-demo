@@ -1,0 +1,27 @@
+{
+  "schema": 1,
+  "environment": "stage",
+  "written_at": "2026-08-08T20:44:00Z",
+  "run": {
+    "id": "31277877190",
+    "number": "112",
+    "workflow": "deploy-stage",
+    "url": "https://github.com/UVE-QA/aws-devops-sdet-demo/actions/runs/31277877190"
+  },
+  "suites": {
+    "smoke": {
+      "outcome": "passed",
+      "passed": 7,
+      "failed": 0,
+      "skipped": 0,
+      "duration_s": 11.4
+    },
+    "db": {
+      "outcome": "passed",
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0,
+      "duration_s": 2.1
+    }
+  }
+}

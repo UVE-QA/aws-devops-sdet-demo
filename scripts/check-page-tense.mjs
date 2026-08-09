@@ -30,7 +30,8 @@
  *       ==== PAGE TENSE - begin ====
  *         figuresAreOlder(observation)
  *         envTense(observation, env)
- *         nodeTense(node, record, envs)
+ *         underWayHere(observation, env)
+ *         nodeTense(node, record, envs, underWay)
  *       ==== PAGE TENSE - end ====
  *
  * The cases are FLAT JSON FILES rather than a directory each: unlike the live
@@ -55,7 +56,7 @@ const CASES = path.join(ROOT, "tests", "fixtures", "page-tense", "cases");
 
 const BEGIN = "==== PAGE TENSE - begin";
 const END = "==== PAGE TENSE - end";
-const API = ["figuresAreOlder", "envTense", "nodeTense"];
+const API = ["figuresAreOlder", "envTense", "underWayHere", "nodeTense"];
 
 function refuse(why) {
   console.log(`page-tense-check: REFUSED\n${why}`);
