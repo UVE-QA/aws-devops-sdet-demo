@@ -63,6 +63,15 @@ lightest thing there is — is 1.27, so no background produces 1.34. ADR-0048 D4
 supersedes that row. Nothing follows from it; `absent` is exempt from the floor
 on purpose and was under it on both readings.
 
+**Two hosts, and this time they agree.** The gate ran in the chat session's
+sandbox and on the Lightsail devbox — different machines, different chromium
+builds — and returned the same six numbers to the hundredth in both themes. That
+is not a formality here: `docker compose config --images app` was byte-identical
+in the same Makefile recipe on these two hosts and answered differently, which is
+how the image scan came to scan `postgres:16`. A gate that asks a tool to
+DISCOVER something has a version-dependent answer; this one asks an engine to
+RESOLVE a declared colour, and the reading held.
+
 ## The palette moved first, and on purpose
 
 The floor is met on the CURRENT page, before any composition:

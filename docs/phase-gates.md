@@ -2589,6 +2589,8 @@ break tests in `docs/sessions/2026-08-09-phase-20e-1-contrast-gate-break-tests.l
   never committed. The sixth, `absent`, reads 1.15/1.12 against 1.34/1.35: the
   older figure is unreachable, since `#d8dbe2` on pure white is 1.27. ADR-0048 D4
   supersedes that row and nothing follows from it.
+- **Run on both hosts.** The sandbox and the devbox, different chromium builds,
+  the same six numbers to the hundredth in both themes.
 - **The palette moved before the layout, and the fix landed before the gate.**
   working 2.67→3.22, done 2.41→3.37, suite 1.98→3.38 in the light theme; each
   boundary is now a token in `:root`, so `.node.done` and `.phase.done` share one
