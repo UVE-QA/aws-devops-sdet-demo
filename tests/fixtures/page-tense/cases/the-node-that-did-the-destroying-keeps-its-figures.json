@@ -1,0 +1,30 @@
+{
+  "description": "The destroy node is the one thing on the map a teardown actually measured. Greying it because its environment is gone would erase the evidence that the environment was torn down - the exact opposite of the finding this case sits beside.",
+  "checks": [
+    {
+      "fn": "nodeTense",
+      "args": [
+        {
+          "id": "destroy.stage",
+          "kind": "service",
+          "service": "destroy",
+          "observer": "terraform",
+          "env": "stage"
+        },
+        {
+          "state": "measured",
+          "duration_s": 512,
+          "resources_observed": 4,
+          "resources_complete": 4
+        },
+        "destroyed"
+      ],
+      "expect": {
+        "word": "measured",
+        "note": "",
+        "cls": "",
+        "gone": false
+      }
+    }
+  ]
+}

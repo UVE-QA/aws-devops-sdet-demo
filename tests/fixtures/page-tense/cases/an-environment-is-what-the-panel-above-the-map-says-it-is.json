@@ -1,0 +1,59 @@
+{
+  "description": "The map does not look at AWS and does not re-derive staleness: it is handed the environments panel's own reading. `up` and `destroyed` come through as themselves; anything else the panel can report is `partial`.",
+  "checks": [
+    {
+      "fn": "envTense",
+      "args": [
+        {
+          "run": {
+            "status": "completed"
+          },
+          "environments": {
+            "stage": {
+              "state": "up",
+              "stale": false
+            }
+          }
+        },
+        "stage"
+      ],
+      "expect": "up"
+    },
+    {
+      "fn": "envTense",
+      "args": [
+        {
+          "run": {
+            "status": "completed"
+          },
+          "environments": {
+            "stage": {
+              "state": "destroyed",
+              "stale": false
+            }
+          }
+        },
+        "stage"
+      ],
+      "expect": "destroyed"
+    },
+    {
+      "fn": "envTense",
+      "args": [
+        {
+          "run": {
+            "status": "completed"
+          },
+          "environments": {
+            "stage": {
+              "state": "partial",
+              "stale": false
+            }
+          }
+        },
+        "stage"
+      ],
+      "expect": "partial"
+    }
+  ]
+}

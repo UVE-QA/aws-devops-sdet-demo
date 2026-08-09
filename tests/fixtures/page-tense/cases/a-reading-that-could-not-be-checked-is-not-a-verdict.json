@@ -1,0 +1,85 @@
+{
+  "description": "A status file the newest run disagrees with is stale, and the panel draws `unknown` rather than the value in it. The map is not entitled to a firmer answer than the panel gives - so a stale `destroyed` must not grey the map, and a stale `up` must not colour it. Same for an environment nothing has reported on, and for a page whose first observation has not arrived yet.",
+  "checks": [
+    {
+      "fn": "envTense",
+      "args": [
+        {
+          "run": {
+            "status": "completed"
+          },
+          "environments": {
+            "stage": {
+              "state": "destroyed",
+              "stale": true
+            }
+          }
+        },
+        "stage"
+      ],
+      "expect": "unknown"
+    },
+    {
+      "fn": "envTense",
+      "args": [
+        {
+          "run": {
+            "status": "completed"
+          },
+          "environments": {
+            "stage": {
+              "state": "up",
+              "stale": true
+            }
+          }
+        },
+        "stage"
+      ],
+      "expect": "unknown"
+    },
+    {
+      "fn": "envTense",
+      "args": [
+        {
+          "run": {
+            "status": "completed"
+          },
+          "environments": {
+            "stage": {
+              "state": null,
+              "stale": false
+            }
+          }
+        },
+        "stage"
+      ],
+      "expect": "unknown"
+    },
+    {
+      "fn": "envTense",
+      "args": [
+        {
+          "run": {
+            "status": "completed"
+          },
+          "environments": {
+            "stage": {
+              "state": "up",
+              "stale": false
+            }
+          }
+        },
+        "prod"
+      ],
+      "expect": "unknown"
+    },
+    {
+      "fn": "envTense",
+      "args": [
+        null,
+        "stage"
+      ],
+      "expect": "unknown"
+    }
+  ]
+}

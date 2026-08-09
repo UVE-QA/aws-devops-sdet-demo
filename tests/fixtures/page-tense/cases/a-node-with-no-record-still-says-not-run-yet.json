@@ -1,0 +1,25 @@
+{
+  "description": "`not run yet` is correct and stays: it is what a Terraform-observed node with nothing published about it should say. The finding was never that the phrase is wrong - it was that three nodes said it which could never stop.",
+  "checks": [
+    {
+      "fn": "nodeTense",
+      "args": [
+        {
+          "id": "prod.rds",
+          "kind": "service",
+          "service": "rds",
+          "observer": "terraform",
+          "env": "prod"
+        },
+        null,
+        "unknown"
+      ],
+      "expect": {
+        "word": "not run yet",
+        "note": "",
+        "cls": "",
+        "gone": false
+      }
+    }
+  ]
+}

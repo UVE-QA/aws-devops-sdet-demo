@@ -378,7 +378,13 @@
       }
       .icon.aws { border: 0; background: none; overflow: hidden; border-radius: 5px; width: 1.4rem; padding: 0; }
       .icon.aws svg { width: 100%; height: 100%; display: block; }
-      .node.absent .icon.aws { filter: grayscale(1); }
+      /* `gone` is drawn exactly like `absent` and means something else: absent
+         is "no record", gone is "the record is real and the thing it describes
+         has been destroyed". They look alike because what a reader needs from
+         both is the same - do not read this as live - and the WORD on the state
+         line is what tells them apart. Two environments in the identical state
+         were drawn as opposites until this existed (20h). */
+      .node.absent .icon.aws, .node.gone .icon.aws { filter: grayscale(1); }
       .node .name { font-size: 0.78rem; font-weight: 600; line-height: 1.2; }
       /* ONE STATE LINE, WORD FIRST (ADR-0048 D3): `<word> · <figure>`, and no
          separator printed when there is no figure. It replaces the duration bar,
@@ -399,8 +405,8 @@
       .asserts { font-size: 0.71rem; color: var(--muted); }
       .meta { font-size: 0.71rem; color: var(--muted); }
 
-      .node.absent { opacity: 0.45; border-style: dashed; background: transparent; }
-      .node.absent .nstate { color: var(--muted); }
+      .node.absent, .node.gone { opacity: 0.45; border-style: dashed; background: transparent; }
+      .node.absent .nstate, .node.gone .nstate { color: var(--muted); }
       .node.live { border-color: var(--state-live); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
       .node.live::before { background-color: var(--state-live); }
       /* THE BEAT NEVER GOES TO ZERO. The old pulse faded a 1px ring in the
@@ -469,6 +475,10 @@
          more honest, than engineering the phone layout to pretend otherwise. */
       .legend .best { flex-basis: 100%; font-style: italic; opacity: 0.85; }
       .approx { font-size: 0.74rem; color: var(--muted); margin: 0.7rem 0 0; }
+      /* The cost box sits under the map and is a `.panel` like the ones above
+         it, so the only thing it needs of its own is the gap. */
+      .costbox { margin-top: var(--gap); }
+      .costbox .approx { margin: 0; }
 
       /* The band above the cycle, and the text under the cut. Both are second
          renderings of data/topology.json - never maintained beside it. */
@@ -786,6 +796,8 @@
           <summary>state encoding</summary>
           <div class="legend">
             <span><b>not run yet</b> nothing recorded &mdash; carried by the word alone, deliberately quiet</span>
+            <span><b>not measured here</b> its step is in Actions, not in a timeline &mdash; no cycle will ever carry it</span>
+            <span><b>destroyed</b> dimmed like the above, and the figures beside it are the cycle that ended</span>
             <span><b>running now</b> accent edge and a beating dot &mdash; this node's own step</span>
             <span><b>its phase is running</b> dashed accent edge &mdash; which node is unknown</span>
             <span><b>finished / failed in this run</b> green or red edge &mdash; figures publish when the cycle ends</span>
@@ -797,12 +809,21 @@
       </div>
       <p class="sub" id="map-sub">Reading the topology&hellip;</p>
       <div class="cycle" id="rows"></div>
-      <!-- 20f. One line, and where it belongs on the page is 20e's question.
-           A BAND, never one end of it: nothing in the event stream can see the
-           instant AWS starts charging, and for RDS the two ends were 62% apart
-           (ADR-0045). Rendering the low end alone would make a claim the fold
-           declined to make. -->
-      <p class="approx" id="cost-line" hidden></p>
+      <!-- 20f. A BAND, never one end of it: nothing in the event stream can see
+           the instant AWS starts charging, and for RDS the two ends were 62%
+           apart (ADR-0045). Rendering the low end alone would make a claim the
+           fold declined to make.
+
+           WHERE IT BELONGS was 20e's question and 20h answered it by watching:
+           this was an unheaded grey paragraph under the map, and the person who
+           had just run the cycle to produce the number read straight past it.
+           Every other figure on this page is in a bordered box with a label
+           over it, so this one is too - the same `.panel` the environments and
+           the current cycle are drawn in, and no new vocabulary. -->
+      <section class="panel costbox" id="cost-box" hidden>
+        <h2>What the last cycle cost <span class="note">&mdash; computed from resource lifetimes, not from a bill</span></h2>
+        <p class="approx" id="cost-line"></p>
+      </section>
 
       <!-- BELOW THE FOLD. A cut here is not hidden content (ADR-0047 D2): the
            header answers the one question - is anything wrong - and the lines
@@ -1049,15 +1070,14 @@
         el("banners").innerHTML = out;
       }
 
-      // ONE LINE PER ENVIRONMENT, and what it is made of behind the panel's own
-      // disclosure (ADR-0047 D1, D2). This was a full card with a nine-row
-      // definition list each, which is what made the top of the page a column
-      // rather than a composition. NOTHING THE PANEL KNOWS IS DROPPED: the line
-      // answers the question the panel exists for - what is in AWS right now -
-      // and the disclosure answers which resources say so. What the page does
-      // NOT know still comes first and is never behind a cut: a stale reading,
-      // an unverified one, a file that is not there.
-      function envPanel(env) {
+      // WHAT IS IN AWS, DECIDED ONCE. This was inline in envPanel until the map
+      // needed the same answer: a verified-destroyed stage kept every icon at
+      // full colour while this panel, three inches above it, read `destroyed`.
+      // The map must not work it out again - the staleness judgement below is
+      // about a run history only this script reads, and re-deriving it over
+      // there is the `docker compose config --images` shape exactly. So it is
+      // decided here, rendered here, and HANDED OVER by announceCycle().
+      function envObservation(env) {
         var entry = state.status[env] || {};
         var file = entry.file;
         var newest = newestRunFor(env);
@@ -1093,6 +1113,25 @@
           // two it is. Half a source is not the same as a source.
           if (state.githubError) unverified = true;
         }
+        return {
+          entry: entry, file: file, newest: newest, stale: stale, reason: reason,
+          stateName: stateName, cls: cls, unverified: unverified
+        };
+      }
+
+      // ONE LINE PER ENVIRONMENT, and what it is made of behind the panel's own
+      // disclosure (ADR-0047 D1, D2). This was a full card with a nine-row
+      // definition list each, which is what made the top of the page a column
+      // rather than a composition. NOTHING THE PANEL KNOWS IS DROPPED: the line
+      // answers the question the panel exists for - what is in AWS right now -
+      // and the disclosure answers which resources say so. What the page does
+      // NOT know still comes first and is never behind a cut: a stale reading,
+      // an unverified one, a file that is not there.
+      function envPanel(env) {
+        var o = envObservation(env);
+        var entry = o.entry, file = o.file, newest = o.newest;
+        var stale = o.stale, reason = o.reason;
+        var stateName = o.stateName, cls = o.cls, unverified = o.unverified;
 
         var h = '<div class="env' + (stale ? " stale" : "") + '">';
         h += '<div class="envrow"><b>' + esc(env) + '</b>' +
@@ -1481,6 +1520,21 @@
             // over there would be the same rule in two places - and the map
             // would have to learn WRITERS and the run-name convention to do it.
             envs: runEnvironments(currentRun() || {}),
+            // WHAT THE BUCKET LAST OBSERVED about each environment, on exactly
+            // the terms the panel above draws it on - the state, and whether it
+            // could be checked against the newest run. The map uses it to stop
+            // drawing a torn-down environment as a live one; it does not get
+            // the status file, the run identifiers or this script's state, so
+            // there is still only one place that decides what `destroyed` means.
+            environments: ENVIRONMENTS.reduce(function (acc, env) {
+              var o = envObservation(env);
+              acc[env] = {
+                state: o.entry.missing || !o.file ? null : o.file.state,
+                stale: o.stale,
+                unverified: o.unverified
+              };
+              return acc;
+            }, {}),
             error: state.githubError
           }
         }));
@@ -1708,8 +1762,13 @@
               "unobserved");
           } else if (st === "perm") {
             body = ""; // a permanent level has no cycle duration to report
-          } else if (st === "absent") {
-            body = line("not run yet", [n.kind === "suite" ? collected : ""]);
+          } else if (n.kind === "suite") {
+            // A suite with no report at all, and a suite carrying a state this
+            // function has no branch for. It must not fall through to the
+            // tense branch below, which is about what Terraform measured and
+            // would print a duration a suite does not have - precisely what
+            // happened the last time an unbranched state arrived here.
+            body = line(st === "absent" ? "not run yet" : st, [collected]);
           } else if (st === "incomplete") {
             // A node whose members did not all finish: no duration, because a
             // figure taken from a group that stopped in the middle of itself is
@@ -1725,15 +1784,26 @@
             body = line("incomplete",
               [`${n.resources_complete} of ${n.resources_observed} finished`, "the cycle did not complete"],
               "incomplete");
-          } else if (n.kind === "suite") {
-            // A suite carrying a state this function has no branch for. It must
-            // not fall through to the one below, which prints a duration a suite
-            // does not have - precisely what happened the last time an unbranched
-            // state arrived here.
-            body = line(st, [collected]);
           } else {
-            body = line("measured",
-              [secs(n.duration_s), n.cost_usd ? `$${n.cost_usd.toFixed(3)} computed` : ""]);
+            // THE TENSE BRANCH. What this node says when no run is speaking for
+            // it, decided in the PAGE TENSE block and gated there - three
+            // sentences the page used to get wrong at rest, and none of them
+            // visible to any check that existed.
+            const rec = RUNSTATE.nodes[n.id] || null;
+            // `null` means the block declined this node, which only happens for
+            // a state the branches above are supposed to have caught. Falling
+            // back to the word already on the node beats a thrown exception,
+            // which blanks the whole map.
+            const t = nodeTense(n, rec, envTense(RUNSTATE.observation, n.env)) ||
+              { word: st, note: "", cls: "", gone: false };
+            if (t.gone) el.classList.add("gone");
+            // The figures are assembled HERE, never in the block above: a node
+            // whose environment is gone keeps the numbers it was measured with,
+            // and only the word around them changes.
+            const figs = rec && rec.state === "measured"
+              ? [secs(n.duration_s), n.cost_usd ? `$${n.cost_usd.toFixed(3)} computed` : ""]
+              : [];
+            body = line(t.word, [t.note].concat(figs), t.cls);
           }
 
           // THE TOOL, IN TEXT, ON EVERY NODE (ADR-0047 D4). Derived: `tool` in
@@ -1973,11 +2043,20 @@
             // other: how long this phase has been running NOW, and how long
             // it took the last time it finished. The second is dated, because
             // an unlabelled duration is a claim about today.
+            //
+            // FINDING, 20h: the label was hung on `since`, which is set only
+            // while a phase is RUNNING - so a phase that FINISHED mid-run
+            // printed the previous cycle's duration bare, beside a green
+            // `done`. It read as this run's figure and was four seconds off it.
+            // The question is not "is this phase running", it is "has anything
+            // published since this figure was", and figuresAreOlder() is that
+            // question asked of the whole page rather than of one phase: a
+            // phase whose turn has not come yet was printing a bare figure too.
             const since = pst && pst.state === "running" ? pst.since : null;
             const was = RUNSTATE.phases[p.id];
             const wasText = was && was.duration_s
               ? `<span class="was" title="measured${was.date ? " on " + was.date : ""}">${
-                  since ? "last time " : ""}${secs(was.duration_s)}</span>`
+                  figuresAreOlder(RUNSTATE.observation) ? "last time " : ""}${secs(was.duration_s)}</span>`
               : ``;
             // The third thing a phase can be, and the one that was missing:
             // over, in a run that has not published anything yet.
@@ -2130,7 +2209,8 @@
            money - no billing API is consulted anywhere in this project. */
         function renderCostLine() {
           const el = $("#cost-line");
-          if (!el) return;
+          const box = $("#cost-box");
+          if (!el || !box) return;
           const parts = ENVS.map((env) => {
             const c = RUNSTATE.cost[env];
             if (!c || !c.cycle || c.cycle.status !== "closed") return null;
@@ -2140,9 +2220,11 @@
             return `<b>${env}</b> $${usd.low.toFixed(4)} .. $${usd.high.toFixed(4)}` +
                    (when ? ` &mdash; the cycle of ${when}` : ``);
           }).filter(Boolean);
-          el.hidden = !parts.length;
+          // The BOX is hidden when there is nothing to say, not the paragraph
+          // inside it: a labelled empty box is a heading over nothing.
+          box.hidden = !parts.length;
           if (!parts.length) return;
-          el.innerHTML = `Last cycle, ${parts.join("; ")}. A <b>computed estimate</b>, not a
+          el.innerHTML = `${parts.join("; ")}. A <b>computed estimate</b>, not a
             bill: resource lifetimes multiplied by a dated rate table, expressed as a band
             because nothing in Terraform's stream can see the instant AWS starts charging.`;
         }
@@ -2256,6 +2338,101 @@
           return out;
         }
         /* ==== RUN-LAYER STATE MACHINE - end =================================== */
+
+        /* ==== PAGE TENSE - begin ==============================================
+           Pure: no DOM, no fetch, no clock, no globals. scripts/check-page-tense.mjs
+           lifts this block VERBATIM out of the built page, exactly as
+           check-live-state.mjs lifts the one above, so the gate checks the code
+           the visitor's browser runs. Both markers are load-bearing; the gate
+           refuses if either has gone missing.
+
+           WHY THERE IS A BLOCK FOR THIS AT ALL. Every figure this page draws
+           comes from a file published when a cycle ENDS. So during a run the
+           page describes the cycle before it, and at rest it describes a cycle
+           rather than the present - and on 2026-08-09 it said all three of the
+           things that follow from that out loud, in the present tense, while
+           somebody watched:
+
+             a phase that finished mid-run printed the PREVIOUS cycle's duration
+             beside a green `done`, unlabelled. 8m 26s against a real 8m 30s -
+             four seconds, which is a defect that answers rather than one that
+             stops, and no eye could have caught it
+
+             `ECR push` and `migrate + seed` read `not run yet` minutes after
+             running. Neither is a Terraform resource, so no timeline will ever
+             carry them: the sentence was not stale, it was permanent
+
+             a stage verified gone from AWS kept every icon at full colour,
+             while prod - in the identical state - stayed grey. `absent` means
+             no record, never "not in AWS", and the two had been drawn alike
+             since the map existed
+
+           The three functions below are the tense decisions and nothing else.
+           They format nothing and they measure nothing; the caller assembles
+           the figures, so a change to how a duration reads cannot silently
+           change what the page CLAIMS. */
+
+        /* Does a published figure describe the cycle the page is describing?
+           Only while a run is in flight is the answer no - a completed run has
+           already published, so what is on the page is that run's. The rule is
+           the same one bindingState() uses for the opposite purpose, and the
+           statuses are named here rather than shared because the two questions
+           are not the same question and merging them would hide that. */
+        function figuresAreOlder(observation) {
+          if (!observation || observation.error || !observation.run) return false;
+          const s = observation.run.status;
+          return s === "in_progress" || s === "waiting";
+        }
+
+        /* What the BUCKET last observed about an environment, as the panel above
+           the map decided it. Never re-derived here: the staleness judgement is
+           about a run history this half of the page does not read, and one
+           definition on two hosts is the trap that has already cost this project
+           a scan of postgres. A reading that could not be checked against the
+           newest run is `unknown`, not `up` and not `destroyed` - the map is not
+           entitled to a firmer answer than the panel gives. */
+        function envTense(observation, env) {
+          const seen = observation && observation.environments
+            ? observation.environments[env] : null;
+          if (!seen || !seen.state || seen.stale) return "unknown";
+          if (seen.state === "up" || seen.state === "destroyed") return seen.state;
+          return "partial";
+        }
+
+        /* What a node says when no run is speaking for it. Suites do not come
+           here - they are observed by their report - and neither does a
+           permanent card, which has no cycle to report.
+
+              node    as the generator wrote it: `observer` is the field that
+                      says WHAT COULD EVER MEASURE THIS, and it is on every node
+                      already (assets/topology-groups.json)
+              record  the published node state, or null
+              envs    the word from envTense() for this node's environment */
+        function nodeTense(node, record, envs) {
+          // NOTHING WILL EVER MEASURE THIS ONE. Terraform reports resources;
+          // the image push, the migrate/seed task and the human approval are
+          // not resources, so no timeline can carry them and `not run yet` about
+          // them was not stale but permanently false. ADR-0043 D4 keeps what a
+          // node does not know visible - this says which kind of not-knowing it
+          // is.
+          if (node.observer === "actions") {
+            return { word: "not measured here", note: "its step is in Actions, not in a timeline",
+                     cls: "unobserved", gone: false };
+          }
+          if (!record) return { word: "not run yet", note: "", cls: "", gone: false };
+          if (record.state === "incomplete") return null; // the caller's own branch
+          // THE RECORD OUTLIVES THE ENVIRONMENT. A destroy publishes states for
+          // the destroy node alone, so an apply's figures sit there afterwards
+          // describing resources that are gone. The destroy node itself is the
+          // one thing on the map a teardown DID measure, and it keeps its
+          // figures.
+          if (envs === "destroyed" && node.service !== "destroy") {
+            return { word: "destroyed", note: "these figures are from the cycle that ended",
+                     cls: "unobserved", gone: true };
+          }
+          return { word: "measured", note: "", cls: "", gone: false };
+        }
+        /* ==== PAGE TENSE - end ================================================ */
 
         const elapsedText = (iso) => {
           const started = Date.parse(iso);
@@ -2431,10 +2608,18 @@
           // going from running to finished-in-this-run changes what the map says
           // and used to change nothing here, because both sets of live ids were
           // empty by then.
+          //
+          // The environments are in the signature for the same reason: an
+          // environment going from `up` to `destroyed` changes the word and the
+          // colour of every node in it, and neither of the two sets above moves
+          // when it does - so the map would have kept the old picture until
+          // something unrelated re-rendered it.
           const now = Object.keys(RUNSTATE.phase).sort()
               .map((id) => id + ":" + RUNSTATE.phase[id].state).join(",") +
             "|" + Object.keys(RUNSTATE.node).sort()
-              .map((id) => id + ":" + RUNSTATE.node[id].state).join(",");
+              .map((id) => id + ":" + RUNSTATE.node[id].state).join(",") +
+            "|" + ENVS.map((env) => env + ":" + envTense(RUNSTATE.observation, env)).join(",") +
+            "|" + (figuresAreOlder(RUNSTATE.observation) ? "older" : "current");
           if (now === livePrev) { tickElapsed(); return; }
           livePrev = now;
           render();

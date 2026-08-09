@@ -1,0 +1,29 @@
+{
+  "description": "FINDING, 20h. A phase that finished mid-run printed the previous cycle's duration beside a green `done`, unlabelled: the apply took 8m 30s and the page said 8m 26s. Nothing publishes until the cycle ends, so while a run is in flight EVERY figure on the page is the one before it - including on phases whose turn has not come yet, which the old rule also missed.",
+  "checks": [
+    {
+      "fn": "figuresAreOlder",
+      "args": [
+        {
+          "run": {
+            "status": "in_progress"
+          },
+          "environments": {}
+        }
+      ],
+      "expect": true
+    },
+    {
+      "fn": "figuresAreOlder",
+      "args": [
+        {
+          "run": {
+            "status": "waiting"
+          },
+          "environments": {}
+        }
+      ],
+      "expect": true
+    }
+  ]
+}

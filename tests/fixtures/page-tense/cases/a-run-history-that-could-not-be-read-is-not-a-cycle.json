@@ -1,0 +1,18 @@
+{
+  "description": "Sixty anonymous requests an hour is the whole budget (ADR-0026), so the Actions read failing is a normal state of this page. A failed read is not evidence that a run is in flight - it is no evidence at all, and labelling every figure `last time` on the strength of it would make the page lie in the other direction.",
+  "checks": [
+    {
+      "fn": "figuresAreOlder",
+      "args": [
+        {
+          "run": {
+            "status": "in_progress"
+          },
+          "error": "HTTP 403",
+          "environments": {}
+        }
+      ],
+      "expect": false
+    }
+  ]
+}

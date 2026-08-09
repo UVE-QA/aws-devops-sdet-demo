@@ -1,0 +1,55 @@
+{
+  "description": "The control for the two above. A fix that greys a node whenever anything is uncertain would pass every red case in this directory and leave the map useless: a measured node in a live environment, and one in an environment nobody could check, both stay measured.",
+  "checks": [
+    {
+      "fn": "nodeTense",
+      "args": [
+        {
+          "id": "stage.rds",
+          "kind": "service",
+          "service": "rds",
+          "observer": "terraform",
+          "env": "stage"
+        },
+        {
+          "state": "measured",
+          "duration_s": 512,
+          "resources_observed": 4,
+          "resources_complete": 4
+        },
+        "up"
+      ],
+      "expect": {
+        "word": "measured",
+        "note": "",
+        "cls": "",
+        "gone": false
+      }
+    },
+    {
+      "fn": "nodeTense",
+      "args": [
+        {
+          "id": "stage.rds",
+          "kind": "service",
+          "service": "rds",
+          "observer": "terraform",
+          "env": "stage"
+        },
+        {
+          "state": "measured",
+          "duration_s": 512,
+          "resources_observed": 4,
+          "resources_complete": 4
+        },
+        "unknown"
+      ],
+      "expect": {
+        "word": "measured",
+        "note": "",
+        "cls": "",
+        "gone": false
+      }
+    }
+  ]
+}

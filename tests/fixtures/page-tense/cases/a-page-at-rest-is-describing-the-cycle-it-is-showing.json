@@ -1,0 +1,33 @@
+{
+  "description": "The control, and the reason the label is not simply always on. A completed run has already published, so the figures ARE that run's and `last time` about them would be a second wrong claim. No observation at all is the same case: the page has nothing that contradicts what it is drawing.",
+  "checks": [
+    {
+      "fn": "figuresAreOlder",
+      "args": [
+        {
+          "run": {
+            "status": "completed"
+          },
+          "environments": {}
+        }
+      ],
+      "expect": false
+    },
+    {
+      "fn": "figuresAreOlder",
+      "args": [
+        null
+      ],
+      "expect": false
+    },
+    {
+      "fn": "figuresAreOlder",
+      "args": [
+        {
+          "run": null
+        }
+      ],
+      "expect": false
+    }
+  ]
+}

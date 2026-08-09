@@ -187,6 +187,14 @@ jobs:
         # is no setup step and no version this check is sensitive to.
         run: make live-state-check
 
+      - name: A figure is never printed without the cycle it belongs to
+        # The page's TENSE (20i), lifted out of the built page exactly as the
+        # step above is. Every number on the map is published when a cycle ends,
+        # so the page is always describing a cycle rather than the present - and
+        # a live cycle on 2026-08-09 caught it saying so in the present tense
+        # three times, none of which any check could see.
+        run: make page-tense-check
+
       - name: Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:

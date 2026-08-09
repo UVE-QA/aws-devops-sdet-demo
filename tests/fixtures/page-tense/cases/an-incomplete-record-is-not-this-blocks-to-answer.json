@@ -1,0 +1,24 @@
+{
+  "description": "A node whose members did not all finish has its own branch on the page, which prints how many of them did and refuses to show a duration. This block declines it rather than inventing a second rendering - and says so by returning null, so a caller that forgets the branch gets nothing rather than a plausible word.",
+  "checks": [
+    {
+      "fn": "nodeTense",
+      "args": [
+        {
+          "id": "stage.rds",
+          "kind": "service",
+          "service": "rds",
+          "observer": "terraform",
+          "env": "stage"
+        },
+        {
+          "state": "incomplete",
+          "resources_observed": 4,
+          "resources_complete": 2
+        },
+        "up"
+      ],
+      "expect": null
+    }
+  ]
+}

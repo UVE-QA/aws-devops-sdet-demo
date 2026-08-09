@@ -1,0 +1,65 @@
+{
+  "description": "FINDING, 20h. `ECR push` and `migrate + seed` read `not run yet` minutes after running. Terraform reports resources and neither of them is one, so the sentence was not stale - it was permanently false, and would have been printed for the life of the page. The human approval is the third of them. `observer` is already on every node in topology.json; nothing new is written beside the map to know this.",
+  "checks": [
+    {
+      "fn": "nodeTense",
+      "args": [
+        {
+          "id": "build.ecr",
+          "kind": "service",
+          "service": "ecr",
+          "observer": "actions",
+          "env": "stage"
+        },
+        null,
+        "up"
+      ],
+      "expect": {
+        "word": "not measured here",
+        "note": "its step is in Actions, not in a timeline",
+        "cls": "unobserved",
+        "gone": false
+      }
+    },
+    {
+      "fn": "nodeTense",
+      "args": [
+        {
+          "id": "stage.migrate",
+          "kind": "task",
+          "service": "ecs",
+          "observer": "actions",
+          "env": "stage"
+        },
+        null,
+        "destroyed"
+      ],
+      "expect": {
+        "word": "not measured here",
+        "note": "its step is in Actions, not in a timeline",
+        "cls": "unobserved",
+        "gone": false
+      }
+    },
+    {
+      "fn": "nodeTense",
+      "args": [
+        {
+          "id": "gate.human",
+          "kind": "gate",
+          "service": "human",
+          "observer": "actions",
+          "env": "prod"
+        },
+        null,
+        "unknown"
+      ],
+      "expect": {
+        "word": "not measured here",
+        "note": "its step is in Actions, not in a timeline",
+        "cls": "unobserved",
+        "gone": false
+      }
+    }
+  ]
+}

@@ -7,7 +7,7 @@
         self-service-package self-service-cors-check site-page site-page-check \
         site-data site-data-check timeline-check node-states-check \
         suite-inventory suite-inventory-check results-check live-state-check \
-        publish-prefixes-check contrast-check measure-page
+        page-tense-check publish-prefixes-check contrast-check measure-page
 
 # Bring up postgres + app (build app image if needed), detached.
 local-up:
@@ -274,6 +274,30 @@ results-check:
 # the same property site-page-check exists for, arriving here for free.
 live-state-check:
 	node scripts/check-live-state.mjs
+
+# THE PAGE'S TENSE, gated the same way and for the same reason (20i). Every
+# figure the map draws is published when a cycle ENDS, so during a run the page
+# describes the cycle before it and at rest it describes a cycle rather than the
+# present. Watching one live cycle on 2026-08-09 caught it saying three things
+# in the present tense that were not about the present:
+#
+#   a phase that finished mid-run printed the PREVIOUS cycle's duration beside a
+#   green `done`, unlabelled - 8m 26s against a real 8m 30s, four seconds, which
+#   no eye could have caught
+#
+#   `ECR push` and `migrate + seed` read `not run yet` minutes after running:
+#   neither is a Terraform resource, so no timeline will ever carry them and the
+#   sentence was permanent rather than stale
+#
+#   a stage verified gone from AWS kept every icon at full colour while prod, in
+#   the identical state, stayed grey
+#
+# None of the three was visible to any check, because `last time` appeared
+# nowhere outside site/index.html. Like live-state-check this lifts the marked
+# block out of the BUILT page, so a template edited without rebuilding reddens
+# it, and there is no second copy of the rule in another language.
+page-tense-check:
+	node scripts/check-page-tense.mjs
 
 # THE GATE UNDER ADR-0047 D6. Every state on the map carries a boundary, and a
 # boundary that identifies state has a 3:1 floor (WCAG 1.4.11). Three states

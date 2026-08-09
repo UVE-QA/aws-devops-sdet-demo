@@ -1,0 +1,30 @@
+{
+  "description": "FINDING, 20h. stage was verified gone from AWS and kept every icon at full colour, because a destroy publishes states for the destroy node alone and the apply's figures sit there afterwards describing resources that no longer exist. prod, in the identical state, was grey - two environments in one state, drawn as opposites. The figures are kept and the word around them changes: they were measured, and they are about a cycle that ended.",
+  "checks": [
+    {
+      "fn": "nodeTense",
+      "args": [
+        {
+          "id": "stage.rds",
+          "kind": "service",
+          "service": "rds",
+          "observer": "terraform",
+          "env": "stage"
+        },
+        {
+          "state": "measured",
+          "duration_s": 512,
+          "resources_observed": 4,
+          "resources_complete": 4
+        },
+        "destroyed"
+      ],
+      "expect": {
+        "word": "destroyed",
+        "note": "these figures are from the cycle that ended",
+        "cls": "unobserved",
+        "gone": true
+      }
+    }
+  ]
+}
