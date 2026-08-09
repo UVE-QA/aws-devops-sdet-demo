@@ -1,0 +1,90 @@
+==============================================================
+BREAK: B0 control - nothing broken (must be exit 0)
+built page sha256[0:16] = f42d1d59a40114e6
+exit = 0
+control: before and after differ in map, sub, cost, detail — every compared region can testify
+ok    clock — one bucket tick: the open tab is what a reload would show
+ok    refresh — the Refresh button: the open tab is what a reload would show
+ok    repeat — three ticks, and not a word doubled: the open tab is what a reload would show
+
+3 cases: a tab left open shows what a reload would show
+==============================================================
+BREAK: B1 - readRunLayer() removed from the tick (the 20k defect itself)
+built page sha256[0:16] = 3d79d5612ca7cf75
+exit = 1
+control: before and after differ in map, sub, cost, detail — every compared region can testify
+FAIL  clock — the open tab disagrees with a fresh load in: map, sub, cost, detail
+      map, sub, cost, detail still shows what was published BEFORE the cycle: the page never asked again, or asked and did not draw.
+      re-run with --diff to see the disagreement
+FAIL  refresh — the open tab disagrees with a fresh load in: map, sub, cost, detail
+      map, sub, cost, detail still shows what was published BEFORE the cycle: the page never asked again, or asked and did not draw.
+      re-run with --diff to see the disagreement
+FAIL  repeat — the open tab disagrees with a fresh load in: map, sub, cost, detail
+      map, sub, cost, detail still shows what was published BEFORE the cycle: the page never asked again, or asked and did not draw.
+      re-run with --diff to see the disagreement
+
+page-freshness-check: 3 of 3 cases left the reader holding old figures
+==============================================================
+BREAK: B2 - the figures half of the re-render signature deleted
+built page sha256[0:16] = c775e01dfdc8f4f8
+exit = 1
+control: before and after differ in map, sub, cost, detail — every compared region can testify
+FAIL  clock — the open tab disagrees with a fresh load in: map, detail
+      map, detail still shows what was published BEFORE the cycle: the page never asked again, or asked and did not draw.
+      re-run with --diff to see the disagreement
+FAIL  refresh — the open tab disagrees with a fresh load in: map, detail
+      map, detail still shows what was published BEFORE the cycle: the page never asked again, or asked and did not draw.
+      re-run with --diff to see the disagreement
+FAIL  repeat — the open tab disagrees with a fresh load in: map, detail
+      map, detail still shows what was published BEFORE the cycle: the page never asked again, or asked and did not draw.
+      re-run with --diff to see the disagreement
+
+page-freshness-check: 3 of 3 cases left the reader holding old figures
+==============================================================
+BREAK: B3 - the run layer appends instead of being rebuilt
+built page sha256[0:16] = 420470ea7a7c36d7
+exit = 1
+control: before and after differ in map, sub, cost, detail — every compared region can testify
+FAIL  clock — the open tab disagrees with a fresh load in: detail
+      re-run with --diff to see the disagreement
+FAIL  refresh — the open tab disagrees with a fresh load in: detail
+      re-run with --diff to see the disagreement
+FAIL  repeat — the open tab disagrees with a fresh load in: detail
+      re-run with --diff to see the disagreement
+
+page-freshness-check: 3 of 3 cases left the reader holding old figures
+==============================================================
+BREAK: B4 - renderMapSub() not called by the re-read
+built page sha256[0:16] = 8648e47132ee4e9b
+exit = 2
+page-freshness: these regions render identically from the two run-layer sets: sub.
+  Convergence on something that never moved is not evidence, and a region
+  the page has stopped drawing at all reads exactly like this. Either the
+  fixtures no longer disagree about it, or nothing renders it any more.
+==============================================================
+BREAK: B5 - the observation announced before DATA is dropped again
+built page sha256[0:16] = 235d789c2f637af8
+exit = 1
+control: before and after differ in map, sub, cost, detail — every compared region can testify
+FAIL  clock — the open tab disagrees with a fresh load in: map
+      re-run with --diff to see the disagreement
+FAIL  refresh — the open tab disagrees with a fresh load in: map
+      re-run with --diff to see the disagreement
+FAIL  repeat — the open tab disagrees with a fresh load in: map
+      re-run with --diff to see the disagreement
+
+page-freshness-check: 3 of 3 cases left the reader holding old figures
+==============================================================
+BREAK: R1 refusal - before and after render the same page
+built page sha256[0:16] = f42d1d59a40114e6
+exit = 2
+page-freshness: these regions render identically from the two run-layer sets: map, sub, cost, detail.
+  Convergence on something that never moved is not evidence, and a region
+  the page has stopped drawing at all reads exactly like this. Either the
+  fixtures no longer disagree about it, or nothing renders it any more.
+==============================================================
+BREAK: R2 refusal - a request that left the origin and nobody declared
+built page sha256[0:16] = 11aba83a5160f5d4
+exit = 2
+page-freshness: a request left the origin and nobody declared it:
+  https://example.invalid/undeclared.json

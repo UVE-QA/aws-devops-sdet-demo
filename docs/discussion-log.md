@@ -6,6 +6,51 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
+**As of 2026-08-09 (20l — the page re-reads its figures).** 20k's finding closed
+at $0, on fixtures, with no cycle ordered. **ADR-0053.**
+
+**One root turned out to be four defects, and any three of them fixed alone
+would have looked exactly like no fix.** The run layer was never re-read — that
+is what 20k saw. But `readRunLayer()` also ACCUMULATED, so calling the existing
+function on a timer would have doubled the cycle list and the `unknown` ledger
+every thirty seconds; the re-render signature was made of STATES, so a price
+arriving would have been fetched on time and drawn never; and the sentence that
+dates the map, with the ledger in the cut below it, were written in the bootstrap
+chain — fresh numbers under a stale date, which is this project's most reliable
+shape. The re-read now hangs off the `cycle:observed` event that already fires
+once per bucket tick, so the timer and the Refresh button get one answer, the
+Actions API stays handed over (ADR-0026), and only the bucket — which has no rate
+budget — joins the poll.
+
+**`not reached yet` is not `not run yet`.** A node has no record until its cycle
+ENDS, so during a run every phase ahead of the front said the words a phase that
+never ran says. Whether a cycle is under way AND about this environment is read
+from the run's own environment list, handed over rather than re-derived.
+
+**The gate is a browser, and its property is the reload.** `make
+page-freshness-check`: an open tab must converge on what a FRESH LOAD of the same
+sources shows — 20k's one hard reload, turned into a property. Counting requests
+was rejected, because a page can re-fetch and decline to draw and that is one of
+the four. Eight break readings, each with the built page's own hash beside it;
+the gate had already gone red on the real defect before anything was planted. One
+break FAILED to break — a region the page no longer draws converges trivially, so
+the control now requires every compared region to move.
+
+**And the gate found a defect nobody was looking for.** The dashboard announces
+its first observation before the map has its topology, and the map dropped it: for
+thirty seconds after a cold load, every node of a destroyed environment was drawn
+as though it still stood. 20k could not have seen it — there the reload was the
+fix, so nobody asked what the reload itself showed.
+
+Said on the page for the first time: the figures are published `max-age=60` with
+no invalidation, so they arrive up to a minute after they are written whatever
+the timer does.
+
+Next: **a live cycle with the tab left open.** Billable, planned and confirmed
+before anything runs.
+
+---
+
 **As of 2026-08-09 (20k — the live cycle the page was built for).** The step the
 cursor had named since 20g, stepped over three times, run at last and run
 further than 20h's: stage up, promoted to prod through the approval gate, then

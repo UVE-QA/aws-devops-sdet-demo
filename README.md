@@ -117,6 +117,14 @@ make live-state-check the page's own run-layer logic, lifted out of the BUILT
                       node with no step of its own never claims to be running,
                       and a phase that finished mid-run says so instead of
                       reading as one that never ran
+make page-tense-check the same block, asked WHEN each figure is true: a duration
+                      printed mid-run belongs to the cycle before it, and a node
+                      no timeline can carry never says `not run yet`
+make page-freshness-check
+                      the built page driven in a browser: a tab left open must
+                      converge on what a fresh load of the same sources shows.
+                      Needs chromium, so it runs beside the suites rather than
+                      with the gates above
 ```
 
 Each one refuses rather than passing when it cannot actually scan — a missing

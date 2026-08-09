@@ -53,6 +53,7 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 20i   | The page's tense               | ✅ done — $0, fixtures only | sessions/2026-08-09-phase-20i-the-pages-tense.md |
 | 20j   | The packing, and the floor it was folded at | ✅ done — $0, fixtures only | sessions/2026-08-09-phase-20j-the-floor-the-map-was-folded-at.md |
 | 20k   | The live cycle, both environments, both priced | ✅ done — $0.0526..$0.0581 + $0.0172..$0.0227 | sessions/2026-08-09-phase-20k-the-open-page-never-gets-the-figures.md |
+| 20l   | The page re-reads its figures | ✅ done — $0, fixtures only | sessions/2026-08-09-phase-20l-the-page-re-reads-its-figures.md |
 
 Phase 17 (prod data continuity) is still open and still optional, in
 `docs/next-phases.md`. Phase 18 was pulled forward of both remaining phases
@@ -3125,6 +3126,73 @@ the runs, the gate, both prices and the teardown reading in
   block and hands it data, and `measure-page` mocks the sources. Take the mirror
   clause with it — a phase a live cycle has not reached yet says `not run yet`,
   the same words as one that never ran. $0: no cycle is needed for either.
+
+### Phase 20l — The page re-reads its figures  ✅ DONE 2026-08-09
+The step 20k left in the cursor, closed at $0 with no cycle ordered. Summary in
+`docs/sessions/2026-08-09-phase-20l-the-page-re-reads-its-figures.md`, the eight
+break readings with the built page's hash beside each in
+`docs/sessions/2026-08-09-phase-20l-freshness-break-test.log`. Decisions in
+**ADR-0053**.
+- Criteria: the run layer re-reads; whatever re-reads has a gate; the mirror
+  clause taken with it. All met.
+- **ONE ROOT, FOUR DEFECTS, and any three of them fixed alone would have looked
+  exactly like no fix.** The layer was never re-read (20k's finding);
+  `readRunLayer()` ACCUMULATED, so calling it on a timer would have doubled the
+  cycle list and the `unknown` ledger every 30 seconds; the re-render signature
+  was made of STATES, so an arriving price redrew nothing; and the sentence
+  dating the map, plus the ledger in the cut below it, were written in the
+  bootstrap chain — fresh numbers under a stale date. The re-read hangs off the
+  `cycle:observed` event that already fires once per bucket tick, so the timer
+  and the Refresh button get one answer and the map still learns nothing about
+  the dashboard. The Actions API stays handed over (ADR-0026); only the bucket
+  joins the poll, and it has no rate budget.
+- **`not reached yet` is not `not run yet`.** A node has no record until its
+  cycle ENDS, so during a run every phase ahead of the front said the words a
+  phase that NEVER ran says. `underWayHere()` decides "a cycle is under way and
+  it is about this environment" from the run's own environment list, handed over
+  rather than re-derived.
+- **The gate is a browser, and its property is the reload.** `make
+  page-freshness-check`. Freshness is not a property of a liftable block — the
+  two gates beside it can say what the page ANSWERS, neither can say when it
+  asks — so it drives the built page in chromium on measure-page's harness, with
+  a verdict measure-page deliberately has not got. An open tab must converge on
+  what a FRESH LOAD of the same sources shows: the reload that fixed all four of
+  20k's symptoms, turned into the property. Counting requests was rejected — a
+  page can re-fetch and decline to draw, which is one of the four.
+- **The break test: eight readings, and one of them failed to break.** The gate
+  had already gone red on the REAL defect before anything was planted. B4 —
+  unhooking the map's sentence from the re-read — stayed GREEN, because a region
+  the page no longer draws holds the same markup in both sessions and converges
+  trivially; the control now names four regions and refuses if any cannot move.
+  A measurement error of the harness was caught the same way: a restore step
+  reverted the fixture with the page, so four later breaks refused on the control
+  rather than on their own defect, and B0 passing on the same fixture is what
+  settled it.
+- **The gate found a defect nobody was looking for.** The dashboard announces its
+  first observation before `topology.json` comes back; the map dropped it. For 30
+  seconds after a cold load, every node of a DESTROYED environment was drawn as
+  though it still stood — ADR-0051's rule, defeated at load. Held and replayed
+  now. 20k could not have seen it: there the reload was the fix, so nobody asked
+  what the reload showed.
+- **A ceiling the page cannot fix, now printed on it.** The run-layer objects are
+  published `max-age=60` with no invalidation, deliberately, so a figure arrives
+  up to a minute after it is written whatever the timer does. The line beside
+  Refresh says what the bucket read covers and admits the minute.
+- Validation:
+```bash
+  make site-page-check site-data-check docs-check
+  make page-tense-check
+  make live-state-check
+  make page-freshness-check
+```
+- Cost: **$0.** Nothing applied, nothing dispatched, no cycle ordered.
+- Next allowed step: **a live cycle with the tab left open.** Everything above is
+  gated on fixtures, and the one thing no gate here can see is whether a minute
+  of CloudFront TTL reads as converging or as broken to somebody watching. It is
+  the first cycle that can show `not reached yet` on a phase a run has not
+  reached, and the first that can confirm the re-read against real records. It is
+  BILLABLE: planned and confirmed before anything runs, and the teardown of
+  either environment is the line to watch for the cost.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,
