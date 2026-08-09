@@ -1,0 +1,148 @@
+=== break tests: scripts/measure-page.mjs ===
+chromium: Chromium 141.0.7390.37 
+committed before anything was broken.
+
+--- CONTROL 0: the instrument measures, both fixtures, the phone ---
+page height - document.scrollHeight, and screens of the viewport it was measured in
+
+  fixture     viewport    cuts      height    screens   doc overflow-x
+  at-rest     390x844     closed     4751px       5.6   -
+  at-rest     390x844     open      16581px      19.6   120px
+  in-flight   390x844     closed     4818px       5.7   -
+  in-flight   390x844     open      17051px      20.2   125px
+
+at-rest · 390x844 · cuts closed
+  beyond its parent's padding edge
+    169.13px  main > details#history-cut.cut > div#history > table
+              in main > details#history-cut.cut > div#history  474.94px in 305.81px
+  content wider than its own box
+       169px  main > details#history-cut.cut > div#history
+              475px of content in a 306px box, overflow-x: visible
+        11px  section.panel.p-arch > div#path.path > div.hop > span.icon
+              31px of content in a 20px box, overflow-x: visible
+         6px  div.set > div.node.absent > div.head > span.icon  (x7)
+              26px of content in a 20px box, overflow-x: visible
+
+at-rest · 390x844 · cuts open
+  beyond its parent's padding edge
+    169.13px  main > details#history-cut.cut > div#history > table
+              in main > details#history-cut.cut > div#history  474.94px in 305.81px
+  content wider than its own box
+       169px  main > details#history-cut.cut > div#history
+              475px of content in a 306px box, overflow-x: visible
+       156px  main > details#history-cut.cut
+              489px of content in a 333px box, overflow-x: visible
+       155px  main
+              490px of content in a 335px box, overflow-x: visible
+        11px  section.panel.p-arch > div#path.path > div.hop > span.icon
+              31px of content in a 20px box, overflow-x: visible
+    ... 1 more
+
+in-flight · 390x844 · cuts closed
+  beyond its parent's padding edge
+    174.55px  main > details#history-cut.cut > div#history > table
+              in main > details#history-cut.cut > div#history  480.36px in 305.81px
+  content wider than its own box
+       174px  main > details#history-cut.cut > div#history
+              480px of content in a 306px box, overflow-x: visible
+        11px  section.panel.p-arch > div#path.path > div.hop > span.icon
+              31px of content in a 20px box, overflow-x: visible
+         6px  div.set > div.node.absent > div.head > span.icon  (x7)
+              26px of content in a 20px box, overflow-x: visible
+
+in-flight · 390x844 · cuts open
+  beyond its parent's padding edge
+    174.55px  main > details#history-cut.cut > div#history > table
+              in main > details#history-cut.cut > div#history  480.36px in 305.81px
+  content wider than its own box
+       174px  main > details#history-cut.cut > div#history
+              480px of content in a 306px box, overflow-x: visible
+       161px  main > details#history-cut.cut
+              494px of content in a 333px box, overflow-x: visible
+       160px  main
+              495px of content in a 335px box, overflow-x: visible
+        11px  section.panel.p-arch > div#path.path > div.hop > span.icon
+              31px of content in a 20px box, overflow-x: visible
+    ... 1 more
+exit=0
+
+--- BREAK 1: the GitHub mock removed; the page asks for a source nobody declared ---
+measure-page: the page asked for a source nobody mocked, so this measurement would be of a page missing part of itself:
+  https://api.github.com/repos/UVE-QA/aws-devops-sdet-demo/actions/runs?per_page=40
+exit=2
+
+--- BREAK 2: the source is mocked and answers 503; the page draws its banner ---
+measure-page: the page drew a source-failure banner - "Run history unavailable — HTTP 503. This page reads the GitHub API anonymously, which is limited to 60 requests per hour per IP address.Last successful read in ". A page that could not read its sources is shorter than the real one, and its figures mean nothing.
+exit=2
+
+--- BREAK 3: meta.now removed; the clock would drift and the figures with it ---
+measure-page: _break/meta.json declares no `now`; the clock would drift and the figures with it.
+exit=2
+
+--- BREAK 4: a fixture set that does not exist ---
+measure-page: no fixture set called "no-such-thing" in tests/fixtures/page-measure.
+exit=2
+
+--- CONTROL 1: restored, and the same numbers as CONTROL 0 ---
+page height - document.scrollHeight, and screens of the viewport it was measured in
+
+  fixture     viewport    cuts      height    screens   doc overflow-x
+  at-rest     390x844     closed     4751px       5.6   -
+  at-rest     390x844     open      16581px      19.6   120px
+  in-flight   390x844     closed     4818px       5.7   -
+  in-flight   390x844     open      17051px      20.2   125px
+
+at-rest · 390x844 · cuts closed
+  beyond its parent's padding edge
+    169.13px  main > details#history-cut.cut > div#history > table
+              in main > details#history-cut.cut > div#history  474.94px in 305.81px
+  content wider than its own box
+       169px  main > details#history-cut.cut > div#history
+              475px of content in a 306px box, overflow-x: visible
+        11px  section.panel.p-arch > div#path.path > div.hop > span.icon
+              31px of content in a 20px box, overflow-x: visible
+         6px  div.set > div.node.absent > div.head > span.icon  (x7)
+              26px of content in a 20px box, overflow-x: visible
+
+at-rest · 390x844 · cuts open
+  beyond its parent's padding edge
+    169.13px  main > details#history-cut.cut > div#history > table
+              in main > details#history-cut.cut > div#history  474.94px in 305.81px
+  content wider than its own box
+       169px  main > details#history-cut.cut > div#history
+              475px of content in a 306px box, overflow-x: visible
+       156px  main > details#history-cut.cut
+              489px of content in a 333px box, overflow-x: visible
+       155px  main
+              490px of content in a 335px box, overflow-x: visible
+        11px  section.panel.p-arch > div#path.path > div.hop > span.icon
+              31px of content in a 20px box, overflow-x: visible
+    ... 1 more
+
+in-flight · 390x844 · cuts closed
+  beyond its parent's padding edge
+    174.55px  main > details#history-cut.cut > div#history > table
+              in main > details#history-cut.cut > div#history  480.36px in 305.81px
+  content wider than its own box
+       174px  main > details#history-cut.cut > div#history
+              480px of content in a 306px box, overflow-x: visible
+        11px  section.panel.p-arch > div#path.path > div.hop > span.icon
+              31px of content in a 20px box, overflow-x: visible
+         6px  div.set > div.node.absent > div.head > span.icon  (x7)
+              26px of content in a 20px box, overflow-x: visible
+
+in-flight · 390x844 · cuts open
+  beyond its parent's padding edge
+    174.55px  main > details#history-cut.cut > div#history > table
+              in main > details#history-cut.cut > div#history  480.36px in 305.81px
+  content wider than its own box
+       174px  main > details#history-cut.cut > div#history
+              480px of content in a 306px box, overflow-x: visible
+       161px  main > details#history-cut.cut
+              494px of content in a 333px box, overflow-x: visible
+       160px  main
+              495px of content in a 335px box, overflow-x: visible
+        11px  section.panel.p-arch > div#path.path > div.hop > span.icon
+              31px of content in a 20px box, overflow-x: visible
+    ... 1 more
+exit=0

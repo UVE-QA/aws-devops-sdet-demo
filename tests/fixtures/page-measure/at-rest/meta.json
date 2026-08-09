@@ -1,0 +1,12 @@
+{
+  "label": "at-rest",
+  "description": "Nothing running; both environments destroyed. The page most of the time.",
+  "now": "2026-08-09T04:00:00Z",
+  "provenance": {
+    "status-stage.json": "REAL - https://demo.uveapp.net/status/stage.json, captured 2026-08-09",
+    "status-prod.json": "REAL - https://demo.uveapp.net/status/prod.json, captured 2026-08-09",
+    "runs.json": "SYNTHETIC, except the two ids and run numbers the status files name (destroy #40 id 31277877190 writes stage, destroy #20 id 30666761687 writes prod). The staleness join therefore resolves as it does live.",
+    "jobs.json": "SYNTHETIC. Read only for the run the page treats as current.",
+    "self-service.json": "SYNTHETIC, shaped like the endpoint's GET reply: the ttl and the daily cap the page rewrites its sentence from."
+  }
+}

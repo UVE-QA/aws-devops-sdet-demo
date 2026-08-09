@@ -1,0 +1,216 @@
+{
+  "total_count": 1,
+  "jobs": [
+    {
+      "id": 94113772050,
+      "run_id": 31278093344,
+      "name": "deploy",
+      "status": "in_progress",
+      "conclusion": null,
+      "started_at": "2026-08-09T03:47:16Z",
+      "completed_at": null,
+      "steps": [
+        {
+          "number": 1,
+          "name": "Checkout",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-08-09T03:47:16Z",
+          "completed_at": "2026-08-09T03:47:22Z"
+        },
+        {
+          "number": 2,
+          "name": "Set up Terraform",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-08-09T03:47:22Z",
+          "completed_at": "2026-08-09T03:47:31Z"
+        },
+        {
+          "number": 3,
+          "name": "Configure AWS credentials (OIDC)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-08-09T03:47:31Z",
+          "completed_at": "2026-08-09T03:47:35Z"
+        },
+        {
+          "number": 4,
+          "name": "Login to Amazon ECR",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-08-09T03:47:35Z",
+          "completed_at": "2026-08-09T03:47:38Z"
+        },
+        {
+          "number": 5,
+          "name": "Terraform init (S3 backend)",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-08-09T03:47:38Z",
+          "completed_at": "2026-08-09T03:47:55Z"
+        },
+        {
+          "number": 6,
+          "name": "Resolve shared ECR repository URL",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-08-09T03:47:55Z",
+          "completed_at": "2026-08-09T03:47:57Z"
+        },
+        {
+          "number": 7,
+          "name": "Build, tag, and push image",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-08-09T03:47:57Z",
+          "completed_at": "2026-08-09T03:51:31Z"
+        },
+        {
+          "number": 8,
+          "name": "Terraform plan",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-08-09T03:51:31Z",
+          "completed_at": "2026-08-09T03:52:12Z"
+        },
+        {
+          "number": 9,
+          "name": "Terraform apply",
+          "status": "in_progress",
+          "conclusion": null,
+          "started_at": "2026-08-09T03:52:12Z",
+          "completed_at": null
+        },
+        {
+          "number": 10,
+          "name": "Read stage outputs",
+          "status": "queued",
+          "conclusion": null,
+          "started_at": null,
+          "completed_at": null
+        },
+        {
+          "number": 11,
+          "name": "Wait for ECS service to be stable",
+          "status": "queued",
+          "conclusion": null,
+          "started_at": null,
+          "completed_at": null
+        },
+        {
+          "number": 12,
+          "name": "Run one-off tasks (migrate, seed, db-assert)",
+          "status": "queued",
+          "conclusion": null,
+          "started_at": null,
+          "completed_at": null
+        },
+        {
+          "number": 13,
+          "name": "Set up Node.js",
+          "status": "queued",
+          "conclusion": null,
+          "started_at": null,
+          "completed_at": null
+        },
+        {
+          "number": 14,
+          "name": "Set up Python",
+          "status": "queued",
+          "conclusion": null,
+          "started_at": null,
+          "completed_at": null
+        },
+        {
+          "number": 15,
+          "name": "Every spec belongs to a project",
+          "status": "queued",
+          "conclusion": null,
+          "started_at": null,
+          "completed_at": null
+        },
+        {
+          "number": 16,
+          "name": "API contract tests against the ALB",
+          "status": "queued",
+          "conclusion": null,
+          "started_at": null,
+          "completed_at": null
+        },
+        {
+          "number": 17,
+          "name": "Playwright smoke + regression against the ALB",
+          "status": "queued",
+          "conclusion": null,
+          "started_at": null,
+          "completed_at": null
+        },
+        {
+          "number": 18,
+          "name": "Assert the UI write reached RDS",
+          "status": "queued",
+          "conclusion": null,
+          "started_at": null,
+          "completed_at": null
+        },
+        {
+          "number": 19,
+          "name": "Upload Playwright report",
+          "status": "queued",
+          "conclusion": null,
+          "started_at": null,
+          "completed_at": null
+        },
+        {
+          "number": 20,
+          "name": "Observe what stage has in AWS",
+          "status": "queued",
+          "conclusion": null,
+          "started_at": null,
+          "completed_at": null
+        },
+        {
+          "number": 21,
+          "name": "Fold the terraform event stream into a timeline",
+          "status": "queued",
+          "conclusion": null,
+          "started_at": null,
+          "completed_at": null
+        },
+        {
+          "number": 22,
+          "name": "Join the timeline onto the map's nodes",
+          "status": "queued",
+          "conclusion": null,
+          "started_at": null,
+          "completed_at": null
+        },
+        {
+          "number": 23,
+          "name": "Fold the test reports onto the map's suite nodes",
+          "status": "queued",
+          "conclusion": null,
+          "started_at": null,
+          "completed_at": null
+        },
+        {
+          "number": 24,
+          "name": "Configure AWS credentials (OIDC, publish role)",
+          "status": "queued",
+          "conclusion": null,
+          "started_at": null,
+          "completed_at": null
+        },
+        {
+          "number": 25,
+          "name": "Publish status and report to the dashboard",
+          "status": "queued",
+          "conclusion": null,
+          "started_at": null,
+          "completed_at": null
+        }
+      ]
+    }
+  ]
+}

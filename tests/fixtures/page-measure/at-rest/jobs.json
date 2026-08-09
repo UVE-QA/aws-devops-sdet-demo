@@ -1,0 +1,29 @@
+{
+  "total_count": 1,
+  "jobs": [
+    {
+      "id": 94112003771,
+      "run_id": 31277877190,
+      "name": "destroy",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-08-08T20:47:26Z",
+      "completed_at": "2026-08-08T20:59:54Z",
+      "steps": [
+        { "number": 1, "name": "Validate confirmation", "status": "completed", "conclusion": "success", "started_at": "2026-08-08T20:47:26Z", "completed_at": "2026-08-08T20:47:27Z" },
+        { "number": 2, "name": "Checkout", "status": "completed", "conclusion": "success", "started_at": "2026-08-08T20:47:27Z", "completed_at": "2026-08-08T20:47:31Z" },
+        { "number": 3, "name": "Set up Terraform", "status": "completed", "conclusion": "success", "started_at": "2026-08-08T20:47:31Z", "completed_at": "2026-08-08T20:47:38Z" },
+        { "number": 4, "name": "Resolve deploy role ARN for stage", "status": "completed", "conclusion": "success", "started_at": "2026-08-08T20:47:38Z", "completed_at": "2026-08-08T20:47:39Z" },
+        { "number": 5, "name": "Configure AWS credentials (OIDC)", "status": "completed", "conclusion": "success", "started_at": "2026-08-08T20:47:39Z", "completed_at": "2026-08-08T20:47:42Z" },
+        { "number": 6, "name": "Terraform init", "status": "completed", "conclusion": "success", "started_at": "2026-08-08T20:47:42Z", "completed_at": "2026-08-08T20:47:58Z" },
+        { "number": 7, "name": "Break a state lock left behind by a cancelled run", "status": "completed", "conclusion": "success", "started_at": "2026-08-08T20:47:58Z", "completed_at": "2026-08-08T20:48:03Z" },
+        { "number": 8, "name": "Revoke cross-group security group rules", "status": "completed", "conclusion": "success", "started_at": "2026-08-08T20:48:03Z", "completed_at": "2026-08-08T20:48:19Z" },
+        { "number": 9, "name": "Adopt live resources Terraform does not manage", "status": "completed", "conclusion": "success", "started_at": "2026-08-08T20:48:19Z", "completed_at": "2026-08-08T20:48:44Z" },
+        { "number": 10, "name": "Destroy ALB first (release ENIs before the IGW)", "status": "completed", "conclusion": "success", "started_at": "2026-08-08T20:48:44Z", "completed_at": "2026-08-08T20:51:02Z" },
+        { "number": 11, "name": "Terraform destroy", "status": "completed", "conclusion": "success", "started_at": "2026-08-08T20:51:02Z", "completed_at": "2026-08-08T20:58:47Z" },
+        { "number": 12, "name": "Verify no billable resources remain", "status": "completed", "conclusion": "success", "started_at": "2026-08-08T20:58:47Z", "completed_at": "2026-08-08T20:59:51Z" },
+        { "number": 13, "name": "Publish status to the dashboard", "status": "completed", "conclusion": "success", "started_at": "2026-08-08T20:59:51Z", "completed_at": "2026-08-08T20:59:54Z" }
+      ]
+    }
+  ]
+}

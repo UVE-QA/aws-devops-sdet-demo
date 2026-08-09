@@ -7,7 +7,7 @@
         self-service-package self-service-cors-check site-page site-page-check \
         site-data site-data-check timeline-check node-states-check \
         suite-inventory suite-inventory-check results-check live-state-check \
-        publish-prefixes-check contrast-check
+        publish-prefixes-check contrast-check measure-page
 
 # Bring up postgres + app (build app image if needed), detached.
 local-up:
@@ -293,6 +293,23 @@ live-state-check:
 # naming the command, rather than guessing a location.
 contrast-check:
 	node scripts/check-contrast.mjs
+
+# NOT A GATE. It prints how tall the page is and what sticks out of the box it
+# was put in, at four viewports, cuts closed and open. Nothing in ci.yml depends
+# on it and it has no verdict.
+#
+# It exists because every figure Phase 20e has argued from - 10.5 screens, 4.2,
+# 5.8, "52px wider than a 390px viewport" - came out of a harness written inside
+# a session and thrown away with it. A number that outlives the thing that
+# produced it cannot be checked, and this project's own record says the next
+# session will quote it anyway.
+#
+# The three remote sources are frozen in tests/fixtures/page-measure/, because a
+# page that could not read them is SHORTER than the one a visitor gets - and it
+# refuses rather than measuring that page. Same Playwright and chromium as
+# contrast-check, same CHROMIUM_PATH escape hatch.
+measure-page:
+	node scripts/measure-page.mjs
 
 # Two scripts share the public bucket and are not peers: publish-status.sh
 # WRITES what a run observed, publish-site.sh syncs site/ over the top of it with

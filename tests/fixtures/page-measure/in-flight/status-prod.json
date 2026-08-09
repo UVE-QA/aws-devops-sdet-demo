@@ -1,0 +1,25 @@
+{
+  "schema": 1,
+  "environment": "prod",
+  "state": "up",
+  "observed_at": "2026-08-09T02:11:38Z",
+  "account": "993912191738",
+  "region": "us-west-2",
+  "app_url": "https://app.demo.uveapp.net",
+  "image": "sha256:9b1c4f0a7d3e26558a1f0c9d4b7e2a3f6c8d0e1b2a3c4d5e6f708192a3b4c5d6",
+  "resources": {
+    "load_balancer": { "state": "active", "name": "prod-alb" },
+    "ecs_service": { "status": "ACTIVE", "running": 1, "desired": 1 },
+    "db_instance": { "status": "available", "identifier": "prod-postgres" }
+  },
+  "report_url": "https://demo.uveapp.net/reports/prod/31277601884/index.html",
+  "written_at": "2026-08-09T02:12:04Z",
+  "run": {
+    "id": "31277601884",
+    "number": "22",
+    "attempt": "1",
+    "workflow": "promote-prod",
+    "status": "success",
+    "url": "https://github.com/UVE-QA/aws-devops-sdet-demo/actions/runs/31277601884"
+  }
+}

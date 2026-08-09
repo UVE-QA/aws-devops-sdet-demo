@@ -1,0 +1,11 @@
+{
+  "label": "in-flight",
+  "description": "A deploy running, stage stale against it, prod up with every optional field filled. The tallest honest shape of every panel.",
+  "now": "2026-08-09T04:00:00Z",
+  "provenance": {
+    "status-stage.json": "SYNTHETIC. state `up` written by the PREVIOUS run, so the newer run in flight makes it stale: the panel then draws the badge, the reason, the stale label AND the last reported values. That is the tall path, and it is a real path - it is what the panel does for the whole length of a deploy.",
+    "status-prod.json": "SYNTHETIC. Every optional field present - app_url, image digest, report_url, written-by - because each one is a line the panel only draws when it is there.",
+    "runs.json": "SYNTHETIC. deploy-stage #64 is in flight and is therefore the current run; the ids resolve the staleness join for both environments.",
+    "jobs.json": "SYNTHETIC. One job, 25 steps, one of them in flight - so the cycle panel draws its three-line window AND offers the whole list."
+  }
+}
