@@ -15,6 +15,56 @@
     "repeated_blocks": 9
   },
   "measured_cycle": null,
+  "request_path": {
+    "note": "the request path to prod, and the tool behind each hop",
+    "editorial": "the order and the tool names are editorial; every hop cites a node this map already draws",
+    "hops": [
+      {
+        "id": "browser",
+        "label": "Browser",
+        "glyph": "WWW",
+        "tools": []
+      },
+      {
+        "id": "dns",
+        "cites": "perm.dns",
+        "label": "Route 53 + ACM",
+        "service": "route53",
+        "tools": [
+          "terraform"
+        ]
+      },
+      {
+        "id": "alb",
+        "cites": "prod.alb",
+        "label": "Application Load Balancer",
+        "service": "elb",
+        "tools": [
+          "terraform"
+        ]
+      },
+      {
+        "id": "ecs",
+        "cites": "prod.ecs",
+        "label": "ECS Fargate",
+        "service": "ecs",
+        "tools": [
+          "docker",
+          "terraform"
+        ]
+      },
+      {
+        "id": "rds",
+        "cites": "prod.rds",
+        "label": "RDS PostgreSQL",
+        "service": "rds",
+        "tools": [
+          "terraform",
+          "alembic"
+        ]
+      }
+    ]
+  },
   "outside": {
     "label": "Outside the cycle",
     "note": "Neither is created or destroyed by a cycle, and neither appears in infra/. Everything below runs on a GitHub runner holding a token that lasts one job; no human runs an AWS command during a cycle, and there is no static AWS key in this project.",

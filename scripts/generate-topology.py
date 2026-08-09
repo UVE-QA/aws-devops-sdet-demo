@@ -500,6 +500,42 @@ def build():
             }
         )
 
+    # THE REQUEST PATH (ADR-0047 D1, the `where it lives` panel). The ORDER is
+    # editorial and assets/topology-groups.json says so at length; everything
+    # else is derived from what each hop CITES, so the panel cannot outlive the
+    # thing it draws. A hop citing an id the map does not have is a refusal, not
+    # a blank box: the failure mode this replaces is a hand-written architecture
+    # strip that kept describing infrastructure after it was deleted, which is
+    # the 2026-08-08 finding ADR-0039 D1 exists to close.
+    known = {c["id"]: c for c in perm_cards}
+    for p in phases:
+        for n in p["nodes"]:
+            known[n["id"]] = n
+    rp = spec.get("request_path")
+    if not rp or not rp.get("hops"):
+        raise Refusal("assets/topology-groups.json has no `request_path`. The panel that shows where a request goes cannot be derived from infra/, and must not be invented by the page.")
+    hops = []
+    for h in rp["hops"]:
+        cited = h.get("cites")
+        if cited is None:
+            if not h.get("label"):
+                raise Refusal(f"hop {h['id']} cites nothing and has no label of its own")
+            hops.append({"id": h["id"], "label": h["label"], "glyph": h.get("glyph"), "tools": h.get("tools", [])})
+            continue
+        if cited not in known:
+            raise Refusal(f"hop {h['id']} cites {cited}, which is not a node or a permanent card on this map")
+        src = known[cited]
+        hops.append(
+            {
+                "id": h["id"],
+                "cites": cited,
+                "label": src["label"],
+                "service": src.get("service"),
+                "tools": h.get("tools", []),
+            }
+        )
+    request_path = {"note": rp["note"], "editorial": rp["editorial"], "hops": hops}
+
     not_shown = []
     for g in spec["groups"]:
         if g.get("shown", True):
@@ -560,6 +596,7 @@ def build():
             "repeated_blocks": len(repeated),
         },
         "measured_cycle": None,
+        "request_path": request_path,
         "outside": outside,
         "permanent": perm_cards,
         "phases": phases,

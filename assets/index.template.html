@@ -132,16 +132,18 @@
         color: var(--fg);
         font: 16px/1.6 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
       }
-      /* TWO WIDTHS ON ONE PAGE. The dashboard keeps the 60rem reading column it
-         has had since 11.1c; the map is the only thing allowed the full 82rem,
-         because it is a picture and the serpentine has more room to fold with.
-         Stated as a cap on the children rather than a breakout on the map, so
-         no rule here depends on 100vw - which is the viewport INCLUDING the
+      /* ONE WIDTH SINCE 20e.1, WHERE THERE WERE TWO. The 60rem reading column
+         was right for a page that was a column of prose with one picture in it,
+         and the map was the only child allowed the full 82rem. The composition
+         is blocks, and a panel that stops at 60rem beside one that does not is
+         not a composition - so the cap moves to the PROSE that needs a measure
+         (the claim, the map's sentence, the text under the cuts) instead of
+         being applied to every child whether it holds prose or not.
+
+         Still stated without 100vw anywhere: that is the viewport INCLUDING the
          scrollbar, and the map has already been bitten once by being laid out
-         against a width that a scrollbar then took back. */
+         against a width a scrollbar then took back. */
       main { max-width: 82rem; margin: 0 auto; }
-      main > * { max-width: 60rem; }
-      main > .wide { max-width: none; }
       h1 { font-size: 1.55rem; margin: 0 0 0.25rem; letter-spacing: -0.01em; }
       .sub { color: var(--muted); margin: 0 0 1.25rem; max-width: 46rem; }
       h2 {
@@ -377,14 +379,9 @@
          already been laid out against the wider one, so it spilled. The layout
          must not depend on how much text happens to be expanded below it. */
       html { scrollbar-gutter: stable; }
-      details.detail { margin: 1.6rem 0 0; border-top: 1px solid var(--line); padding-top: 0.9rem; }
-      details.detail > summary {
-        cursor: pointer; font-size: 0.82rem; color: var(--muted);
-        list-style: none; display: flex; align-items: center; gap: 0.4rem;
-      }
-      details.detail > summary::before { content: "▸"; font-size: 0.8rem; }
-      details.detail[open] > summary::before { content: "▾"; }
-      details.detail > summary::-webkit-details-marker { display: none; }
+      /* The text under this cut keeps its own type scale; the cut around it is
+         the shared one (details.cut, above) since 20e.1 - it used to be the only
+         disclosure on the page, and now it is one of five. */
       .detail h3 { font-size: 0.86rem; margin: 1.4rem 0 0.4rem; }
       .detail p { font-size: 0.84rem; color: var(--muted); max-width: 46rem; margin: 0.3rem 0; }
       .detail dl { margin: 0.5rem 0 0; }
@@ -417,6 +414,177 @@
       .node .head .name { grid-area: name; overflow-wrap: break-word; }
       .node .head .envtag { grid-area: tag; justify-self: start; margin-left: 0; }
 
+      /* ── THE COMPOSITION (20e.1, ADR-0047 D1 and ADR-0048) ────────────
+         The first screen IS the dashboard, not an introduction to one. What was
+         a column of sections under each other - measured at 3.6 screens on a
+         laptop, with no navigation affordance of any kind in <main> - becomes
+         four blocks: who this is and where the source lives, what is observed in
+         AWS, where a request goes, and the run in flight. Then the map. Then a
+         fold, and everything else under a cut.
+
+         The grid is twelve columns because three panels of unequal weight have
+         to share a row: the environments panel is a short list, the request path
+         is a picture, the run panel is three lines and a disclosure. */
+      .idbar {
+        display: flex; flex-wrap: wrap; gap: 0.45rem 1.1rem; align-items: baseline;
+        border: 1px solid var(--line); border-radius: 10px; background: var(--panel);
+        padding: 0.6rem 0.9rem; margin-bottom: 0.75rem;
+      }
+      .idbar h1 { font-size: 1.1rem; margin: 0; }
+      .idbar .claim {
+        color: var(--muted); font-size: 0.83rem; margin: 0;
+        flex: 1 1 22rem; min-width: 14rem; max-width: 46rem;
+      }
+      .idbar .links { display: flex; flex-wrap: wrap; gap: 0.35rem 1rem; margin-left: auto; }
+      .idbar a { font-size: 0.82rem; font-weight: 600; text-decoration: none; white-space: nowrap; }
+      .live-badge {
+        font-size: 0.7rem; font-weight: 700; padding: 0.05rem 0.45rem; border-radius: 999px;
+        background: var(--ok-bg); color: var(--ok); border: 1px solid var(--ok);
+      }
+      .top {
+        display: grid; gap: 0.75rem; grid-template-columns: repeat(12, 1fr);
+        align-items: start; margin: 0.75rem 0 1.25rem;
+      }
+      .panel {
+        border: 1px solid var(--line); border-radius: 10px;
+        background: var(--panel); padding: 0.65rem 0.8rem;
+        min-width: 0; /* a grid item will not shrink below its content unless told */
+      }
+      .panel > h2 { margin: 0 0 0.5rem; font-size: 0.72rem; }
+      .panel > h2 .note { font-size: 0.72rem; }
+      .p-env { grid-column: span 3; }
+      .p-arch { grid-column: span 5; }
+      .p-run { grid-column: span 4; }
+      @media (max-width: 1100px) {
+        .p-env { grid-column: span 6; } .p-arch { grid-column: span 12; } .p-run { grid-column: span 6; }
+      }
+      @media (max-width: 680px) {
+        .p-env, .p-arch, .p-run { grid-column: span 12; }
+      }
+      /* The clocks stop being a bar of their own and become the environments
+         panel's own footnote: they date what that panel says, and nothing else. */
+      .panel .clocks {
+        border: 0; border-top: 1px solid var(--line); border-radius: 0; background: none;
+        padding: 0.45rem 0 0; margin-top: 0.5rem; font-size: 0.72rem; gap: 0.3rem 0.75rem;
+      }
+      .panel .clocks button { font-size: 0.72rem; padding: 0.1rem 0.45rem; }
+      #ratelimit { flex-basis: 100%; }
+      .launch { border-top: 1px solid var(--line); margin-top: 0.5rem; padding-top: 0.5rem; }
+      .launch .why { margin: 0 0 0.45rem; font-size: 0.76rem; }
+      .launch #launch-result:empty { display: none; }
+      .launch button { font-size: 0.8rem; font-weight: 600; border-color: var(--accent); color: var(--accent); }
+
+      /* Environments, one line each. What each one IS stays on the line; what it
+         is made of goes behind the panel's own disclosure - which is not hidden
+         content either: the line already answers the question the panel exists
+         for, and the disclosure answers which resources say so. */
+      .envrow {
+        display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
+        padding: 0.35rem 0; border-top: 1px solid var(--line);
+      }
+      .envrow { border-top: 0; }
+      .env + .env { border-top: 1px solid var(--line); margin-top: 0.45rem; padding-top: 0.15rem; }
+      .envrow b { font-size: 0.92rem; }
+      .envrow .badge { margin-left: auto; }
+      .small { color: var(--muted); font-size: 0.74rem; }
+      .small a { overflow-wrap: anywhere; }
+      details.inline > summary {
+        cursor: pointer; list-style: none; font-size: 0.74rem;
+        color: var(--accent); font-weight: 600;
+      }
+      details.inline > summary::-webkit-details-marker { display: none; }
+      details.inline[open] > summary { margin-bottom: 0.3rem; }
+      details.inline { margin-top: 0.25rem; }
+      details.inline dl.kv { grid-template-columns: 7.5rem 1fr; font-size: 0.78rem; margin-top: 0.3rem; }
+
+      /* The request path. Each hop is a box with the mark, the name and the
+         TOOL - which is what the requirement asked for and what the map has
+         never said anywhere (ADR-0047 D4). */
+      /* NEVER WRAPS ON A DESKTOP. The hops shared their width with flex-basis
+         and wrapped at 1920 anyway, leaving the database alone on a second row
+         filling it - a picture of a path that reads as two paths. They share the
+         row instead (`flex: 1 1 0`), and the wrap comes back only on a phone,
+         where the panel is the full width and five boxes in a row would be 60px
+         each. */
+      .path { display: flex; gap: 0.3rem; flex-wrap: nowrap; align-items: stretch; }
+      .path .hop {
+        flex: 1 1 0; min-width: 0;
+        border: 1px solid var(--line); border-radius: 8px;
+        padding: 0.4rem 0.35rem; text-align: center; background: var(--bg);
+      }
+      @media (max-width: 680px) { .path { flex-wrap: wrap; } .path .hop { flex: 1 1 5.5rem; } }
+      .path .hop .icon { margin: 0 auto 0.2rem; }
+      .path .hop b { display: block; font-size: 0.74rem; line-height: 1.25; overflow-wrap: break-word; }
+      .path .hop .tool { font-size: 0.66rem; color: var(--muted); overflow-wrap: break-word; }
+      .path .arrow { min-width: 0.9rem; font-size: 0.95rem; }
+      .strip { display: flex; flex-wrap: wrap; gap: 0.25rem; margin-top: 0.55rem; }
+      .strip span {
+        font-size: 0.68rem; color: var(--muted);
+        border: 1px dashed var(--line); border-radius: 5px; padding: 0.05rem 0.35rem;
+      }
+      .strip b { color: var(--fg); font-weight: 600; }
+
+      /* The run in flight, collapsed to what is current (ADR-0047 D2). Three
+         lines: the step before, the step in flight, the step after. */
+      .runhead { display: flex; align-items: baseline; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.35rem; }
+      .runhead b { font-size: 0.88rem; }
+      .runhead .badge { margin-left: auto; }
+      .panel ol.steps li { font-size: 0.78rem; padding: 0.16rem 0; }
+      .panel ol.steps .dur { font-size: 0.72rem; }
+      .panel ol.steps li.failed .nm { color: var(--bad); font-weight: 600; }
+
+      /* THE MAP'S HEADER, and the legend in a cut inside it (ADR-0048 D2). The
+         legend stopped being a decoder the moment every node carried the word
+         for its own state; it is kept, closed, because the ENCODING is still
+         worth one place that states it. */
+      .maphead { display: flex; align-items: baseline; gap: 0.75rem; flex-wrap: wrap; }
+      .maphead h2 { margin: 0.5rem 0 0.35rem; }
+      /* The map's own sentence is not the page's introduction any more: it dates
+         what the map shows, and it sits under a header, so it takes the size of
+         a caption rather than of body text. */
+      #map-sub { font-size: 0.82rem; margin: 0 0 0.7rem; max-width: 60rem; }
+      .legend-cut { margin-left: auto; }
+      .legend-cut > summary {
+        cursor: pointer; list-style: none; font-size: 0.74rem;
+        color: var(--accent); font-weight: 600;
+      }
+      .legend-cut > summary::-webkit-details-marker { display: none; }
+      .legend-cut > summary::before { content: "▸"; margin-right: 0.25rem; }
+      .legend-cut[open] > summary::before { content: "▾"; }
+      .legend-cut > .legend { margin: 0.4rem 0 0; }
+
+      /* BELOW THE FOLD. A cut is an ANSWER that does not need opening: its
+         header carries the verdict, and the lines inside carry which. */
+      .fold {
+        margin: 1.6rem 0 0.6rem; padding-top: 0.6rem;
+        border-top: 2px dashed var(--line); color: var(--muted); font-size: 0.74rem;
+      }
+      details.cut {
+        border: 1px solid var(--line); border-radius: 10px; background: var(--panel);
+        margin-top: 0.5rem; padding: 0 0.85rem;
+      }
+      details.cut > summary {
+        cursor: pointer; list-style: none; display: flex; flex-wrap: wrap;
+        align-items: baseline; gap: 0.5rem; padding: 0.6rem 0; font-size: 0.85rem; font-weight: 600;
+      }
+      details.cut > summary::-webkit-details-marker { display: none; }
+      details.cut > summary::before { content: "▸"; color: var(--muted); font-weight: 400; }
+      details.cut[open] > summary::before { content: "▾"; }
+      details.cut > summary .small { margin-left: auto; font-weight: 400; }
+      details.cut[open] { padding-bottom: 0.9rem; }
+      details.cut p, details.cut .sub { max-width: 46rem; }
+      .verdict {
+        font-size: 0.72rem; font-weight: 700; padding: 0.02rem 0.45rem;
+        border-radius: 999px; border: 1px solid;
+      }
+      .verdict.ok { background: var(--ok-bg); color: var(--ok); border-color: var(--ok); }
+      .verdict.bad { background: var(--bad-bg); color: var(--bad); border-color: var(--bad); }
+      .verdict.warn { background: var(--warn-bg); color: var(--warn); border-color: var(--warn); }
+      /* The failing step, never the last one. Collapsing a failed run to its
+         final line shows a green tick where the thing broke, which is this
+         project's recurring defect rebuilt on purpose (ADR-0047 D2). */
+      details.cut > summary .why { color: var(--bad); font-weight: 600; font-size: 0.78rem; margin: 0; }
+
       footer { margin-top: 3.5rem; padding-top: 1rem; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.85rem; }
       footer p { margin: 0.4rem 0; }
     </style>
@@ -424,75 +592,102 @@
   <body>
     <!--ICON-SPRITE-->
     <main>
-      <h1>aws-devops-sdet-demo</h1>
-      <p class="sub">
-        A deploy &rarr; test &rarr; approve &rarr; promote &rarr; destroy pipeline on AWS,
-        reporting on itself. This page is a permanent state level of its own, so it stays
-        online when every workload environment is gone &mdash; which is most of the time,
-        and is the point of it.
-      </p>
-
-      <div class="clocks">
-        <span>GitHub read: <b id="clock-github">&hellip;</b></span>
-        <span>bucket read: <b id="clock-bucket">&hellip;</b></span>
-        <span id="ratelimit"></span>
-        <button id="refresh" type="button">Refresh</button>
-        <span id="autorefresh"></span>
+      <!-- IDENTITY, AND THE LINKS. Discovery measured the repository link at
+           100% of scroll depth: the one thing a thirty-second visitor needs was
+           the last thing on the page (ADR-0047 D1). The footer keeps them; it
+           stops being the only place they are. -->
+      <div class="idbar">
+        <h1>aws-devops-sdet-demo</h1>
+        <span class="live-badge">dashboard live</span>
+        <p class="claim">
+          A deploy &rarr; test &rarr; approve &rarr; promote &rarr; destroy pipeline on AWS,
+          reporting on itself. This page is a permanent state level of its own, so it stays
+          online when every workload environment is gone &mdash; which is most of the time,
+          and is the point of it.
+        </p>
+        <nav class="links">
+          <a href="https://github.com/UVE-QA/aws-devops-sdet-demo">repository &rarr;</a>
+          <a href="https://github.com/UVE-QA/aws-devops-sdet-demo/tree/main/docs/decisions"><b id="adr-count">&hellip;</b> decision records &rarr;</a>
+          <a href="https://github.com/UVE-QA/aws-devops-sdet-demo/actions">Actions &rarr;</a>
+        </nav>
       </div>
 
       <div id="banners"></div>
 
-      <!-- The button. Hidden entirely while disabled: a control that is visible
-           and inert is worse than one that is absent, because a visitor cannot
-           tell it apart from one that is broken. That is still the behaviour if
-           the flag below is turned off. -->
-      <div id="launch" hidden>
-        <h2>Launch it yourself <span class="note">&mdash; stage only, on a deadline</span></h2>
-        <div class="card">
-          <p class="why" id="launch-why"></p>
-          <button id="launch-button" type="button">Launch a stage environment</button>
-          <p class="why" id="launch-result"></p>
-        </div>
+      <!-- THE FIRST SCREEN IS THE DASHBOARD (ADR-0047 D1): what is observed in
+           AWS, where a request goes, and the run in flight - side by side, in
+           blocks, above the map. Everything else is below the fold and under a
+           cut. -->
+      <div class="top">
+        <section class="panel p-env">
+          <h2>Environments <span class="note">&mdash; observed in AWS, not inferred from a green run</span></h2>
+          <div id="environments">
+            <p class="why">Reading <code>status/stage.json</code> and <code>status/prod.json</code>&hellip;</p>
+          </div>
+          <div class="clocks">
+            <span>GitHub read <b id="clock-github">&hellip;</b></span>
+            <span>bucket read <b id="clock-bucket">&hellip;</b></span>
+            <button id="refresh" type="button">Refresh</button>
+            <span id="autorefresh"></span>
+            <span id="ratelimit"></span>
+          </div>
+          <!-- THE BUTTON IS THIS PANEL'S FOOTER (ADR-0048 D1). It acts on what
+               this panel observes, and its refusals - one environment at a time,
+               a daily cap - are statements about that state, so the refusal and
+               the thing it is about are finally in the same box. Not the
+               identity bar, which is navigation and no place for a control that
+               spends money.
+
+               Hidden entirely while disabled: a control that is visible and
+               inert is worse than one that is absent, because a visitor cannot
+               tell it apart from one that is broken. -->
+          <div id="launch" class="launch" hidden>
+            <p class="why" id="launch-why"></p>
+            <button id="launch-button" type="button">Launch a stage environment</button>
+            <p class="why" id="launch-result"></p>
+          </div>
+        </section>
+
+        <!-- WHERE IT LIVES. The hops are generated: each one cites a node this
+             map already draws, and scripts/generate-topology.py refuses when the
+             citation names something that is not there, so this panel cannot
+             outlive the infrastructure it describes. The ORDER and the tool
+             names are editorial and the panel says so (ADR-0047 D4). -->
+        <section class="panel p-arch">
+          <h2>Where it lives <span class="note" id="path-note">&mdash; reading the topology&hellip;</span></h2>
+          <div class="path" id="path"></div>
+          <div class="strip" id="strip"></div>
+        </section>
+
+        <section class="panel p-run">
+          <h2>Current cycle <span class="note">&mdash; the step in flight, not the whole log</span></h2>
+          <div id="cycle"><p class="why">Reading run history&hellip;</p></div>
+        </section>
       </div>
 
-      <h2>Environments <span class="note">&mdash; observed in AWS, not inferred from a green run</span></h2>
-      <div class="grid" id="environments">
-        <div class="card"><p class="why">Reading <code>status/stage.json</code> and <code>status/prod.json</code>&hellip;</p></div>
+      <div class="maphead">
+        <h2>What a cycle does, in the order it does it
+          <span class="note">&mdash; generated from <code>infra/</code> and <code>tests/</code>, not written by hand</span>
+        </h2>
+        <!-- THE LEGEND IS A CUT IN THIS HEADER (ADR-0048 D2). Every node now
+             carries the word for its own state, so a decoder is not what this
+             is any more: it is the one place that says what the encoding is,
+             for a reader who wants it, and it is closed by default. -->
+        <details class="legend-cut" id="legend">
+          <summary>state encoding</summary>
+          <div class="legend">
+            <span><b>not run yet</b> nothing recorded &mdash; carried by the word alone, deliberately quiet</span>
+            <span><b>running now</b> accent edge and a beating dot &mdash; this node's own step</span>
+            <span><b>its phase is running</b> dashed accent edge &mdash; which node is unknown</span>
+            <span><b>finished / failed in this run</b> green or red edge &mdash; figures publish when the cycle ends</span>
+            <span><b>a test suite</b> purple edge &mdash; observed by its report, not by Terraform</span>
+            <span><b>no arrow inside a phase</b> those happen together</span>
+            <span class="best">Best on a laptop or wider &mdash; on a phone the map reflows to one column, which works but flattens the shape</span>
+          </div>
+        </details>
       </div>
-
-      <h2>Current cycle <span class="note">&mdash; per-stage, from the public Actions API</span></h2>
-      <div id="cycle">
-        <div class="card"><p class="why">Reading run history&hellip;</p></div>
-      </div>
-
-      <h2>Recent lifecycle runs</h2>
-      <div class="card" id="history">
-        <p class="why">Reading run history&hellip;</p>
-      </div>
-
-      <h2>What a cycle does, in the order it does it
-        <span class="note">&mdash; generated from <code>infra/</code> and <code>tests/</code>, not written by hand</span>
-      </h2>
       <p class="sub" id="map-sub">Reading the topology&hellip;</p>
-
-      <h2>Outside the cycle <span class="note" id="outside-note"></span></h2>
-      <div class="outside wide" id="outside"></div>
-
-      <h2>Permanent <span class="note">&mdash; no destroy workflow touches these</span></h2>
-      <div class="perm wide" id="perm"></div>
-
-      <h2>Per cycle <span class="note">&mdash; created and destroyed every time</span></h2>
-      <div class="legend wide">
-        <span><b>Dimmed</b> nothing recorded yet</span>
-        <span><b>Solid</b> last measured cycle</span>
-        <span><b>Pulsing</b> running now &mdash; this node's own step</span>
-        <span><b>Dashed accent</b> its phase is running, and which node is unknown</span>
-        <span><b>Green outline</b> finished in the run still going &mdash; figures publish at the end</span>
-        <span><b>Purple</b> a test suite &mdash; observed by its report, not by Terraform</span>
-        <span><b>No arrow inside a phase</b> those happen together</span>
-        <span class="best">Best on a laptop or wider &mdash; on a phone the map reflows to one column, which works but flattens the shape</span>
-      </div>
-      <div class="rows wide" id="rows"></div>
+      <div class="rows" id="rows"></div>
       <p class="approx" id="approx" hidden>
         Bar length is an <b>approximate</b>, non-linear rendering of duration &mdash; a
         four-second security group and a four-minute database cannot share one screen at
@@ -505,13 +700,37 @@
            declined to make. -->
       <p class="approx" id="cost-line" hidden></p>
 
-      <details class="detail" id="detail">
-        <summary>The same thing in words, with every resource named</summary>
+      <!-- BELOW THE FOLD. A cut here is not hidden content (ADR-0047 D2): the
+           header answers the one question - is anything wrong - and the lines
+           inside answer which. A green run has nothing worth opening, and that
+           is the point. -->
+      <p class="fold">&darr; below the fold: every long list, collapsed to what is current</p>
+
+      <details class="cut" id="history-cut">
+        <summary id="history-summary">Recent lifecycle runs <span class="small">reading run history&hellip;</span></summary>
+        <div id="history"></div>
+      </details>
+
+      <details class="cut" id="perm-cut">
+        <summary>Permanent <span class="small" id="perm-note">no destroy workflow touches these</span></summary>
+        <div class="perm" id="perm"></div>
+      </details>
+
+      <details class="cut" id="outside-cut">
+        <summary>Outside the cycle <span class="small">neither is in <code>infra/</code></span></summary>
+        <p class="sub" id="outside-note"></p>
+        <div class="outside" id="outside"></div>
+      </details>
+
+      <details class="cut detail" id="detail">
+        <summary>Every resource named <span class="small">the same thing in words, and the list this dashboard deliberately is not</span></summary>
         <div id="detail-body"></div>
       </details>
 
-      <h2>Counts <span class="note">&mdash; rendered from the same file, never spelled out in prose</span></h2>
-      <p class="sub" id="counts"></p>
+      <details class="cut" id="counts-cut">
+        <summary>Counts <span class="small">rendered from the same file, never spelled out in prose</span></summary>
+        <p class="sub" id="counts"></p>
+      </details>
 
       <footer>
         <p>
@@ -726,6 +945,14 @@
         el("banners").innerHTML = out;
       }
 
+      // ONE LINE PER ENVIRONMENT, and what it is made of behind the panel's own
+      // disclosure (ADR-0047 D1, D2). This was a full card with a nine-row
+      // definition list each, which is what made the top of the page a column
+      // rather than a composition. NOTHING THE PANEL KNOWS IS DROPPED: the line
+      // answers the question the panel exists for - what is in AWS right now -
+      // and the disclosure answers which resources say so. What the page does
+      // NOT know still comes first and is never behind a cut: a stale reading,
+      // an unverified one, a file that is not there.
       function envPanel(env) {
         var entry = state.status[env] || {};
         var file = entry.file;
@@ -763,13 +990,13 @@
           if (state.githubError) unverified = true;
         }
 
-        var h = '<div class="card' + (stale ? " stale" : "") + '">';
-        h += '<header><h3>' + esc(env) + ' <small>' + (file ? esc(file.region || "") + " &middot; " + esc(file.account || "") : "") + '</small></h3>';
-        h += '<span class="badge ' + cls + '">' + esc(stateName) +
-          (unverified ? " &middot; unverified" : "") + '</span></header>';
+        var h = '<div class="env' + (stale ? " stale" : "") + '">';
+        h += '<div class="envrow"><b>' + esc(env) + '</b>' +
+          '<span class="badge ' + cls + '">' + esc(stateName) +
+          (unverified ? " &middot; unverified" : "") + '</span></div>';
 
         if (entry.missing) {
-          h += '<p class="why">No <code>status/' + esc(env) + '.json</code> in the bucket. ' +
+          h += '<p class="small">No <code>status/' + esc(env) + '.json</code> in the bucket. ' +
             'Nothing has reported on this environment yet &mdash; which is not the same as ' +
             'it being destroyed, and is not rendered as though it were.';
           // "Nothing has reported" is true and, on its own, misleading while a run is
@@ -790,14 +1017,24 @@
           return h + "</div>";
         }
         if (entry.error) {
-          h += '<p class="why bad">Could not read <code>status/' + esc(env) + '.json</code>: ' + esc(entry.error) + '</p>';
+          h += '<p class="small bad">Could not read <code>status/' + esc(env) + '.json</code>: ' + esc(entry.error) + '</p>';
           return h + "</div>";
         }
 
+        var r = file.resources || {};
+        h += '<div class="small">' + esc(file.region || "") +
+          (file.account ? " &middot; " + esc(file.account) : "") +
+          " &middot; observed " + esc(ago(file.observed_at)) + '</div>';
+        if (file.app_url && !stale && file.state === "up") {
+          h += '<div class="small"><a href="' + esc(file.app_url) + '">' + esc(file.app_url) + '</a></div>';
+        } else if (env === "prod") {
+          h += '<div class="small">app.demo.uveapp.net is a dead name between cycles, by design. ' +
+            'Clients negative-cache it, so it can stay unreachable for a while after prod is up again.</div>';
+        }
         if (reason) h += '<p class="why">' + reason + '</p>';
         if (stale) h += '<p class="stale-label">Last reported values, shown for reference only:</p>';
 
-        var r = file.resources || {};
+        h += '<details class="inline"><summary>what is in AWS, resource by resource &rarr;</summary>';
         h += '<dl class="kv">';
         h += '<dt>observed</dt><dd>' + esc(ago(file.observed_at)) + ' <span class="mono">' + esc(file.observed_at || "") + '</span></dd>';
         h += '<dt>load balancer</dt><dd>' + (r.load_balancer
@@ -814,12 +1051,6 @@
           // exact bytes stage tested, and a reader can check that here instead of
           // being told it.
           h += '<dt>image</dt><dd class="mono">' + esc(file.image) + '</dd>';
-        }
-        if (file.app_url && !stale && file.state === "up") {
-          h += '<dt>application</dt><dd><a href="' + esc(file.app_url) + '">' + esc(file.app_url) + '</a></dd>';
-        } else if (env === "prod") {
-          h += '<dt>application</dt><dd><span class="off">app.demo.uveapp.net is a dead name between cycles, by design. ' +
-            'Clients negative-cache it, so it can stay unreachable for a while after prod is up again.</span></dd>';
         }
         // The published report outlives the run that produced it, and the status file
         // that replaces it says nothing about it - correctly, because a `destroy` run
@@ -840,8 +1071,8 @@
             ' #' + esc(file.run.number) + '</a> &middot; job ' + esc(file.run.status) +
             ' &middot; ' + esc(ago(file.written_at)) + '</dd>';
         }
-        h += "</dl></div>";
-        return h;
+        h += "</dl></details>";
+        return h + "</div>";
       }
 
       function renderEnvironments() {
@@ -857,15 +1088,64 @@
         return '<span class="mark bad">&#10007;</span>';
       }
 
+      // WHAT A COLLAPSED LIST SHOWS (ADR-0047 D2, taken from GitHub Actions,
+      // which solved this already): the step in flight, the one before it and
+      // the one after. Not the first three - the first three of a run that is
+      // eighteen steps deep are all ticks, which is the empty result that looks
+      // clean, rebuilt on purpose.
+      //
+      // In a run that is over, the window is the FAILING step, never the last
+      // one. Collapsing a failed run to its final line shows a green tick where
+      // the thing broke.
+      function stepWindow(steps) {
+        var i = -1;
+        for (var k = 0; k < steps.length; k++) {
+          if (steps[k].status === "in_progress") { i = k; break; }
+        }
+        if (i < 0) {
+          for (var k2 = 0; k2 < steps.length; k2++) {
+            var c = steps[k2].conclusion;
+            if (steps[k2].status === "completed" && c && c !== "success" && c !== "skipped") { i = k2; break; }
+          }
+        }
+        if (i < 0) i = steps.length - 1;
+        var from = Math.max(0, Math.min(i - 1, steps.length - 3));
+        return steps.slice(from, from + 3);
+      }
+
+      function stepLine(sp) {
+        var c = sp.status === "completed" && sp.conclusion && sp.conclusion !== "success" &&
+          sp.conclusion !== "skipped" ? "failed" : sp.status;
+        return '<li class="' + esc(c) + '">' + stepMark(sp) +
+          '<span class="nm">' + esc(sp.name) + '</span>' +
+          '<span class="dur">' + esc(sp.started_at ? dur(sp.started_at, sp.completed_at) : "") + '</span></li>';
+      }
+
+      function stepTally(steps) {
+        var done = 0, running = 0, queued = 0, failed = 0;
+        steps.forEach(function (sp) {
+          if (sp.status === "in_progress") running++;
+          else if (sp.status !== "completed") queued++;
+          else if (sp.conclusion && sp.conclusion !== "success" && sp.conclusion !== "skipped") failed++;
+          else done++;
+        });
+        var parts = [];
+        if (done) parts.push(done + " done");
+        if (failed) parts.push(failed + " failed");
+        if (running) parts.push(running + " running");
+        if (queued) parts.push(queued + " queued");
+        return parts.join(", ");
+      }
+
       function renderCycle() {
         var run = currentRun();
         if (state.githubError) {
-          el("cycle").innerHTML = '<div class="card"><p class="why">Not shown, because the run history could not be read. ' +
-            'See the banner above &mdash; this space is deliberately not filled with a plausible-looking empty cycle.</p></div>';
+          el("cycle").innerHTML = '<p class="why">Not shown, because the run history could not be read. ' +
+            'See the banner above &mdash; this space is deliberately not filled with a plausible-looking empty cycle.</p>';
           return;
         }
         if (!run) {
-          el("cycle").innerHTML = '<div class="card"><p class="why">No lifecycle run found in the 40 most recent runs.</p></div>';
+          el("cycle").innerHTML = '<p class="why">No lifecycle run found in the 40 most recent runs.</p>';
           return;
         }
         // `waiting` is the approval pause - the one thing in this cycle that exists
@@ -877,13 +1157,13 @@
         var cls = run.status === "waiting" ? "unknown"
           : run.status !== "completed" ? "running"
           : (run.conclusion === "success" ? "up" : "failure");
-        var h = '<div class="card"><header><h3>' + esc(run.name || run.display_title) +
-          ' <small>#' + esc(run.run_number) +
-          (run.run_attempt > 1 ? " &middot; attempt " + esc(run.run_attempt) : "") + '</small></h3>' +
-          '<span class="badge ' + cls + '">' + esc(concl) + '</span></header>';
-        h += '<p class="why">Started ' + esc(ago(run.run_started_at || run.created_at)) +
-          ' &middot; ' + esc(dur(run.run_started_at || run.created_at, run.status === "completed" ? run.updated_at : null)) +
-          ' &middot; <a href="' + esc(run.html_url) + '">run log</a></p>';
+        var elapsed = dur(run.run_started_at || run.created_at, run.status === "completed" ? run.updated_at : null);
+        var h = '<div class="runhead"><b>' + esc(run.name || run.display_title) + '</b>' +
+          '<span class="small">#' + esc(run.run_number) +
+          (run.run_attempt > 1 ? " &middot; attempt " + esc(run.run_attempt) : "") + '</span>' +
+          '<span class="badge ' + cls + '">' + esc(concl) + ' &middot; ' + esc(elapsed) + '</span></div>';
+        h += '<div class="small">started ' + esc(ago(run.run_started_at || run.created_at)) +
+          ' &middot; <a href="' + esc(run.html_url) + '">run log</a></div>';
 
         // A LINK, NOT A BUTTON THAT APPROVES.
         //
@@ -921,36 +1201,58 @@
             : "No job has started yet - the run is queued. Steps appear once a runner picks it up.") + '</p>';
         } else {
           jobs.forEach(function (job) {
-            h += '<p class="why" style="margin-top:1rem"><b>' + esc(job.name) + '</b> &mdash; ' +
+            var steps = job.steps || [];
+            h += '<div class="small" style="margin-top:0.6rem"><b>' + esc(job.name) + '</b> &mdash; ' +
               esc(job.status === "completed" ? (job.conclusion || "") : job.status.replace("_", " ")) +
-              (job.started_at ? " &middot; " + esc(dur(job.started_at, job.completed_at)) : "") + '</p>';
-            if (!(job.steps || []).length) {
+              (job.started_at ? " &middot; " + esc(dur(job.started_at, job.completed_at)) : "") + '</div>';
+            if (!steps.length) {
               h += '<p class="why">This job has not started, so it reports no steps yet. ' +
                 'That is an absence, not a failed read.</p>';
+              return;
             }
-            h += '<ol class="steps">';
-            (job.steps || []).forEach(function (s) {
-              h += '<li class="' + esc(s.status) + '">' + stepMark(s) +
-                '<span class="nm">' + esc(s.name) + '</span>' +
-                '<span class="dur">' + esc(s.started_at ? dur(s.started_at, s.completed_at) : "") + '</span></li>';
-            });
-            h += "</ol>";
+            h += '<ol class="steps">' + stepWindow(steps).map(stepLine).join("") + "</ol>";
+            if (steps.length > 3) {
+              h += '<details class="inline"><summary>all ' + steps.length + ' steps &middot; ' +
+                esc(stepTally(steps)) + ' &darr;</summary><ol class="steps">' +
+                steps.map(stepLine).join("") + "</ol></details>";
+            }
           });
         }
-        el("cycle").innerHTML = h + "</div>";
+        el("cycle").innerHTML = h;
       }
 
+      // THE HEADER OF A CLOSED CUT ANSWERS ONE QUESTION: is anything wrong
+      // (ADR-0047 D2). The table inside answers which run, and a reader who can
+      // see the verdict without opening it never has to.
       function renderHistory() {
+        function summary(inner) { el("history-summary").innerHTML = "Recent lifecycle runs " + inner; }
         if (state.githubError) {
+          summary('<span class="verdict warn">unavailable</span>' +
+            '<span class="small">the run history could not be read</span>');
           el("history").innerHTML = '<p class="why">Unavailable &mdash; see the banner above. ' +
             'An empty table here would be indistinguishable from a project that has never run.</p>';
           return;
         }
         var runs = lifecycleRuns().slice(0, 12);
         if (!runs.length) {
+          summary('<span class="small">no lifecycle runs in the 40 most recent runs</span>');
           el("history").innerHTML = '<p class="why">No lifecycle runs in the 40 most recent runs.</p>';
           return;
         }
+        var bad = runs.filter(function (r) {
+          return r.status === "completed" && r.conclusion !== "success";
+        }).length;
+        var newest = runs[0];
+        summary(
+          '<span class="verdict ' + (bad ? "bad" : "ok") + '">' +
+          (bad ? bad + " of " + runs.length + " failed" : "all " + runs.length + " succeeded") +
+          '</span><span class="small">last: ' + esc(newest.name || newest.display_title) + " #" +
+          esc(newest.run_number) + " &middot; " +
+          esc(newest.status !== "completed" ? newest.status.replace("_", " ") : (newest.conclusion || "unknown")) +
+          " &middot; " + esc(dur(newest.run_started_at || newest.created_at,
+            newest.status === "completed" ? newest.updated_at : null)) +
+          " &middot; " + esc(ago(newest.updated_at)) + "</span>"
+        );
         var h = "<table><thead><tr><th>run</th><th>environment</th><th>result</th><th>duration</th><th>when</th></tr></thead><tbody>";
         runs.forEach(function (r) {
           var concl = r.status !== "completed" ? r.status.replace("_", " ") : (r.conclusion || "unknown");
@@ -1424,6 +1726,48 @@
           $("#detail-body").innerHTML = h;
         }
 
+        /* WHERE IT LIVES (ADR-0047 D1). The hops are resolved in the
+           generator - each cites a node this map already draws, and the
+           generation refuses when the citation names something that is not
+           there - so this panel cannot go on describing infrastructure after it
+           is deleted. That is the 2026-08-08 finding, in the one place on the
+           page that would otherwise be hand-written prose about architecture.
+
+           The tool on each hop is the thing the requirement asked for and the
+           map has never said anywhere (ADR-0047 D4). The ORDER and the tool
+           names are editorial, and the panel says so under the strip rather
+           than leaving a reader to assume they were derived. */
+        function renderPath(d) {
+          const rp = d.request_path;
+          $("#path-note").innerHTML = `&mdash; ${rp.note}`;
+          const host = $("#path");
+          host.innerHTML = "";
+          rp.hops.forEach((h, i) => {
+            if (i) {
+              const a = document.createElement("span");
+              a.className = "arrow";
+              a.textContent = "\u2192";
+              host.appendChild(a);
+            }
+            const el = document.createElement("div");
+            el.className = "hop";
+            el.innerHTML =
+              (h.service ? iconEl(h.service) : `<span class="icon">${h.glyph || "&middot;"}</span>`) +
+              `<b>${h.label}</b><span class="tool">${
+                h.tools && h.tools.length ? h.tools.join(" &middot; ") : "&mdash;"}</span>`;
+            host.appendChild(el);
+          });
+
+          // The two halves of the estate, counted rather than listed: what a
+          // teardown never touches, and what it creates and destroys every time.
+          const c = d.counts;
+          $("#strip").innerHTML =
+            `<span><b>permanent</b> ${c.permanent_levels} levels &middot; ${c.resources_permanent} blocks</span>` +
+            d.permanent.map((n) => `<span>${n.label}</span>`).join("") +
+            `<span><b>per cycle</b> ${c.cycle_levels} levels &middot; ${c.resources_per_cycle} blocks</span>` +
+            `<p class="small" style="flex-basis:100%;margin:0.35rem 0 0">${rp.editorial}</p>`;
+        }
+
         function arrowEl(dir) {
           const el = document.createElement("div");
           el.className = "arrow";
@@ -1882,7 +2226,10 @@
             // miniature as a count that has gone stale.
             $("#approx").hidden = !date;
 
-            $("#outside-note").innerHTML = "&mdash; " + d.outside.note;
+            const c = d.counts;
+            $("#outside-note").innerHTML = d.outside.note;
+            $("#perm-note").innerHTML =
+              `${c.permanent_levels} levels &middot; ${c.resources_permanent} blocks, and no destroy workflow touches any of them`;
             const outside = $("#outside");
             d.outside.nodes.forEach((n) => {
               const el = nodeEl({ ...n, state: "perm" });
@@ -1898,7 +2245,6 @@
               perm.appendChild(el);
             });
 
-            const c = d.counts;
             const hidden = d.not_shown.reduce((a, g) => a + g.resources, 0);
             $("#counts").innerHTML =
               `${c.levels} Terraform state levels &mdash; ${c.permanent_levels} permanent, ` +
@@ -1910,6 +2256,11 @@
               `<code>count</code> or <code>for_each</code> and stand for a number that depends on ` +
               `variables. ${hidden} ${hidden === 1 ? "block is" : "blocks are"} deliberately given no ` +
               `mark &mdash; ${d.not_shown.map((g) => g.label).join(", ")}.</span>`;
+            // The link in the identity bar counts the decision records rather
+            // than naming a number: 47 was written into the sketch three days
+            // ago and is 49 now.
+            $("#adr-count").textContent = c.adrs;
+            renderPath(d);
             renderDetail(d);
             render();
           })

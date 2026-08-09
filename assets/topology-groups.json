@@ -26,6 +26,20 @@
     ]
   },
 
+  "_request_path": "EDITORIAL, and the panel on the page says so. WHERE THE REQUEST GOES is not stated anywhere under infra/ - a listener rule and a security group imply a hop, they never assert it - so the ORDER is written here, once. Everything else about a hop is derived: each one except the browser CITES a node or a permanent card by id, and the generator refuses when the citation names something the map does not have, so deleting the load balancer cannot leave this panel drawing one. The label and the service come from what is cited and are never written here again. THE TOOL NAMES ARE EDITORIAL TOO (ADR-0047 D4): `terraform` is derivable from a node's observer, `docker` and `alembic` are not, and a panel naming only the derivable ones would be quietly wrong about what builds the image and what migrates the database. The hops cite prod because prod is the environment a visitor's request reaches; stage is the same shape behind a name nobody is given.",
+
+  "request_path": {
+    "note": "the request path to prod, and the tool behind each hop",
+    "editorial": "the order and the tool names are editorial; every hop cites a node this map already draws",
+    "hops": [
+      { "id": "browser", "label": "Browser", "glyph": "WWW", "tools": [] },
+      { "id": "dns", "cites": "perm.dns", "tools": ["terraform"] },
+      { "id": "alb", "cites": "prod.alb", "tools": ["terraform"] },
+      { "id": "ecs", "cites": "prod.ecs", "tools": ["docker", "terraform"] },
+      { "id": "rds", "cites": "prod.rds", "tools": ["terraform", "alembic"] }
+    ]
+  },
+
   "groups": [
     {
       "id": "perm.tfstate",
