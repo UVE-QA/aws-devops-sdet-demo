@@ -76,6 +76,28 @@
         --off-bg: #eef0f3;
         --suite: #8250df;
         --suite-bg: #f3eefc;
+        /* THE STATE BOUNDARIES, IN ONE PLACE (ADR-0047 D6). Each one used to be
+           written where it was used, so `.node.done` and `.phase.done` were the
+           same colour by hand rather than by construction - one definition in two
+           places, which is the shape that handed the image scan postgres:16.
+
+           Declared once and resolved per theme: each reads --accent/--ok/--suite
+           and --line, and the dark block below replaces those on the same
+           element, so these follow without being restated.
+
+           THE PERCENTAGES ARE MEASURED, not chosen by eye. `make contrast-check`
+           renders them in a browser and refuses under WCAG 1.4.11's 3:1 floor for
+           a boundary that IDENTIFIES state. working, done and suite stood at
+           55/45/40 and read 2.67, 2.41 and 1.98 in the light theme - three states
+           nobody decided to make faint, because mixing toward --line eats
+           contrast quietly. What is here is the smallest 5% step that clears the
+           floor with a margin in BOTH themes. Do not edit one without running the
+           gate; that is what it is for. */
+        --state-live: var(--accent);
+        --state-working: color-mix(in srgb, var(--accent) 70%, var(--line));
+        --state-done: color-mix(in srgb, var(--ok) 70%, var(--line));
+        --state-failed: color-mix(in srgb, var(--bad) 55%, var(--line));
+        --state-suite: color-mix(in srgb, var(--suite) 80%, var(--line));
         /* THE MAP'S LEGIBILITY FLOOR (ADR-0039 D5). Nothing reads these in
            order to shrink them: the map folds instead. */
         --node-min: 12rem;
@@ -247,7 +269,7 @@
       }
       .phase > header .was + .elapsed { margin-left: 0.4rem; }
       .phase .set { display: grid; gap: var(--gap); }
-      .phase.live { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 7%, transparent); }
+      .phase.live { border-color: var(--state-live); background: color-mix(in srgb, var(--accent) 7%, transparent); }
 
       .node {
         position: relative;
@@ -285,10 +307,10 @@
       .meta { font-size: 0.71rem; color: var(--muted); }
 
       .node.absent { opacity: 0.45; border-style: dashed; background: transparent; }
-      .node.live { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
+      .node.live { border-color: var(--state-live); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
       .node.live::after {
         content: ""; position: absolute; inset: -1px; border-radius: 9px;
-        border: 1px solid var(--accent); animation: pulse 1.6s ease-out infinite;
+        border: 1px solid var(--state-live); animation: pulse 1.6s ease-out infinite;
       }
       @keyframes pulse { 0% { opacity: 0.9; transform: scale(1); } 100% { opacity: 0; transform: scale(1.04); } }
       /* Three states that are NOT "running now", and are deliberately quieter
@@ -302,14 +324,14 @@
       /* These three outrank `absent`: the node has no published figures, which
          is what `absent` dims for, but something is happening to it right now. */
       .node.working, .node.done, .node.failed-now { opacity: 1; }
-      .node.working { border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); border-style: dashed; }
-      .node.done { border-color: color-mix(in srgb, var(--ok) 45%, var(--line)); }
-      .node.failed-now { border-color: color-mix(in srgb, var(--bad) 55%, var(--line)); }
-      .phase.done { border-color: color-mix(in srgb, var(--ok) 45%, var(--line)); }
+      .node.working { border-color: var(--state-working); border-style: dashed; }
+      .node.done { border-color: var(--state-done); }
+      .node.failed-now { border-color: var(--state-failed); }
+      .phase.done { border-color: var(--state-done); }
       .phase > header .finished { margin-left: auto; color: var(--ok); font-weight: 700; }
       .phase > header .was + .finished { margin-left: 0.4rem; }
 
-      .node.suite { background: var(--suite-bg); border-color: color-mix(in srgb, var(--suite) 40%, var(--line)); }
+      .node.suite { background: var(--suite-bg); border-color: var(--state-suite); }
       .node.suite .icon { border-style: solid; border-color: var(--suite); color: var(--suite); background: transparent; }
       .node.suite.absent { background: transparent; }
       .node.gate { background: var(--warn-bg); border-color: var(--warn); }
