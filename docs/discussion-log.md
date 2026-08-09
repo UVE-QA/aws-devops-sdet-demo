@@ -6,6 +6,49 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
+**As of 2026-08-09 (20i — the page's tense).** The four clauses 20h left in the
+cursor, all of them reachable on fixtures, $0 and no cycle. **ADR-0051.**
+
+**Three of the four are one root, and it is not a bug: every figure the map
+draws is published when a cycle ENDS.** So during a run the page describes the
+cycle before it and at rest it describes a cycle rather than the present. That
+is ADR-0039 D3. What was missing is that the page had never been made to SAY it,
+and each of the three findings is a different way of not saying it. `last time `
+existed and was hung on `since`, which is set only while a phase is RUNNING — so
+the state where a stale figure is most likely to be read as this run's, finished
+mid-run beside a green `done`, was the one state that never got the label. Asked
+of the whole page now, which caught a half nobody had noticed: a phase whose turn
+had not come yet was printing a bare figure too. `ECR push`, `migrate + seed` and
+the human gate said `not run yet` because Terraform reports resources and none of
+them is one; the field that says so, `observer`, was already on every node and
+had simply never been read. And a verified-destroyed stage kept full colour while
+prod, in the identical state, was grey — fixed by TAKING the environments panel's
+verdict over the `cycle:observed` event that already exists for the hand-over,
+rather than comparing timeline dates, which would have worked today and is a
+second definition of `destroyed` on a second host. The destroy node keeps its
+colour, because it is the one node a teardown measured, and that case is a
+control in the fixtures: a fix that greys everything in a destroyed environment
+passes every red case there is. The cost line becomes the same `.panel` as every
+other figure on the page.
+
+**The new gate's coupling check failed its own break test twice, and the second
+reading is the finding.** `make page-tense-check` lifts the marked block out of
+the BUILT page like `check-live-state.mjs` beside it, and additionally requires
+each function to be CALLED outside its block — because a block that is correct
+and unused renders exactly the page 20h found, with every case green. Probe 7a
+removed one of two callers and was correctly green, a badly aimed probe. Probe
+7b removed BOTH and was still green: the phase header's own COMMENT reads
+"figuresAreOlder() is that question", and the search found the name in it. A
+check satisfied by prose ABOUT the thing is not a check. Comments are stripped
+now, and none of it would have been found if a break test that failed to break
+had been pushed past instead of written up. Ten probes, controls either side.
+
+Named rather than omitted: the gate proves what the block ANSWERS and that
+something asks it, never that the answer reaches the pixels — what draws a node
+needs a DOM, is in no liftable block, and is gated by nothing. The next step is
+20g's packing, then a live cycle, which is the only thing that can show these
+four sentences against real records.
+
 **As of 2026-08-09 (20h — the first priced cycle).** One live stage cycle,
 dispatched by hand, and both things the cursor sent it for happened.
 

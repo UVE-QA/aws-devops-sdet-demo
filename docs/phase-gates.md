@@ -49,6 +49,8 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 20e.1 | The composition on the real page | ✅ done — $0 | sessions/2026-08-09-phase-20e-1-the-page-is-the-dashboard.md |
 | 20e   | The figures get an instrument   | ✅ done — measured, layout not started, $0 | sessions/2026-08-09-phase-20e-the-figures-get-an-instrument.md |
 | 20g   | The desktop: the page fills the monitor | ✅ done — $0, the comb left to its own session | sessions/2026-08-09-phase-20g-the-page-fills-the-monitor.md |
+| 20h   | The first priced cycle          | ✅ done — $0.0178 .. $0.0235, stage only | sessions/2026-08-09-phase-20h-the-fold-prices-a-cycle-the-page-dates-it-wrong.md |
+| 20i   | The page's tense               | ✅ done — $0, fixtures only | sessions/2026-08-09-phase-20i-the-pages-tense.md |
 
 Phase 17 (prod data continuity) is still open and still optional, in
 `docs/next-phases.md`. Phase 18 was pulled forward of both remaining phases
@@ -2864,6 +2866,67 @@ found things and decided nothing structural.
   place. All four are reachable on fixtures, so each can carry the break test
   this project requires before a gate means anything. The packing left by 20g —
   the comb and the ragged top row — comes after.
+
+### Phase 20i — The page's tense  ✅ DONE 2026-08-09
+All four clauses the cursor named, on fixtures, $0. Summary in
+`docs/sessions/2026-08-09-phase-20i-the-pages-tense.md`, the break test in
+`docs/sessions/2026-08-09-phase-20i-page-tense-break-test.log`. **ADR-0051.**
+- Criteria: a figure is never printed without the cycle it belongs to;
+  `not run yet` is not said about something that just ran; a destroyed
+  environment does not read as a live one; the cost line gets a place. All met.
+- **One root under the first three.** Every figure the map draws is published
+  when a cycle ENDS, so during a run the page describes the cycle before it and
+  at rest it describes a cycle rather than the present. That is ADR-0039 D3, not
+  a defect — the defect was that the page had never been made to say it.
+- **The label was on the wrong question.** `last time ` was hung on `since`,
+  which is set only while a phase is RUNNING, so the state where a stale figure
+  is most likely to be misread — finished mid-run, beside a green `done` — was
+  the one state that never got it. Asked of the whole page now, which also
+  caught a half nobody had noticed: a phase whose turn had not come yet was
+  printing a bare figure too.
+- **`observer` was already there.** `ECR push`, `migrate + seed` and the human
+  gate are not Terraform resources, so no timeline will ever carry them; the
+  field that says so is on every node in `assets/topology-groups.json` and
+  reaches `data/topology.json`. The page had never read it.
+- **The destroyed environment takes the panel's verdict, not a second
+  derivation.** Comparing the destroy timeline's date against the apply's would
+  have worked today and was refused: a second definition of `destroyed` on a
+  second host, and it would answer where the panel says `unknown`. It rides the
+  `cycle:observed` event that already exists for the hand-over.
+- **The destroy node keeps its colour** — the one node a teardown measured — and
+  that case is a control in the fixtures, because a fix that greys everything in
+  a destroyed environment passes every red case in the directory.
+- **The gate's coupling check failed its own break test twice.** `make
+  page-tense-check` requires each lifted function to be CALLED outside its
+  block, because a block that is correct and unused renders exactly the page 20h
+  found with every case green. Probe 7a removed one of two callers and was
+  correctly green; 7b removed BOTH and was still green, because the phase
+  header's own COMMENT reads "figuresAreOlder() is that question" and the search
+  found the name in it. Comments are stripped now. Found only because a break
+  test that failed to break was written up instead of pushed past.
+- Validation:
+```bash
+  make page-tense-check
+  make site-page-check
+  make live-state-check
+  make site-data-check
+  make docs-check
+```
+  Green, in that order, on a clean tree. `make measure-page` and
+  `make contrast-check` were NOT run: this sandbox has no browser, and both need
+  the Playwright install that lives with the suites. Run them on the devbox.
+- **Named rather than omitted:** the gate proves what the block ANSWERS and that
+  something asks it. It does not prove the answer reaches the pixels — what
+  draws a node needs a DOM, is in no liftable block, and is gated by nothing. A
+  green `page-tense-check` means the decision is right and consulted, never that
+  the map is right.
+- Cost: **nothing.** No cycle, no AWS call, nothing applied. `site/` changed, so
+  the next push republishes the static page.
+- Next allowed step: **20g's packing, then a live cycle.** The comb at 2560 (one
+  row of ten, 1582px of air under seven phases) and the ragged top row are
+  measured, named and still unpacked. The cycle after that is the first that can
+  show these four sentences against real records — and it is the only way to see
+  the rendering half, which no gate here can.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,
