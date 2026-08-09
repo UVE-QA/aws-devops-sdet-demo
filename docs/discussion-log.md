@@ -6,6 +6,50 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
+**As of 2026-08-09 (20e.1 — the composition on the real page).** ADR-0047 D1-D6
+and ADR-0048 implemented; ADR-0049 records what building it decided.
+
+**The first screen is the dashboard now, not an introduction to one.** Four
+blocks: identity with the links — the repository link was at 100% of scroll
+depth — environments one line each with the Launch button as that panel's
+footer, the request path with the TOOL on every hop, and the run in flight
+collapsed to three lines with the whole list one disclosure away. In a run that
+is over the window is the FAILING step, never the last one: collapsing a failed
+run to its final line shows a green tick where the thing broke. Below them the
+map, and below that a fold and five cuts, each answering its own question in its
+own header.
+
+**The map is one grid, and its column count is computed.** The serpentine was
+exact and it was a stretch of road. `layout.columns` comes out of the generator
+— eight phases, two of them six nodes or more, ten columns today — and the page
+decides only how many fit. It folds into whole ROWS, because taking the fitted
+count directly gave nine of ten at 1920 and left phase 8 alone on a second row
+with a screen of air beside it: the exact picture ADR-0047 D5 was written after,
+rebuilt by the code meant to end it.
+
+**Measured with the same fixtures either side**, four viewports, cuts closed and
+open: 4781px → 1935px at 1920x1080, 4.4 screens → 1.8, and 1.3 at 2560x1440,
+which is the stated primary target. The sketch's 1.1 screens was measured with
+placeholder figures and no launch control on the page; those are the honest
+halves of the environments panel and they cost about 400px.
+
+**The break test that matters is BREAK 5**, and it is not about contrast. The
+sketch drew the `working` edge as `repeating-linear-gradient`, which is the
+natural way to say "dashed" in the same channel as the colour — and an element
+painted with a gradient resolves `background-color` to `transparent`, which is
+what the gate reads. It measures 1.00:1 in both themes and refuses. Copying the
+sketch verbatim would have shipped a state that was on the page and off the
+instrument. The general rule is now ADR-0049 D4: a channel that carries state
+has to be one the gate can read, or it is decoration.
+
+Two refusals were added and both were exercised: a request-path hop citing a
+node the map does not draw, and the panel's editorial input deleted. The panel
+that says where a request goes cannot outlive the infrastructure it draws.
+
+Found on the way: `docs/demo-script.md` said "thirty-nine ADRs" and there are
+fifty — a count in prose, in the document that is read aloud at an interview.
+Replaced with no number; the page counts them.
+
 **As of 2026-08-09 (20e.1 — the floor is met before the layout).** Three
 decisions and a gate; the composition itself is not started. **ADR-0048.**
 

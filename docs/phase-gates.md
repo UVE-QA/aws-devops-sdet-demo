@@ -46,6 +46,7 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 20f   | The fold runs in the cycle     | ✅ done — no cycle ordered, $0 | sessions/2026-08-08-phase-20f-the-cost-fold-runs-in-the-cycle.md |
 | 20e.0 | Dashboard discovery + sketch   | ✅ done — no code, $0 | sessions/2026-08-09-phase-20e-discovery-and-sketch.md |
 | 20e.1 | Contrast floor gated; three blockers closed | ✅ done — palette moved, layout not started, $0 | sessions/2026-08-09-phase-20e-1-the-floor-is-met-before-the-layout.md |
+| 20e.1 | The composition on the real page | ✅ done — $0 | sessions/2026-08-09-phase-20e-1-the-page-is-the-dashboard.md |
 
 Phase 17 (prod data continuity) is still open and still optional, in
 `docs/next-phases.md`. Phase 18 was pulled forward of both remaining phases
@@ -2617,6 +2618,60 @@ break tests in `docs/sessions/2026-08-09-phase-20e-1-contrast-gate-break-tests.l
   span total lands in the same commit as the grid that reads it. The phone stays
   last. Separately and still true: the wired cost fold has never run live, so the
   next teardown of either environment is worth watching for the cost line.
+
+### Phase 20e.1 — The composition on the real page  ✅ DONE 2026-08-09
+ADR-0047 D1-D6 and ADR-0048, implemented. **ADR-0049**, the summary in
+`docs/sessions/2026-08-09-phase-20e-1-the-page-is-the-dashboard.md`, break tests
+in `docs/sessions/2026-08-09-phase-20e-1-composition-break-tests.log`.
+- Criteria: the first screen composed in blocks; the map a grid whose column
+  count is computed rather than written; the tool named in text; no state on a
+  1px border; everything else under a cut; every gate green; every new refusal
+  broken on purpose. All met.
+- **The first screen is four blocks.** Identity with the links (the repository
+  link was at 100% of scroll depth), environments one line each with the Launch
+  button as the panel's footer, the request path with the TOOL on every hop, and
+  the run in flight collapsed to the step before / in flight / after — the
+  window is the FAILING step in a run that is over, never the last one.
+- **The map is one grid.** `layout.columns` is computed in
+  `scripts/generate-topology.py` — eight phases, two of them six nodes or more,
+  is ten columns today — and the page only decides how many FIT. It folds into
+  whole rows (10, 5, 2, 1): taking the fitted count directly gave nine of ten at
+  1920 and stranded phase 8, which is the picture ADR-0047 D5 was written after.
+  One row of eight phases at 1920 and above.
+- **Measured with the same fixtures either side**, four viewports, cuts closed
+  and open: 4781px → 1935px at 1920x1080 (4.4 screens → 1.8) and 1.3 screens at
+  2560x1440, the stated primary target. The sketch's 1.1 was measured without a
+  launch control and with placeholder figures.
+- **Five break tests, controls either side.** A hop citing a node the map does
+  not draw and the request path deleted entirely (both REFUSED), the computed
+  column total edited by hand (DRIFT), a state losing its 4px edge rule (3.37 →
+  1.39 light, 5.35 → 1.27 dark), and that edge drawn as a GRADIENT, which is what
+  the sketch drew — 1.00:1 in both themes, because a gradient resolves
+  `background-color` to transparent. Copying the sketch verbatim would have
+  shipped a state that was on the page and off the instrument.
+- **The contrast contract predicted its own move** and it was an edit there — the
+  chain and six probes — with no change to `scripts/check-contrast.mjs`. The six
+  numbers came back identical to the hundredth through the new channel.
+- **Found on the way:** `docs/demo-script.md` said "thirty-nine ADRs"; there are
+  fifty. Replaced with no number — the page counts them.
+- **Not a regression, and recorded so nobody rediscovers it:** the history table
+  is 52px wider than a 390px viewport with the cuts open. It was 73px before.
+- Validation:
+```bash
+  make site-page-check site-data-check docs-check
+  make contrast-check
+  make live-state-check
+```
+- Cost: nothing. No cycle, no AWS call, nothing applied. `site/` changes, so the
+  next push republishes the static page.
+- Next allowed step: **20e — the phone.** It is the last thing on ADR-0047's open
+  list and the only one left: 5.8 screens at 390x844, and the history table 52px
+  wider than the viewport with the cuts open. Everything else 20e named is done.
+  Measure before changing anything — the figures above were taken with mocked
+  sources, and a phone layout decided against a page nobody has opened on a phone
+  is an instrument aimed before the requirement. Separately and still true: the
+  wired cost fold has never run live, so the next teardown of either environment
+  is worth watching for the cost line.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

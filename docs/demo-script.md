@@ -51,6 +51,11 @@ Open https://demo.uveapp.net first, before any code.
 > it. That is deliberate: the artifact that proves the teardown worked cannot be
 > something the teardown deletes.
 
+The first screen is the dashboard, not an introduction to one (ADR-0047): the
+environments, the request path with the tool named on every hop, and the run in
+flight, in blocks, with the map under them and every long list below the fold
+under a cut whose header already answers whether anything is wrong.
+
 Point at the environment panels. They report what was **observed in AWS**, not
 what a green pipeline implies. Say what each source can and cannot know: the
 Actions API cannot know whether an environment exists, and a file written at the
@@ -68,8 +73,10 @@ Repository, `infra/`. Eight root levels: six permanent, two per cycle.
 > lock and day counter are state ABOUT a cycle, so they cannot live inside the
 > cycle they control.
 
-`docs/decisions/` — thirty-nine ADRs. Mention that this is the one artifact
-that cannot be reconstructed from the code afterwards.
+`docs/decisions/` — the decision records. Mention that this is the one artifact
+that cannot be reconstructed from the code afterwards, and let the dashboard say
+how many there are: the identity bar counts them, and the number written here
+was wrong by eleven the first time anybody checked.
 
 ### 3:00 — a cycle, per step (1.5 min)
 

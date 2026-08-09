@@ -1,0 +1,145 @@
+=================================================================
+CONTROL 0 — every gate green before anything is broken
+-----------------------------------------------------------------
+python3 scripts/generate-topology.py --check
+site-data: clean - every resource assigned; 116 across 8 levels (55 permanent, 61 per cycle), 2 deliberately not shown
+python3 scripts/build-site-page.py --check
+18 icons, 50,168 bytes of sprite
+site-page-check: site/index.html matches the template
+python3 scripts/check-docs-references.py
+6 documents checked, 0 findings
+exit status: 0
+
+=================================================================
+BREAK 1 — a request-path hop cites a node the map does not draw
+-----------------------------------------------------------------
+python3 scripts/generate-topology.py --check
+site-data: REFUSED
+hop alb cites prod.alb-that-was-deleted, which is not a node or a permanent card on this map
+make: *** [Makefile:190: site-data-check] Error 1
+exit status: 2
+
+=================================================================
+BREAK 2 — the request path is deleted from the editorial input
+-----------------------------------------------------------------
+python3 scripts/generate-topology.py --check
+site-data: REFUSED
+assets/topology-groups.json has no `request_path`. The panel that shows where a request goes cannot be derived from infra/, and must not be invented by the page.
+make: *** [Makefile:190: site-data-check] Error 1
+exit status: 2
+
+=================================================================
+BREAK 3 — the computed column total edited by hand in site/data/topology.json
+-----------------------------------------------------------------
+python3 scripts/generate-topology.py --check
+site-data: DRIFT
+site/data/topology.json disagrees with infra/, tests/, .github/workflows/ or docs/decisions/.
+Run `make site-data` and commit the result.
+make: *** [Makefile:190: site-data-check] Error 1
+exit status: 2
+
+=================================================================
+CONTROL 1 — the contrast gate through the new channel, green
+-----------------------------------------------------------------
+node scripts/check-contrast.mjs
+control  — black on white must read 21.00 through every notation the CSS uses
+  light   21.00  black on white, hex
+  light   21.00  black on white, color-mix -> color(srgb ...)
+  dark    21.00  black on white, hex
+  dark    21.00  black on white, color-mix -> color(srgb ...)
+
+state encoding — floor 3.0:1 (WCAG 1.4.11), boundary against the node's own background
+  state          light    dark
+  live           4.63    7.62 
+  failed-now     3.17    3.29 
+  working        3.22    4.76 
+  done           3.37    5.35 
+  suite          3.38    5.50 
+  absent         1.15    1.12   exempt — the word carries it
+
+contrast-check: 6 states, both themes, none under the floor
+exit status: 0
+
+=================================================================
+BREAK 4 — one state loses its 4px edge rule and falls back to --line
+-----------------------------------------------------------------
+node scripts/check-contrast.mjs
+control  — black on white must read 21.00 through every notation the CSS uses
+  light   21.00  black on white, hex
+  light   21.00  black on white, color-mix -> color(srgb ...)
+  dark    21.00  black on white, hex
+  dark    21.00  black on white, color-mix -> color(srgb ...)
+
+state encoding — floor 3.0:1 (WCAG 1.4.11), boundary against the node's own background
+  state          light    dark
+  live           4.63    7.62 
+  failed-now     3.17    3.29 
+  working        3.22    4.76 
+  done           1.39<   1.27<
+  suite          3.38    5.50 
+  absent         1.15    1.12   exempt — the word carries it
+
+contrast-check: FAILED
+  done (finished in the run still going) is 1.39:1 in the light theme, under the 3.0:1 floor
+  done (finished in the run still going) is 1.27:1 in the dark theme, under the 3.0:1 floor
+
+  ADR-0047 D6: no state rides a boundary the eye cannot find. Raise the
+  colour, or carry the state on a second channel and say so in
+  assets/contrast-contract.json.
+make: *** [Makefile:295: contrast-check] Error 1
+exit status: 2
+
+=================================================================
+BREAK 5 — a state's edge drawn as a gradient, so background-color reads transparent
+-----------------------------------------------------------------
+node scripts/check-contrast.mjs
+control  — black on white must read 21.00 through every notation the CSS uses
+  light   21.00  black on white, hex
+  light   21.00  black on white, color-mix -> color(srgb ...)
+  dark    21.00  black on white, hex
+  dark    21.00  black on white, color-mix -> color(srgb ...)
+
+state encoding — floor 3.0:1 (WCAG 1.4.11), boundary against the node's own background
+  state          light    dark
+  live           4.63    7.62 
+  failed-now     3.17    3.29 
+  working        1.00<   1.00<
+  done           3.37    5.35 
+  suite          3.38    5.50 
+  absent         1.15    1.12   exempt — the word carries it
+
+contrast-check: FAILED
+  working (its phase is running - which node is unknown) is 1.00:1 in the light theme, under the 3.0:1 floor
+  working (its phase is running - which node is unknown) is 1.00:1 in the dark theme, under the 3.0:1 floor
+
+  ADR-0047 D6: no state rides a boundary the eye cannot find. Raise the
+  colour, or carry the state on a second channel and say so in
+  assets/contrast-contract.json.
+make: *** [Makefile:295: contrast-check] Error 1
+exit status: 2
+
+=================================================================
+CONTROL 2 — restored, green again
+-----------------------------------------------------------------
+node scripts/check-contrast.mjs
+control  — black on white must read 21.00 through every notation the CSS uses
+  light   21.00  black on white, hex
+  light   21.00  black on white, color-mix -> color(srgb ...)
+  dark    21.00  black on white, hex
+  dark    21.00  black on white, color-mix -> color(srgb ...)
+
+state encoding — floor 3.0:1 (WCAG 1.4.11), boundary against the node's own background
+  state          light    dark
+  live           4.63    7.62 
+  failed-now     3.17    3.29 
+  working        3.22    4.76 
+  done           3.37    5.35 
+  suite          3.38    5.50 
+  absent         1.15    1.12   exempt — the word carries it
+
+contrast-check: 6 states, both themes, none under the floor
+python3 scripts/build-site-page.py --check
+18 icons, 50,168 bytes of sprite
+site-page-check: site/index.html matches the template
+exit status: 0
+

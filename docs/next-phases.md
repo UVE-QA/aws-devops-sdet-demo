@@ -1229,19 +1229,20 @@ The sketch is `docs/sessions/2026-08-09-phase-20e-sketch.html`, built from the
 real topology and suite data with placeholder run figures, and it says so on its
 own face. It measures 1.1 screens at 1920x1080 and 1.0 at 2560x1440.
 
-**Still open, and named rather than dropped:**
+**All six of what was open is closed except the phone** — three by ADR-0048
+(the Launch button is the environments panel's footer, the legend is a cut in
+the map's header, a node's figures live on one state line), one by the gate
+`make contrast-check`, and one by `layout.columns` coming out of the generator.
 
 ```text
-- the Launch button (Phase 19, endpoint live) has no place in the composition
-- the legend has no home now that the state encoding changed
-- where a node's duration and a suite's counts live inside a compact node
-- the phone, at 4.2 screens, deferred deliberately
-- the contrast gate ADR-0047's consequences call for does not exist yet
-- the map's column span total must be COMPUTED in the generator; the sketch
-  carries it as a literal, which is a known stale number
+- the phone, at 5.8 screens, still deferred deliberately. The history table is
+  52px wider than a 390px viewport with the cuts open - and was 73px wider
+  before the composition, so it is not something the composition did
 ```
 
-Implementation has not started. Nothing in `site/` or `assets/` changed.
+Implemented on 2026-08-09 in two commits, with ADR-0049 recording the six things
+building it settled that the sketch could not. 4781px → 1935px at 1920x1080,
+measured with the same fixtures either side.
 
 ## Deliberately out of scope
 
