@@ -6,6 +6,43 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
+**As of 2026-08-09 (20e — the figures get an instrument).** The cursor's step was
+the phone and its own line said to measure first. It measured; the layout is not
+started, and what the session established is that the measurement now outlives
+the session that took it.
+
+**Every figure this phase argued from came out of a harness that was thrown away
+with the session that wrote it** - 10.5 screens, 4.2, 5.8, "52px wider than a
+390px viewport". So `scripts/measure-page.mjs` and `make measure-page` are
+committed, and they are NOT a gate: no verdict, nothing in `ci.yml` depends on
+them. The instrument asks every box about its own container rather than about the
+document, because 20a's document-level check was green at four viewports while a
+phase row was 7px wider than the box it was packed into.
+
+**It refuses rather than measuring a page that is missing part of itself.** The
+three remote sources are frozen in `tests/fixtures/page-measure/`; an unmocked
+request off the origin, or a source-failure banner on the rendered page, aborts
+the run without printing a figure. A page that could not read its sources is
+SHORTER than the real one, which is the empty result that looks clean.
+
+**A replication nobody planned came with it.** Different harness, different
+fixtures written from the page's own schema, and the heights land within a tenth
+of a screen of what 20e.1 reported at all four viewports. The baseline is checked
+rather than inherited. Cuts OPEN had never been measured: 19.6-20.2 screens on
+the phone.
+
+**Two findings, and only one of them is the phone.** The phone's single
+overflowing box is the history table, and its recorded "52px" turns out to be a
+property of what ran recently rather than of the layout: 84.6px over with no
+self-service launch in the history, 169.1px with one, 174.6px in flight - split
+by an unbreakable `ss-` token in a run name and by the word "environment" in a
+column header. The run-name that splits it is produced by the button on the same
+page. The other finding is not the phone at all: the text glyphs are wider than
+their badge on EVERY viewport including the primary target - `WWW` by 11px,
+`TEST` by 6px in six places - because `.icon.aws` sets `overflow: hidden` and the
+text `.icon` does not. It arrived with the composition a day earlier, and nothing
+in this repository could have seen it.
+
 **As of 2026-08-09 (20e.1 — the composition on the real page).** ADR-0047 D1-D6
 and ADR-0048 implemented; ADR-0049 records what building it decided.
 

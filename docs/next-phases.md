@@ -1235,14 +1235,31 @@ the map's header, a node's figures live on one state line), one by the gate
 `make contrast-check`, and one by `layout.columns` coming out of the generator.
 
 ```text
-- the phone, at 5.8 screens, still deferred deliberately. The history table is
-  52px wider than a 390px viewport with the cuts open - and was 73px wider
-  before the composition, so it is not something the composition did
+- the phone, still deferred deliberately
 ```
 
 Implemented on 2026-08-09 in two commits, with ADR-0049 recording the six things
 building it settled that the sketch could not. 4781px → 1935px at 1920x1080,
 measured with the same fixtures either side.
+
+**The phone now has a baseline that can be re-measured, and the figures this
+section used to carry were not constants.** `make measure-page` is committed
+(`scripts/measure-page.mjs`, not a gate), the three remote sources are frozen in
+`tests/fixtures/page-measure/`, and what it found is in
+`docs/sessions/2026-08-09-phase-20e-the-figures-get-an-instrument.md`. The
+numbers live there and in `docs/phase-gates.md` rather than here, because a
+figure written into the plan is a figure nobody re-measures:
+
+```text
+- the phone is 5.6-5.7 screens with the cuts CLOSED and 19.6-20.2 with them
+  open, which had never been measured at all
+- exactly one box overflows its parent at any viewport, the history table, and
+  its width is driven by DATA rather than by layout: 84.6px over with no
+  self-service launch in the history, 169.1px with one. "52px" was that same
+  measure taken on a quiet week.
+- and one that is not the phone: the text glyphs are wider than their badge on
+  every viewport, including the primary target
+```
 
 ## Deliberately out of scope
 

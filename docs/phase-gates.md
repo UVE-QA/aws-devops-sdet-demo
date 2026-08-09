@@ -47,6 +47,7 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 20e.0 | Dashboard discovery + sketch   | ✅ done — no code, $0 | sessions/2026-08-09-phase-20e-discovery-and-sketch.md |
 | 20e.1 | Contrast floor gated; three blockers closed | ✅ done — palette moved, layout not started, $0 | sessions/2026-08-09-phase-20e-1-the-floor-is-met-before-the-layout.md |
 | 20e.1 | The composition on the real page | ✅ done — $0 | sessions/2026-08-09-phase-20e-1-the-page-is-the-dashboard.md |
+| 20e   | The figures get an instrument   | ✅ done — measured, layout not started, $0 | sessions/2026-08-09-phase-20e-the-figures-get-an-instrument.md |
 
 Phase 17 (prod data continuity) is still open and still optional, in
 `docs/next-phases.md`. Phase 18 was pulled forward of both remaining phases
@@ -2672,6 +2673,62 @@ in `docs/sessions/2026-08-09-phase-20e-1-composition-break-tests.log`.
   is an instrument aimed before the requirement. Separately and still true: the
   wired cost fold has never run live, so the next teardown of either environment
   is worth watching for the cost line.
+
+### Phase 20e — The figures get an instrument  ✅ DONE 2026-08-09
+The step was the phone; the same cursor line said to measure before changing
+anything. It measured, the layout is NOT started, and what the session
+established is that the measurement outlives the session that took it. Summary in
+`docs/sessions/2026-08-09-phase-20e-the-figures-get-an-instrument.md`, break
+tests in `docs/sessions/2026-08-09-phase-20e-measure-instrument-break-tests.log`.
+No ADR: nothing structural was decided, which is the honest reading of a session
+that deliberately did not decide the layout.
+- Criteria: the page measurable by something committed; the three remote sources
+  frozen; the instrument broken on purpose; a baseline at four viewports, cuts
+  closed AND open. All met.
+- **`scripts/measure-page.mjs`, `make measure-page`, and it is NOT a gate.** No
+  verdict, nothing in `ci.yml` depends on it. Every figure this phase has argued
+  from came out of a harness written in a session and thrown away with it: 10.5
+  screens, 4.2, 5.8, "52px wider than a 390px viewport", all quoted since and
+  none reproducible.
+- **It asks every box about its own container**, not the document. 20a measured
+  the document's `scrollWidth` at four viewports and was green at all four while
+  a phase row was 7px wider than the box it was packed into.
+- **It refuses rather than measuring a page missing a source.** An unmocked
+  request off the origin, or a source-failure banner on the rendered page, aborts
+  without a figure - because a page that could not read its sources is SHORTER
+  than the real one, not visibly broken. `meta.now` pins the clock.
+- **A replication nobody planned:** different harness, different fixtures, and
+  the heights land within a tenth of a screen of 20e.1's - 1.2/1.3 at 2560,
+  1.7 at 1920, 2.4 at 1440, 5.6/5.7 at 390. The baseline is checked, not
+  inherited. Cuts OPEN had never been measured: 19.6-20.2 screens on the phone.
+- **Finding A, the phone.** Exactly one box overflows its parent at any
+  viewport - the history table - and its "52px" is not a constant but a property
+  of what ran recently: 84.6px with no self-service launch in the history,
+  169.1px with one, 174.6px in flight. 475px of min-content in a 306px box, split
+  by the unbreakable `ss-` token in a run name and by the word "environment" in a
+  column header.
+- **Finding B, and it is not the phone.** The text glyphs are wider than their
+  badge on EVERY viewport including 2560: `WWW` by 11px in the request path,
+  `TEST` by 6px in six places, `YOU` by 2px. `.icon.aws` sets `overflow: hidden`;
+  the text `.icon` does not. It arrived with the composition in 20e.1 and nothing
+  in this repository could have seen it.
+- Validation:
+```bash
+  make measure-page
+  make site-page-check site-data-check docs-check
+```
+- Cost: nothing. No cycle, no AWS call, nothing applied - and `site/` is
+  untouched, so this one does not even republish the page.
+- Next allowed step: **20e — the phone, now with a baseline.** Two things are
+  open and they are separate pieces of work. The first is a scope question for
+  the person who asked for the page: finding B is a DESKTOP defect on the primary
+  target, one CSS rule wide, and the step is the phone - fix it on the way, or
+  record it and stay on the phone. The second is the phone itself: the history
+  table is the only box that overflows, its width is driven by data rather than
+  by layout, and the fold is 19.6-20.2 screens with the cuts open. Measure with
+  `make measure-page` either side of every change; the figures above are the
+  before. Separately and still true: the wired cost fold has never run live, so
+  the next teardown of either environment is worth watching for the cost line.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,
