@@ -54,6 +54,7 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 20j   | The packing, and the floor it was folded at | ✅ done — $0, fixtures only | sessions/2026-08-09-phase-20j-the-floor-the-map-was-folded-at.md |
 | 20k   | The live cycle, both environments, both priced | ✅ done — $0.0526..$0.0581 + $0.0172..$0.0227 | sessions/2026-08-09-phase-20k-the-open-page-never-gets-the-figures.md |
 | 20l   | The page re-reads its figures | ✅ done — $0, fixtures only | sessions/2026-08-09-phase-20l-the-page-re-reads-its-figures.md |
+| 20m   | The cycle watched through one tab | ✅ done — $0.0529..$0.0584 + $0.0182..$0.0237 | sessions/2026-08-09-phase-20m-what-the-map-says-while-it-runs.md |
 
 Phase 17 (prod data continuity) is still open and still optional, in
 `docs/next-phases.md`. Phase 18 was pulled forward of both remaining phases
@@ -3193,6 +3194,77 @@ break readings with the built page's hash beside each in
   reached, and the first that can confirm the re-read against real records. It is
   BILLABLE: planned and confirmed before anything runs, and the teardown of
   either environment is the line to watch for the cost.
+
+### Phase 20m — The cycle watched through one tab  ✅ DONE 2026-08-09
+The live cycle the cursor had named since 20l, run in full — stage up, promoted
+to prod through the approval gate, both environments torn down and both priced —
+and watched from one Safari tab opened BEFORE the cycle was dispatched and never
+reloaded. Summary in
+`docs/sessions/2026-08-09-phase-20m-what-the-map-says-while-it-runs.md`, the
+timings and code paths in
+`docs/sessions/2026-08-09-phase-20m-cycle-evidence.log`.
+- Criteria: a full cycle observed continuously from an untouched tab; 20l's
+  re-read confirmed against real records rather than fixtures; both environments
+  priced; teardown confirmed against the AWS CLI. All met.
+- **THE PAGE'S ACCOUNT OF A CYCLE IN FLIGHT IS WRONG THREE WAYS, and every one
+  of them is invisible at rest.** (1) `Recent lifecycle runs` takes its verdict
+  from a numerator of COMPLETED runs and a denominator of ALL of them, so a run
+  in flight is counted as a success before it finishes — read five times, and
+  proved by the pair either side of a completion, where the row changed from
+  `in progress` to `success` and the badge above it did not move. (2) The node
+  renderer consults the run layer BEFORE `nodeTense`, so the three nodes no
+  timeline can ever carry lose their permanent `not measured here` while their
+  phase runs and say `which node is unknown`, then `figures publish when the
+  cycle ends` — a promise the same cycle refutes. (3) The `these figures are from
+  the cycle that ended` disclaimer is attached to `destroyed` and to nothing
+  else, so during `unknown` — which is the state an environment is in whenever a
+  run touches it — the map presents the last cycle's figures unqualified. Twelve
+  minutes of that were measured on prod while prod was being deleted, and it
+  repeated on stage.
+- **NO EXISTING GATE COULD HAVE SEEN ANY OF THE THREE.** `page-tense-check`
+  lifts `nodeTense` as a pure block and the function is CORRECT; the defect is
+  that while a phase runs nothing calls it. `page-freshness-check` compares an
+  open tab to a fresh load, and both render the same wrong caption, so they
+  converge. `site-page-check` never asks the history badge anything. Every page
+  gate examines the page at rest or a piece of it in isolation, and no fixture
+  here holds a cycle mid-flight with an otherwise-green history.
+- **What held, live**: 20l's re-read (the front moved and the figures arrived on
+  an untouched tab), and specifically the thing 20k could NOT do — prod's price
+  reached the cost box without a reload. ADR-0043's per-step binding, twice.
+  Per-environment binding in the shared destroy phase, both ways round. prod
+  running the digest stage tested. 19f's teardown order, which spent 7m 43s
+  releasing ENIs so that `terraform destroy` took 14s.
+- **Two things recorded as NOT measured**, rather than quietly claimed: the
+  convergence delay (the run went green between two observations, so the
+  `max-age=60` ceiling is bounded above by ~2 minutes and was never measured),
+  and the map's dating sentence (the previous cycle was the SAME DAY, so a fresh
+  date and a stale one are indistinguishable — and the same is true of both cost
+  bands). Also open: `not reached yet` never appeared, because `nodeTense` emits
+  it only when a node has no record at all and every node carried one from the
+  previous cycle.
+- Validation:
+```bash
+  aws sts get-caller-identity --profile demo-admin
+  aws ecs list-clusters --profile demo-admin --region us-west-2
+  aws rds describe-db-instances --profile demo-admin --region us-west-2
+  aws elbv2 describe-load-balancers --profile demo-admin --region us-west-2
+  make docs-check
+```
+- Cost: **stage $0.0529 .. $0.0584** (4123 s, 32 created: 3 priced, 25 free, 4
+  not metered, 0 UNPRICED) and **prod $0.0182 .. $0.0237** (1812 s, 34 created:
+  3 priced, 27 free, 4 not metered, 0 UNPRICED). Teardown confirmed against the
+  AWS CLI: `account 993912191738` first, then ecs, rds, alb, nat and eks empty.
+- Next allowed step: **fix what the map says while it runs, and gate it.** All
+  three findings are page-layer and reproduce without AWS, so the work is $0 —
+  but each needs a fixture holding a cycle IN MID-FLIGHT, which this repository
+  does not have, and the one in-flight fixture that exists carries failures and
+  so never shows the green-while-unknown shape. Expect the gate to be the hard
+  part and expect it to want its own break test, as every gate here has. The
+  measurement gaps above do NOT need a cycle each: the convergence delay wants
+  one sample every few seconds across the moment a run goes green, and the dating
+  sentence cannot be settled until a cycle runs on a different DAY from the one
+  before it.
+
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

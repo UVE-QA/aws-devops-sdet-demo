@@ -6,6 +6,53 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
+**As of 2026-08-09 (20m — the cycle watched through one tab).** The live cycle
+the cursor had named since 20l, run in full and watched continuously from one
+Safari tab opened before it was dispatched and never reloaded.
+
+**20l's re-read holds against real records**, including the one thing 20k
+explicitly could not do: prod's price, computed by the teardown, reached the cost
+box on the open tab. ADR-0043's per-step binding held twice, per-environment
+binding held both ways round in the shared destroy phase, and 19f's teardown
+order spent 7m 43s releasing ENIs so that `terraform destroy` took 14 seconds.
+
+**What the cycle found is that the page's account of a cycle IN FLIGHT is wrong
+three ways, and all three are invisible at rest.** The run history badge counts
+an in-progress run as a success — the numerator is completed runs, the
+denominator is all of them — and it did not move when the run it had already
+counted actually finished. The node renderer consults the run layer before
+`nodeTense`, so the three nodes no timeline can ever carry lose their permanent
+`not measured here` while their phase runs and end up promising figures that will
+never exist, in words that are TRUE on the terraform nodes beside them. And the
+`from the cycle that ended` disclaimer hangs on `destroyed` alone, so during
+`unknown` — the state an environment is in whenever a run touches it — the map
+drew prod at full colour with figures for twelve measured minutes while prod was
+being deleted.
+
+**No existing gate could have seen any of the three, and the reason is one
+property.** `page-tense-check` lifts `nodeTense` as a pure block and the function
+is correct — while a phase runs nothing calls it. `page-freshness-check` compares
+an open tab to a fresh load, and both render the same wrong caption. The history
+badge is asserted by nothing at all. Every page gate examines the page at rest,
+or a piece of it in isolation; these live in the transition.
+
+Recorded as NOT measured rather than claimed: the convergence delay (the run went
+green between two observations, so the `max-age=60` ceiling is bounded above by
+about two minutes and was never measured), and the map's dating sentence — the
+previous cycle was the same DAY, so a fresh date and a stale one are
+indistinguishable, and so are both cost bands. `not reached yet` never appeared:
+it needs a node with no record at all, and every node carried one.
+
+Cost: stage $0.0529 .. $0.0584 over 4123 s, prod $0.0182 .. $0.0237 over 1812 s,
+0 UNPRICED on both. Teardown confirmed against the AWS CLI, with the account line
+first so that five empty lines count as evidence.
+
+Next: **fix what the map says while it runs, and gate it.** $0 — page layer,
+reproduces without AWS — but it needs a fixture holding a cycle mid-flight, which
+this repository does not have.
+
+---
+
 **As of 2026-08-09 (20l — the page re-reads its figures).** 20k's finding closed
 at $0, on fixtures, with no cycle ordered. **ADR-0053.**
 
