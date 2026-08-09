@@ -1,0 +1,124 @@
+Phase 20f — break test of the pairing rule in scripts/fold-cost.py.
+Each clause is neutered in turn by replacing its `problems.append(` with a
+same-length no-op, the gate is run, and the file is restored from git.
+
+READ THE COMMIT 879daff BEFORE TRUSTING AN EARLIER VERSION OF THIS LOG. The
+first two runs of this harness were measuring a stale bytecode cache: all five
+broken variants are byte-identical in size and the loop finishes inside one
+second, so CPython served the previous compile. The gates now write no cache;
+this harness also removes scripts/__pycache__ before every run, belt and braces.
+
+===== CONTROL, green: nothing broken =====
+  ok    a-delete-with-no-create-is-named
+  ok    a-kind-nobody-classified-is-unpriced
+  ok    a-lifetime-is-not-a-creation
+  ok    a-resource-the-teardown-never-touched
+  ok    a-teardown-from-another-environment
+  ok    a-teardown-older-than-its-apply
+  ok    a-teardown-with-nothing-in-common
+  ok    a-timeline-that-names-no-environment
+  ok    an-incomplete-apply-is-not-priced
+  ok    an-open-cycle-is-priced-to-an-instant
+  ok    the-ten-minute-minimum-binds-on-a-short-cycle
+11/11 cost fixtures fold as expected
+exit=0
+
+===== BREAK clause #1 — a timeline that names no environment at all =====
+neutered clause #1 of 5
+  ok    a-delete-with-no-create-is-named
+  ok    a-kind-nobody-classified-is-unpriced
+  ok    a-lifetime-is-not-a-creation
+  ok    a-resource-the-teardown-never-touched
+  ok    a-teardown-from-another-environment
+  ok    a-teardown-older-than-its-apply
+  ok    a-teardown-with-nothing-in-common
+  FAIL  a-timeline-that-names-no-environment
+          expected a refusal; the fold produced a cost
+  ok    an-incomplete-apply-is-not-priced
+  ok    an-open-cycle-is-priced-to-an-instant
+  ok    the-ten-minute-minimum-binds-on-a-short-cycle
+10/11 cost fixtures fold as expected
+exit=1
+
+===== BREAK clause #2 — the two timelines and --environment must agree =====
+neutered clause #2 of 5
+  ok    a-delete-with-no-create-is-named
+  ok    a-kind-nobody-classified-is-unpriced
+  ok    a-lifetime-is-not-a-creation
+  ok    a-resource-the-teardown-never-touched
+  FAIL  a-teardown-from-another-environment
+          expected a refusal; the fold produced a cost
+  ok    a-teardown-older-than-its-apply
+  ok    a-teardown-with-nothing-in-common
+  ok    a-timeline-that-names-no-environment
+  ok    an-incomplete-apply-is-not-priced
+  ok    an-open-cycle-is-priced-to-an-instant
+  ok    the-ten-minute-minimum-binds-on-a-short-cycle
+10/11 cost fixtures fold as expected
+exit=1
+
+===== BREAK clause #3 — the apply must be complete =====
+neutered clause #3 of 5
+  ok    a-delete-with-no-create-is-named
+  ok    a-kind-nobody-classified-is-unpriced
+  ok    a-lifetime-is-not-a-creation
+  ok    a-resource-the-teardown-never-touched
+  ok    a-teardown-from-another-environment
+  ok    a-teardown-older-than-its-apply
+  ok    a-teardown-with-nothing-in-common
+  ok    a-timeline-that-names-no-environment
+  FAIL  an-incomplete-apply-is-not-priced
+          expected a refusal; the fold produced a cost
+  ok    an-open-cycle-is-priced-to-an-instant
+  ok    the-ten-minute-minimum-binds-on-a-short-cycle
+10/11 cost fixtures fold as expected
+exit=1
+
+===== BREAK clause #4 — the teardown may not start before the apply finished =====
+neutered clause #4 of 5
+  ok    a-delete-with-no-create-is-named
+  ok    a-kind-nobody-classified-is-unpriced
+  ok    a-lifetime-is-not-a-creation
+  ok    a-resource-the-teardown-never-touched
+  ok    a-teardown-from-another-environment
+  FAIL  a-teardown-older-than-its-apply
+          expected a refusal; the fold produced a cost
+  ok    a-teardown-with-nothing-in-common
+  ok    a-timeline-that-names-no-environment
+  ok    an-incomplete-apply-is-not-priced
+  ok    an-open-cycle-is-priced-to-an-instant
+  ok    the-ten-minute-minimum-binds-on-a-short-cycle
+10/11 cost fixtures fold as expected
+exit=1
+
+===== BREAK clause #5 — the two resource sets must intersect at all =====
+neutered clause #5 of 5
+  ok    a-delete-with-no-create-is-named
+  ok    a-kind-nobody-classified-is-unpriced
+  ok    a-lifetime-is-not-a-creation
+  ok    a-resource-the-teardown-never-touched
+  ok    a-teardown-from-another-environment
+  ok    a-teardown-older-than-its-apply
+  FAIL  a-teardown-with-nothing-in-common
+          expected a refusal; the fold produced a cost
+  ok    a-timeline-that-names-no-environment
+  ok    an-incomplete-apply-is-not-priced
+  ok    an-open-cycle-is-priced-to-an-instant
+  ok    the-ten-minute-minimum-binds-on-a-short-cycle
+10/11 cost fixtures fold as expected
+exit=1
+
+===== CONTROL, green: every clause restored =====
+  ok    a-delete-with-no-create-is-named
+  ok    a-kind-nobody-classified-is-unpriced
+  ok    a-lifetime-is-not-a-creation
+  ok    a-resource-the-teardown-never-touched
+  ok    a-teardown-from-another-environment
+  ok    a-teardown-older-than-its-apply
+  ok    a-teardown-with-nothing-in-common
+  ok    a-timeline-that-names-no-environment
+  ok    an-incomplete-apply-is-not-priced
+  ok    an-open-cycle-is-priced-to-an-instant
+  ok    the-ten-minute-minimum-binds-on-a-short-cycle
+11/11 cost fixtures fold as expected
+exit=0
