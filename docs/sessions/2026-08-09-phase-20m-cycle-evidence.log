@@ -1,0 +1,239 @@
+# Phase 20m — evidence from the live cycle watched through one tab
+
+The tab was opened BEFORE the cycle was ordered and was never reloaded, never
+navigated, and never closed until the cycle ended. Browser: Safari on macOS —
+the first time the page has been watched in a browser `make
+page-freshness-check` does not drive (it drives chromium).
+
+NOT CONFIRMED, and recorded as such rather than assumed: whether the page's own
+`Refresh` button was pressed at any point during the cycle. The participant was
+asked three times and did not answer. Every claim below that says "without a
+reload" is exactly that — no reload — and does NOT claim no Refresh.
+
+## The runs
+
+```text
+deploy-stage  #32   dispatched 2026-08-09T21:57:51Z   SUCCESS   16m 25s
+promote-prod  #11   dispatched 2026-08-09T22:18:58Z   SUCCESS   20m 15s
+destroy prod  #44   dispatched 2026-08-09T22:43:07Z   SUCCESS   12m 53s
+destroy stage #45   dispatched 2026-08-09T22:58:39Z   SUCCESS    9m 22s
+```
+
+## The cost, computed by the thing under test
+
+```text
+stage  $0.0529 .. $0.0584   cycle 21:58:47Z -> 23:07:30Z,  4123 s
+       32 created: 3 priced, 25 free, 4 not metered, 0 unpriced, 0 orphan_deletes
+prod   $0.0182 .. $0.0237   cycle 22:25:12Z -> 22:55:24Z,  1812 s
+       34 created: 3 priced, 27 free, 4 not metered, 0 unpriced, 0 orphan_deletes
+```
+
+Read from the published objects on the devbox, not off the page. A first attempt
+guessed the key names and got `null` for every one of them except `unpriced`,
+which came back `[]` — the nulls are what said the guess was wrong, and the
+schema was then read rather than assumed.
+
+ADR-0045's claim asked of a THIRD cycle: stage cost $0.0526..$0.0581 in 20k and
+$0.0529..$0.0584 here, with the identical breakdown, because both cycles held
+stage up through a promotion and a prod teardown — 4123 s here. 20h, where stage
+lived roughly a third as long, cost $0.0178..$0.0235. The meter is a lifetime.
+
+## Teardown confirmed against the AWS CLI, not against Terraform state
+
+```text
+account 993912191738
+ecs:    rds:    alb:    nat:    eks:
+```
+
+The account line is not decoration: it is what makes the five empty lines
+evidence. `aws sts get-caller-identity` runs first and every result is assigned
+under an `&&` chain, so an expired SSO token aborts instead of printing five
+blanks that look exactly like a clean account.
+
+Image promoted by DIGEST, resolved from the tag deploy-stage pushed:
+
+```text
+stage  993912191738.dkr.ecr.us-west-2.amazonaws.com/aws-devops-sdet-demo-app:4828f2dbe95d0...
+prod   993912191738.dkr.ecr.us-west-2.amazonaws.com/aws-devops-sdet-demo-app@sha256:b080e23c053d8e51d06ec7177c46939f6bb93f74e5f98dd986b8cf8b2a99357b
+```
+
+## FINDING 1 — an in-progress run is counted as a success
+
+`Recent lifecycle runs` prints its verdict from two different populations:
+
+```js
+var bad = runs.filter(r => r.status === "completed" && r.conclusion !== "success").length;
+(bad ? bad + " of " + runs.length + " failed" : "all " + runs.length + " succeeded")
+```
+
+The numerator counts COMPLETED runs only; the denominator counts ALL of them.
+A run in flight is therefore excluded from `bad` and included in the total, and
+is asserted to have succeeded before it has finished. The failing branch carries
+the same defect: "1 of 7 failed" claims six successes, one of which is unknown.
+
+Observed four times, on four different runs, with the table one line below the
+badge disagreeing with it each time:
+
+```text
+15:11  all 7 succeeded   while deploy-stage  #32  in progress
+15:14  all 7 succeeded   after #32 completed successfully — THE BADGE DID NOT CHANGE
+15:26  all 8 succeeded   while promote-prod  #11  in progress
+15:46  all 9 succeeded   while destroy prod  #44  in progress
+```
+
+The 15:11 → 15:14 pair is the proof: the row changed from `in progress` to
+`success` and the verdict above it did not move, because it had already counted
+the run as a success. Had #32 failed, the badge would have flipped to `1 of 7
+failed`. It does not lag — it pre-assumes.
+
+WHY NO GATE SAW IT. `history-summary` is asserted by nothing: not
+`site-page-check`, not `page-tense-check`, not `page-freshness-check`. A fixture
+with an in-progress run does exist (`tests/fixtures/page-measure/in-flight/runs.json`,
+`deploy-stage #64 in_progress`) — but it also contains failures, so on that
+fixture the badge takes the `failed` branch and the green-while-unknown shape
+never appears. Both halves matter; the second is the real reason.
+
+## FINDING 2 — the run layer overrides the one caption that is permanent
+
+Branch order in the node renderer, run layer FIRST:
+
+```js
+if (ownLive)        -> "running now"
+else if (phaseLive) -> "its phase is running" / "which node is unknown"
+else if (finished)  -> "finished in this run" / "figures publish when the cycle ends"
+...
+else                -> nodeTense(...)   // where `not measured here` lives
+```
+
+`nodeTense`'s own comment about these nodes is `NOTHING WILL EVER MEASURE THIS
+ONE` — the image push, the migrate/seed task and the human approval are not
+resources, so no timeline can carry them. While their phase runs, that permanent
+truth is replaced by a temporary one.
+
+One node, four states, one tab, fifteen minutes:
+
+```text
+15:00  phase not started   ECR push   not measured here · its step is in Actions, not in a timeline
+15:07  phase running       ECR push   its phase is running · which node is unknown
+15:11  phase finished      ECR push   finished in this run · figures publish when the cycle ends
+15:14  cycle finished      ECR push   not measured here · its step is in Actions, not in a timeline
+```
+
+The middle two are false. The third is a PROMISE, and the cycle that made it
+refuted it eleven minutes later. Same sequence observed on `migrate + seed`
+(phase 3) and on `a human, in the prod environment` (phase 5, `Approve`).
+
+The same caption served two opposite futures in the same cycle: at 15:31 all
+eight terraform nodes of `Apply — prod` also read `figures publish when the
+cycle ends`, and for them it was TRUE — their figures arrived at 15:38. A reader
+cannot tell the two apart.
+
+`which node is unknown` is additionally false on arithmetic:
+
+```text
+phase 5  Approve    ONE node in the phase        — "which node is unknown"
+phase 8  Destroy    TWO nodes, and the page had already drawn the other one
+                    as `measured · 7m 33s`       — "which node is unknown"
+```
+
+The string dates from 20c, when a running phase genuinely could not be resolved
+further (Terraform creating one of eight). Per-environment binding now resolves
+it; the caption never caught up.
+
+WHY NO GATE SAW IT. `page-tense-check` lifts `nodeTense` as a pure block and
+hands it data — there is even a case named
+`a-node-no-timeline-can-carry-never-says-not-run-yet.json`, and it passes. The
+function is correct. The defect is that while a phase runs, nothing CALLS it.
+`page-freshness-check` is blind for a different reason: an open tab and a fresh
+load render the same wrong caption, so they converge.
+
+## FINDING 3 — the `destroyed` disclaimer does not cover `unknown`
+
+```js
+if (envs === "destroyed" && node.service !== "destroy") {
+  return { word: "destroyed", note: "these figures are from the cycle that ended", ... };
+}
+return { word: "measured", note: "", ... };
+```
+
+There is no `unknown` branch, and `unknown` is the state an environment is in
+whenever a run is touching it. Predicted from the code at 15:31, before it could
+be observed; the observation window on the way UP was missed and is recorded as
+missed. Caught on the way down, with both sides:
+
+```text
+15:44 – 15:56   prod UNKNOWN     phase 6 `measured`, eight nodes at full colour,
+                                 figures printed, NO qualification —
+                                 while prod was being deleted
+15:56           prod DESTROYED   phase 6 `destroyed`, every node dimmed,
+                                 "these figures are from the cycle that ended · 27s"
+```
+
+Same eight nodes, same figures, twelve minutes apart. The only thing that
+changed is the environment's state word.
+
+The contradiction is on ONE screen: the environment panel at 15:44 said `Last
+reported values, shown for reference only` about exactly the data the map two
+screens below was presenting unqualified. Inside the map itself, phase 7's
+suites said `2 of 2 · from the previous run` at the same instant.
+
+## What held, live
+
+- **The re-read (20l, ADR-0053), against real records rather than fixtures.**
+  The front moved 2 → 3 → 4 → done and the figures arrived on a tab nobody
+  touched: `Apply — stage` went from `figures publish when the cycle ends` to
+  `measured 8m 13s` with per-node durations, and the quality gate's
+  `from the previous run` captions were replaced by this run's numbers.
+- **Per-step binding (ADR-0043).** In phase 7, `seed assertion` read `running
+  now · its report arrives when the step ends` while `smoke` beside it still
+  showed the previous run's report; later `seed assertion` carried this run's
+  `2 of 2` while `smoke` still said `from the previous run`.
+- **Verdict and figures from different sources, correctly.** `API contract`
+  read `passed` (this run's step) beside `52 of 52 · 14s · from the previous
+  run` (the last published report).
+- **Per-environment binding in a shared phase.** During `destroy prod`, only the
+  prod node of phase 8 was marked live; `stage — everything above` kept
+  `measured · 7m 33s` and was not dimmed or lit.
+- **Tense clears both ways.** With no run in flight after #44, the suites'
+  `from the previous run` captions disappeared.
+- **The environment panel is careful where the map is not**: `Run #44 (destroy
+  prod) is waiting and has not reported yet`, `This job has not started, so it
+  reports no steps yet. That is an absence, not a failed read.`
+- **The teardown order from 19f earned itself.** `Destroy ALB first (release
+  ENIs before the IGW)` took 7m 8s; `Terraform destroy` after it took 0m 14s.
+
+## The GitHub cadence is adaptive, and the page says so
+
+A prediction made from one reading of the cadence line — "the run cannot appear
+before 15:02:38, the poll is 300 s" — was wrong: it appeared at 15:00:02, 2m 11s
+after dispatch. The line itself explains it:
+
+```text
+15:00   GitHub every 300 s                              budget 47 of 60
+15:07   GitHub every 137 s (paced by the remaining budget)   budget 52 of 60
+15:11   GitHub every  94 s                              budget 56 of 60
+15:46   GitHub every  78 s                              budget 18 of 60
+15:52   GitHub every 136 s   (the hour rolled over)     budget 58 of 60
+15:56   GitHub every 300 s                              budget 56 of 60
+```
+
+Not a defect. Recorded because a session that reads one value of a
+self-describing line as a constant will mis-predict the next one.
+
+## What this cycle did NOT measure, stated as gaps
+
+- **The convergence delay.** #32 finished about 15:12:30 and the next
+  observation was 15:14:48, with the figures already drawn. The `max-age=60`
+  ceiling is therefore bounded above by roughly two minutes and was NOT
+  measured. Measuring it needs a sample every few seconds across the moment a
+  run goes green.
+- **The map's dating sentence.** It reads `dated 2026-08-09` and the previous
+  cycle was also 2026-08-09, so a fresh date and a stale one are
+  indistinguishable. Nothing can be concluded from it in this cycle.
+- **`not reached yet` never appeared.** `nodeTense` emits it only when
+  `!record`, and every node carried a record from the previous cycle. A cycle
+  that follows a completed cycle may be structurally unable to exercise the
+  mirror clause; that is a hypothesis this cycle raises and does not settle.
+- **The UNKNOWN-before-apply window on the way up** (prod already `unknown`,
+  phase 6 not yet running) was seen only at phase-header level. The node
+  captions in that window were not captured.
