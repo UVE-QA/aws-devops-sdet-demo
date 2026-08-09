@@ -48,6 +48,7 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 20e.1 | Contrast floor gated; three blockers closed | ✅ done — palette moved, layout not started, $0 | sessions/2026-08-09-phase-20e-1-the-floor-is-met-before-the-layout.md |
 | 20e.1 | The composition on the real page | ✅ done — $0 | sessions/2026-08-09-phase-20e-1-the-page-is-the-dashboard.md |
 | 20e   | The figures get an instrument   | ✅ done — measured, layout not started, $0 | sessions/2026-08-09-phase-20e-the-figures-get-an-instrument.md |
+| 20g   | The desktop: the page fills the monitor | ✅ done — $0, the comb left to its own session | sessions/2026-08-09-phase-20g-the-page-fills-the-monitor.md |
 
 Phase 17 (prod data continuity) is still open and still optional, in
 `docs/next-phases.md`. Phase 18 was pulled forward of both remaining phases
@@ -2744,6 +2745,60 @@ that deliberately did not decide the layout.
      doing its actual job for the first time.
   Measure with `make measure-page` either side of every desktop change; the
   figures above are the before.
+
+### Phase 20g — The desktop: the page fills the monitor it was written for  ✅ DONE 2026-08-09
+The step was the desktop, and the cursor said in the same line that finding B is
+not the list. So the list was produced by looking - six items - and four of them
+are fixed here. Summary in
+`docs/sessions/2026-08-09-phase-20g-the-page-fills-the-monitor.md`, before/after
+in `docs/sessions/2026-08-09-phase-20g-the-page-fills-the-monitor-measure.log`.
+**ADR-0050**.
+- Criteria: the desktop list produced rather than inherited; the items that are
+  a WIDTH fixed and measured either side; the items that are a PACKING named,
+  measured and left. All met.
+- **The width was under three of the six.** `main: 96rem` is ADR-0049 D1, whose
+  reason is that it is what the map's ten columns need at the legibility floor -
+  so a floor became the page's ceiling. The page stopped at 1536px whether the
+  monitor was 1920 or the stated primary target of 2560, which got 1024px of
+  margin either side. 120rem: 1878 -> 1760px at 2560, 1878 -> 1790px at 1920 and
+  the full width there now, 1440 unchanged because it was never at the cap.
+- **A broken word is a measurement, not a typography choice.**
+  `overflow-wrap: break-word` only fires when a word cannot fit AT ALL, so
+  `environme|nt` at 2560 was the layout reporting a column narrower than its
+  text. Widening the page fixed it and the wrapped `docker ·` separator without
+  either being touched.
+- **Finding B: the badge grows rather than clips.** `.icon.aws` never showed the
+  overflow because it sets `overflow: hidden`, and copying that across would
+  have hidden a WORD. `width: fit-content` with `min-width: 1.4rem`; the AWS
+  mark keeps its exact square, because a mark that changes size is a different
+  mark.
+- **One fix was tried, measured and REVERTED, with its figure in the
+  stylesheet.** `.p-arch` at a 1500 breakpoint fixes 1440's word break and costs
+  290px of height - 2.4 screens becoming 2.7 - on a page whose whole phase is
+  composed-not-scrolled.
+- **Not fixed, and named rather than forgotten:** the comb (2560: one row of ten
+  columns, tallest phase 513px, 1582px of air under the other seven; 1440: two
+  rows, 960px) and the ragged top row (573 / 279 / 235px). Both are a packing
+  decision. 1440's word break belongs to that session too - it lives in the row
+  being repacked.
+- Validation:
+```bash
+  make measure-page
+  make site-page-check site-data-check docs-check
+  make contrast-check
+```
+  `site-data` regenerated: the identity bar counts the decision records from
+  `topology.json`, and ADR-0050 makes it 51.
+- Cost: nothing. No cycle, no AWS call, nothing applied. `site/` changes, so the
+  next push republishes the page.
+- Next allowed step: **a live cycle.** The desktop's remaining two items are the
+  comb and the ragged top row, and they are a packing decision that can wait
+  behind a cycle that cannot: the wired cost fold has NEVER run live, and this
+  would be the first cycle since the composition landed - the page doing its
+  actual job, observed, for the first time. It is BILLABLE, so it is planned and
+  confirmed before anything runs, and the teardown of either environment is the
+  line to watch for the cost. Measure with `make measure-page` either side of
+  any later desktop change; the figures above are the new before.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

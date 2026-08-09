@@ -1,0 +1,224 @@
+# Phase 20g — the desktop. measure-page, before and after.
+# Sandbox chromium 1194, fixtures at-rest + in-flight, cuts closed and open.
+
+=== BEFORE (origin/main d5dbbaf) ===
+page height - document.scrollHeight, and screens of the viewport it was measured in
+
+  fixture     viewport    cuts      height    screens   doc overflow-x
+  at-rest     2560x1440   closed     1789px       1.2   -
+  at-rest     2560x1440   open       8459px       5.9   -
+  at-rest     1920x1080   closed     1789px       1.7   -
+  at-rest     1920x1080   open       8459px       7.8   -
+  at-rest     1440x900    closed     2123px       2.4   -
+  at-rest     1440x900    open       8909px       9.9   -
+  at-rest     390x844     closed     4751px       5.6   -
+  at-rest     390x844     open      16581px      19.6   120px
+  in-flight   2560x1440   closed     1878px       1.3   -
+  in-flight   2560x1440   open       8658px         6   -
+  in-flight   1920x1080   closed     1878px       1.7   -
+  in-flight   1920x1080   open       8658px         8   -
+  in-flight   1440x900    closed     2190px       2.4   -
+  in-flight   1440x900    open       9046px      10.1   -
+  in-flight   390x844     closed     4818px       5.7   -
+  in-flight   390x844     open      17051px      20.2   125px
+
+at-rest · 2560x1440 · cuts closed
+  content wider than its own box
+        11px  section.panel.p-arch > div#path.path > div.hop > span.icon
+              31px of content in a 20px box, overflow-x: visible
+         6px  div.set > div.node.absent > div.head > span.icon  (x7)
+              26px of content in a 20px box, overflow-x: visible
+
+at-rest · 2560x1440 · cuts open
+  content wider than its own box
+        11px  section.panel.p-arch > div#path.path > div.hop > span.icon
+              31px of content in a 20px box, overflow-x: visible
+         6px  div.set > div.node.absent > div.head > span.icon  (x7)
+              26px of content in a 20px box, overflow-x: visible
+
+at-rest · 1920x1080 · cuts closed
+  content wider than its own box
+        11px  section.panel.p-arch > div#path.path > div.hop > span.icon
+              31px of content in a 20px box, overflow-x: visible
+         6px  div.set > div.node.absent > div.head > span.icon  (x7)
+              26px of content in a 20px box, overflow-x: visible
+
+at-rest · 1920x1080 · cuts open
+  content wider than its own box
+        11px  section.panel.p-arch > div#path.path > div.hop > span.icon
+              31px of content in a 20px box, overflow-x: visible
+         6px  div.set > div.node.absent > div.head > span.icon  (x7)
+              26px of content in a 20px box, overflow-x: visible
+
+at-rest · 1440x900 · cuts closed
+  content wider than its own box
+        11px  section.panel.p-arch > div#path.path > div.hop > span.icon
+              31px of content in a 20px box, overflow-x: visible
+         6px  div.set > div.node.absent > div.head > span.icon  (x7)
+              26px of content in a 20px box, overflow-x: visible
+
+at-rest · 1440x900 · cuts open
+  content wider than its own box
+        11px  section.panel.p-arch > div#path.path > div.hop > span.icon
+              31px of content in a 20px box, overflow-x: visible
+         6px  div.set > div.node.absent > div.head > span.icon  (x7)
+              26px of content in a 20px box, overflow-x: visible
+
+at-rest · 390x844 · cuts closed
+  beyond its parent's padding edge
+    169.13px  main > details#history-cut.cut > div#history > table
+              in main > details#history-cut.cut > div#history  474.94px in 305.81px
+  content wider than its own box
+       169px  main > details#history-cut.cut > div#history
+              475px of content in a 306px box, overflow-x: visible
+        11px  section.panel.p-arch > div#path.path > div.hop > span.icon
+              31px of content in a 20px box, overflow-x: visible
+         6px  div.set > div.node.absent > div.head > span.icon  (x7)
+              26px of content in a 20px box, overflow-x: visible
+
+at-rest · 390x844 · cuts open
+  beyond its parent's padding edge
+    169.13px  main > details#history-cut.cut > div#history > table
+              in main > details#history-cut.cut > div#history  474.94px in 305.81px
+  content wider than its own box
+       169px  main > details#history-cut.cut > div#history
+              475px of content in a 306px box, overflow-x: visible
+       156px  main > details#history-cut.cut
+              489px of content in a 333px box, overflow-x: visible
+       155px  main
+              490px of content in a 335px box, overflow-x: visible
+        11px  section.panel.p-arch > div#path.path > div.hop > span.icon
+              31px of content in a 20px box, overflow-x: visible
+         6px  div.set > div.node.absent > div.head > span.icon  (x7)
+              26px of content in a 20px box, overflow-x: visible
+
+in-flight · 2560x1440 · cuts closed
+  content wider than its own box
+        11px  section.panel.p-arch > div#path.path > div.hop > span.icon
+              31px of content in a 20px box, overflow-x: visible
+         6px  div.set > div.node.absent > div.head > span.icon  (x7)
+              26px of content in a 20px box, overflow-x: visible
+
+in-flight · 2560x1440 · cuts open
+  content wider than its own box
+        11px  section.panel.p-arch > div#path.path > div.hop > span.icon
+              31px of content in a 20px box, overflow-x: visible
+         6px  div.set > div.node.absent > div.head > span.icon  (x7)
+              26px of content in a 20px box, overflow-x: visible
+
+in-flight · 1920x1080 · cuts closed
+  content wider than its own box
+        11px  section.panel.p-arch > div#path.path > div.hop > span.icon
+              31px of content in a 20px box, overflow-x: visible
+         6px  div.set > div.node.absent > div.head > span.icon  (x7)
+              26px of content in a 20px box, overflow-x: visible
+
+in-flight · 1920x1080 · cuts open
+  content wider than its own box
+        11px  section.panel.p-arch > div#path.path > div.hop > span.icon
+              31px of content in a 20px box, overflow-x: visible
+         6px  div.set > div.node.absent > div.head > span.icon  (x7)
+              26px of content in a 20px box, overflow-x: visible
+
+in-flight · 1440x900 · cuts closed
+  content wider than its own box
+        11px  section.panel.p-arch > div#path.path > div.hop > span.icon
+              31px of content in a 20px box, overflow-x: visible
+         6px  div.set > div.node.absent > div.head > span.icon  (x7)
+              26px of content in a 20px box, overflow-x: visible
+
+in-flight · 1440x900 · cuts open
+  content wider than its own box
+        11px  section.panel.p-arch > div#path.path > div.hop > span.icon
+              31px of content in a 20px box, overflow-x: visible
+         6px  div.set > div.node.absent > div.head > span.icon  (x7)
+              26px of content in a 20px box, overflow-x: visible
+
+in-flight · 390x844 · cuts closed
+  beyond its parent's padding edge
+    174.55px  main > details#history-cut.cut > div#history > table
+              in main > details#history-cut.cut > div#history  480.36px in 305.81px
+  content wider than its own box
+       174px  main > details#history-cut.cut > div#history
+              480px of content in a 306px box, overflow-x: visible
+        11px  section.panel.p-arch > div#path.path > div.hop > span.icon
+              31px of content in a 20px box, overflow-x: visible
+         6px  div.set > div.node.absent > div.head > span.icon  (x7)
+              26px of content in a 20px box, overflow-x: visible
+
+in-flight · 390x844 · cuts open
+  beyond its parent's padding edge
+    174.55px  main > details#history-cut.cut > div#history > table
+              in main > details#history-cut.cut > div#history  480.36px in 305.81px
+  content wider than its own box
+       174px  main > details#history-cut.cut > div#history
+              480px of content in a 306px box, overflow-x: visible
+       161px  main > details#history-cut.cut
+              494px of content in a 333px box, overflow-x: visible
+       160px  main
+              495px of content in a 335px box, overflow-x: visible
+        11px  section.panel.p-arch > div#path.path > div.hop > span.icon
+              31px of content in a 20px box, overflow-x: visible
+         6px  div.set > div.node.absent > div.head > span.icon  (x7)
+              26px of content in a 20px box, overflow-x: visible
+
+=== AFTER ===
+page height - document.scrollHeight, and screens of the viewport it was measured in
+
+  fixture     viewport    cuts      height    screens   doc overflow-x
+  at-rest     2560x1440   closed     1734px       1.2   -
+  at-rest     2560x1440   open       8319px       5.8   -
+  at-rest     1920x1080   closed     1742px       1.6   -
+  at-rest     1920x1080   open       8327px       7.7   -
+  at-rest     1440x900    closed     2123px       2.4   -
+  at-rest     1440x900    open       8909px       9.9   -
+  at-rest     390x844     closed     4774px       5.7   -
+  at-rest     390x844     open      16603px      19.7   120px
+  in-flight   2560x1440   closed     1760px       1.2   -
+  in-flight   2560x1440   open       8435px       5.9   -
+  in-flight   1920x1080   closed     1790px       1.7   -
+  in-flight   1920x1080   open       8450px       7.8   -
+  in-flight   1440x900    closed     2190px       2.4   -
+  in-flight   1440x900    open       9046px      10.1   -
+  in-flight   390x844     closed     4841px       5.7   -
+  in-flight   390x844     open      17073px      20.2   125px
+
+at-rest · 390x844 · cuts closed
+  beyond its parent's padding edge
+    169.13px  main > details#history-cut.cut > div#history > table
+              in main > details#history-cut.cut > div#history  474.94px in 305.81px
+  content wider than its own box
+       169px  main > details#history-cut.cut > div#history
+              475px of content in a 306px box, overflow-x: visible
+
+at-rest · 390x844 · cuts open
+  beyond its parent's padding edge
+    169.13px  main > details#history-cut.cut > div#history > table
+              in main > details#history-cut.cut > div#history  474.94px in 305.81px
+  content wider than its own box
+       169px  main > details#history-cut.cut > div#history
+              475px of content in a 306px box, overflow-x: visible
+       156px  main > details#history-cut.cut
+              489px of content in a 333px box, overflow-x: visible
+       155px  main
+              490px of content in a 335px box, overflow-x: visible
+
+in-flight · 390x844 · cuts closed
+  beyond its parent's padding edge
+    174.55px  main > details#history-cut.cut > div#history > table
+              in main > details#history-cut.cut > div#history  480.36px in 305.81px
+  content wider than its own box
+       174px  main > details#history-cut.cut > div#history
+              480px of content in a 306px box, overflow-x: visible
+
+in-flight · 390x844 · cuts open
+  beyond its parent's padding edge
+    174.55px  main > details#history-cut.cut > div#history > table
+              in main > details#history-cut.cut > div#history  480.36px in 305.81px
+  content wider than its own box
+       174px  main > details#history-cut.cut > div#history
+              480px of content in a 306px box, overflow-x: visible
+       161px  main > details#history-cut.cut
+              494px of content in a 333px box, overflow-x: visible
+       160px  main
+              495px of content in a 335px box, overflow-x: visible

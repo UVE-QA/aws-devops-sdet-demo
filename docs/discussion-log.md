@@ -6,6 +6,38 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
+**As of 2026-08-09 (20g — the page fills the monitor it was written for).** The
+cursor's step was the desktop, and its own line said that finding B is not the
+list. The list was produced by looking — six items — and the WIDTH turned out to
+sit under three of them.
+
+`main: 96rem` is ADR-0049 D1, and its reason is explicit: it is what the map's
+ten columns need at the legibility floor. Nothing else asked for a number, so a
+FLOOR became the whole page's CEILING — the page stopped at 1536px whether the
+monitor was 1920 or the stated primary target of 2560, which was getting 1024px
+of margin either side. Ten columns inside 1536px are 147px each, and
+`overflow-wrap: break-word` only fires when a word cannot fit at all: so
+`environme|nt` at 2560 and `RDS PostgreSQ|L` at 1440 were never typography, they
+were the layout reporting that the column was narrower than the text handed to
+it. 120rem fixed both, and the wrapped `docker ·` separator with them, without
+any of the three being touched — 1878 -> 1760px at 2560, 1878 -> 1790px at 1920,
+1440 unchanged because it was never at the cap.
+
+Finding B's badge GROWS rather than clips. `.icon.aws` never showed the overflow
+because it sets `overflow: hidden`; copying that across would have hidden a
+word, and the word is the content. One fix was tried, measured and reverted with
+its figure written into the stylesheet beside the rule — the `.p-arch`
+breakpoint at 1500 fixes 1440's word break and costs 290px of height, 2.4
+screens becoming 2.7, on a page whose whole phase is composed-not-scrolled.
+**ADR-0050.**
+
+Every desktop overflow the instrument can report is now gone; what it still
+reports is one box at 390, the history table, and the phone is deferred far. The
+comb (2560: one row of ten columns, tallest phase 513px, 1582px of air under the
+other seven) and the ragged top row (573 / 279 / 235px) are measured, named and
+left to the session that repacks them. The next step is a live cycle: billable,
+and it has never exercised the wired cost fold.
+
 **As of 2026-08-09 (20e — the figures get an instrument).** The cursor's step was
 the phone and its own line said to measure first. It measured; the layout is not
 started, and what the session established is that the measurement now outlives
