@@ -6,6 +6,54 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
+**As of 2026-08-09 (20e.1 — the floor is met before the layout).** Three
+decisions and a gate; the composition itself is not started. **ADR-0048.**
+
+**The three that blocked space, decided before a line of layout.** The Launch
+button becomes the Environments panel's footer: it acts on what that panel
+observes, and its refusals — one at a time, a daily quota — are statements about
+environment state, so the refusal and its reason are finally in the same box. Not
+the identity bar, which is navigation and no place for a control that spends
+money, and not the current-cycle panel, whose content varies. The legend becomes
+a cut in the map's header, because D6 put a word on every node and a legend is no
+longer a decoder — and explicitly, the sketch's `State encoding` strip does NOT
+go on the page: it is evidence for a decision, not an element of a dashboard. A
+node's figures live on one state line, `<word> · <figure>`, word first, with no
+separator printed when there is no figure.
+
+**The gate needed a browser, and that is not a preference.** `make
+contrast-check` lifts the `<style>` blocks out of the BUILT page — the move
+`check-live-state.mjs` already makes on the same file — and measures them in
+chromium, because the engine is what resolves `color-mix()` and the one contrast
+measurement this project has taken was wrong in a colour parser. A control runs
+first on every invocation: black on white must read 21.00 through both
+notations, and a control that is off refuses without a verdict rather than
+printing a table under a broken instrument.
+
+**It reproduced ADR-0047's table to the hundredth on five of six states**, in
+both themes, written from scratch and sharing no code with the discovery's
+throwaway script. The sixth is a finding: `absent` reads 1.15 / 1.12 against
+1.34 / 1.35, and the older figure is not a different model but an unreachable
+one — `#d8dbe2` against pure white is 1.27, so no background yields 1.34.
+Superseded, with nothing following from it.
+
+**The palette moved first, on the current page.** working 2.67→3.22, done
+2.41→3.37, suite 1.98→3.38 in the light theme, at the smallest 5% step that
+clears the floor with a margin in both. Every boundary is now a token in
+`:root`, so `.node.done` and `.phase.done` share one definition instead of two
+matching literals. The fix landed in its own commit before the gate: a gate
+arriving red on a shared dependency reddens every open pull request over
+findings none of them introduced, which the image scan already did once.
+
+Broken seven ways, green control either side. The one that matters is not about
+contrast — the discovery's own parser defect replanted verbatim, caught by the
+control at 1.01 before a single state printed. The one the gate exists for is
+`--ok` lightened with no state colour edited, `done` falling from 3.37 to 1.68.
+
+ADR-0047 D5's computed span total was deferred rather than done: it is
+computable today, nothing would read it, and a number nothing reads has never
+been exercised.
+
 **As of 2026-08-09 (20e.0 — the dashboard is composed, not scrolled).** The
 discovery step ran and renamed its own phase. **ADR-0047.**
 

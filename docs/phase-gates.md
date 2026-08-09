@@ -45,6 +45,7 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 20d   | Cost, computed from lifetimes  | ✅ done — the reconciliation clause retired, not deferred | sessions/2026-08-08-phase-20d-cost-is-a-lifetime.md |
 | 20f   | The fold runs in the cycle     | ✅ done — no cycle ordered, $0 | sessions/2026-08-08-phase-20f-the-cost-fold-runs-in-the-cycle.md |
 | 20e.0 | Dashboard discovery + sketch   | ✅ done — no code, $0 | sessions/2026-08-09-phase-20e-discovery-and-sketch.md |
+| 20e.1 | Contrast floor gated; three blockers closed | ✅ done — palette moved, layout not started, $0 | sessions/2026-08-09-phase-20e-1-the-floor-is-met-before-the-layout.md |
 
 Phase 17 (prod data continuity) is still open and still optional, in
 `docs/next-phases.md`. Phase 18 was pulled forward of both remaining phases
@@ -2563,6 +2564,57 @@ Discovery and a sketch. No implementation. **ADR-0047**, and the summary in
   counts decide the node, the phone comes last. The contrast floor of ADR-0047
   D6 needs a gate before the palette moves again, and it should be broken on
   purpose once like every other gate here.
+
+### Phase 20e.1 — The floor is met before the layout  ✅ DONE 2026-08-09
+Three decisions and a gate. The composition itself is NOT started. **ADR-0048**,
+the summary in `docs/sessions/2026-08-09-phase-20e-1-the-floor-is-met-before-the-layout.md`,
+break tests in `docs/sessions/2026-08-09-phase-20e-1-contrast-gate-break-tests.log`.
+- Criteria: the three open items that block layout decided before any layout; the
+  contrast floor of ADR-0047 D6 enforced by something that refuses; that gate
+  broken on purpose. All met.
+- **The three that blocked space.** The Launch button is the Environments panel's
+  footer — it acts on what that panel observes, and its refusals are that panel's
+  subject; the identity bar is navigation and a control that spends money does not
+  belong in it. The legend is a cut in the map's header, because D6 put a word on
+  every node and a decoder is no longer what it is — and the sketch's "State
+  encoding" strip does NOT go on the page. A node's figures live on one state line,
+  `<word> · <figure>`, word first, with no separator printed when there is no
+  figure.
+- **`make contrast-check`** renders the BUILT page's own stylesheet in chromium
+  rather than parsing CSS, because the engine is what resolves `color-mix()`. A
+  control runs first on every invocation — black on white must read 21.00 through
+  both notations — and a control that is off refuses without a verdict.
+- **It reproduced ADR-0047's table to the hundredth on five of six states**,
+  written from scratch and sharing no code with the discovery's script, which was
+  never committed. The sixth, `absent`, reads 1.15/1.12 against 1.34/1.35: the
+  older figure is unreachable, since `#d8dbe2` on pure white is 1.27. ADR-0048 D4
+  supersedes that row and nothing follows from it.
+- **The palette moved before the layout, and the fix landed before the gate.**
+  working 2.67→3.22, done 2.41→3.37, suite 1.98→3.38 in the light theme; each
+  boundary is now a token in `:root`, so `.node.done` and `.phase.done` share one
+  definition instead of two matching literals. A gate arriving red on a shared
+  dependency reddens every open pull request, which the image scan already did once.
+- **Broken seven ways**, green control either side: a state under the floor, a
+  token lightened with no state colour edited, the discovery's own parser defect
+  replanted (refused on the control at 1.01), an empty contract, no contract, a
+  probe that is not a colour, and the built page missing. An eighth refusal fired
+  unplanned during development, on playwright resolving without a named export.
+- **Deferred deliberately:** ADR-0047 D5's computed column span total. It is
+  computable today and nothing would read it, and a number nothing reads has never
+  been exercised.
+- Validation:
+```bash
+  make contrast-check
+  make site-page-check site-data-check docs-check
+```
+- Cost: nothing. No cycle, no AWS call, nothing applied. `site/` changes, so the
+  next push republishes the static page.
+- Next allowed step: **20e.1 continued — the composition on the real page.**
+  `assets/index.template.html`, rebuilt with `make site-page`, gated by
+  `make site-page-check`. The three decisions above are the inputs; ADR-0047 D5's
+  span total lands in the same commit as the grid that reads it. The phone stays
+  last. Separately and still true: the wired cost fold has never run live, so the
+  next teardown of either environment is worth watching for the cost line.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,
