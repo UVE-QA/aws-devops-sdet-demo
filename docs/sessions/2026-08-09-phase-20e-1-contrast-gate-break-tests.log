@@ -1,0 +1,225 @@
+Break test — `make contrast-check`, the gate under ADR-0047 D6
+Phase 20e.1, 2026-08-09. Run in the chat session's own clone of origin/main,
+on the two commits that introduce the palette tokens and the gate.
+
+A gate that has only ever been seen GREEN is indistinguishable from a gate that
+cannot fail. Seven breaks, each aimed at a different claim, with a green control
+either side of the whole run:
+
+  1  the thing it exists for      a state put back under the floor -> RED
+  2  drift nobody chose           --ok lightened; no state colour edited -> RED
+  3  THE INSTRUMENT               the discovery's own defect, replanted:
+                                  color(srgb x y z) divided by 255 -> REFUSAL
+  4  zero states                  an empty contract -> REFUSAL, not a clean table
+  5  no contract at all           -> REFUSAL
+  6  a probe that is not a colour -> REFUSAL, never a skip
+  7  the built page missing       -> REFUSAL, not nothing-to-check
+
+Break 3 is the one that matters most and it is not about contrast at all. The
+first contrast measurement this project took was WRONG and looked like a
+finding: color-mix() resolves to color(srgb 0.44 0.62 0.90), the parser treated
+those components as 0..255, and six different colours came back at 20.92:1. That
+defect is replanted here verbatim, and the control catches it before a single
+state is printed - 1.01 instead of 21.00, refusal, no verdict. An instrument has
+to be trusted before its readings mean anything.
+
+Break 2 is the failure mode the gate was actually built for. Nobody edits a
+state colour to be fainter; a shared token moves and every mix toward --line
+follows it quietly. Here --ok alone is lightened and `done` falls from 3.37 to
+1.68 without its own definition being touched.
+
+The exit statuses below are taken directly from `$?` after the command, NOT
+through a pipe: on 2026-07-28 a Checkov break test read grep's status instead of
+Checkov's and looked exactly like a gate that would not break.
+
+The sha256 prefix of every input is printed on each run, because on 2026-08-08
+four one-clause defects each reddened the same fixture and a later run of the
+identical loop reported all four green - CPython had validated a cached .pyc on
+(mtime in whole seconds, size), and every variant was byte-identical in size.
+Node compiles from source on every process here, but the reading is recorded
+rather than assumed: the hashes below differ per break, and the two greens share
+the committed one.
+
+======================================================================
+======================================================================
+CONTROL, before anything is broken
+======================================================================
+----------------------------------------------------------------------
+green: the repository as committed
+  inputs: template 2841dfb74d4c  page 2c06e4a2d633  gate e3f7e045cf5f  contract 91d3ca91a88c
+----------------------------------------------------------------------
+control  — black on white must read 21.00 through every notation the CSS uses
+  light   21.00  black on white, hex
+  light   21.00  black on white, color-mix -> color(srgb ...)
+  dark    21.00  black on white, hex
+  dark    21.00  black on white, color-mix -> color(srgb ...)
+
+state encoding — floor 3.0:1 (WCAG 1.4.11), boundary against the node's own background
+  state          light    dark
+  live           4.63    7.62 
+  failed-now     3.17    3.29 
+  working        3.22    4.76 
+  done           3.37    5.35 
+  suite          3.38    5.50 
+  absent         1.15    1.12   exempt — the word carries it
+
+contrast-check: 6 states, both themes, none under the floor
+  exit status: 0
+
+======================================================================
+BREAK 1 - the thing it exists for: a state put back under the floor
+  --state-suite returned to the 80% -> 40% it had before this session
+======================================================================
+----------------------------------------------------------------------
+expected RED, naming suite
+  inputs: template fd6319361876  page 63026bf0575f  gate e3f7e045cf5f  contract 91d3ca91a88c
+----------------------------------------------------------------------
+control  — black on white must read 21.00 through every notation the CSS uses
+  light   21.00  black on white, hex
+  light   21.00  black on white, color-mix -> color(srgb ...)
+  dark    21.00  black on white, hex
+  dark    21.00  black on white, color-mix -> color(srgb ...)
+
+state encoding — floor 3.0:1 (WCAG 1.4.11), boundary against the node's own background
+  state          light    dark
+  live           4.63    7.62 
+  failed-now     3.17    3.29 
+  working        3.22    4.76 
+  done           3.37    5.35 
+  suite          1.98<   2.73<
+  absent         1.15    1.12   exempt — the word carries it
+
+contrast-check: FAILED
+  suite (a test suite - observed by its report, not by Terraform) is 1.98:1 in the light theme, under the 3.0:1 floor
+  suite (a test suite - observed by its report, not by Terraform) is 2.73:1 in the dark theme, under the 3.0:1 floor
+
+  ADR-0047 D6: no state rides a boundary the eye cannot find. Raise the
+  colour, or carry the state on a second channel and say so in
+  assets/contrast-contract.json.
+  exit status: 1
+
+======================================================================
+BREAK 2 - drift in a token nobody meant to touch
+  --ok lightened from #1a7f37 to #7bd398. No state colour was edited.
+======================================================================
+----------------------------------------------------------------------
+expected RED, naming done - the state that reads --ok
+  inputs: template 2d9f30ae38b9  page 96aa82e15200  gate e3f7e045cf5f  contract 91d3ca91a88c
+----------------------------------------------------------------------
+control  — black on white must read 21.00 through every notation the CSS uses
+  light   21.00  black on white, hex
+  light   21.00  black on white, color-mix -> color(srgb ...)
+  dark    21.00  black on white, hex
+  dark    21.00  black on white, color-mix -> color(srgb ...)
+
+state encoding — floor 3.0:1 (WCAG 1.4.11), boundary against the node's own background
+  state          light    dark
+  live           4.63    7.62 
+  failed-now     3.17    3.29 
+  working        3.22    4.76 
+  done           1.68<   5.35 
+  suite          3.38    5.50 
+  absent         1.15    1.12   exempt — the word carries it
+
+contrast-check: FAILED
+  done (finished in the run still going) is 1.68:1 in the light theme, under the 3.0:1 floor
+
+  ADR-0047 D6: no state rides a boundary the eye cannot find. Raise the
+  colour, or carry the state on a second channel and say so in
+  assets/contrast-contract.json.
+  exit status: 1
+
+======================================================================
+BREAK 3 - THE INSTRUMENT. The exact defect the discovery hit:
+  color(srgb x y z) components divided by 255, as if they were 0..255
+======================================================================
+----------------------------------------------------------------------
+expected REFUSAL on the control - not a table, not a verdict
+  inputs: template 2841dfb74d4c  page 2c06e4a2d633  gate da49336429d6  contract 91d3ca91a88c
+----------------------------------------------------------------------
+control  — black on white must read 21.00 through every notation the CSS uses
+  light   21.00  black on white, hex
+  light    1.01  black on white, color-mix -> color(srgb ...)
+contrast-check: the control "black on white, color-mix -> color(srgb ...)" reads 1.01 in the light theme, not 21.00.
+  The instrument is wrong, so no verdict is available. Nothing above is evidence.
+  exit status: 2
+
+======================================================================
+BREAK 4 - zero states. A clean table and a green verdict is the
+  empty result that looks like success.
+======================================================================
+----------------------------------------------------------------------
+expected REFUSAL
+  inputs: template 2841dfb74d4c  page 2c06e4a2d633  gate e3f7e045cf5f  contract d817164f77f0
+----------------------------------------------------------------------
+contrast-check: the contract names no states. Zero states checked is not a pass.
+  exit status: 2
+
+======================================================================
+BREAK 5 - the contract removed entirely
+======================================================================
+----------------------------------------------------------------------
+expected REFUSAL
+  inputs: template 2841dfb74d4c  page 2c06e4a2d633  gate e3f7e045cf5f  contract (absent)
+----------------------------------------------------------------------
+contrast-check: assets/contrast-contract.json is missing. There is nothing to check against.
+  exit status: 2
+
+======================================================================
+BREAK 6 - a probe that does not name a colour.
+  border-top-style instead of border-top-color: a value that parses as
+  nothing must refuse, never be skipped.
+======================================================================
+----------------------------------------------------------------------
+expected REFUSAL naming the state and the value
+  inputs: template 2841dfb74d4c  page 2c06e4a2d633  gate e3f7e045cf5f  contract 2d26320a55e7
+----------------------------------------------------------------------
+control  — black on white must read 21.00 through every notation the CSS uses
+  light   21.00  black on white, hex
+  light   21.00  black on white, color-mix -> color(srgb ...)
+  dark    21.00  black on white, hex
+  dark    21.00  black on white, color-mix -> color(srgb ...)
+
+state encoding — floor 3.0:1 (WCAG 1.4.11), boundary against the node's own background
+  state          light    dark
+contrast-check: the state "live" could not be measured in the light theme: cannot read border-top-style as a colour: "solid"
+  exit status: 2
+
+======================================================================
+BREAK 7 - the built page missing. The gate reads site/index.html, and
+  a missing page must not read as nothing-to-check.
+======================================================================
+----------------------------------------------------------------------
+expected REFUSAL
+sha256sum: site/index.html: No such file or directory
+  inputs: template 2841dfb74d4c  page   gate e3f7e045cf5f  contract 91d3ca91a88c
+----------------------------------------------------------------------
+contrast-check: site/index.html does not exist. Run `make site-page` first.
+  exit status: 2
+
+======================================================================
+CONTROL, after every break - the same command, green again
+======================================================================
+----------------------------------------------------------------------
+green: the repository as committed
+  inputs: template 2841dfb74d4c  page 2c06e4a2d633  gate e3f7e045cf5f  contract 91d3ca91a88c
+----------------------------------------------------------------------
+control  — black on white must read 21.00 through every notation the CSS uses
+  light   21.00  black on white, hex
+  light   21.00  black on white, color-mix -> color(srgb ...)
+  dark    21.00  black on white, hex
+  dark    21.00  black on white, color-mix -> color(srgb ...)
+
+state encoding — floor 3.0:1 (WCAG 1.4.11), boundary against the node's own background
+  state          light    dark
+  live           4.63    7.62 
+  failed-now     3.17    3.29 
+  working        3.22    4.76 
+  done           3.37    5.35 
+  suite          3.38    5.50 
+  absent         1.15    1.12   exempt — the word carries it
+
+contrast-check: 6 states, both themes, none under the floor
+  exit status: 0
+
+git status at the end (must be clean):
