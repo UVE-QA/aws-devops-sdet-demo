@@ -3025,7 +3025,10 @@ before/after pair in `docs/sessions/2026-08-09-phase-20j-packing-measure.log`.
 ```
   `site-data` regenerated because it counts the files in `docs/decisions/` and
   ADR-0052 makes it 53 — written BEFORE the validation run this time, which is
-  the one thing 20i got in the wrong order.
+  the one thing 20i got in the wrong order. All six green on the devbox in that
+  order, on a clean tree, and `measure-page` there printed all sixteen heights
+  identically to the sandbox's: two machines, two chromium installations, one
+  set of numbers.
 - Cost: **nothing.** No cycle, no AWS call, nothing applied. `site/` changed, so
   the next push republishes the static page.
 - Next allowed step: **a live cycle.** It is the same one 20g and 20h left in the

@@ -164,6 +164,18 @@ One detail of the hypothesis was wrong and is worth keeping: it named
 quality gate — 495.03px against stage-apply's 350.34px — which is the same phase
 D3 is about. The absorbing phase and the comb's tooth are one thing.
 
+## Validated on the devbox, and it replicated
+
+Every figure in this summary was produced in the chat's sandbox. Re-run on the
+devbox after `git am`, `make measure-page` printed all sixteen heights
+identically — 2039 / 2039 / 2346 / 5472 at rest, 2051 / 2051 / 2402 / 5539 in
+flight — with the same overflow rows and the same six broken words on the phone.
+Two machines, two chromium installations, one set of numbers, which is what
+makes the figures above a measurement rather than this sandbox's opinion.
+`site-page-check`, `site-data-check`, `docs-check`, `page-tense-check`,
+`live-state-check` and `contrast-check` were green there in that order, on a
+clean tree, with ADR-0052 already written — the ordering 20i got wrong.
+
 ## Named rather than omitted
 
 - **The comb is smaller and flattened, not removed.** 967.85px of air is inside
