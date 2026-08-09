@@ -1235,7 +1235,9 @@ the map's header, a node's figures live on one state line), one by the gate
 `make contrast-check`, and one by `layout.columns` coming out of the generator.
 
 ```text
-- the phone, still deferred deliberately
+- the phone, DEFERRED FAR on 2026-08-09 by the person who asked for the page -
+  out of the near plan, not merely last in it. The desktop is finished first,
+  then the project goes to live cycles.
 ```
 
 Implemented on 2026-08-09 in two commits, with ADR-0049 recording the six things

@@ -2723,16 +2723,27 @@ that deliberately did not decide the layout.
   that has bitten this project before - here the two hosts agreed.
 - Cost: nothing. No cycle, no AWS call, nothing applied - and `site/` is
   untouched, so this one does not even republish the page.
-- Next allowed step: **20e — the phone, now with a baseline.** Two things are
-  open and they are separate pieces of work. The first is a scope question for
-  the person who asked for the page: finding B is a DESKTOP defect on the primary
-  target, one CSS rule wide, and the step is the phone - fix it on the way, or
-  record it and stay on the phone. The second is the phone itself: the history
-  table is the only box that overflows, its width is driven by data rather than
-  by layout, and the fold is 19.6-20.2 screens with the cuts open. Measure with
-  `make measure-page` either side of every change; the figures above are the
-  before. Separately and still true: the wired cost fold has never run live, so
-  the next teardown of either environment is worth watching for the cost line.
+- **The scope question was answered the same day, by the person who asked for
+  the page: the phone is deferred FAR.** Not "last in the queue" - out of the
+  near plan entirely. The desktop is finished first, and then the project goes
+  to live cycles. So the phone figures above are a BASELINE nobody is about to
+  act on, which is the right reason to have committed the instrument rather than
+  the numbers.
+- Next allowed step: **the desktop, then a live cycle.** In that order, and they
+  are two different sessions.
+  1. The desktop. One item is known and measured - finding B, the text glyphs
+     wider than their badge on every viewport, `.icon.aws` sets
+     `overflow: hidden` and the text `.icon` does not. **The rest of the desktop
+     list does not exist yet**; it has to be produced by looking, with
+     `make measure-page` for what is measurable and eyes for what is not. Do not
+     treat finding B as the list.
+  2. A live cycle. It is BILLABLE, so it is planned and confirmed before
+     anything runs, and the wired cost fold has never run live - the teardown of
+     either environment is the thing to watch for the cost line. It is also the
+     first cycle since the composition landed, so the page will be observed
+     doing its actual job for the first time.
+  Measure with `make measure-page` either side of every desktop change; the
+  figures above are the before.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,
