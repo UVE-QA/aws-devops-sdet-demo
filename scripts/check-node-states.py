@@ -49,6 +49,11 @@ STREAMS = ROOT / "tests" / "fixtures" / "timeline" / "cases"
 
 
 def load(name: str, path: Path):
+    # Never through a cached compile: CPython validates a .pyc on (mtime in whole
+    # seconds, source size), and a same-size deliberate break inside one second is
+    # served the PREVIOUS compile. See scripts/check-cost.py for the reading that
+    # found this. These gates exist to be broken on purpose, so it matters here.
+    sys.dont_write_bytecode = True
     spec = importlib.util.spec_from_file_location(name, path)
     module = importlib.util.module_from_spec(spec)
     assert spec.loader is not None

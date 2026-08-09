@@ -48,6 +48,26 @@ MODEL = ROOT / "assets/cost-model.json"
 
 
 def fold_cost_module():
+    """Load scripts/fold-cost.py, and never through a cached compile.
+
+    A GATE MEASURED THROUGH A BYTECODE CACHE MEASURES THE CACHE. CPython
+    validates a cached .pyc on (source mtime IN WHOLE SECONDS, source size).
+    Every one-clause break of `pairing_refusals` replaces `problems.append(`
+    with a same-length no-op, so all of them leave fold-cost.py at exactly the
+    same size — and a loop that breaks each clause in turn runs well inside one
+    second. The loader served the compile of the PREVIOUS break: four different
+    deliberate defects all reddened the same fixture, then a later run of the
+    identical loop reported every one of them GREEN.
+
+    That reading is indistinguishable from "the gate cannot fail", which is the
+    thing this repository breaks gates to rule out. The instrument was wrong,
+    not the gate — the same shape as the exit status taken after a pipe in 15b.
+    Found 2026-08-08, while break-testing the pairing rule.
+
+    Writing no cache is enough: nothing else imports this file, so if the gate
+    never creates one there is never a stale one to read.
+    """
+    sys.dont_write_bytecode = True
     spec = importlib.util.spec_from_file_location("fold_cost", ROOT / "scripts/fold-cost.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)

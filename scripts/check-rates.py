@@ -44,6 +44,11 @@ ENVS = ROOT / "infra/envs"
 
 
 def topology_module():
+    # Never through a cached compile: CPython validates a .pyc on (mtime in whole
+    # seconds, source size), and a same-size deliberate break inside one second is
+    # served the PREVIOUS compile. See scripts/check-cost.py for the reading that
+    # found this. These gates exist to be broken on purpose, so it matters here.
+    sys.dont_write_bytecode = True
     spec = importlib.util.spec_from_file_location(
         "generate_topology", ROOT / "scripts/generate-topology.py")
     module = importlib.util.module_from_spec(spec)

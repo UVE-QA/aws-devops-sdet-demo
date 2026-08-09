@@ -40,6 +40,11 @@ ROOT = HERE.parent
 FX = ROOT / "tests" / "fixtures" / "results"
 CASES = FX / "cases"
 
+# Never through a cached compile: CPython validates a .pyc on (mtime in whole
+# seconds, source size), and a same-size deliberate break inside one second is
+# served the PREVIOUS compile. See scripts/check-cost.py for the reading that
+# found this. These gates exist to be broken on purpose, so it matters here.
+sys.dont_write_bytecode = True
 spec = importlib.util.spec_from_file_location("fold_results", HERE / "fold-results.py")
 fold_results = importlib.util.module_from_spec(spec)
 assert spec.loader is not None
