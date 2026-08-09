@@ -2912,9 +2912,14 @@ All four clauses the cursor named, on fixtures, $0. Summary in
   make site-data-check
   make docs-check
 ```
-  Green, in that order, on a clean tree. `make measure-page` and
-  `make contrast-check` were NOT run: this sandbox has no browser, and both need
-  the Playwright install that lives with the suites. Run them on the devbox.
+  Green, in that order, on a clean tree — but only at the SECOND attempt, and
+  the first is the finding: `site-data-check` counts the files in
+  `docs/decisions/`, the chat had run it BEFORE writing ADR-0051, and it went
+  red on the devbox with the patch already applied. A validation run before the
+  last file of the session is a validation run of a different session. `make
+  measure-page` and `make contrast-check` were NOT run: the chat's sandbox has
+  no browser, and both need the Playwright install that lives with the suites.
+  Run them on the devbox.
 - **Named rather than omitted:** the gate proves what the block ANSWERS and that
   something asks it. It does not prove the answer reaches the pixels — what
   draws a node needs a DOM, is in no liftable block, and is gated by nothing. A

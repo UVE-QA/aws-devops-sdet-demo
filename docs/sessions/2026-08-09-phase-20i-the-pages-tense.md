@@ -167,6 +167,14 @@ make site-data-check      # the map's data unchanged
 make docs-check           # 6 documents, 0 findings
 ```
 
+**Green only at the second attempt, and the first is worth keeping.**
+`site-data-check` counts the files in `docs/decisions/`, and the chat ran it
+before writing ADR-0051 and never again — so it was green in the sandbox and
+red on the devbox with the patch already applied, over one integer. Nothing
+about the gate is wrong; the ORDER was. A validation run taken before the last
+file of a session is a validation run of a different session, and the only
+reason it cost a round trip rather than a wrong claim is that the gate exists.
+
 Not run here, and it should be run on the devbox where a browser exists:
 
 ```bash
