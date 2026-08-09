@@ -1,0 +1,94 @@
+Phase 20k — evidence, 2026-08-09. Lines are verbatim; where a command was
+grepped rather than captured whole, the command is printed above its output so
+the reading can be reproduced.
+
+=== the runs =========================================================
+deploy-stage    31328897257   success
+promote-prod    31329925499   success, 14m30s   (paused on the prod
+                                                 environment; approved by hand)
+destroy prod    31330844910   success,  9m30s   (#42, paused and approved again)
+destroy stage   31331527775   success,  9m6s    (#43)
+
+=== the prod approval gate, asked three ways =========================
+$ gh api repos/UVE-QA/aws-devops-sdet-demo/environments/prod \
+    --jq '{bypass: .can_admins_bypass, rr: [.protection_rules[]
+           | select(.type=="required_reviewers")
+           | {prevent_self_review, reviewers: [.reviewers[].reviewer.login]}]}'
+{
+  "bypass": false,
+  "rr": [ { "prevent_self_review": false, "reviewers": [ "UVE-QA" ] } ]
+}
+
+$ gh api .../actions/runs/31329925499/pending_deployments   -> [] (empty)
+$ gh api .../actions/runs/31329925499/approvals             -> state "approved",
+                                                               user UVE-QA,
+                                                               environment prod
+
+The empty pending_deployments was read TWICE, at t=10s and t=60s, and read as
+"the gate never paused". It does not distinguish that from "already approved".
+`approvals` does. The gate is fine; the instrument was the wrong one.
+
+=== the price, from the job logs (not from the step's green check) ===
+The pricing step is `continue-on-error` and cannot redden, so its check is not
+evidence. These lines are.
+
+$ gh api repos/UVE-QA/aws-devops-sdet-demo/actions/jobs/93288721501/logs \
+    | grep -Ei "published cost|nothing to price|created:"
+  34 created: 3 priced, 27 free, 4 not metered, 0 UNPRICED
+published cost (COMPUTED ESTIMATE, $0.017217 .. $0.022735):
+  https://demo.uveapp.net/cost/prod/31330844910-destroy.json
+
+$ gh api repos/UVE-QA/aws-devops-sdet-demo/actions/jobs/93290439062/logs \
+    | grep -Ei "published cost|nothing to price|created:"
+  32 created: 3 priced, 25 free, 4 not metered, 0 UNPRICED
+published cost (COMPUTED ESTIMATE, $0.052648 .. $0.0581):
+  https://demo.uveapp.net/cost/stage/31331527775-destroy.json
+
+20h's stage cycle, for the comparison: $0.0178 .. $0.0235, and
+`32 created: 3 priced, 25 free, 4 not metered, 0 UNPRICED` — the same breakdown
+to the digit. The difference is how long the environment stood.
+
+=== the record the page would not read ===============================
+$ curl -s https://demo.uveapp.net/timeline/prod/nodes-destroy.json
+  destroy.prod: state "measured", phase 467.0s, cycle date 2026-08-09
+
+Read while the open page was still drawing that node as `not run yet`.
+
+=== the 403 that was the chat's own fetch tool =======================
+$ aws s3 ls s3://aws-devops-sdet-demo-site-993912191738/cost/ --recursive
+2026-08-09 05:43:49  19105 cost/stage/31296973693-destroy.json
+2026-08-09 05:43:50  19105 cost/stage/latest.json
+
+$ for u in cost/stage/latest.json cost/stage/31296973693-destroy.json \
+           timeline/stage/latest.json; do
+    printf '%s  %s\n' "$(curl -s -o /dev/null -w '%{http_code}' \
+      "https://demo.uveapp.net/$u")" "$u"; done
+200  cost/stage/latest.json
+200  cost/stage/31296973693-destroy.json
+200  timeline/stage/latest.json
+
+The object existed, was public, and answered 200 to two clients. The 403 came
+from the chat session's own fetcher and from nothing else.
+
+=== the teardown, against AWS rather than against Terraform state ====
+$ ( set -e
+    P=(--profile demo-admin --region us-west-2)
+    acct=$(aws sts get-caller-identity "${P[@]}" --query Account --output text)
+    ecr=$(aws ecr describe-repositories "${P[@]}" ...)
+    ecs=$(aws ecs list-clusters "${P[@]}" ...)
+    rds=$(aws rds describe-db-instances "${P[@]}" ...)
+    alb=$(aws elbv2 describe-load-balancers "${P[@]}" ...)
+    nat=$(aws ec2 describe-nat-gateways "${P[@]}" ...)
+    eks=$(aws eks list-clusters "${P[@]}" ...)
+    ... )
+account 993912191738
+CONTROL ecr aws-devops-sdet-demo-app
+ecs
+rds
+alb
+nat
+eks
+
+Five empty readings, and they are evidence only because the sixth is not: the
+control sits on a permanent level in the same block, under `set -e`, so an
+expired token aborts instead of printing six clean-looking blanks.

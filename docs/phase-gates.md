@@ -52,6 +52,7 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 20h   | The first priced cycle          | ✅ done — $0.0178 .. $0.0235, stage only | sessions/2026-08-09-phase-20h-the-fold-prices-a-cycle-the-page-dates-it-wrong.md |
 | 20i   | The page's tense               | ✅ done — $0, fixtures only | sessions/2026-08-09-phase-20i-the-pages-tense.md |
 | 20j   | The packing, and the floor it was folded at | ✅ done — $0, fixtures only | sessions/2026-08-09-phase-20j-the-floor-the-map-was-folded-at.md |
+| 20k   | The live cycle, both environments, both priced | ✅ done — $0.0526..$0.0581 + $0.0172..$0.0227 | sessions/2026-08-09-phase-20k-the-open-page-never-gets-the-figures.md |
 
 Phase 17 (prod data continuity) is still open and still optional, in
 `docs/next-phases.md`. Phase 18 was pulled forward of both remaining phases
@@ -3040,6 +3041,90 @@ before/after pair in `docs/sessions/2026-08-09-phase-20j-packing-measure.log`.
   confirmed before anything runs, and the teardown of either environment is the
   line to watch for the cost. Measure with `make measure-page` either side of any
   later layout change; the figures above are the new before.
+
+### Phase 20k — The cycle the page was built for, watched  ✅ DONE 2026-08-09
+The live cycle the cursor had named since 20g, run further than 20h's: stage up
+(`deploy-stage #31328897257`), promoted to prod through the approval gate
+(`promote-prod #31329925499`), then `destroy prod #42` and `destroy stage #43`.
+Summary in
+`docs/sessions/2026-08-09-phase-20k-the-open-page-never-gets-the-figures.md`,
+the runs, the gate, both prices and the teardown reading in
+`docs/sessions/2026-08-09-phase-20k-cycle-evidence.log`.
+- Criteria: 20i's tense clauses and 20j's packing seen against real records
+  rather than fixtures; a figure in the cost box; the rendering half exercised.
+  All met, and the rendering half answered with a defect.
+- **THE FINDING: the open page never gets the figures.** `readRunLayer()` reads
+  `timeline/<env>/nodes-apply.json`, `nodes-destroy.json`, `latest.json`,
+  `results/<env>/latest.json` and `cost/<env>/latest.json`, and it is called
+  ONCE, in the bootstrap chain. `tick()` polls `status/*.json` and the GitHub
+  runs; the `Refresh` button calls `tick(true)`. So the words refresh and the
+  figures never do. Four symptoms, one root: a green promotion left phase 6
+  reading `not run yet` (worse than the `done` it showed while running), a green
+  prod teardown left its node `not run yet` while the published record said
+  `measured` at 467s, prod's price could not reach the cost box, and `Refresh`
+  changed only the words. Untouched for three minutes — six bucket polls at the
+  cadence the page prints about itself — it did not converge; one hard reload
+  fixed all four, predicted before it was pressed. **No fixture could have found
+  this**: `measure-page` mocks every remote source and never polls, and every
+  gate here lifts a pure block and hands it data. The defect is in WHEN the page
+  asks.
+- **Cost is a lifetime, measured twice on the same environment.** stage cost
+  `$0.052648 .. $0.0581` against 20h's `$0.0178 .. $0.0235` with the identical
+  breakdown, `32 created: 3 priced, 25 free, 4 not metered, 0 UNPRICED`, because
+  it stood about three times as long while prod was promoted and torn down.
+  ADR-0045's claim, asked of two cycles rather than argued from one. prod priced
+  for the first time ever: `$0.017217 .. $0.022735`,
+  `34 created: 3 priced, 27 free, 4 not metered, 0 UNPRICED`.
+- **The prod approval gate, witnessed live and twice.** Rules real
+  (`required_reviewers`, `branch_policy`, `can_admins_bypass false`, one
+  reviewer, `prevent_self_review false`), the run paused, a human approved — and
+  again for the teardown, since `destroy.yml` declares `environment: prod` too.
+  Note for the next session that checks it: `pending_deployments` does NOT
+  distinguish "never paused" from "already approved" — both read empty. The
+  `approvals` endpoint does, and asking the wrong one nearly produced a finding.
+- Confirmed live, first time on prod: 20i's four tense clauses, ADR-0043's
+  per-step binding (`seed assertion` running while `smoke` beside it had not
+  started), 20c's `its phase is running · which node is unknown` with the other
+  environment's node in the same phase NOT lit, and `not measured here` on the
+  three nodes no timeline can carry.
+- Two non-findings, recorded as such. A 403 on `cost/stage/latest.json` was the
+  CHAT's own fetch tool: the object was in the bucket and the devbox got 200 for
+  all three URLs — and settling it cost the stage apply's observation window,
+  which does not come back. And phase 8 unlit at 1m39s of a teardown was the map
+  being right: its binding is two steps and neither had started.
+- Two reader data, filed beside the decisions they are about, neither a defect:
+  the legend was never opened (ADR-0048 D2 made it a closed cut, and the person
+  watching the cycle asked what a coloured edge meant instead — 20h's cost line
+  again), and at rest the BRIGHTEST things on the page are the teardown nodes
+  and the test suites, while everything the cycle built is dimmed. Both rules are
+  deliberate (ADR-0051's destroy exemption; the suite's own channel); their sum
+  was decided by nobody.
+- Changed here: `<base target="_blank">` in the template head, so a run log no
+  longer takes the reader off the dashboard. One `base` rather than a `target`
+  per anchor — four links here are static and eight are built by string
+  concatenation. No ADR: a one-line preference with its reasoning beside it.
+- Validation:
+```bash
+  make site-page-check site-data-check docs-check
+  make page-tense-check
+  make live-state-check
+```
+  and the teardown against the AWS CLI, with a permanent level as the control in
+  the same block under `set -e`: `ecs`, `rds`, `alb`, `nat`, `eks` all empty
+  while `CONTROL ecr aws-devops-sdet-demo-app` is not. No NAT gateway, no EKS.
+- Cost: **$0.052648 .. $0.0581** (stage) and **$0.017217 .. $0.022735** (prod),
+  computed by the fold under test. Nothing else created; both environments
+  verified gone.
+- Next allowed step: **the page re-reads its figures.** The run layer is fetched
+  once and everything the map draws numbers from comes with it, so a reader who
+  leaves the tab open — which is what a dashboard is for — sees fresh words over
+  figures from whenever the page happened to load. The fix is a decision, not a
+  patch: what re-reads, on which cadence, and whether the page's own sentence
+  about its cadence must then cover it. Whatever is chosen needs a gate, because
+  nothing here can currently see a stale fetch: every existing check lifts a pure
+  block and hands it data, and `measure-page` mocks the sources. Take the mirror
+  clause with it — a phase a live cycle has not reached yet says `not run yet`,
+  the same words as one that never ran. $0: no cycle is needed for either.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

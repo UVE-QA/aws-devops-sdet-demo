@@ -6,6 +6,47 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
+**As of 2026-08-09 (20k — the live cycle the page was built for).** The step the
+cursor had named since 20g, stepped over three times, run at last and run
+further than 20h's: stage up, promoted to prod through the approval gate, then
+both environments torn down and both priced.
+
+**The page cannot deliver its own figures to a reader who leaves the tab open.**
+`readRunLayer()` fetches the five things the map draws numbers from — both node
+files, the timeline, the suite results and the cost — and it is called once, in
+the bootstrap chain. The poll loop reads `status/*.json` and the GitHub runs;
+the Refresh button calls the poll. So the WORDS refresh and the FIGURES never
+do, and the combination is worse than staleness: a green promotion left the
+phase reading `not run yet`, which is what a phase that never ran says, minutes
+after the same phase had said `done`. A green prod teardown left its node the
+same way while the published record said `measured` at 467s, prod's price could
+not reach the cost box, and Refresh only ever changed the sentence around the
+old numbers. Untouched for three minutes — six polls at the cadence the page
+prints about itself — it did not converge; one hard reload fixed all four, and
+that reload was a prediction written down before it was pressed. Nothing here
+could have found this: every gate lifts a pure block and hands it data, and
+`measure-page` mocks all three remote sources and never polls. The defect is in
+WHEN the page asks.
+
+**Cost is a lifetime, and now it has been measured twice on the same
+environment.** stage cost `$0.052648 .. $0.0581` against 20h's
+`$0.0178 .. $0.0235`, with a breakdown identical to the digit — it simply stood
+about three times as long, waiting through a promotion and a prod teardown.
+prod was priced for the first time in the project's history:
+`$0.017217 .. $0.022735`. And the prod approval gate was witnessed live, twice,
+since the teardown declares the prod environment as well.
+
+Everything 20i fixed on fixtures held against real records — the four tense
+clauses, ADR-0043's per-step binding, 20c's `which node is unknown` — and two
+non-findings were written down as such, one of them the chat's own fetch tool
+returning 403 for an object that was sitting in the bucket, at the cost of the
+stage apply's observation window.
+
+Next: **the page re-reads its figures.** What re-reads, on what cadence, and a
+gate for it, because no check here can currently see a stale fetch. $0.
+
+---
+
 **As of 2026-08-09 (20j — the packing, and the floor it was folded at).** 20g's
 two leftovers, the word break 20g reverted a fix for, and 20i's unsettled
 +67px — all four on fixtures, $0, no cycle. **ADR-0052.**
