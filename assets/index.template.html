@@ -53,6 +53,25 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>aws-devops-sdet-demo &mdash; public dashboard</title>
+    <!-- EVERY LINK LEAVES IN A NEW TAB. Decided from live use on 2026-08-09:
+         following a run log took the reader off the dashboard they were in the
+         middle of watching, and a status page is a thing you keep open.
+
+         ONE `base` rather than a `target` on each anchor. Four of the links on
+         this page are static and eight are built by string concatenation in the
+         script below, so the per-anchor fix is the shape this project already
+         refuses: a rule that has to be remembered at every future call site, and
+         one forgotten `target` is a behaviour that is inconsistent in a way
+         nobody notices until they lose their place again.
+
+         No `href` is set here, so relative URLs resolve exactly as before. The
+         only `#` reference on this page is an SVG `<use>`, which is not a link
+         and which `base target` does not touch.
+
+         Consequence, accepted rather than overlooked: the published Playwright
+         report opens in a new tab too. It is a separate artifact, and the reason
+         for the change covers it. -->
+    <base target="_blank" />
     <meta
       name="description"
       content="Live status of a deploy - test - approve - promote - destroy pipeline on AWS: environment state read from AWS, run stages read from the public GitHub Actions API."
