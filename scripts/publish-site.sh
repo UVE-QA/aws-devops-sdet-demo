@@ -45,6 +45,7 @@ aws s3 sync "$src" "s3://${SITE_BUCKET}/" \
   --exclude "reports/*" \
   --exclude "timeline/*" \
   --exclude "results/*" \
+  --exclude "cost/*" \
   --only-show-errors
 
 echo "::group::bucket contents"

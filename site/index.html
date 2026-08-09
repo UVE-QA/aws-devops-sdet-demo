@@ -587,6 +587,12 @@
         four-second security group and a four-minute database cannot share one screen at
         true scale. The seconds beside it are exact. Per-resource detail is under the cut.
       </p>
+      <!-- 20f. One line, and where it belongs on the page is 20e's question.
+           A BAND, never one end of it: nothing in the event stream can see the
+           instant AWS starts charging, and for RDS the two ends were 62% apart
+           (ADR-0045). Rendering the low end alone would make a claim the fold
+           declined to make. -->
+      <p class="approx" id="cost-line" hidden></p>
 
       <details class="detail" id="detail">
         <summary>The same thing in words, with every resource named</summary>
@@ -1644,6 +1650,10 @@
           // there is to say it about. Two more sources, and neither is the
           // timeline's: a suite is observed by its report, never by Terraform.
           results: {}, inventory: null,
+          // What the CYCLE cost, folded from both of its timelines by the
+          // teardown (ADR-0045, wired in 20f). Absent until a teardown has
+          // priced one, which is a fourth publishing rule and not the others'.
+          cost: {},
         };
 
         function readJSON(path) {
@@ -1662,6 +1672,7 @@
             // whatever happened, unlike the node figures. A suite that failed is
             // not a half-measurement, it is the result.
             wanted.push([`results:${env}`, readJSON(`results/${env}/latest.json`)]);
+            wanted.push([`cost:${env}`, readJSON(`cost/${env}/latest.json`)]);
           });
           return Promise.all(wanted.map((w) => w[1])).then((results) => {
             results.forEach((doc, i) => {
@@ -1685,6 +1696,8 @@
                 RUNSTATE.inventory = doc.suites || null;
               } else if (wanted[i][0].indexOf("results:") === 0) {
                 RUNSTATE.results[wanted[i][0].slice(8)] = doc;
+              } else if (wanted[i][0].indexOf("cost:") === 0) {
+                RUNSTATE.cost[wanted[i][0].slice(5)] = doc;
               } else if (doc.status && doc.status !== "complete") {
                 RUNSTATE.unfinished.push({ environment: doc.environment, status: doc.status, at: doc.written_at });
               }
@@ -1695,7 +1708,32 @@
               if (n.duration_s) longest = Math.max(longest, n.duration_s);
             });
             MAXDUR = longest;
+            renderCostLine();
           });
+        }
+
+        /* The one line 20f puts on the page. Three things it will not do: show a
+           single figure instead of the band, show a cost without the DATE of the
+           cycle it came from, or call itself anything but an estimate. All three
+           are ADR-0045, and the third is ADR-0026's rule about sources applied to
+           money - no billing API is consulted anywhere in this project. */
+        function renderCostLine() {
+          const el = $("#cost-line");
+          if (!el) return;
+          const parts = ENVS.map((env) => {
+            const c = RUNSTATE.cost[env];
+            if (!c || !c.cycle || c.cycle.status !== "closed") return null;
+            const usd = c.cycle.usd || {};
+            if (typeof usd.low !== "number" || typeof usd.high !== "number") return null;
+            const when = (c.cycle.finished_at || "").slice(0, 10);
+            return `<b>${env}</b> $${usd.low.toFixed(4)} .. $${usd.high.toFixed(4)}` +
+                   (when ? ` &mdash; the cycle of ${when}` : ``);
+          }).filter(Boolean);
+          el.hidden = !parts.length;
+          if (!parts.length) return;
+          el.innerHTML = `Last cycle, ${parts.join("; ")}. A <b>computed estimate</b>, not a
+            bill: resource lifetimes multiplied by a dated rate table, expressed as a band
+            because nothing in Terraform's stream can see the instant AWS starts charging.`;
         }
 
         /* ==== RUN-LAYER STATE MACHINE - begin =================================

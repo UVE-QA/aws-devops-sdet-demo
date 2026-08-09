@@ -174,11 +174,59 @@ if [ -n "$node_states_json" ] && [ -s "$node_states_json" ]; then
       --cache-control "max-age=60" \
       --only-show-errors
     echo "published node states (${states_kind}, ${states_unknown} unknown): ${base_url}/timeline/${env_name}/nodes-${states_kind}.json"
+    # 20f: THE ANCHOR THE TEARDOWN WILL PRICE AGAINST — written here, on the same
+    # kind and the same completeness that already gate the numbers above, so the
+    # anchor and those numbers can never disagree about which cycle they are.
+    #
+    # A lifetime spans two runs, so fold-cost.py needs the apply TIMELINE and its
+    # per-resource windows, which the node states aggregate away. latest.json
+    # cannot be the anchor: this environment's teardown overwrites it minutes
+    # from now, and a second destroy would then pair itself with the first.
+    if [ "$states_kind" = "apply" ] && [ -n "$timeline_json" ] && [ -s "$timeline_json" ]; then
+      aws s3 cp "$timeline_json" "s3://${SITE_BUCKET}/timeline/${env_name}/apply.json" \
+        --content-type application/json \
+        --cache-control "max-age=60" \
+        --only-show-errors
+      echo "published the apply anchor: ${base_url}/timeline/${env_name}/apply.json"
+    fi
   else
     echo "node states NOT published: this ${states_kind} is ${states_status}, and the map's numbers only ever come from a cycle that finished"
   fi
 else
   echo "no node states to publish (looked at: '${node_states_json:-<none>}')"
+fi
+
+# ---- what the cycle cost, when both halves of it exist ----------------------
+# ADR-0045, wired in 20f. Keyed exactly like the timeline and the results, and
+# for the same reason: the run-id object is immutable evidence and latest.json is
+# what the page reads at rest.
+#
+# Only a CLOSED cycle is published. An open one is a real thing fold-cost.py can
+# produce - priced to an instant - but it goes stale by the second, and a figure
+# that ages silently on a public page is the claim this project keeps retracting.
+# The teardown is the only place this runs, so closed is also the normal case.
+#
+# EVERY FIGURE HERE IS A BAND. Anything downstream that renders one end alone is
+# making a claim the fold declined to make.
+cost_json="${COST_JSON:-}"
+if [ -n "$cost_json" ] && [ -s "$cost_json" ]; then
+  cost_status="$(jq -r '.cycle.status // "unknown"' "$cost_json")"
+  if [ "$cost_status" = "closed" ]; then
+    cost_key="${run_id}${GITHUB_JOB:+-${GITHUB_JOB}}"
+    for key in "$cost_key" latest; do
+      aws s3 cp "$cost_json" "s3://${SITE_BUCKET}/cost/${env_name}/${key}.json" \
+        --content-type application/json \
+        --cache-control "max-age=60" \
+        --only-show-errors
+    done
+    cost_low="$(jq -r '.cycle.usd.low' "$cost_json")"
+    cost_high="$(jq -r '.cycle.usd.high' "$cost_json")"
+    echo "published cost (COMPUTED ESTIMATE, \$${cost_low} .. \$${cost_high}): ${base_url}/cost/${env_name}/${cost_key}.json"
+  else
+    echo "cost NOT published: this cycle is ${cost_status}, and only a closed one has a lifetime to price"
+  fi
+else
+  echo "no cost to publish (looked at: '${cost_json:-<none>}')"
 fi
 
 # ---- the run block ---------------------------------------------------------

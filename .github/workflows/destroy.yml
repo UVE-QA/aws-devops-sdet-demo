@@ -322,6 +322,45 @@ jobs:
           --timeline /tmp/timeline-${{ inputs.environment }}.json
           --out /tmp/nodes-${{ inputs.environment }}.json
 
+      # What the cycle cost (ADR-0045, wired in 20f). The meter is a LIFETIME, so
+      # this needs both halves: the teardown that just ran, and the apply that
+      # created what it removed. The anchor is timeline/<env>/apply.json,
+      # published under the same condition as the map's at-rest numbers.
+      #
+      # Fetched over HTTPS from the public dashboard rather than from S3. The
+      # object is already public, so a read that needs NO credential cannot be
+      # the reason a teardown fails, and no IAM grant has to be invented for it.
+      #
+      # continue-on-error DELIBERATELY. A refusal from the pairing rule must not
+      # redden a destroy job: a red teardown holds the launch lock (19f, 19g),
+      # and an estimate on a dashboard is not worth that trade. The refusal is
+      # loud in the log and the cost object is simply absent - which the publish
+      # step then says out loud rather than passing over in silence.
+      #
+      # No --nodes, on purpose. Phase attribution folded from the TEARDOWN's
+      # phases alone would answer "where did the money go" with a window that
+      # covers a twentieth of the lifetime, and 20d's finding was that five
+      # sixths of a cycle accrues outside every phase. A missing key is honest;
+      # a partial attribution reads like a whole one.
+      - name: Price the cycle from its two timelines
+        if: always()
+        continue-on-error: true
+        env:
+          SITE_BASE_URL: ${{ vars.SITE_URL }}
+        run: |
+          set -uo pipefail
+          anchor="/tmp/timeline-apply-${{ inputs.environment }}.json"
+          if ! curl -fsS --retry 2 \
+               "${SITE_BASE_URL}/timeline/${{ inputs.environment }}/apply.json" -o "$anchor"; then
+            echo "no apply anchor published for ${{ inputs.environment }} — nothing to price this teardown against"
+            exit 0
+          fi
+          python3 scripts/fold-cost.py \
+            --environment "${{ inputs.environment }}" \
+            --apply "$anchor" \
+            --destroy "/tmp/timeline-${{ inputs.environment }}.json" \
+            --out "/tmp/cost-${{ inputs.environment }}.json"
+
       - name: Configure AWS credentials (OIDC, publish role)
         if: always()
         uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
@@ -338,4 +377,5 @@ jobs:
           JOB_STATUS: ${{ job.status }}
           TIMELINE_JSON: /tmp/timeline-${{ inputs.environment }}.json
           NODE_STATES_JSON: /tmp/nodes-${{ inputs.environment }}.json
+          COST_JSON: /tmp/cost-${{ inputs.environment }}.json
         run: scripts/publish-status.sh ${{ inputs.environment }} /tmp/observation.json
