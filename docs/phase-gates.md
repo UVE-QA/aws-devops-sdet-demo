@@ -44,6 +44,7 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 20c   | The suites answer for themselves | ✅ done — the page reads both sources | sessions/2026-08-08-phase-20c-the-suites-answer-for-themselves.md + sessions/2026-08-08-phase-20c-a-node-answers-for-its-own-step.md |
 | 20d   | Cost, computed from lifetimes  | ✅ done — the reconciliation clause retired, not deferred | sessions/2026-08-08-phase-20d-cost-is-a-lifetime.md |
 | 20f   | The fold runs in the cycle     | ✅ done — no cycle ordered, $0 | sessions/2026-08-08-phase-20f-the-cost-fold-runs-in-the-cycle.md |
+| 20e.0 | Dashboard discovery + sketch   | ✅ done — no code, $0 | sessions/2026-08-09-phase-20e-discovery-and-sketch.md |
 
 Phase 17 (prod data continuity) is still open and still optional, in
 `docs/next-phases.md`. Phase 18 was pulled forward of both remaining phases
@@ -2510,6 +2511,58 @@ nobody held, in the one place a session goes to find out what to do next.
   that costs neither of ADR-0039 D4's variants. Separately and smaller: the
   wired fold has never run live, so the next teardown of either environment is
   worth watching for the cost line appearing.
+  *(Discovery ran on 2026-08-09 and renamed its own phase. "Navigable" was the
+  wrong target — see the section below and ADR-0047.)*
+
+### Phase 20e.0 — The dashboard is composed, not scrolled  ✅ DONE 2026-08-09
+Discovery and a sketch. No implementation. **ADR-0047**, and the summary in
+`docs/sessions/2026-08-09-phase-20e-discovery-and-sketch.md`.
+- Criteria: what a visitor is trying to reach, established before a line of
+  layout; the requirement restated in the words it was given in; a sketch built
+  from real data, measured. All met.
+- **"Navigable" was the wrong target, and the discovery is what found it.** A
+  section index would have made a long strip traversable; the requirement is
+  that it stop being a long strip — a dashboard, composed in blocks, showing
+  where things are, how they connect, which tools are used and in what order,
+  with the detail under cuts. The desktop monitor is the primary target.
+- The complaint measured rather than quoted: 3.6 screens at 1920x1080 and 10.5
+  at 390x844, with **0 in-page anchors, 0 `<nav>`, 0 sticky elements** — the
+  page has no navigation affordance at all. The per-cycle map is 46% of it, and
+  the repository link sits in the footer at 100% of scroll depth.
+- **A channel nobody had measured.** Five of the map's six states are carried by
+  a 1px border and nothing else; three are under WCAG 1.4.11's 3:1 floor in the
+  light theme (working 2.67, done 2.41, suite 1.98), and the pulse fades a 1px
+  ring to `opacity: 0`. The first measurement was WRONG and caught itself:
+  `color-mix()` resolves to `color(srgb 0.44 …)`, the parser divided by 255, and
+  six colours came back at 20.92:1. Re-measured with a control reading 21:1 for
+  black on white in both notations.
+- The tools are missing, not just their marks: Terraform, Docker, Playwright,
+  pytest and Alembic appear nowhere on the map. Named in text (ADR-0047 D4);
+  vendor marks are separate work, as `assets/github-logo/NOTICE.md` already is.
+- The sketch — `docs/sessions/2026-08-09-phase-20e-sketch.html`, real topology
+  and suite data, placeholder run figures, and it says so on its own face — is
+  1.1 screens at 1920x1080 and 1.0 at 2560x1440, with 0 boxes overflowing their
+  own parent at any of the four viewports. Measured per-parent, not against the
+  document, which is 20a's lesson: the document measure would have missed the
+  74px table overflow it caught on the phone.
+- Open and named: the Launch button has no place in the composition, the legend
+  has no home, a compact node has nowhere for durations and suite counts, the
+  phone is 4.2 screens and deferred, the contrast gate does not exist yet, and
+  the map's column span total is a literal that must become computed.
+- Validation:
+```bash
+  make docs-check
+  make site-data-check
+```
+- Cost: nothing. No cycle, no AWS call, nothing applied. `site/` and `assets/`
+  untouched.
+- Next allowed step: **20e.1 — the composition implemented on the real page.**
+  `assets/index.template.html`, rebuilt with `make site-page`, gated by
+  `make site-page-check`. Take the four open items in order of what blocks
+  layout: the Launch button and the legend decide space, the node's duration and
+  counts decide the node, the phone comes last. The contrast floor of ADR-0047
+  D6 needs a gate before the palette moves again, and it should be broken on
+  purpose once like every other gate here.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

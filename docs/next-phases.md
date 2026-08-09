@@ -1176,64 +1176,72 @@ The page gets ONE line — *last cycle: $low .. $high, computed estimate, dated*
 and no more. WHERE that number belongs is 20e's question; that it is reachable at
 all is this one's.
 
-### 20e — the dashboard is navigable  [UI/UX, discovery first, after 20f]
+### 20e — the dashboard is composed, not scrolled  [discovery DONE 2026-08-09]
 
-**Deferred on 2026-08-08 by the person who asked for it, and restated here.**
-What stood in this section was assembled while watching the first live cycle, and
-one of its five lines — *captions: the per-node prose moves into hover* — was a
-spontaneous example, not a decision. It had been written down as plan, with a
-costed collision worked out beneath it, which is precisely how a later session
-implements something believing it was chosen. Withdrawn as a proposal, kept as a
-record that it never was one.
-
-The requirement in the words it was actually given: the dashboard should be
-compact and informative, and today it is **a long strip you cannot navigate** —
-it is not clear how or where to move to reach the thing you need at that moment.
-That is a WAYFINDING problem, and it is not the same complaint as density. A
-denser page with no route through it is the same defect in less space.
-
-So the phase opens with a discovery step of its own, before a line of layout is
-written — a layout phase assembled from spontaneous examples is how hover got in
-here. It runs after 20f, so the numbers it has to place already exist.
-
-Three findings from the reading of 2026-08-08, recorded so the phase does not
-rediscover them:
+**ADR-0047.** The discovery step ran and the requirement it found is not the one
+this section carried. "Wayfinding" was close and wrong in the way that costs a
+phase: a section index would have made a long strip traversable, which is not
+the same as not being a long strip. The requirement, in the words it was given
+in on 2026-08-09:
 
 ```text
-the node prose is    .meta / .asserts / .counts are not captions. They are the
-not decoration       page saying what it does NOT know - "its phase is running,
-                     which node is not published until the cycle ends" - which
-                     is ADR-0043 D4 verbatim. Putting them behind hover, a
-                     disclosure, or anything else restores the silence that ADR
-                     exists to end
-skyline breaks the   a free tetris pack can place phase 7 above phase 6. The
-reading order        order events happened in sits in ADR-0039 D5's
-                     `generated, exact` row: the layout may approximate, the
-                     sequence may not. A pack constrained to a monotone reading
-                     path recovers less of the wasted space and is the only
-                     version that leaves the arrows meaning something
-the weight is not    measured, rather than assumed: the whole of the body markup
-the text             is 3.0% of site/index.html. The icon sprite is 32.9% and
-                     the two scripts 49.7%. "Compact" here can only mean less
-                     scrolling and a clearer route - it cannot mean fewer bytes,
-                     and cutting prose to get them would buy nothing
+it should look like a DASHBOARD, not a long list of resources
+the main thing is visual: where things are, how they connect, WHICH TOOLS are
+  used, in what order
+composed in blocks
+all the extra detail below the first screen, under cuts
 ```
 
-The timer question stays open, and it is smaller than it looked: ADR-0043 already
-reserved the pulse for a node that owns a running step, so a clock has a rule
-available without buying either of ADR-0039 D4's costed per-resource variants —
-drawn on a node that owns its step, left on the phase header for a node that
-inherits. Recorded as available, not as decided.
+The desktop monitor is the primary target, stated in the same breath. The phone
+is last in the queue.
 
-Order: 20a, 20b, 20c, 20d are done. **20f next, then 20e** — out of alphabetical
-order on purpose. The letter 20e is already used, in ADR-0045 and in a dated
-session summary, to mean the phase that RENDERS the cost; this project does not
-rewrite a session record to free up a name.
+What discovery measured, at four viewports, with three remote sources
+unreachable — so the figures understate the live page:
 
-Whole phase was budgeted under $0.20 of real money. It ran under it: the only
-cycle any of 20a-20d needed is 20c's, and 20d's own fold prices that cycle at
-$0.0183 .. $0.0238 — with the rest of the phase costing one free price-list read
-and nothing else.
+```text
+1920x1080  3866px 3.6 screens    1440x900  3866px  4.3 screens
+2560x1440  3866px 2.7 screens    390x844   8835px 10.5 screens
+
+in <main>: 0 in-page anchors, 0 <nav>, 0 sticky or fixed elements
+the per-cycle map is 46% of the page on a laptop, 53% on a phone
+the repository link is in the footer, at 100% of scroll depth
+```
+
+The three findings recorded on 2026-08-08 all held. The prose under a node is
+ADR-0043 D4's disclosure and is NOT hidden (ADR-0047 D3); the sequence stays
+exact, so the packing may not reorder phases (ADR-0039 D5); and "compact" cannot
+mean fewer bytes, since the body markup is 3.0% of the page.
+
+Two findings the discovery added, both measured:
+
+```text
+five of the map's six states are carried by a 1px border and nothing else, and
+three of them are under WCAG 1.4.11's 3:1 floor in the light theme. The pulse
+fades a 1px ring to opacity 0, so it is legible for a fraction of each beat.
+This is not a regression - it is a channel nobody had measured.
+
+the tools are missing, not just their icons. Terraform, Docker, Playwright,
+pytest and Alembic appear NOWHERE on the map; TEST does not distinguish
+Playwright from pytest.
+```
+
+The sketch is `docs/sessions/2026-08-09-phase-20e-sketch.html`, built from the
+real topology and suite data with placeholder run figures, and it says so on its
+own face. It measures 1.1 screens at 1920x1080 and 1.0 at 2560x1440.
+
+**Still open, and named rather than dropped:**
+
+```text
+- the Launch button (Phase 19, endpoint live) has no place in the composition
+- the legend has no home now that the state encoding changed
+- where a node's duration and a suite's counts live inside a compact node
+- the phone, at 4.2 screens, deferred deliberately
+- the contrast gate ADR-0047's consequences call for does not exist yet
+- the map's column span total must be COMPUTED in the generator; the sketch
+  carries it as a literal, which is a known stale number
+```
+
+Implementation has not started. Nothing in `site/` or `assets/` changed.
 
 ## Deliberately out of scope
 
