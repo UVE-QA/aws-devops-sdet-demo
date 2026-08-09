@@ -1,0 +1,309 @@
+=================================================================
+Phase 20i - break test of make page-tense-check
+Every break is made in assets/index.template.html and BUILT, so the
+gate reads it out of site/index.html the way a visitor's browser would.
+Repository at 66f98c3, clean tree. date: 2026-08-09T15:25:03Z
+=================================================================
+
+### CONTROL 0 - green before anything is broken
+$ make page-tense-check
+node scripts/check-page-tense.mjs
+ok    a-destroyed-environment-does-not-read-as-a-live-one
+ok    a-figure-printed-during-a-run-belongs-to-the-cycle-before-it
+ok    a-live-environment-keeps-the-colour-it-earned
+ok    a-node-no-timeline-can-carry-never-says-not-run-yet
+ok    a-node-with-no-record-still-says-not-run-yet
+ok    a-page-at-rest-is-describing-the-cycle-it-is-showing
+ok    a-reading-that-could-not-be-checked-is-not-a-verdict
+ok    a-run-history-that-could-not-be-read-is-not-a-cycle
+ok    an-environment-is-what-the-panel-above-the-map-says-it-is
+ok    an-incomplete-record-is-not-this-blocks-to-answer
+ok    the-node-that-did-the-destroying-keeps-its-figures
+
+11 cases, 23 calls: the page says when its figures are true
+exit=0
+
+=================================================================
+### BREAK 1 - a run WAITING for approval is treated as no run at all
+The approval gap is the longest phase in a promotion and publishes nothing.
+Dropping `waiting` is a one-clause defect that leaves the label right for
+every other in-flight state - the shape a review passes over.
+-----------------------------------------------------------------
+$ git diff --stat assets/index.template.html
+ assets/index.template.html | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+$ make page-tense-check
+node scripts/check-page-tense.mjs
+ok    a-destroyed-environment-does-not-read-as-a-live-one
+FAIL  a-figure-printed-during-a-run-belongs-to-the-cycle-before-it
+      figuresAreOlder({"run":{"status":"waiting"},"environments":{}})
+        expected true
+        got      false
+ok    a-live-environment-keeps-the-colour-it-earned
+ok    a-node-no-timeline-can-carry-never-says-not-run-yet
+ok    a-node-with-no-record-still-says-not-run-yet
+ok    a-page-at-rest-is-describing-the-cycle-it-is-showing
+ok    a-reading-that-could-not-be-checked-is-not-a-verdict
+ok    a-run-history-that-could-not-be-read-is-not-a-cycle
+ok    an-environment-is-what-the-panel-above-the-map-says-it-is
+ok    an-incomplete-record-is-not-this-blocks-to-answer
+ok    the-node-that-did-the-destroying-keeps-its-figures
+
+page-tense-check: 1 of 11 cases disagree with the page
+make: *** [Makefile:300: page-tense-check] Error 1
+exit=2
+
+=================================================================
+### BREAK 2 - a stale reading is believed
+The panel draws `unknown` when the newest run disagrees with the status file.
+Dropping the staleness clause makes the map firmer than the panel it took the
+value from - and the value it would believe is the one a running teardown is
+about to invalidate.
+-----------------------------------------------------------------
+$ git diff --stat assets/index.template.html
+ assets/index.template.html | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+$ make page-tense-check
+node scripts/check-page-tense.mjs
+ok    a-destroyed-environment-does-not-read-as-a-live-one
+ok    a-figure-printed-during-a-run-belongs-to-the-cycle-before-it
+ok    a-live-environment-keeps-the-colour-it-earned
+ok    a-node-no-timeline-can-carry-never-says-not-run-yet
+ok    a-node-with-no-record-still-says-not-run-yet
+ok    a-page-at-rest-is-describing-the-cycle-it-is-showing
+FAIL  a-reading-that-could-not-be-checked-is-not-a-verdict
+      envTense({"run":{"status":"completed"},"environments":{"stage":{"state":"destroyed","stale":true}}}, "stage")
+        expected "unknown"
+        got      "destroyed"
+      envTense({"run":{"status":"completed"},"environments":{"stage":{"state":"up","stale":true}}}, "stage")
+        expected "unknown"
+        got      "up"
+ok    a-run-history-that-could-not-be-read-is-not-a-cycle
+ok    an-environment-is-what-the-panel-above-the-map-says-it-is
+ok    an-incomplete-record-is-not-this-blocks-to-answer
+ok    the-node-that-did-the-destroying-keeps-its-figures
+
+page-tense-check: 1 of 11 cases disagree with the page
+make: *** [Makefile:300: page-tense-check] Error 1
+exit=2
+
+=================================================================
+### BREAK 3 - the node nothing can measure goes back to 'not run yet'
+The exact defect 20h watched: build.ecr and stage.migrate had just run and the
+page said they had not. This is the clause that ended it, disabled.
+-----------------------------------------------------------------
+$ git diff --stat assets/index.template.html
+ assets/index.template.html | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+$ make page-tense-check
+node scripts/check-page-tense.mjs
+ok    a-destroyed-environment-does-not-read-as-a-live-one
+ok    a-figure-printed-during-a-run-belongs-to-the-cycle-before-it
+ok    a-live-environment-keeps-the-colour-it-earned
+FAIL  a-node-no-timeline-can-carry-never-says-not-run-yet
+      nodeTense({"id":"build.ecr","kind":"service","service":"ecr","observer":"actions","env":"stage"}, null, "up")
+        expected {"word":"not measured here","note":"its step is in Actions, not in a timeline","cls":"unobserved","gone":false}
+        got      {"word":"not run yet","note":"","cls":"","gone":false}
+      nodeTense({"id":"stage.migrate","kind":"task","service":"ecs","observer":"actions","env":"stage"}, null, "destroyed")
+        expected {"word":"not measured here","note":"its step is in Actions, not in a timeline","cls":"unobserved","gone":false}
+        got      {"word":"not run yet","note":"","cls":"","gone":false}
+      nodeTense({"id":"gate.human","kind":"gate","service":"human","observer":"actions","env":"prod"}, null, "unknown")
+        expected {"word":"not measured here","note":"its step is in Actions, not in a timeline","cls":"unobserved","gone":false}
+        got      {"word":"not run yet","note":"","cls":"","gone":false}
+ok    a-node-with-no-record-still-says-not-run-yet
+ok    a-page-at-rest-is-describing-the-cycle-it-is-showing
+ok    a-reading-that-could-not-be-checked-is-not-a-verdict
+ok    a-run-history-that-could-not-be-read-is-not-a-cycle
+ok    an-environment-is-what-the-panel-above-the-map-says-it-is
+ok    an-incomplete-record-is-not-this-blocks-to-answer
+ok    the-node-that-did-the-destroying-keeps-its-figures
+
+page-tense-check: 1 of 11 cases disagree with the page
+make: *** [Makefile:300: page-tense-check] Error 1
+exit=2
+
+=================================================================
+### BREAK 4 - a destroyed environment reads as a live one again
+stage verified gone, every icon at full colour. The clause removed, the word
+returns to `measured` and `gone` to false - which is the picture, in data.
+-----------------------------------------------------------------
+$ git diff --stat assets/index.template.html
+ assets/index.template.html | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+$ make page-tense-check
+node scripts/check-page-tense.mjs
+FAIL  a-destroyed-environment-does-not-read-as-a-live-one
+      nodeTense({"id":"stage.rds","kind":"service","service":"rds","observer":"terraform","env":"stage"}, {"state":"measured","duration_s":512,"resources_observed":4,"resources_complete":4}, "destroyed")
+        expected {"word":"destroyed","note":"these figures are from the cycle that ended","cls":"unobserved","gone":true}
+        got      {"word":"measured","note":"","cls":"","gone":false}
+ok    a-figure-printed-during-a-run-belongs-to-the-cycle-before-it
+ok    a-live-environment-keeps-the-colour-it-earned
+ok    a-node-no-timeline-can-carry-never-says-not-run-yet
+ok    a-node-with-no-record-still-says-not-run-yet
+ok    a-page-at-rest-is-describing-the-cycle-it-is-showing
+ok    a-reading-that-could-not-be-checked-is-not-a-verdict
+ok    a-run-history-that-could-not-be-read-is-not-a-cycle
+ok    an-environment-is-what-the-panel-above-the-map-says-it-is
+ok    an-incomplete-record-is-not-this-blocks-to-answer
+ok    the-node-that-did-the-destroying-keeps-its-figures
+
+page-tense-check: 1 of 11 cases disagree with the page
+make: *** [Makefile:300: page-tense-check] Error 1
+exit=2
+
+=================================================================
+### BREAK 5 - the teardown erases the evidence that it ran
+The opposite failure, and the reason a control sits beside every red case: a
+fix that greys everything in a destroyed environment greys the destroy node
+too, which is the ONE node a teardown measured.
+-----------------------------------------------------------------
+$ git diff --stat assets/index.template.html
+ assets/index.template.html | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+$ make page-tense-check
+node scripts/check-page-tense.mjs
+ok    a-destroyed-environment-does-not-read-as-a-live-one
+ok    a-figure-printed-during-a-run-belongs-to-the-cycle-before-it
+ok    a-live-environment-keeps-the-colour-it-earned
+ok    a-node-no-timeline-can-carry-never-says-not-run-yet
+ok    a-node-with-no-record-still-says-not-run-yet
+ok    a-page-at-rest-is-describing-the-cycle-it-is-showing
+ok    a-reading-that-could-not-be-checked-is-not-a-verdict
+ok    a-run-history-that-could-not-be-read-is-not-a-cycle
+ok    an-environment-is-what-the-panel-above-the-map-says-it-is
+ok    an-incomplete-record-is-not-this-blocks-to-answer
+FAIL  the-node-that-did-the-destroying-keeps-its-figures
+      nodeTense({"id":"destroy.stage","kind":"service","service":"destroy","observer":"terraform","env":"stage"}, {"state":"measured","duration_s":512,"resources_observed":4,"resources_complete":4}, "destroyed")
+        expected {"word":"measured","note":"","cls":"","gone":false}
+        got      {"word":"destroyed","note":"these figures are from the cycle that ended","cls":"unobserved","gone":true}
+
+page-tense-check: 1 of 11 cases disagree with the page
+make: *** [Makefile:300: page-tense-check] Error 1
+exit=2
+
+=================================================================
+### BREAK 6 - REFUSAL: the marker is renamed
+The marker is the whole coupling between the page and the gate. Renaming one
+end must not leave a gate that quietly checks nothing - the empty result that
+reads as clean, which this repository has been caught by twice.
+-----------------------------------------------------------------
+$ make page-tense-check
+node scripts/check-page-tense.mjs
+page-tense-check: REFUSED
+expected exactly one begin marker and one end marker in site/index.html, found 1 and 0. The block this gate checks is identified by them; renaming one leaves the gate testing nothing at all.
+make: *** [Makefile:300: page-tense-check] Error 1
+exit=2 (make's status; the script itself exits 1)
+
+=================================================================
+### BREAK 7 - REFUSAL: the block is correct and nothing asks it
+THE ONE THE CASES CANNOT SEE. Every case above tests what the block ANSWERS.
+A block that is right and unused renders exactly the page 20h found, and all
+eleven cases stay green. Here the phase header stops calling figuresAreOlder()
+and keeps every other caller - so the only reader left is the re-render
+signature at the bottom of the page, which is why the check looks for the call
+outside the block rather than for a specific one.
+-----------------------------------------------------------------
+$ make page-tense-check
+node scripts/check-page-tense.mjs
+ok    a-destroyed-environment-does-not-read-as-a-live-one
+ok    a-figure-printed-during-a-run-belongs-to-the-cycle-before-it
+ok    a-live-environment-keeps-the-colour-it-earned
+ok    a-node-no-timeline-can-carry-never-says-not-run-yet
+ok    a-node-with-no-record-still-says-not-run-yet
+ok    a-page-at-rest-is-describing-the-cycle-it-is-showing
+ok    a-reading-that-could-not-be-checked-is-not-a-verdict
+ok    a-run-history-that-could-not-be-read-is-not-a-cycle
+ok    an-environment-is-what-the-panel-above-the-map-says-it-is
+ok    an-incomplete-record-is-not-this-blocks-to-answer
+ok    the-node-that-did-the-destroying-keeps-its-figures
+
+11 cases, 23 calls: the page says when its figures are true
+exit=0 (make's status; the script itself exits 1)
+
+=================================================================
+### BREAK 8 - REFUSAL: the cases are gone
+A gate with nothing to check is not a green gate. The directory is moved
+away rather than emptied, so both the missing-directory and the
+no-cases paths are on the same run.
+-----------------------------------------------------------------
+$ make page-tense-check   # cases/ moved away
+node scripts/check-page-tense.mjs
+page-tense-check: REFUSED
+tests/fixtures/page-tense/cases does not exist
+make: *** [Makefile:300: page-tense-check] Error 1
+exit=2 (make's status)
+
+$ make page-tense-check   # cases/ present and empty
+node scripts/check-page-tense.mjs
+page-tense-check: REFUSED
+no cases found. A gate with nothing to check is not a green gate.
+make: *** [Makefile:300: page-tense-check] Error 1
+exit=2 (make's status)
+
+=================================================================
+### CONTROL 9 - green again, everything restored
+$ git status --short
+$ make page-tense-check
+ok    the-node-that-did-the-destroying-keeps-its-figures
+
+11 cases, 23 calls: the page says when its figures are true
+exit=0
+
+=================================================================
+### BREAK 7 FAILED TO BREAK, AND THE GATE WAS RIGHT TO STAY GREEN
+The reading above is not evidence that the coupling check works. Two things
+were wrong with the probe, and only the first was mine:
+
+  the check asks for AT LEAST ONE call outside the block, and the probe removed
+  one of two. The re-render signature still called figuresAreOlder(), so the
+  page really was still asking - green was the correct answer to the question
+  actually posed
+
+  and then, removing BOTH calls, it was STILL green. The phase header's own
+  COMMENT reads "figuresAreOlder() is that question". A coupling check
+  satisfied by prose about the coupling is exactly the instrument this
+  repository keeps catching itself with, and it was found only because a break
+  test that failed to break was pushed on instead of written up.
+
+Fixed in scripts/check-page-tense.mjs: comments are stripped before the search.
+Both probes re-run below against the fixed gate.
+-----------------------------------------------------------------
+
+--- 7a  ONE of the two callers removed - the page still asks, so still green
+$ make page-tense-check
+ok    a-run-history-that-could-not-be-read-is-not-a-cycle
+ok    an-environment-is-what-the-panel-above-the-map-says-it-is
+ok    an-incomplete-record-is-not-this-blocks-to-answer
+ok    the-node-that-did-the-destroying-keeps-its-figures
+
+11 cases, 23 calls: the page says when its figures are true
+
+--- 7b  BOTH callers removed - the block is correct and nothing asks it
+$ make page-tense-check
+node scripts/check-page-tense.mjs
+page-tense-check: REFUSED
+figuresAreOlder() is defined in the PAGE TENSE block and called nowhere outside it.
+The page would render exactly as it did before the block existed, and every case in this gate would still pass.
+make: *** [Makefile:300: page-tense-check] Error 1
+
+=================================================================
+### CONTROL 10 - green on the fixed gate, clean tree
+$ git status --short
+ M scripts/check-page-tense.mjs
+$ make page-tense-check
+ok    the-node-that-did-the-destroying-keeps-its-figures
+
+11 cases, 23 calls: the page says when its figures are true
+exit=0
+$ make site-page-check
+site-page-check: site/index.html matches the template
+$ make live-state-check
+12/12 observations fold as the page says they do
+$ make docs-check
+6 documents checked, 0 findings
+=================================================================

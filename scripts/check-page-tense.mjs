@@ -62,6 +62,13 @@ function refuse(why) {
   process.exit(1);
 }
 
+/** Comments out, so a sentence ABOUT a call cannot stand in for the call. */
+function strip(source) {
+  return source
+    .replace(/\/\*[\s\S]*?\*\//g, " ")
+    .replace(/(^|[^:])\/\/[^\n]*/g, "$1");
+}
+
 /** Lift the block out of the built page and evaluate it in its own context. */
 function loadTense() {
   if (!fs.existsSync(PAGE)) {
@@ -107,7 +114,16 @@ function loadTense() {
   // This is a coupling check, not a rendering check: it says the answer is
   // asked for, never that it reaches the pixels. What draws a node is not in a
   // liftable block and is not gated here.
-  const outside = html.slice(0, html.indexOf(BEGIN)) + html.slice(html.indexOf(END));
+  //
+  // COMMENTS ARE STRIPPED FIRST, and finding that out cost the break test its
+  // first reading: the phase header's own comment says "figuresAreOlder() is
+  // that question", so the check passed with every call to it deleted. A
+  // coupling check satisfied by PROSE ABOUT the coupling is the instrument
+  // this repository keeps catching itself with. The stripper is deliberately
+  // crude - block comments, then `//` to end of line unless it is preceded by
+  // a colon, which is every URL in this file - and it is allowed to be, because
+  // its only failure mode is refusing a page that is fine, loudly.
+  const outside = strip(html.slice(0, html.indexOf(BEGIN)) + html.slice(html.indexOf(END)));
   for (const name of API) {
     if (outside.indexOf(name + "(") === -1) {
       refuse(
