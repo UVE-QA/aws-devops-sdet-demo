@@ -1,0 +1,93 @@
+=================================================================
+Phase 20i - the two instruments the chat's sandbox could not run
+Run on the devbox, 2026-08-09, with both 20i patches applied and a
+clean tree. Neither is a break test: contrast-check is a gate that
+was already broken on purpose in 20e.1, measure-page has no verdict
+at all.
+=================================================================
+
+$ make contrast-check
+node scripts/check-contrast.mjs
+control  - black on white must read 21.00 through every notation the CSS uses
+  light   21.00  black on white, hex
+  light   21.00  black on white, color-mix -> color(srgb ...)
+  dark    21.00  black on white, hex
+  dark    21.00  black on white, color-mix -> color(srgb ...)
+
+state encoding - floor 3.0:1 (WCAG 1.4.11), boundary against the node's own background
+  state          light    dark
+  live           4.63    7.62
+  failed-now     3.17    3.29
+  working        3.22    4.76
+  done           3.37    5.35
+  suite          3.38    5.50
+  absent         1.15    1.12   exempt - the word carries it
+
+contrast-check: 6 states, both themes, none under the floor
+
+  SIX STATES, AND THE MAP NOW DRAWS SEVEN. `.node.gone` is not in the
+  contract and does not need to be: it adds no colour. It was written
+  into `.node.absent`'s own selector list, so it IS absent's boundary,
+  including absent's exemption - and the exemption's reason is the one
+  this phase leaned on everywhere else, that the word carries it. Here
+  the word is `destroyed`.
+
+=================================================================
+
+$ make measure-page   (full output in the session's terminal; the
+                       height table below is what it is compared on)
+
+                        20g AFTER   20i        delta
+  at-rest   2560 closed     1734px    1734px      +0
+  at-rest   2560 open       8319px    8345px     +26
+  at-rest   1920 closed     1742px    1742px      +0
+  at-rest   1920 open       8327px    8353px     +26
+  at-rest   1440 closed     2123px    2123px      +0
+  at-rest   1440 open       8909px    8935px     +26
+  at-rest    390 closed     4774px    4842px     +68
+  at-rest    390 open      16603px   16762px    +159
+  in-flight 2560 closed     1760px    1760px      +0
+  in-flight 2560 open       8435px    8460px     +25
+  in-flight 1920 closed     1790px    1790px      +0
+  in-flight 1920 open       8450px    8476px     +26
+  in-flight 1440 closed     2190px    2190px      +0
+  in-flight 1440 open       9046px    9072px     +26
+  in-flight  390 closed     4841px    4908px     +67
+  in-flight  390 open      17073px   17231px    +158
+
+  Overflow is unchanged in kind and in size: the history table, 169.13px
+  past its parent at rest and 174.55px in flight, exactly the figures 20e
+  recorded and 20g left. No new box overflows anything, at any viewport.
+
+-----------------------------------------------------------------
+WHAT THIS DID NOT MEASURE, and it is the one thing it was run for
+-----------------------------------------------------------------
+The cost box is HIDDEN in both fixture sets. Neither carries
+`cost/<env>/latest.json`, so `renderCostLine()` finds nothing to say and
+leaves the box with its `hidden` attribute - which is the correct
+behaviour and means its height was never on the page being measured.
+
+So "+0 on every desktop viewport" is NOT "the cost box costs nothing".
+It is "the cost box was not there". The distinction is the empty result
+that looks clean, arriving from the fixtures rather than from the tool.
+
+-----------------------------------------------------------------
+THE PHONE GREW AND THE DESKTOP DID NOT, WHICH IS NOT OBVIOUS
+-----------------------------------------------------------------
+Measured: +67/68px on 390 with every cut CLOSED, +0 on 2560, 1920 and
+1440 with every cut closed.
+
+HYPOTHESIS, NOT VERIFIED. Three nodes now carry a longer state line -
+`not measured here - its step is in Actions, not in a timeline` where
+they used to carry `not run yet` - so each wraps to more lines. All
+three are ALONE in their phase (ECR push in Build, migrate + seed in
+Provision, the human gate in Approve), and on a desktop the map's row
+height is set by the tallest phase in the row, which is stage-apply with
+seven nodes. So the growth is absorbed there and shows up directly on
+the phone, where the map is one column.
+
+What would settle it: measure the three phases' own heights either side,
+rather than the document's. That is the same move 20a's lesson already
+demands - ask the box about its own container - and it is left to the
+session that does the packing, which will be measuring phase heights
+anyway.

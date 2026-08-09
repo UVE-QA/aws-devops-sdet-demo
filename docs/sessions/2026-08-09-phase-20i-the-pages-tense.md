@@ -175,12 +175,35 @@ about the gate is wrong; the ORDER was. A validation run taken before the last
 file of a session is a validation run of a different session, and the only
 reason it cost a round trip rather than a wrong claim is that the gate exists.
 
-Not run here, and it should be run on the devbox where a browser exists:
+Then on the devbox, where a browser exists —
+`docs/sessions/2026-08-09-phase-20i-page-tense-measure.log`:
 
 ```bash
-make measure-page         # the cost box adds a row under the map
-make contrast-check       # .node.gone reuses .node.absent's palette
+make contrast-check       # 6 states, both themes, none under the floor
+make measure-page         # no verdict; compared against 20g's after-table
 ```
+
+`contrast-check` is green and needed no contract entry: `.node.gone` was
+written into `.node.absent`'s own selector list, so it IS absent's boundary,
+exemption included — and the exemption's reason is this phase's own, that the
+word carries it. Here the word is `destroyed`.
+
+**`measure-page` measured everything except the thing it was run for.** Neither
+fixture set carries `cost/<env>/latest.json`, so `renderCostLine()` finds
+nothing to say and the box keeps its `hidden` attribute. `+0px on every desktop
+viewport` therefore does not mean the cost box costs nothing — it means the cost
+box was not on the page being measured. The empty result that looks clean,
+arriving from the fixtures this time rather than from the tool.
+
+What it did measure is a delta nobody predicted: **+67/68px on the phone with
+every cut closed, and +0 on 2560, 1920 and 1440.** Overflow is unchanged in kind
+and size — the history table, 169.13px and 174.55px, exactly 20e's figures. The
+hypothesis is in the log and is NOT verified: the three nodes that gained a
+longer state line are each alone in their phase, and a desktop row takes its
+height from the tallest phase in it, which is stage-apply with seven nodes. The
+measurement that would settle it is per-phase rather than per-document — 20a's
+own lesson — and it belongs to the session that repacks the map, which will be
+taking those heights anyway.
 
 ## What this session did not do
 

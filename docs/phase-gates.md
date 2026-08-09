@@ -2916,10 +2916,29 @@ All four clauses the cursor named, on fixtures, $0. Summary in
   the first is the finding: `site-data-check` counts the files in
   `docs/decisions/`, the chat had run it BEFORE writing ADR-0051, and it went
   red on the devbox with the patch already applied. A validation run before the
-  last file of the session is a validation run of a different session. `make
-  measure-page` and `make contrast-check` were NOT run: the chat's sandbox has
-  no browser, and both need the Playwright install that lives with the suites.
-  Run them on the devbox.
+  last file of the session is a validation run of a different session.
+- Then on the devbox, in
+  `docs/sessions/2026-08-09-phase-20i-page-tense-measure.log`:
+```bash
+  make contrast-check
+  make measure-page
+```
+  `contrast-check` green — `.node.gone` adds no colour, being written into
+  `.node.absent`'s own selector list, so it inherits that state's boundary and
+  its exemption, and the word `destroyed` is what carries it.
+- **`measure-page` could not measure the one thing it was run for.** Neither
+  fixture set carries `cost/<env>/latest.json`, so the cost box keeps its
+  `hidden` attribute: `+0px on every desktop viewport` means the box was not on
+  the page, NOT that it costs nothing. A third fixture set — a priced cycle —
+  would exercise it, and must not be folded into the existing two, whose heights
+  20e and 20g were decided on.
+- **The phone grew 67/68px with every cut closed and the desktop did not.**
+  Overflow unchanged in kind and size (the history table, 169.13px / 174.55px,
+  exactly 20e's figures). The hypothesis — three nodes with a longer state line,
+  each alone in its phase, absorbed on a desktop by a row whose height comes from
+  stage-apply's seven — is written down and NOT verified. Settling it needs a
+  per-phase measurement rather than a per-document one, which is 20a's lesson and
+  is the packing session's own instrument.
 - **Named rather than omitted:** the gate proves what the block ANSWERS and that
   something asks it. It does not prove the answer reaches the pixels — what
   draws a node needs a DOM, is in no liftable block, and is gated by nothing. A
@@ -2929,9 +2948,11 @@ All four clauses the cursor named, on fixtures, $0. Summary in
   the next push republishes the static page.
 - Next allowed step: **20g's packing, then a live cycle.** The comb at 2560 (one
   row of ten, 1582px of air under seven phases) and the ragged top row are
-  measured, named and still unpacked. The cycle after that is the first that can
-  show these four sentences against real records — and it is the only way to see
-  the rendering half, which no gate here can.
+  measured, named and still unpacked. That session measures phase heights
+  anyway, so it is also where the +67px hypothesis above gets settled. The cycle
+  after it is the first that can show these four sentences against real records,
+  the first that can put a figure in the cost box, and the only way to see the
+  rendering half, which no gate here can.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

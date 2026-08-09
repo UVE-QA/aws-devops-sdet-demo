@@ -43,6 +43,20 @@ check satisfied by prose ABOUT the thing is not a check. Comments are stripped
 now, and none of it would have been found if a break test that failed to break
 had been pushed past instead of written up. Ten probes, controls either side.
 
+**Two findings came from the devbox, and one from the session's own order.**
+`site-data-check` counts the files in `docs/decisions/`; the chat ran it before
+writing ADR-0051 and never again, so it was green in the sandbox and red on the
+devbox with the patch applied — over one integer, and caught only because the
+gate exists. `contrast-check` is green and needed no contract entry, since
+`.node.gone` was written into `.node.absent`'s own selector list and is that
+boundary, exemption included. And `measure-page` measured everything except the
+thing it was run for: neither fixture set carries `cost/<env>/latest.json`, so
+the cost box keeps its `hidden` attribute — `+0px on every desktop viewport`
+means the box was not on the page, not that it costs nothing. What it did
+measure is a delta nobody predicted, +67/68px on the phone with every cut closed
+against +0 on all three desktop widths, and the hypothesis for it is written
+down as a hypothesis.
+
 Named rather than omitted: the gate proves what the block ANSWERS and that
 something asks it, never that the answer reaches the pixels — what draws a node
 needs a DOM, is in no liftable block, and is gated by nothing. The next step is
