@@ -8,10 +8,16 @@
     "because color-mix() toward --line quietly eats contrast. This file is what",
     "refuses the next time.",
     "",
-    "It is DATA, not code, for one reason: the channel that carries a state is",
-    "about to move. Today it is the node's 1px border; after the composition",
-    "lands it is a 4px edge drawn by ::before. Moving the probe is an edit here,",
-    "not a rewrite of scripts/check-contrast.mjs.",
+    "It is DATA, not code, for one reason: the channel that carries a state was",
+    "about to move, and in 20e.1 it did. It was the node's 1px border; it is the",
+    "4px edge drawn by ::before now, and moving the probe was an edit HERE - the",
+    "six probes below and the chain above - with no change to",
+    "scripts/check-contrast.mjs at all.",
+    "",
+    "The edge is a background-COLOUR and never a gradient. A dashed edge drawn",
+    "with repeating-linear-gradient resolves `background-color` to transparent,",
+    "so the gate could not read the one state it was measuring: `working` keeps",
+    "its dashed 1px outline as the second visual cue and its 4px edge solid.",
     "",
     "The six states are the six ADR-0047 measured. A seventh state on the map",
     "means a seventh line here - a state the contract does not name is not",
@@ -24,8 +30,7 @@
 
   "chain": [
     { "tag": "main", "class": "" },
-    { "tag": "div", "class": "rows wide" },
-    { "tag": "div", "class": "row" },
+    { "tag": "div", "class": "cycle" },
     { "tag": "section", "class": "phase" },
     { "tag": "div", "class": "set" }
   ],
@@ -48,37 +53,37 @@
       "id": "live",
       "what": "running now",
       "class": "node live",
-      "probe": { "on": "self", "property": "border-top-color" }
+      "probe": { "on": "::before", "property": "background-color" }
     },
     {
       "id": "failed-now",
       "what": "failed in the run still going",
       "class": "node failed-now",
-      "probe": { "on": "self", "property": "border-top-color" }
+      "probe": { "on": "::before", "property": "background-color" }
     },
     {
       "id": "working",
       "what": "its phase is running - which node is unknown",
       "class": "node working",
-      "probe": { "on": "self", "property": "border-top-color" }
+      "probe": { "on": "::before", "property": "background-color" }
     },
     {
       "id": "done",
       "what": "finished in the run still going",
       "class": "node done",
-      "probe": { "on": "self", "property": "border-top-color" }
+      "probe": { "on": "::before", "property": "background-color" }
     },
     {
       "id": "suite",
       "what": "a test suite - observed by its report, not by Terraform",
       "class": "node suite",
-      "probe": { "on": "self", "property": "border-top-color" }
+      "probe": { "on": "::before", "property": "background-color" }
     },
     {
       "id": "absent",
       "what": "nothing recorded yet",
       "class": "node absent",
-      "probe": { "on": "self", "property": "border-top-color" },
+      "probe": { "on": "::before", "property": "background-color" },
       "exempt": [
         "DELIBERATE, and ADR-0047 D6 says so in the decision itself: the absence",
         "of state is carried by the word alone. Drawing 'nothing has happened' as",

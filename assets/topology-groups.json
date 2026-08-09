@@ -315,6 +315,7 @@
       "nodes": [
         {
           "id": "build.ecr",
+          "tool": "docker",
           "label": "ECR push",
           "service": "ecr",
           "kind": "service",
@@ -383,6 +384,7 @@
       "nodes": [
         {
           "id": "stage.migrate",
+          "tool": "alembic",
           "label": "migrate + seed",
           "service": "ecs",
           "kind": "task",
@@ -517,6 +519,7 @@
       "nodes": [
         {
           "id": "gate.human",
+          "tool": "github environments",
           "label": "a human, in the prod environment",
           "service": "human",
           "kind": "gate",

@@ -15,6 +15,14 @@
     "repeated_blocks": 9
   },
   "measured_cycle": null,
+  "layout": {
+    "wide_at": 6,
+    "wide": [
+      "stage-apply",
+      "prod-apply"
+    ],
+    "columns": 10
+  },
   "request_path": {
     "note": "the request path to prod, and the tool behind each hop",
     "editorial": "the order and the tool names are editorial; every hop cites a node this map already draws",
@@ -232,6 +240,7 @@
       "nodes": [
         {
           "id": "build.ecr",
+          "tool": "docker",
           "label": "ECR push",
           "service": "ecr",
           "kind": "service",
@@ -282,7 +291,8 @@
             "module.network.aws_subnet.private_db",
             "module.network.aws_route_table.public",
             "module.network.aws_route_table_association.public"
-          ]
+          ],
+          "tool": "terraform"
         },
         {
           "id": "stage.secrets",
@@ -295,7 +305,8 @@
           "members": [
             "module.rds.aws_secretsmanager_secret.db",
             "module.rds.aws_secretsmanager_secret_version.db"
-          ]
+          ],
+          "tool": "terraform"
         },
         {
           "id": "stage.rds",
@@ -310,7 +321,8 @@
             "module.rds.aws_security_group.rds",
             "module.rds.random_password.db",
             "module.rds.aws_db_instance.this"
-          ]
+          ],
+          "tool": "terraform"
         },
         {
           "id": "stage.alb",
@@ -326,7 +338,8 @@
             "module.alb.aws_lb_target_group.app",
             "module.alb.aws_lb_listener.http",
             "module.alb.aws_lb_listener.https"
-          ]
+          ],
+          "tool": "terraform"
         },
         {
           "id": "stage.ecs",
@@ -345,7 +358,8 @@
             "module.ecs.aws_iam_role.task",
             "module.ecs.aws_ecs_task_definition.app",
             "module.ecs.aws_ecs_service.app"
-          ]
+          ],
+          "tool": "terraform"
         },
         {
           "id": "stage.cloudwatch",
@@ -359,7 +373,8 @@
             "module.observability.aws_cloudwatch_log_group.app",
             "module.observability.aws_cloudwatch_log_metric_filter.http_5xx",
             "module.observability.aws_cloudwatch_metric_alarm.http_5xx"
-          ]
+          ],
+          "tool": "terraform"
         },
         {
           "id": "stage.budgets",
@@ -371,7 +386,8 @@
           "resources": 1,
           "members": [
             "module.budgets.aws_budgets_budget.monthly"
-          ]
+          ],
+          "tool": "terraform"
         }
       ]
     },
@@ -405,6 +421,7 @@
       "nodes": [
         {
           "id": "stage.migrate",
+          "tool": "alembic",
           "label": "migrate + seed",
           "service": "ecs",
           "kind": "task",
@@ -571,6 +588,7 @@
       "nodes": [
         {
           "id": "gate.human",
+          "tool": "github environments",
           "label": "a human, in the prod environment",
           "service": "human",
           "kind": "gate",
@@ -613,7 +631,8 @@
             "module.network.aws_subnet.private_db",
             "module.network.aws_route_table.public",
             "module.network.aws_route_table_association.public"
-          ]
+          ],
+          "tool": "terraform"
         },
         {
           "id": "prod.secrets",
@@ -626,7 +645,8 @@
           "members": [
             "module.rds.aws_secretsmanager_secret.db",
             "module.rds.aws_secretsmanager_secret_version.db"
-          ]
+          ],
+          "tool": "terraform"
         },
         {
           "id": "prod.rds",
@@ -641,7 +661,8 @@
             "module.rds.aws_security_group.rds",
             "module.rds.random_password.db",
             "module.rds.aws_db_instance.this"
-          ]
+          ],
+          "tool": "terraform"
         },
         {
           "id": "prod.alb",
@@ -657,7 +678,8 @@
             "module.alb.aws_lb_target_group.app",
             "module.alb.aws_lb_listener.http",
             "module.alb.aws_lb_listener.https"
-          ]
+          ],
+          "tool": "terraform"
         },
         {
           "id": "prod.ecs",
@@ -676,7 +698,8 @@
             "module.ecs.aws_iam_role.task",
             "module.ecs.aws_ecs_task_definition.app",
             "module.ecs.aws_ecs_service.app"
-          ]
+          ],
+          "tool": "terraform"
         },
         {
           "id": "prod.cloudwatch",
@@ -690,7 +713,8 @@
             "module.observability.aws_cloudwatch_log_group.app",
             "module.observability.aws_cloudwatch_log_metric_filter.http_5xx",
             "module.observability.aws_cloudwatch_metric_alarm.http_5xx"
-          ]
+          ],
+          "tool": "terraform"
         },
         {
           "id": "prod.dnsrec",
@@ -702,7 +726,8 @@
           "resources": 1,
           "members": [
             "aws_route53_record.app"
-          ]
+          ],
+          "tool": "terraform"
         },
         {
           "id": "prod.budgets",
@@ -714,7 +739,8 @@
           "resources": 1,
           "members": [
             "module.budgets.aws_budgets_budget.monthly"
-          ]
+          ],
+          "tool": "terraform"
         }
       ]
     },
@@ -820,7 +846,8 @@
           "env": "stage",
           "observer": "terraform",
           "resources": 30,
-          "level": "infra/envs/stage"
+          "level": "infra/envs/stage",
+          "tool": "terraform"
         },
         {
           "id": "destroy.prod",
@@ -830,7 +857,8 @@
           "env": "prod",
           "observer": "terraform",
           "resources": 31,
-          "level": "infra/envs/prod"
+          "level": "infra/envs/prod",
+          "tool": "terraform"
         }
       ]
     }

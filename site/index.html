@@ -99,8 +99,21 @@
         --state-failed: color-mix(in srgb, var(--bad) 55%, var(--line));
         --state-suite: color-mix(in srgb, var(--suite) 80%, var(--line));
         /* THE MAP'S LEGIBILITY FLOOR (ADR-0039 D5). Nothing reads these in
-           order to shrink them: the map folds instead. */
-        --node-min: 12rem;
+           order to shrink them: the map folds instead.
+
+           12rem WAS THE FLOOR FOR A DIFFERENT NODE. It was measured, by looking,
+           against a node carrying an icon, a name, a duration BAR, a figures row
+           and a monospace identifier. The composed node carries a head, one meta
+           line and one state line (ADR-0048 D3) - the bar and the figures row are
+           gone - and 12rem holds it with room for a second node beside it. At
+           12rem the eight phases could not share a row at any width this page
+           has, which is the shape ADR-0047 D5 exists to end.
+
+           --card-min is the OTHER floor, and it is the old number: the permanent
+           and outside cards under the cuts still carry a level path and a
+           sentence, so they still need the width that was measured for them. */
+        --node-min: 7rem;
+        --card-min: 12rem;
         --gap: 0.6rem;
         --arrow: 1.6rem;
       }
@@ -143,7 +156,7 @@
          Still stated without 100vw anywhere: that is the viewport INCLUDING the
          scrollbar, and the map has already been bitten once by being laid out
          against a width a scrollbar then took back. */
-      main { max-width: 82rem; margin: 0 auto; }
+      main { max-width: 96rem; margin: 0 auto; }
       h1 { font-size: 1.55rem; margin: 0 0 0.25rem; letter-spacing: -0.01em; }
       .sub { color: var(--muted); margin: 0 0 1.25rem; max-width: 46rem; }
       h2 {
@@ -234,14 +247,30 @@
          The rules below are the pilot's, unchanged - the layout was decided by
          LOOKING at it at 1440/1180/834/390, so paraphrasing it here would throw
          away the only part of this phase that was not derived. */
-      .perm { display: grid; gap: var(--gap); grid-template-columns: repeat(auto-fit, minmax(var(--node-min), 1fr)); }
+      .perm { display: grid; gap: var(--gap); grid-template-columns: repeat(auto-fit, minmax(var(--card-min), 1fr)); }
       .perm .node { border-style: dashed; }
 
-      /* ---------- phases ---------- */
-      .rows { display: flex; flex-direction: column; align-items: stretch; }
-      .row { display: flex; align-items: flex-start; gap: var(--gap); }
-      .rowdown { display: flex; padding: 0.15rem 0; }
-      .rowdown .arrow { min-height: 1.4rem; }
+      /* ---------- phases ----------
+         ONE GRID, AND ITS COLUMN COUNT IS COMPUTED (ADR-0047 D5). This was a
+         greedy serpentine of variable-width clusters with arrows between them
+         and a turn at the end of each row: correct, and a stretch of road. The
+         phases are a grid now, the sequence is carried by the number on each
+         phase rather than by an arrow, and the span TOTAL comes from
+         data/topology.json - `layout.columns`, computed in the generator from
+         how many phases there are and how many of them are wide. Nothing here
+         writes a column count; `render()` reads one and fits it to the width.
+
+         Reading order is left to right and then to the next row, so ADR-0039
+         D5's `generated, exact` row is untouched: the layout approximates, the
+         sequence does not. Grid auto-placement never reorders, and `dense` is
+         deliberately not used - it would. */
+      .cycle { display: grid; gap: var(--gap); align-items: start; }
+      .phase .pn {
+        flex: 0 0 auto; width: 1.15rem; height: 1.15rem; border-radius: 999px;
+        background: var(--accent); color: var(--panel);
+        font-size: 0.66rem; font-weight: 800;
+        display: inline-flex; align-items: center; justify-content: center;
+      }
 
       .phase {
         border: 1px solid var(--line); border-radius: 12px;
@@ -249,9 +278,19 @@
         display: flex; flex-direction: column; gap: 0.45rem;
       }
       .phase > header {
-        display: flex; align-items: baseline; gap: 0.4rem;
+        display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap;
         font-size: 0.74rem; color: var(--muted);
+        padding-bottom: 0.3rem; border-bottom: 1px solid var(--line);
       }
+      .phase > header .wf { flex-basis: 100%; }
+      /* THE TOOL, NAMED IN TEXT (ADR-0047 D4). Terraform, Docker, Playwright,
+         pytest and Alembic appeared nowhere on this map; the phase says which
+         one drives it, and each node says its own. */
+      .phase > header .tool { margin-left: auto; color: var(--accent); font-weight: 600; }
+      /* A state every node in this phase carries, said once here instead of
+         twenty-six times below it (ADR-0047 D3). */
+      .phase > header .shared { flex-basis: 100%; color: var(--muted); }
+      .phase > header .envtag.phase-env { margin-left: 0; order: -1; }
       .phase > header b {
         color: var(--fg); font-size: 0.82rem; font-weight: 700;
         letter-spacing: 0.01em;
@@ -270,15 +309,35 @@
         margin-left: auto; font-variant-numeric: tabular-nums; color: var(--muted);
       }
       .phase > header .was + .elapsed { margin-left: 0.4rem; }
-      .phase .set { display: grid; gap: var(--gap); }
+      .phase .set { display: grid; gap: 0.3rem; }
       .phase.live { border-color: var(--state-live); background: color-mix(in srgb, var(--accent) 7%, transparent); }
+      /* A phase with six or more nodes takes two columns rather than twice the
+         height. The threshold is in the DATA (layout.wide_at), so this rule only
+         has to know what `wide` looks like, not which phases are. */
+      .phase[data-wide] { grid-column: span 2; }
 
+      /* NO STATE RIDES A 1px BORDER (ADR-0047 D6). Five of the six states were
+         carried by the border and nothing else, and three of them sat under
+         WCAG 1.4.11's 3:1 floor in the light theme - not because anyone chose
+         it, but because mixing toward --line eats contrast quietly. Every state
+         now carries a 4px EDGE and a WORD, and `make contrast-check` measures
+         the edge against the node's own background in both themes.
+
+         The edge is a background-COLOUR, never a gradient: the gate reads
+         `background-color` off ::before, and a gradient resolves that to
+         transparent - a state whose channel the gate cannot read is a state
+         nobody is measuring. `working` keeps its dashed 1px outline as the
+         second visual cue, and its word says the same thing in text. */
       .node {
         position: relative;
         border: 1px solid var(--line); border-radius: 9px;
-        background: var(--panel); padding: 0.5rem 0.6rem 0.55rem;
-        display: flex; flex-direction: column; gap: 0.3rem;
-        min-width: var(--node-min);
+        background: var(--panel); padding: 0.32rem 0.42rem 0.36rem 0.55rem;
+        display: flex; flex-direction: column; gap: 0.15rem;
+        min-width: 0;
+      }
+      .node::before {
+        content: ""; position: absolute; left: -1px; top: -1px; bottom: -1px; width: 4px;
+        border-radius: 9px 0 0 9px; background-color: var(--line);
       }
       .node .head { display: flex; align-items: center; gap: 0.4rem; }
       /* Two kinds of mark, deliberately not made to look alike.
@@ -287,7 +346,7 @@
          get a project glyph — drawing them in AWS's visual language would be a
          claim about what they are. */
       .icon {
-        flex: 0 0 auto; width: 1.85rem; height: 1.85rem; border-radius: 6px;
+        flex: 0 0 auto; width: 1.4rem; height: 1.4rem; border-radius: 5px;
         border: 1px dashed var(--line); background: var(--off-bg);
         display: grid; place-items: center;
         font-size: 0.58rem; font-weight: 700; color: var(--muted); text-transform: uppercase;
@@ -295,11 +354,18 @@
       .icon.aws { border: 0; background: none; overflow: hidden; border-radius: 5px; }
       .icon.aws svg { width: 100%; height: 100%; display: block; }
       .node.absent .icon.aws { filter: grayscale(1); }
-      .node .name { font-size: 0.9rem; font-weight: 600; line-height: 1.25; }
-      .bar { height: 4px; border-radius: 3px; background: var(--off-bg); overflow: hidden; }
-      .bar > i { display: block; height: 100%; background: var(--accent); }
-      .figures { display: flex; justify-content: space-between; gap: 0.5rem; font-size: 0.72rem; color: var(--muted); }
-      .figures b { color: var(--fg); font-weight: 600; }
+      .node .name { font-size: 0.78rem; font-weight: 600; line-height: 1.2; }
+      /* ONE STATE LINE, WORD FIRST (ADR-0048 D3): `<word> · <figure>`, and no
+         separator printed when there is no figure. It replaces the duration bar,
+         the figures row and the counts line - three renderings of what a node
+         knows, stacked, in a node that has to sit in a grid cell.
+
+         The bar went with them. Its length was an approximate, non-linear
+         rendering of duration and it needed a paragraph under the map to say so;
+         the seconds it stood beside were always the exact half. */
+      .nmeta { font-size: 0.63rem; color: var(--muted); overflow-wrap: anywhere; }
+      .nstate { font-size: 0.66rem; color: var(--fg); }
+      .nstate .word { font-weight: 600; }
       .ident {
         font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
         font-size: 0.66rem; color: var(--muted);
@@ -309,12 +375,20 @@
       .meta { font-size: 0.71rem; color: var(--muted); }
 
       .node.absent { opacity: 0.45; border-style: dashed; background: transparent; }
+      .node.absent .nstate { color: var(--muted); }
       .node.live { border-color: var(--state-live); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
-      .node.live::after {
-        content: ""; position: absolute; inset: -1px; border-radius: 9px;
-        border: 1px solid var(--state-live); animation: pulse 1.6s ease-out infinite;
+      .node.live::before { background-color: var(--state-live); }
+      /* THE BEAT NEVER GOES TO ZERO. The old pulse faded a 1px ring in the
+         accent colour from opacity 0.9 to 0, so for most of every 1.6s cycle it
+         was fainter than the already-faint border it sat on - legible for a
+         fraction of each beat and invisible for the rest. This is a dot on the
+         state line, and its dimmest frame is 0.45 (ADR-0047 D6). */
+      .nstate .dot {
+        display: inline-block; width: 0.42rem; height: 0.42rem; border-radius: 999px;
+        background: var(--accent); margin-right: 0.25rem;
+        animation: beat 1.4s ease-in-out infinite;
       }
-      @keyframes pulse { 0% { opacity: 0.9; transform: scale(1); } 100% { opacity: 0; transform: scale(1.04); } }
+      @keyframes beat { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.45; transform: scale(0.7); } }
       /* Three states that are NOT "running now", and are deliberately quieter
          than it (ADR-0043 D2). `working` is a node inside a running phase that
          has no step of its own: something in that phase is happening and nothing
@@ -327,25 +401,27 @@
          is what `absent` dims for, but something is happening to it right now. */
       .node.working, .node.done, .node.failed-now { opacity: 1; }
       .node.working { border-color: var(--state-working); border-style: dashed; }
+      .node.working::before { background-color: var(--state-working); }
       .node.done { border-color: var(--state-done); }
+      .node.done::before { background-color: var(--state-done); }
       .node.failed-now { border-color: var(--state-failed); }
+      .node.failed-now::before { background-color: var(--state-failed); }
       .phase.done { border-color: var(--state-done); }
       .phase > header .finished { margin-left: auto; color: var(--ok); font-weight: 700; }
       .phase > header .was + .finished { margin-left: 0.4rem; }
 
       .node.suite { background: var(--suite-bg); border-color: var(--state-suite); }
+      .node.suite::before { background-color: var(--state-suite); }
       .node.suite .icon { border-style: solid; border-color: var(--suite); color: var(--suite); background: transparent; }
       .node.suite.absent { background: transparent; }
       .node.gate { background: var(--warn-bg); border-color: var(--warn); }
       .node.destroy { background: var(--bad-bg); border-color: color-mix(in srgb, var(--bad) 40%, var(--line)); }
-      .result { font-size: 0.71rem; font-weight: 700; }
-      .result.passed { color: var(--ok); }
-      .result.failed { color: var(--bad); }
-      .result.incomplete { color: var(--warn); }
-      .result.unobserved { color: var(--muted); }
-      /* The suite's own counts, under its verdict. Never a bar: a suite has no
-         duration worth drawing at the same scale as a database. */
-      .counts { font-size: 0.71rem; color: var(--muted); }
+      /* The verdict is the WORD on the state line, so the colour is on the word
+         rather than on a row of its own. */
+      .nstate .passed { color: var(--ok); }
+      .nstate .failed { color: var(--bad); }
+      .nstate .incomplete { color: var(--warn); }
+      .nstate .unobserved { color: var(--muted); }
 
       .envtag {
         margin-left: auto; font-size: 0.62rem; font-weight: 700; letter-spacing: 0.05em;
@@ -371,7 +447,7 @@
 
       /* The band above the cycle, and the text under the cut. Both are second
          renderings of data/topology.json - never maintained beside it. */
-      .outside { display: grid; gap: var(--gap); grid-template-columns: repeat(auto-fit, minmax(var(--node-min), 1fr)); }
+      .outside { display: grid; gap: var(--gap); grid-template-columns: repeat(auto-fit, minmax(var(--card-min), 1fr)); }
       .outside .node { opacity: 1; border-style: solid; background: var(--panel); }
       .outside .node .icon { border-style: solid; }
       /* Reserve the scrollbar always. Opening the cut makes the page taller, the
@@ -470,7 +546,8 @@
       .panel .clocks button { font-size: 0.72rem; padding: 0.1rem 0.45rem; }
       #ratelimit { flex-basis: 100%; }
       .launch { border-top: 1px solid var(--line); margin-top: 0.5rem; padding-top: 0.5rem; }
-      .launch .why { margin: 0 0 0.45rem; font-size: 0.76rem; }
+      .launch .why { margin: 0 0 0.45rem; font-size: 0.72rem; }
+      #autorefresh, #ratelimit { font-size: 0.7rem; }
       .launch #launch-result:empty { display: none; }
       .launch button { font-size: 0.8rem; font-weight: 600; border-color: var(--accent); color: var(--accent); }
 
@@ -798,12 +875,7 @@
         </details>
       </div>
       <p class="sub" id="map-sub">Reading the topology&hellip;</p>
-      <div class="rows" id="rows"></div>
-      <p class="approx" id="approx" hidden>
-        Bar length is an <b>approximate</b>, non-linear rendering of duration &mdash; a
-        four-second security group and a four-minute database cannot share one screen at
-        true scale. The seconds beside it are exact. Per-resource detail is under the cut.
-      </p>
+      <div class="cycle" id="rows"></div>
       <!-- 20f. One line, and where it belongs on the page is 20e's question.
            A BAND, never one end of it: nothing in the event stream can see the
            instant AWS starts charging, and for RDS the two ends were 62% apart
@@ -1600,23 +1672,60 @@
         // database and wrong for a two-second smoke run: rounded, the whole
         // smoke suite reads as `2s` and a 0.6s unit run reads as `1s`.
         const suiteSecs = (s) => (s < 10 ? (Math.round(s * 10) / 10).toFixed(1) + "s" : secs(s));
-        function suiteFigures(n) {
+        // A SUITE'S FIGURES, ON THE STATE LINE (ADR-0048 D3). They were a
+        // verdict row and a counts row under it; they are `passed · 31 of 33 ·
+        // 48s` now, word first, and the parts that are absent print nothing
+        // rather than an empty separator.
+        function suiteFigures(n, line) {
           const r = n.result;
           const c = r.counts || {};
           const parts = [];
-          ["passed", "failed", "skipped", "not_run", "incomplete"].forEach((k) => {
+          const total = ["passed", "failed", "skipped", "not_run", "incomplete"]
+            .reduce((t, k) => t + (c[k] || 0), 0);
+          if (c.passed && total) parts.push(`${c.passed} of ${total}`);
+          ["failed", "skipped", "not_run", "incomplete"].forEach((k) => {
             if (c[k]) parts.push(`${c[k]} ${k.replace("_", " ")}`);
           });
-          return `<div class="figures">
-                    <span class="result ${r.status}">${RESULT_WORD[r.status] || r.status}</span>
-                    <span>${r.duration_s != null ? `<b>${suiteSecs(r.duration_s)}</b>` : ""}</span>
-                  </div>
-                  <div class="counts">${parts.join(", ")}${
-                    n.result_previous ? " &mdash; from the previous run" : ""}</div>`;
+          if (r.duration_s != null) parts.push(suiteSecs(r.duration_s));
+          if (n.result_previous) parts.push("from the previous run");
+          return line(RESULT_WORD[r.status] || r.status, parts, r.status);
         }
 
-        function nodeEl(n) {
+        /* ONE STATE LINE, WORD FIRST, `<word> · <figure>` - and no separator
+           printed when there is no figure (ADR-0048 D3). Every branch below
+           renders through this, so the shape cannot drift between them; the
+           three renderings it replaces (a bar, a figures row, a counts row) each
+           had their own. */
+        function stateLine(word, figures, cls, beat) {
+          const rest = (figures || []).filter(Boolean);
+          return `<div class="nstate">${beat ? `<span class="dot"></span>` : ``}<span class="word${
+            cls ? " " + cls : ""}">${word}</span>${rest.length ? " &middot; " + rest.join(" &middot; ") : ""}</div>`;
+        }
+
+        /* WHAT A NODE'S STATE IS, before it is drawn. Split out so a PHASE can
+           ask its nodes what they would say and, when they would all say the
+           same word, say it once in its own header instead of printing it
+           twenty-six times (ADR-0047 D3). The information is stated; the
+           repetition is not. Nothing moves behind a disclosure: `not run yet`,
+           `not reported` and `its phase is running` are the things a node does
+           NOT know, and ADR-0043 D4 keeps them visible. */
+        function nodeEl(n, shared) {
           const el = document.createElement("div");
+          // Every branch below goes through this, so the shape of the line
+          // cannot drift between them - and so the word this node WOULD say is
+          // recorded whether or not it is printed. render() reads it back off
+          // the element rather than a second copy of these branches deciding it.
+          let stateWord = "";
+          const line = (word, figures, cls, beat) => {
+            stateWord = word;
+            if (shared && shared.word && shared.word === word) {
+              const rest = (figures || []).filter(Boolean);
+              return rest.length
+                ? `<div class="nstate">${beat ? `<span class="dot"></span>` : ``}${rest.join(" &middot; ")}</div>`
+                : ``;
+            }
+            return stateLine(word, figures, cls, beat);
+          };
           // ONE default, used by the class and by the body. They were two, and a
           // node with no `state` at all - which is every node until 20b observes
           // one - took the "absent" class and the MEASURED body, rendering
@@ -1639,7 +1748,7 @@
           if (n.kind === "gate") el.classList.add("gate");
           if (n.service === "destroy") el.classList.add("destroy");
 
-          const blocks = (k) => `${k} resource block${k === 1 ? "" : "s"}`;
+          const blocks = (k) => `${k} block${k === 1 ? "" : "s"}`;
           // What the repository knows about a suite without any run at all: how
           // many tests were COLLECTED from it (data/suites.json, ADR-0042 D1),
           // not how many files it happens to have.
@@ -1652,46 +1761,38 @@
             // A suite's observer is its report, and while the step is running
             // there is no report - saying `running now - report` names the thing
             // that does not exist yet.
-            body = `<div class="meta">running now &mdash; ${
-              n.kind === "suite" ? "its report arrives when the step ends" : n.observer}</div>`;
+            body = line("running now",
+              [n.kind === "suite" ? "its report arrives when the step ends" : ""], "", true);
           } else if (phaseLive) {
             // FINDING, 20c: every node of a running phase said "running now"
             // while Terraform was creating exactly one of them. The page cannot
             // know which, so it says that instead of picking.
-            body = `<div class="meta">its phase is running &mdash; which node is not published
-                    until the cycle ends</div>`;
+            body = line("its phase is running", ["which node is unknown"]);
           } else if (run && (run.state === "finished" || run.state === "failed") &&
                      !(n.kind === "suite" && n.result)) {
             // FINDING, 20c: a phase that had FINISHED fell back to "nothing
             // recorded yet", which is what a phase that never ran says. The
             // figures are real, they are just not published until the end.
-            body = `<div class="meta">${run.state === "failed" ? "failed" : "finished"} in the run
-                    still going &mdash; figures publish when the cycle ends</div>`;
+            body = line(run.state === "failed" ? "failed in this run" : "finished in this run",
+              ["figures publish when the cycle ends"], run.state === "failed" ? "failed" : "");
           } else if (n.kind === "suite" && n.result) {
-            body = `<div class="asserts">${n.asserts || ""}</div>${suiteFigures(n)}`;
+            body = suiteFigures(n, line);
           } else if (n.kind === "suite" && n.unobserved) {
             // Named, never coloured. ADR-0025 drawn: regression and the API
             // contract cannot reach prod, and a self-service launch runs smoke
             // alone - so a node with no report is often correct, and always
             // worth saying out loud.
-            body = `<div class="asserts">${n.asserts || ""}</div>
-                    <div class="figures"><span class="result unobserved">not reported</span></div>
-                    <div class="counts">${collected} &mdash; the ${
-                      n.result_previous ? "previous" : "last"} run here did not report this suite</div>`;
+            body = line("not reported",
+              [collected, `the ${n.result_previous ? "previous" : "last"} run here did not report this suite`],
+              "unobserved");
           } else if (st === "perm") {
             body = ""; // a permanent level has no cycle duration to report
           } else if (st === "absent") {
-            // What IS known without a cycle: what the node is made of, and what a
-            // suite asserts. Both come from the repository, so both are said.
-            body =
-              n.kind === "suite"
-                ? `<div class="asserts">${n.asserts || ""}</div>
-                   <div class="meta">${collected} &mdash; not run yet</div>`
-                : `<div class="meta">${n.resources ? blocks(n.resources) + " &mdash; " : ""}no observation yet</div>`;
+            body = line("not run yet", [n.kind === "suite" ? collected : ""]);
           } else if (st === "incomplete") {
-            // A node whose members did not all finish: no bar and no duration,
-            // because a figure taken from a group that stopped in the middle of
-            // itself is a plausible number, which is worse than none.
+            // A node whose members did not all finish: no duration, because a
+            // figure taken from a group that stopped in the middle of itself is
+            // a plausible number, which is worse than none.
             //
             // publish-status.sh does not currently publish node states from an
             // incomplete timeline, so this branch is a GUARD rather than a path
@@ -1700,30 +1801,35 @@
             // public page - which is exactly what the comment above records
             // happening the last time a state arrived that this function had no
             // branch for.
-            body = `<div class="meta">${n.resources_complete} of ${n.resources_observed} finished
-                    &mdash; the cycle did not complete</div>
-                    ${n.identifier ? `<div class="ident" title="${n.identifier}">${n.identifier}</div>` : ""}`;
+            body = line("incomplete",
+              [`${n.resources_complete} of ${n.resources_observed} finished`, "the cycle did not complete"],
+              "incomplete");
           } else if (n.kind === "suite") {
             // A suite carrying a state this function has no branch for. It must
-            // not fall through to the one below: that divides by a duration a
-            // suite does not have and prints `undefined` seconds on a public
-            // page, which is precisely what happened the last time an unbranched
+            // not fall through to the one below, which prints a duration a suite
+            // does not have - precisely what happened the last time an unbranched
             // state arrived here.
-            body = `<div class="asserts">${n.asserts || ""}</div>
-                    <div class="counts">${collected} &mdash; reported as ${st}</div>`;
+            body = line(st, [collected]);
           } else {
-            const w = Math.max(4, Math.round(100 * Math.sqrt(n.duration_s / MAXDUR)));
-            body = `<div class="bar"><i style="width:${w}%"></i></div>
-                    <div class="figures"><span><b>${secs(n.duration_s)}</b></span>${
-                      n.cost_usd ? `<span>$${n.cost_usd.toFixed(3)} computed</span>` : ""
-                    }</div>
-                    ${n.identifier ? `<div class="ident" title="${n.identifier}">${n.identifier}</div>` : ""}`;
+            body = line("measured",
+              [secs(n.duration_s), n.cost_usd ? `$${n.cost_usd.toFixed(3)} computed` : ""]);
           }
+
+          // THE TOOL, IN TEXT, ON EVERY NODE (ADR-0047 D4). Derived: `tool` in
+          // topology.json for everything Terraform makes and for the three the
+          // groups file names editorially, and the COLLECTOR out of
+          // data/suites.json for a suite - pytest and playwright were both drawn
+          // as `TEST` and neither was named anywhere.
+          const inv = n.kind === "suite" && RUNSTATE.inventory ? RUNSTATE.inventory[n.suite] : null;
+          const tool = n.tool || (inv && inv.collector) || "";
+          const meta = [tool, n.resources ? blocks(n.resources) : ""].filter(Boolean).join(" &middot; ");
+
           el.innerHTML = `<div class="head">
               ${iconEl(n.service)}
               <span class="name">${n.label}</span>
-              ${n.env ? `<span class="envtag ${n.env}">${n.env}</span>` : ""}
-            </div>${body}`;
+              ${n.env && !(shared && shared.env) ? `<span class="envtag ${n.env}">${n.env}</span>` : ""}
+            </div>${meta ? `<div class="nmeta">${meta}</div>` : ""}${body}`;
+          el.dataset.word = stateWord;
           return el;
         }
 
@@ -1879,19 +1985,25 @@
             `<p class="small" style="flex-basis:100%;margin:0.35rem 0 0">${rp.editorial}</p>`;
         }
 
-        function arrowEl(dir) {
-          const el = document.createElement("div");
-          el.className = "arrow";
-          el.textContent = dir === "right" ? "→" : dir === "left" ? "←" : "↓";
-          return el;
-        }
-
-        /* How wide a phase cluster is allowed to be, in NODE columns. Derived from
-           how many nodes it holds — never from how much room is left over. */
-        const clusterCols = (n) => (n <= 1 ? 1 : n <= 2 ? 2 : n <= 4 ? 2 : 3);
-
         let DATA = null;
 
+        /* THE MAP IS A GRID, AND ITS COLUMN COUNT COMES FROM THE DATA (ADR-0047
+           D5). What was here before was a greedy serpentine: variable-width
+           clusters packed left to right, an arrow between them, a turn at the
+           end of each row. It was exact and it was a stretch of road - 46% of
+           the page on a laptop, laid out as a strip because it grew as one.
+
+           `layout.columns` is computed in the generator from how many phases
+           there are and how many of them are wide, so no number here or in the
+           stylesheet can go stale when a phase is added. The only thing this
+           function decides is how many of those columns FIT: the legibility
+           floor is --node-min and the map folds rather than shrink past it,
+           which is ADR-0039 D5 unchanged.
+
+           Reading order stays left to right and then down. Grid auto-placement
+           preserves source order, and `dense` is deliberately not used - it
+           would fill a hole with a later phase, which is the one thing the
+           sequence may not do. */
         function render() {
           const host = $("#rows");
           host.innerHTML = "";
@@ -1899,91 +2011,103 @@
           const cs = getComputedStyle(document.documentElement);
           const nodeMin = parseFloat(cs.getPropertyValue("--node-min")) * rem;
           const gap = parseFloat(cs.getPropertyValue("--gap")) * rem;
-          const arrowW = parseFloat(cs.getPropertyValue("--arrow")) * rem;
           const W = host.clientWidth;
 
-          const built = DATA.phases.map((p) => {
-            const cols = Math.min(clusterCols(p.nodes.length), Math.max(1, Math.floor((W - 2 * gap) / (nodeMin + gap))));
-            const width = cols * nodeMin + (cols - 1) * gap + 2 * gap + 2; // padding + border
-            return { p, cols, width };
-          });
+          const layout = DATA.layout || {};
+          const want = layout.columns || DATA.phases.length;
+          const wideAt = layout.wide_at || Infinity;
+          // One column has to hold one node at the floor, plus the phase's own
+          // padding and border on both sides. Measured from the stylesheet, not
+          // written here: `.phase` padding is 0.55rem a side and its border 1px.
+          const perCol = nodeMin + gap + 2 * (0.55 * rem + 1);
+          const fits = Math.max(1, Math.floor((W + gap) / perCol));
+          // THE MAP FOLDS INTO WHOLE ROWS, and never into a stranded one. Taking
+          // `fits` directly gave nine columns of a ten-column map at 1920 and put
+          // phase 8 alone on a second row with a screen of air beside it - the
+          // exact picture ADR-0047 D5 was written after. So the total is folded
+          // into the fewest ROWS whose column count fits, which is what the
+          // sketch's breakpoints were doing by hand: 10, then 5, then 2, then 1.
+          let cols = want;
+          for (let rows = 1; rows <= want; rows++) {
+            cols = Math.ceil(want / rows);
+            if (cols <= fits) break;
+          }
+          cols = Math.max(1, Math.min(want, cols));
+          host.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
 
-          // greedy serpentine packing of variable-width clusters
-          const rows = [];
-          let cur = [], used = 0;
-          built.forEach((b) => {
-            // TWO gaps per join, not one. A row renders phase | gap | arrow | gap |
-          // phase, and the packer had been charging itself a single gap - so at
-          // 1180 the first row was 7px wider than the box it was packed into.
-          // Invisible to the pilot's check, which measured the DOCUMENT: the
-          // same blind spot that hid `.node .head`, in the same file, found by
-          // measuring the ROW against its own container instead.
-          const need = b.width + (cur.length ? arrowW + 2 * gap : 0);
-            if (cur.length && used + need > W) { rows.push(cur); cur = []; used = 0; }
-            cur.push(b);
-            used += b.width + (cur.length > 1 ? arrowW + 2 * gap : 0);
-          });
-          if (cur.length) rows.push(cur);
-
-          rows.forEach((row, ri) => {
-            const ltr = ri % 2 === 0;
-            const rowEl = document.createElement("div");
-            rowEl.className = "row";
-            if (!ltr) rowEl.style.flexDirection = "row-reverse";
-            rowEl.style.justifyContent = ltr ? "flex-start" : "flex-end";
-
-            row.forEach((b, i) => {
-              if (i > 0) rowEl.appendChild(arrowEl(ltr ? "right" : "left"));
-              const ph = document.createElement("div");
-              ph.className = "phase";
-              // The PHASE's own state, not "some node in it looks live". Those
-              // were the same thing until a node could answer for itself.
-              const pst = RUNSTATE.phase[b.p.id];
-              if (pst && pst.state === "running") ph.classList.add("live");
-              if (pst && pst.state === "finished") ph.classList.add("done");
-              ph.style.flex = "0 0 auto";
-              ph.style.width = b.width + "px";
-              // Two clocks, never both silent and never confused for each
-              // other: how long this phase has been running NOW, and how long
-              // it took the last time it finished. The second is dated, because
-              // an unlabelled duration is a claim about today.
-              const since = pst && pst.state === "running" ? pst.since : null;
-              const was = RUNSTATE.phases[b.p.id];
-              const wasText = was && was.duration_s
-                ? `<span class="was" title="measured${was.date ? " on " + was.date : ""}">${
-                    since ? "last time " : ""}${secs(was.duration_s)}</span>`
-                : ``;
-              // The third thing a phase can be, and the one that was missing:
-              // over, in a run that has not published anything yet.
-              const doneText = pst && pst.state === "finished"
-                ? `<span class="finished" title="this run, published at the end of the cycle">done</span>`
-                : pst && pst.state === "failed"
-                ? `<span class="finished" style="color:var(--bad)" title="a step of this phase failed in the run still going">failed</span>`
-                : ``;
-              ph.innerHTML = `<header><b>${b.p.n}. ${b.p.label}</b><span class="wf">${b.p.workflow}</span>${
-                wasText
-              }${doneText}${
-                since ? `<span class="elapsed" data-since="${since}">${elapsedText(since)}</span>` : ``
-              }</header>`;
-              const set = document.createElement("div");
-              set.className = "set";
-              set.style.gridTemplateColumns = `repeat(${b.cols}, minmax(${nodeMin}px, 1fr))`;
-              b.p.nodes.forEach((n) => set.appendChild(nodeEl(n)));
-              ph.appendChild(set);
-              rowEl.appendChild(ph);
+          DATA.phases.forEach((p) => {
+            // A phase with six or more nodes takes two columns instead of twice
+            // the height - unless the map has folded to one column, where two of
+            // anything is not on offer.
+            const wide = p.nodes.length >= wideAt && cols >= 2;
+            const ph = document.createElement("section");
+            ph.className = "phase";
+            if (wide) ph.dataset.wide = "1";
+            // The PHASE's own state, not "some node in it looks live". Those
+            // were the same thing until a node could answer for itself.
+            const pst = RUNSTATE.phase[p.id];
+            if (pst && pst.state === "running") ph.classList.add("live");
+            if (pst && pst.state === "finished") ph.classList.add("done");
+            // Two clocks, never both silent and never confused for each
+            // other: how long this phase has been running NOW, and how long
+            // it took the last time it finished. The second is dated, because
+            // an unlabelled duration is a claim about today.
+            const since = pst && pst.state === "running" ? pst.since : null;
+            const was = RUNSTATE.phases[p.id];
+            const wasText = was && was.duration_s
+              ? `<span class="was" title="measured${was.date ? " on " + was.date : ""}">${
+                  since ? "last time " : ""}${secs(was.duration_s)}</span>`
+              : ``;
+            // The third thing a phase can be, and the one that was missing:
+            // over, in a run that has not published anything yet.
+            const doneText = pst && pst.state === "finished"
+              ? `<span class="finished" title="this run, published at the end of the cycle">done</span>`
+              : pst && pst.state === "failed"
+              ? `<span class="finished" style="color:var(--bad)" title="a step of this phase failed in the run still going">failed</span>`
+              : ``;
+            // The phase's tool is its NODES' tools, deduplicated in order -
+            // never a second list written beside them (ADR-0047 D4). A suite
+            // contributes the collector it was inventoried by.
+            const tools = [];
+            p.nodes.forEach((n) => {
+              const inv = n.kind === "suite" && RUNSTATE.inventory ? RUNSTATE.inventory[n.suite] : null;
+              const t = n.tool || (inv && inv.collector) || null;
+              if (t && tools.indexOf(t) < 0) tools.push(t);
             });
-            host.appendChild(rowEl);
-
-            if (ri < rows.length - 1) {
-              const d = document.createElement("div");
-              d.className = "rowdown";
-              d.style.justifyContent = ltr ? "flex-end" : "flex-start";
-              const last = row[row.length - 1];
-              const a = arrowEl("down");
-              a.style.width = last.width + "px";
-              d.appendChild(a);
-              host.appendChild(d);
+            ph.innerHTML = `<header><span class="pn">${p.n}</span><b>${p.label}</b>${
+              tools.length ? `<span class="tool">${tools.join(" &middot; ")}</span>` : ``
+            }${wasText}${doneText}${
+              since ? `<span class="elapsed" data-since="${since}">${elapsedText(since)}</span>` : ``
+            }<span class="wf">${p.workflow}</span></header>`;
+            // A SHARED STATE IS SAID ONCE (ADR-0047 D3). The nodes are drawn,
+            // asked what word they carry, and drawn again without it when every
+            // one of them carries the same - and the same for the environment
+            // tag, which said STAGE seven times in a phase called `Apply -
+            // stage`. Read back off the elements rather than decided by a second
+            // copy of nodeEl's branches: one definition, two hosts is the shape
+            // that has already cost this project a scan of postgres.
+            const drawn = p.nodes.map((n) => nodeEl(n));
+            const words = drawn.map((e) => e.dataset.word || "");
+            const sharedWord = words.length > 1 && words.every((w) => w && w === words[0]) ? words[0] : null;
+            const envs = p.nodes.map((n) => n.env || "");
+            const sharedEnv = envs.length > 1 && envs.every((e) => e && e === envs[0]) ? envs[0] : null;
+            const nodes = sharedWord || sharedEnv
+              ? p.nodes.map((n) => nodeEl(n, { word: sharedWord, env: sharedEnv }))
+              : drawn;
+            if (sharedEnv) {
+              ph.querySelector("header").insertAdjacentHTML(
+                "afterbegin", `<span class="envtag ${sharedEnv} phase-env">${sharedEnv}</span>`);
             }
+            if (sharedWord) {
+              ph.querySelector("header").insertAdjacentHTML(
+                "beforeend", `<span class="shared">${sharedWord}</span>`);
+            }
+            const set = document.createElement("div");
+            set.className = "set";
+            set.style.gridTemplateColumns = `repeat(${wide ? 2 : 1}, minmax(0, 1fr))`;
+            nodes.forEach((n) => set.appendChild(n));
+            ph.appendChild(set);
+            host.appendChild(ph);
           });
         }
 
@@ -2331,12 +2455,6 @@
                     ? `the verdicts below are what a run reported — ${said.join(", ")}.`
                     : `no run has reported on them yet.`);
               })();
-            // The bar-length note describes bars, and says the seconds beside them
-            // are exact. With no cycle observed there are neither, and a paragraph
-            // explaining a thing that is not on the page is the same defect in
-            // miniature as a count that has gone stale.
-            $("#approx").hidden = !date;
-
             const c = d.counts;
             $("#outside-note").innerHTML = d.outside.note;
             $("#perm-note").innerHTML =

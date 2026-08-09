@@ -486,6 +486,18 @@ def build():
                 node = dict(n)
                 node.setdefault("env", p.get("env"))
                 nodes.append(node)
+        # THE TOOL, IN TEXT (ADR-0047 D4). Terraform, Docker, Playwright, pytest
+        # and Alembic appear nowhere on the map, and that is the half of the
+        # requirement icons could never answer. Derived where it is derivable - a
+        # node observed by terraform is made by terraform - and editorial in
+        # assets/topology-groups.json where it is not: nothing under infra/ says
+        # that docker builds the image or that alembic migrates the database.
+        # A SUITE'S TOOL IS NOT SET HERE at all: it is the `collector` in
+        # site/data/suites.json, collected by asking the suite itself, and the
+        # page reads it from there rather than keeping a second copy.
+        for n in nodes:
+            if "tool" not in n and n.get("observer") == "terraform":
+                n["tool"] = "terraform"
         live, live_findings = live_bindings(f"phase {p['id']}", p)
         if live_findings:
             raise Refusal("\n".join(live_findings))
@@ -535,6 +547,24 @@ def build():
             }
         )
     request_path = {"note": rp["note"], "editorial": rp["editorial"], "hops": hops}
+
+    # THE MAP'S COLUMN SPAN TOTAL (ADR-0047 D5), COMPUTED. `repeat(auto-fit,
+    # minmax(...))` chose a count that left phase 8 alone on a second row with a
+    # screen of air beside it, so the count is deterministic instead - and the
+    # total it needs is a fact about the data: six narrow phases and two wide
+    # ones is ten columns TODAY. Writing ten into the stylesheet is the stale
+    # literal ADR-0039 D1 exists to end, and the sketch carried it as one.
+    #
+    # A phase with WIDE_AT nodes or more takes two columns rather than twice the
+    # height. The threshold is here and not in the CSS for the same reason: the
+    # page must not be able to disagree with the number it was laid out from.
+    WIDE_AT = 6
+    wide = [p["id"] for p in phases if len(p["nodes"]) >= WIDE_AT]
+    layout = {
+        "wide_at": WIDE_AT,
+        "wide": wide,
+        "columns": len(phases) + len(wide),
+    }
 
     not_shown = []
     for g in spec["groups"]:
@@ -596,6 +626,7 @@ def build():
             "repeated_blocks": len(repeated),
         },
         "measured_cycle": None,
+        "layout": layout,
         "request_path": request_path,
         "outside": outside,
         "permanent": perm_cards,
