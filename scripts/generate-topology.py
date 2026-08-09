@@ -558,6 +558,26 @@ def build():
     # A phase with WIDE_AT nodes or more takes two columns rather than twice the
     # height. The threshold is here and not in the CSS for the same reason: the
     # page must not be able to disagree with the number it was laid out from.
+    #
+    # TRIED AT 4 AND REVERTED, WITH THE FIGURES (20j). The map's tallest phase is
+    # the quality gate - four suite nodes stacked in ONE column - and lowering
+    # this to 4 makes it wide, which is the only lever that shortens it. It was
+    # measured at both floors this session considered, and it loses at both:
+    #
+    #   at --node-min 9rem   the band goes 495 -> 365px and the page 1737 ->
+    #                        1607 at 1920, but the total becomes ELEVEN columns
+    #                        of 160.81px around a node that needs 143.69px plus
+    #                        its chrome, and measure-page reports `environment`
+    #                        broken at 1920 and not at 2560 - the 5px `main`
+    #                        gains at its 120rem cap
+    #   at --node-min 18.5rem (what the page is folded at, ADR-0052 D1) eleven
+    #                        columns fold into THREE rows of four: 2039 -> 2205
+    #                        at 1920, and 2346 -> 2219 at 1440. It buys back a
+    #                        seventh of a screen at one width by spending a
+    #                        sixth at the primary one.
+    #
+    # So the threshold stays where it is, and the phase that made it a question
+    # is simply the tallest one the map has.
     WIDE_AT = 6
     wide = [p["id"] for p in phases if len(p["nodes"]) >= WIDE_AT]
     layout = {

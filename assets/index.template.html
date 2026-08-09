@@ -98,8 +98,8 @@
         --state-done: color-mix(in srgb, var(--ok) 70%, var(--line));
         --state-failed: color-mix(in srgb, var(--bad) 55%, var(--line));
         --state-suite: color-mix(in srgb, var(--suite) 80%, var(--line));
-        /* THE MAP'S LEGIBILITY FLOOR (ADR-0039 D5). Nothing reads these in
-           order to shrink them: the map folds instead.
+        /* THE MAP'S LEGIBILITY FLOOR (ADR-0039 D5, ADR-0052 D1). Nothing reads
+           these in order to shrink them: the map folds instead.
 
            12rem WAS THE FLOOR FOR A DIFFERENT NODE. It was measured, by looking,
            against a node carrying an icon, a name, a duration BAR, a figures row
@@ -109,10 +109,37 @@
            12rem the eight phases could not share a row at any width this page
            has, which is the shape ADR-0047 D5 exists to end.
 
+           7rem WAS THE FLOOR FOR THE NODE'S SHAPE, AND THE WORDS DISAGREED. Both
+           numbers above were measured against what a node CARRIES; neither was
+           measured against what it has to DRAW, which is the question the fold
+           asks. `make measure-page` derives both answers now:
+
+             143.69px  every word whole - the widest is `environment`, 89.63px
+             295.58px  every node name on ONE LINE, nothing wrapped
+             112px     what 7rem claimed
+
+           At 7rem the fold was allowed a column narrower than the first of
+           those, and on a phone it took it: two columns of 162.7px with
+           `environme|nt` split across two lines, in the published page since
+           the composition landed.
+
+           18.5rem IS THE SECOND NUMBER, AND IT IS THE ONE CHOSEN. A node draws
+           its name, not merely enough of it to be guessed at: the floor is where
+           nothing wraps, 295.58px, rounded up to the next half rem. The map
+           folds to five columns in two rows at every desktop width and to one on
+           a phone, and it costs about 300px of page height - measured either
+           side, and the figures are in ADR-0052 rather than here, because a
+           figure in a stylesheet is a figure nobody re-measures.
+
+           9rem - where the widest word merely stops BREAKING - is the floor
+           below which the map is drawing something a reader cannot read. It is
+           not the floor this page is folded at; it is the line under which no
+           future number may go.
+
            --card-min is the OTHER floor, and it is the old number: the permanent
            and outside cards under the cuts still carry a level path and a
            sentence, so they still need the width that was measured for them. */
-        --node-min: 7rem;
+        --node-min: 18.5rem;
         --card-min: 12rem;
         --gap: 0.6rem;
         --arrow: 1.6rem;
@@ -275,8 +302,23 @@
          Reading order is left to right and then to the next row, so ADR-0039
          D5's `generated, exact` row is untouched: the layout approximates, the
          sequence does not. Grid auto-placement never reorders, and `dense` is
-         deliberately not used - it would. */
-      .cycle { display: grid; gap: var(--gap); align-items: start; }
+         deliberately not used - it would.
+
+         THE COMB, AND WHAT `stretch` DOES AND DOES NOT DO (20j, ADR-0052 D3).
+         `start` let every phase be exactly as tall as it is, so a row whose
+         height comes from its tallest ended in teeth: 1432px of air under seven
+         phases at 1920, the shortest 204px against a row of 495px. Stretching
+         them makes the row one band with one bottom edge. IT REMOVES NO AIR -
+         the same emptiness is inside the boxes now - and the honest reason to
+         prefer it is that a box which ends where its neighbours end reads as a
+         column of the same thing, which is what a phase is.
+
+         The air itself is structural at ten columns and was measured rather
+         than argued: the tallest phase is the quality gate, four suite nodes
+         stacked in ONE column because its width is one, and the only lever that
+         shortens it is a second column - which is an eleventh column the page
+         does not have (ADR-0052 D1). */
+      .cycle { display: grid; gap: var(--gap); align-items: stretch; }
       .phase .pn {
         flex: 0 0 auto; width: 1.15rem; height: 1.15rem; border-radius: 999px;
         background: var(--accent); color: var(--panel);
@@ -535,7 +577,21 @@
 
          The grid is twelve columns because three panels of unequal weight have
          to share a row: the environments panel is a short list, the request path
-         is a picture, the run panel is three lines and a disclosure. */
+         is a picture, the run panel is three lines and a disclosure.
+
+         THREE PANELS IN A ROW WERE NOT THREE OF ANYTHING (20j, ADR-0052 D2).
+         Side by side they measured 465 / 228 / 235px: one panel decided the row's
+         height and the other two ended less than half way down it, which is what
+         `the ragged top row` in 20g's list was. They are two columns now - the
+         environments panel down the left over both rows, the request path and the
+         run stacked to its right - because that is the shape the CONTENT already
+         had: 465 against 228 + 235 + a gap is 465 against 475.
+
+         It also bought back the width the request path was short of. Five hops
+         had 5/12 of the row; they have 8/12, which is 919px at 1440 instead of
+         570, and `RDS PostgreSQ|L` - measured, reverted and left on 20g's list -
+         stops breaking with no breakpoint and no 290px. The row is 69px SHORTER
+         than the three-column one it replaces. */
       .idbar {
         display: flex; flex-wrap: wrap; gap: 0.45rem 1.1rem; align-items: baseline;
         border: 1px solid var(--line); border-radius: 10px; background: var(--panel);
@@ -554,7 +610,7 @@
       }
       .top {
         display: grid; gap: 0.75rem; grid-template-columns: repeat(12, 1fr);
-        align-items: start; margin: 0.75rem 0 1.25rem;
+        align-items: stretch; margin: 0.75rem 0 1.25rem;
       }
       .panel {
         border: 1px solid var(--line); border-radius: 10px;
@@ -563,18 +619,25 @@
       }
       .panel > h2 { margin: 0 0 0.5rem; font-size: 0.72rem; }
       .panel > h2 .note { font-size: 0.72rem; }
-      .p-env { grid-column: span 3; }
-      .p-arch { grid-column: span 5; }
-      .p-run { grid-column: span 4; }
-      /* TRIED AT 1500 AND REVERTED, WITH THE FIGURE. At 1440 five hops share
-         5/12 of 1385px - about 100px each - and `RDS PostgreSQL` breaks as
-         `PostgreSQ|L`. Giving the path the full row below 1500 fixes that
-         and costs 290px of height (2123 -> 2412 at rest, 2190 -> 2480 in
-         flight): 2.4 screens becomes 2.7. A word break is cosmetic and a third
-         of a screen is not, so 1100 stays and the 1440 break goes on the list
-         for the session that repacks this row. */
+      /* Two columns, and the left one is one panel tall enough to be both rows.
+         The row order is unchanged in the source, so a reader still meets the
+         environments, then the path, then the run. */
+      .p-env { grid-column: span 4; grid-row: span 2; }
+      .p-arch { grid-column: span 8; }
+      .p-run { grid-column: span 8; }
+      /* TRIED AT 1500 AND REVERTED IN 20g, AND THE REPACK ABOVE SETTLED IT.
+         At 5/12 of 1385px the five hops had about 100px each and `RDS
+         PostgreSQL` broke as `PostgreSQ|L`. Giving the path the full row below
+         1500 fixed that and cost 290px of height (2123 -> 2412 at rest), so it
+         was reverted with its figure. At 8/12 the same hops have 184px each at
+         1440 and nothing breaks - the fix was width, and the width came from
+         packing rather than from a breakpoint. Kept here because the number is
+         what makes the second attempt readable as a decision.
+
+         Below 1100 the two columns stop being two: the path takes the whole row
+         and the environments panel gives up its second row with it. */
       @media (max-width: 1100px) {
-        .p-env { grid-column: span 6; } .p-arch { grid-column: span 12; } .p-run { grid-column: span 6; }
+        .p-env { grid-column: span 6; grid-row: auto; } .p-arch { grid-column: span 12; } .p-run { grid-column: span 6; }
       }
       @media (max-width: 680px) {
         .p-env, .p-arch, .p-run { grid-column: span 12; }
