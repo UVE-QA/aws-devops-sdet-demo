@@ -1129,54 +1129,106 @@ where NOT   the watchdog. Its job is to stop the meter inside a TTL and a free
             leftover does not tick (ADR-0041 D6)
 ```
 
-### 20e — the page is compact, and the map is the page  [$0, layout only]
+### 20f — the cost fold runs in the cycle  [$0 to write, no cycle ordered]
 
-Asked for while watching the first live cycle, which is the only condition under
-which any of it is visible. The complaint in one line: **the information is
-spread out, it takes scrolling, and the focus disperses.** More picture, less
-prose.
+20d built the computation and left it unwired, and ADR-0045 said so in its own
+consequences: *the fold is not wired into any workflow yet — it runs by hand
+against two published timelines*. So a cycle still cannot say what it cost
+without somebody running a command afterwards, which is the shape this project
+spends its sessions removing.
 
-```text
-order         the map goes UP. Today the page opens with two environment
-              panels, a step list and a history table, and the thing that
-              explains what this project IS sits below all of it
-step list     collapsed to three lines - previous, current, next - and expands
-              on demand. It is the longest block on the page and it is the one
-              a returning visitor least needs in full
-captions      the per-node prose moves into hover
-timers        onto the blocks themselves rather than beside them
-packing       TETRIS, not rows. Today the serpentine packs whole phases into
-              rows of equal height, so a one-node phase leaves a column of air
-              beside it. Provision should be able to sit UNDER Build with its
-              lower edge flush against Apply - a skyline pack rather than a
-              shelf pack. This is ADR-0039 D5's rule 2 done properly; the rule
-              already says "fold it serpentine", and a skyline is the same
-              intent with the wasted space removed
-```
+The teardown is where it belongs, because a lifetime is only closed once the
+resource is gone. `destroy.yml` already folds a timeline, joins it onto the map's
+nodes, and publishes under a role that is NOT the deploy role — so nothing here
+spends ADR-0026's separation. `scripts/fold-cost.py` stands beside
+`scripts/node-states.py`, on the same `if: always()`.
 
-**Two of these collide with decisions already taken, and the collision is the
-work.** Neither is a reason to refuse; both are a reason to decide rather than
-to discover halfway through:
+**The work is the pairing rule, not the wiring.** The fold takes two timelines
+and today believes whatever it is handed. Nothing checks that the destroy tears
+down what the apply built, and a mismatched pair does not fail: `span()` clamps a
+negative lifetime to zero, so the answer comes back small, plausible and wrong.
+That is the failure mode 20d's own break log had to re-aim a test at once
+already — a defect that crashes is cheap, and one that answers is not.
 
 ```text
-hover is not  ADR-0039 D5 makes the phone layout a first-class rendering, and
-a carrier     there is no hover on a phone. Anything moved into hover needs a
-              second home there - or it is text that has been deleted for
-              small screens only, which is worse than the text
-a timer on a  live is per PHASE, not per resource (D4), deliberately and for a
-node is a     priced reason. A clock drawn ON a node says that node is what is
-claim         running, which the page does not know. Either the timer stays at
-              phase level while looking like it belongs to the block, or D4's
-              per-resource option gets bought - it has two costed variants in
-              that ADR and neither is taken by default
+the anchor    timeline/<env>/latest.json is overwritten by ANY run, including
+              this teardown, so it cannot be the anchor - a second destroy would
+              pair itself with the first. What is wanted is the environment's
+              last COMPLETE apply, published on the rule nodes-apply.json
+              already follows: one more object beside it, not a new mechanism
+the refusals  same environment; the apply complete rather than incomplete; the
+              teardown starting no earlier than the apply finished; and the two
+              resource sets intersecting at all. The last is deliberately WEAK -
+              ADR-0038 adopts orphans before a teardown, so some deleted
+              resource the apply never created is legitimate, and a refusal on
+              any orphan at all would fire on a working cycle
 ```
 
-The size argument is worth checking rather than assuming: `site/index.html` is a
-single self-contained file with an inline icon sprite, and the sprite is 50 KB
-of the total. Measure before treating prose as the weight.
+Note the fourth. `orphan_deletes` is already computed and already in the output;
+nothing refuses on it. The detector exists — that is the whole distance between
+20d and this phase.
 
-Order: 20a, 20b, 20c, 20d — all four are done. 20e is layout only and can happen
-at any point, because it changes no data and no gate.
+The break test is not optional here and ADR-0045 named it in advance: a stage
+apply against a prod teardown, a teardown older than its apply, and a pair with
+nothing in common — each with a green control either side.
+
+The page gets ONE line — *last cycle: $low .. $high, computed estimate, dated* —
+and no more. WHERE that number belongs is 20e's question; that it is reachable at
+all is this one's.
+
+### 20e — the dashboard is navigable  [UI/UX, discovery first, after 20f]
+
+**Deferred on 2026-08-08 by the person who asked for it, and restated here.**
+What stood in this section was assembled while watching the first live cycle, and
+one of its five lines — *captions: the per-node prose moves into hover* — was a
+spontaneous example, not a decision. It had been written down as plan, with a
+costed collision worked out beneath it, which is precisely how a later session
+implements something believing it was chosen. Withdrawn as a proposal, kept as a
+record that it never was one.
+
+The requirement in the words it was actually given: the dashboard should be
+compact and informative, and today it is **a long strip you cannot navigate** —
+it is not clear how or where to move to reach the thing you need at that moment.
+That is a WAYFINDING problem, and it is not the same complaint as density. A
+denser page with no route through it is the same defect in less space.
+
+So the phase opens with a discovery step of its own, before a line of layout is
+written — a layout phase assembled from spontaneous examples is how hover got in
+here. It runs after 20f, so the numbers it has to place already exist.
+
+Three findings from the reading of 2026-08-08, recorded so the phase does not
+rediscover them:
+
+```text
+the node prose is    .meta / .asserts / .counts are not captions. They are the
+not decoration       page saying what it does NOT know - "its phase is running,
+                     which node is not published until the cycle ends" - which
+                     is ADR-0043 D4 verbatim. Putting them behind hover, a
+                     disclosure, or anything else restores the silence that ADR
+                     exists to end
+skyline breaks the   a free tetris pack can place phase 7 above phase 6. The
+reading order        order events happened in sits in ADR-0039 D5's
+                     `generated, exact` row: the layout may approximate, the
+                     sequence may not. A pack constrained to a monotone reading
+                     path recovers less of the wasted space and is the only
+                     version that leaves the arrows meaning something
+the weight is not    measured, rather than assumed: the whole of the body markup
+the text             is 3.0% of site/index.html. The icon sprite is 32.9% and
+                     the two scripts 49.7%. "Compact" here can only mean less
+                     scrolling and a clearer route - it cannot mean fewer bytes,
+                     and cutting prose to get them would buy nothing
+```
+
+The timer question stays open, and it is smaller than it looked: ADR-0043 already
+reserved the pulse for a node that owns a running step, so a clock has a rule
+available without buying either of ADR-0039 D4's costed per-resource variants —
+drawn on a node that owns its step, left on the phase header for a node that
+inherits. Recorded as available, not as decided.
+
+Order: 20a, 20b, 20c, 20d are done. **20f next, then 20e** — out of alphabetical
+order on purpose. The letter 20e is already used, in ADR-0045 and in a dated
+session summary, to mean the phase that RENDERS the cost; this project does not
+rewrite a session record to free up a name.
 
 Whole phase was budgeted under $0.20 of real money. It ran under it: the only
 cycle any of 20a-20d needed is 20c's, and 20d's own fold prices that cycle at

@@ -2425,6 +2425,44 @@ The computation. **ADR-0045**, and the summary in
   phone, and a timer drawn on a node is a claim the page cannot make. Wiring the
   fold into the destroy job is the other open thread, and it needs the pairing
   rule broken on purpose first.
+  *(SUPERSEDED the same evening. One of the two "collisions" was a collision
+  with a spontaneous example rather than with a decision, and the order of the
+  two remaining threads is reversed — see the section below.)*
+
+### Phase 20 — the plan corrected before it was followed  2026-08-08
+No code. The section of `docs/next-phases.md` that the cursor was pointing at
+described **hover** as plan, with a costed collision worked out beneath it. Asked
+about it directly, the person who wrote the request said it had been a spontaneous
+example and was never a decision — so the document had been carrying an intention
+nobody held, in the one place a session goes to find out what to do next.
+
+- That is this project's own recurring defect wearing new clothes. A stale
+  document usually says something that WAS true; this one said something that
+  never was, and it was formatted exactly like the four lines around it that
+  were. The costed collision beneath it made it read as MORE considered, not
+  less.
+- The real requirement, restated in the words it was given in: the dashboard
+  should be compact and informative, and today it is a long strip you cannot
+  navigate. That is **wayfinding**, not density — a denser page with no route
+  through it is the same defect in less space. The UI phase now opens with a
+  discovery step of its own.
+- Three findings from reading the page and ADR-0043 are recorded in the plan so
+  the UI phase does not rediscover them: the per-node prose is ADR-0043 D4's
+  disclosure and cannot be hidden behind anything; a free skyline pack can place
+  phase 7 above phase 6, and sequence is `generated, exact`; and the body markup
+  is 3.0% of `site/index.html`, so "compact" cannot mean fewer bytes.
+- The two threads swap places. Wiring the cost fold is **20f** and comes first;
+  the UI phase keeps the name **20e** and comes second, because ADR-0045 and a
+  dated session summary already use "20e" to mean the phase that renders the
+  cost, and a session record is not rewritten to free up a name.
+- Validation: none needed — no code, no gate, no infrastructure changed.
+- Cost: nothing.
+- Next allowed step: **20f — the cost fold runs in the cycle.** `fold-cost.py`
+  into `destroy.yml` beside `scripts/node-states.py`, an apply timeline anchored
+  on the rule `nodes-apply.json` already follows, and the pairing rule with its
+  four refusals. It is written and broken offline against fixtures; no cycle is
+  ordered for it. One line on the page — last cycle, the band, the date — and
+  nothing more, because where it belongs is 20e's question.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,
