@@ -1,0 +1,64 @@
+session-close's narrative check read the wrong line, and was green by coincidence
+2026-08-09, closing Phase 20e.0
+
+THE SYMPTOM
+  make session-close on the devbox, after both patches were pushed:
+
+    session-close: docs/discussion-log.md says 2026-08-08, the newest session
+    session-close: is 2026-08-09 - the narrative is behind the cursor
+
+  The narrative was NOT behind the cursor. docs/discussion-log.md line 9 read
+  "**As of 2026-08-09 (20e.0 - the dashboard is composed, not scrolled).**",
+  pushed in the same patch that produced the row it was being compared against.
+
+THE CAUSE
+  The check required the date to be followed immediately by ".**":
+
+    grep -o '\*\*As of [0-9-]*\.\*\*' docs/discussion-log.md | head -1
+
+  Every Current state block written since 2026-08-08 carries the phase in
+  parentheses between the date and the closing "**", so none of them match. The
+  expression fell through the whole file to line 514 - an entry from an earlier
+  phase, in the older format - and read ITS date.
+
+  Which lines each expression lands on, measured against the file exactly as it
+  was pushed (git show origin/main:docs/discussion-log.md):
+
+    old expression -> line 514: **As of 2026-08-08.**      reads 2026-08-08
+    new expression -> line   9: **As of 2026-08-09         reads 2026-08-09
+
+  Same file, same command, one clause changed. The two answers differ, which is
+  the whole demonstration: until they differ, a gate reading the wrong line is
+  indistinguishable from one reading the right line.
+
+WHY IT HAD NEVER SPOKEN
+  Line 514 says 2026-08-08. The newest session on 2026-08-08 was also dated
+  2026-08-08. So on every close that day the check compared a stale line against
+  a matching date and passed - not because the narrative was current, but
+  because two unrelated things happened to carry the same number. Four sessions
+  closed under it that day.
+
+  It went red on the first day the coincidence broke. It would have gone red on
+  2026-08-09 whatever the narrative said, and it would have stayed green on
+  2026-08-08 whatever the narrative said. Neither verdict was about the file it
+  claimed to be reading.
+
+THE FIX
+  Match the first "**As of <date>" whatever follows the date. The document
+  convention is left alone: reformatting a dozen Current state blocks to suit a
+  reader is fixing the wrong half, and this session started by removing a
+  document that had been written to suit an assumption.
+
+    stated="$(grep -o '\*\*As of [0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}' \
+              docs/discussion-log.md | grep -o '[0-9-]\{10\}' | head -1)"
+
+  A first attempt also rewrote the 2026-08-09 entry into the strict form, and
+  then both expressions read 2026-08-09 and the comparison proved nothing. That
+  reading is worthless in the same way the four green closes were: the
+  instrument and the subject had both been changed. Reverted, and measured
+  against the pushed file instead.
+
+NOT COVERED
+  The reader now takes the FIRST such line in the file and assumes newest-first
+  ordering. Nothing checks that ordering. INDEX has a chronological check for
+  exactly this reason and discussion-log does not; recorded, not fixed here.

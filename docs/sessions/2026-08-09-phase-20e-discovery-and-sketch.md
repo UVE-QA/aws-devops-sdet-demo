@@ -163,3 +163,25 @@ A chat cannot delete from the buffer; reported rather than left silent.
 Nothing. No cycle, no AWS API call, nothing applied. `site/` and `assets/` were
 not touched: the only generated file that changed is `site/data/topology.json`,
 whose ADR count moved with the new decision record.
+
+## The close found a gate reading the wrong line
+
+`make session-close` refused with *"docs/discussion-log.md says 2026-08-08, the
+newest session is 2026-08-09"* — while the file's first Current state block said
+2026-08-09, pushed minutes earlier.
+
+The check required `**As of <date>.**` exactly. Every Current state block written
+since 2026-08-08 carries the phase in parentheses between the date and the
+closing `**`, so none of them match, and the expression fell through the whole
+file to line 514 — an entry from an earlier phase, in the older format.
+
+It had been **green by coincidence**: line 514 says 2026-08-08, and so did the
+newest session on the day four sessions closed under it. It spoke on the first
+day those two numbers differed. Neither verdict was about the file it claimed to
+be reading.
+
+Fixed in the reader, not in the documents: reformatting a dozen blocks to suit an
+expression fixes the wrong half. Evidence in
+`docs/sessions/2026-08-09-phase-20e-session-close-break-test.log`, including the
+first attempt — which changed the entry as well, made both expressions agree,
+and therefore demonstrated nothing.

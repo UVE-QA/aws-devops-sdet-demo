@@ -78,7 +78,17 @@ else
   say "summary   docs/$summary"
 fi
 
-stated="$(grep -o '\*\*As of [0-9-]*\.\*\*' docs/discussion-log.md | grep -o '[0-9-]\{10\}' | head -1)"
+# THE FIRST 'As of' LINE, WHATEVER FOLLOWS THE DATE. This used to require
+# '**As of <date>.**' exactly, and every Current state block written since
+# 2026-08-08 carries the phase in parentheses - '**As of 2026-08-08 (20f -
+# ...).**' - which that pattern does not match. So the check fell through the
+# whole file to line 514, an entry from an earlier phase, and read ITS date.
+# It was GREEN on 2026-08-08 by coincidence: that stale line happens to say
+# 2026-08-08, and so did the newest session that day. The coincidence ended on
+# 2026-08-09 and that is the only reason it spoke. A gate reading the wrong
+# line is indistinguishable from a gate reading the right one until the two
+# answers differ.
+stated="$(grep -o '\*\*As of [0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}' docs/discussion-log.md | grep -o '[0-9-]\{10\}' | head -1)"
 if [ -z "$stated" ]; then
   bad "docs/discussion-log.md has no '**As of YYYY-MM-DD.**' in Current state"
 elif [ "$stated" != "$newest" ]; then
