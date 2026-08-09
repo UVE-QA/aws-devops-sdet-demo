@@ -83,6 +83,13 @@ jobs:
       - name: Seed DB assertion
         run: make test-db
 
+      - name: No state on the map rides a boundary the eye cannot find
+        # ADR-0047 D6, floor 3:1 (WCAG 1.4.11). Here rather than in `checks`
+        # because it renders the page's own stylesheet in chromium, and both
+        # playwright and the browser are side effects of the smoke step above -
+        # the same placement rule suite-inventory-check follows (ADR-0042 D2).
+        run: make contrast-check
+
       - name: The map's inventory still matches the suites
         # Last in this job on purpose: collecting needs the unit venv, the api
         # venv and playwright's node_modules, and each one is a side effect of a

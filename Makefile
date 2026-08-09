@@ -7,7 +7,7 @@
         self-service-package self-service-cors-check site-page site-page-check \
         site-data site-data-check timeline-check node-states-check \
         suite-inventory suite-inventory-check results-check live-state-check \
-        publish-prefixes-check
+        publish-prefixes-check contrast-check
 
 # Bring up postgres + app (build app image if needed), detached.
 local-up:
@@ -274,6 +274,25 @@ results-check:
 # the same property site-page-check exists for, arriving here for free.
 live-state-check:
 	node scripts/check-live-state.mjs
+
+# THE GATE UNDER ADR-0047 D6. Every state on the map carries a boundary, and a
+# boundary that identifies state has a 3:1 floor (WCAG 1.4.11). Three states
+# were under it and nobody had chosen that: mixing a hue toward --line eats
+# contrast quietly, and it will do it again at the next palette edit.
+#
+# It renders the BUILT page's own stylesheet in a browser rather than parsing
+# the CSS, because the engine is what resolves color-mix() - and the one
+# measurement this project has already got wrong was got wrong in a colour
+# parser, reading color(srgb 0.44 0.62 0.90) as 0..255 and reporting 20.92:1 for
+# six different colours. A control runs on every invocation: black on white must
+# read 21.00 through both notations, or the script refuses without a verdict.
+#
+# It installs nothing. Playwright and chromium are side effects of `make
+# test-smoke`, so in ci.yml this belongs in the `local-ci` job after that step,
+# for the same reason suite-inventory-check does (ADR-0042 D2) - and it refuses,
+# naming the command, rather than guessing a location.
+contrast-check:
+	node scripts/check-contrast.mjs
 
 # Two scripts share the public bucket and are not peers: publish-status.sh
 # WRITES what a run observed, publish-site.sh syncs site/ over the top of it with

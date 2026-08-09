@@ -1,0 +1,94 @@
+{
+  "_": [
+    "WHAT THE MAP'S STATE ENCODING MUST BE ABLE TO SHOW, and against what.",
+    "",
+    "ADR-0047 D6: no state rides a 1px border, and the floor is 3:1 - WCAG",
+    "1.4.11, which is the floor for a boundary that IDENTIFIES state rather than",
+    "one that decorates. Three states went under it without anybody choosing it,",
+    "because color-mix() toward --line quietly eats contrast. This file is what",
+    "refuses the next time.",
+    "",
+    "It is DATA, not code, for one reason: the channel that carries a state is",
+    "about to move. Today it is the node's 1px border; after the composition",
+    "lands it is a 4px edge drawn by ::before. Moving the probe is an edit here,",
+    "not a rewrite of scripts/check-contrast.mjs.",
+    "",
+    "The six states are the six ADR-0047 measured. A seventh state on the map",
+    "means a seventh line here - a state the contract does not name is not",
+    "checked, and the gate says so out loud rather than passing quietly."
+  ],
+
+  "floor": 3.0,
+
+  "page": "site/index.html",
+
+  "chain": [
+    { "tag": "main", "class": "" },
+    { "tag": "div", "class": "rows wide" },
+    { "tag": "div", "class": "row" },
+    { "tag": "section", "class": "phase" },
+    { "tag": "div", "class": "set" }
+  ],
+
+  "control": [
+    {
+      "id": "black on white, hex",
+      "style": "background:#ffffff;border:1px solid #000000",
+      "expect": 21.0
+    },
+    {
+      "id": "black on white, color-mix -> color(srgb ...)",
+      "style": "background:color-mix(in srgb, #ffffff 100%, #000000);border:1px solid color-mix(in srgb, #000000 100%, #ffffff)",
+      "expect": 21.0
+    }
+  ],
+
+  "states": [
+    {
+      "id": "live",
+      "what": "running now",
+      "class": "node live",
+      "probe": { "on": "self", "property": "border-top-color" }
+    },
+    {
+      "id": "failed-now",
+      "what": "failed in the run still going",
+      "class": "node failed-now",
+      "probe": { "on": "self", "property": "border-top-color" }
+    },
+    {
+      "id": "working",
+      "what": "its phase is running - which node is unknown",
+      "class": "node working",
+      "probe": { "on": "self", "property": "border-top-color" }
+    },
+    {
+      "id": "done",
+      "what": "finished in the run still going",
+      "class": "node done",
+      "probe": { "on": "self", "property": "border-top-color" }
+    },
+    {
+      "id": "suite",
+      "what": "a test suite - observed by its report, not by Terraform",
+      "class": "node suite",
+      "probe": { "on": "self", "property": "border-top-color" }
+    },
+    {
+      "id": "absent",
+      "what": "nothing recorded yet",
+      "class": "node absent",
+      "probe": { "on": "self", "property": "border-top-color" },
+      "exempt": [
+        "DELIBERATE, and ADR-0047 D6 says so in the decision itself: the absence",
+        "of state is carried by the word alone. Drawing 'nothing has happened' as",
+        "brightly as 'this failed' is a claim about importance the page should",
+        "not make. Written here because a future session reading a table of",
+        "numbers without this paragraph will 'fix' it.",
+        "",
+        "Exempt from the FLOOR, not from measurement: it is measured on every run",
+        "and printed with the rest, so a change to it is visible."
+      ]
+    }
+  ]
+}
