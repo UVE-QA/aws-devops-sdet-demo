@@ -41,6 +41,23 @@
  *   beyond-parent every box whose border edge sticks out of its PARENT'S
  *                 padding edge, by more than 1px
  *   content-wide  every box whose own content is wider than its own box
+ *   packing       every phase's height against the height of the ROW it is in,
+ *                 and the air that difference adds up to - the comb, as a
+ *                 number. Same question of the three panels above the map.
+ *   broken words  a word the line box SPLIT. A Range over one word reports one
+ *                 client rect when it sits on one line and two when it does
+ *                 not, so `environme|nt` is a measurement rather than a thing
+ *                 somebody happened to notice. Places that break long
+ *                 identifiers on purpose say so in CSS (`overflow-wrap:
+ *                 anywhere`) and are not asked.
+ *   the floor     what the narrowest node would have to be: the widest single
+ *                 word any node draws, and the whole name on one line, each
+ *                 plus the chrome around it. --node-min is a claim about this
+ *                 number, and until 20j nothing had measured it.
+ *
+ * PACKING IS MEASURED WITH THE CUTS CLOSED ONLY. Opening every <details> changes
+ * the page below the map and nothing inside it, so the second reading would be
+ * the same numbers twice.
  *
  * The document's scrollWidth is also printed, and it is the LEAST useful of the
  * three. 20a measured exactly that, at four viewports, and passed at all four
@@ -230,6 +247,127 @@ function measureInPage() {
     }
   }
 
+  // ---- the packing ---------------------------------------------------------
+  // A box against the ROW it shares, rather than against its parent. Rows are
+  // recovered from the boxes' own tops rather than from the grid, because a
+  // phase that spans two columns is still one row and a panel that spans two
+  // rows is in both - the geometry is the ground truth here, not the CSS.
+  function rowsOf(items) {
+    const rows = [];
+    for (const it of items) {
+      let row = rows.find((r) => Math.abs(r.top - it.top) < 4);
+      if (!row) { row = { top: it.top, height: 0, items: [] }; rows.push(row); }
+      row.items.push(it);
+    }
+    rows.sort((a, b) => a.top - b.top);
+    for (const r of rows) {
+      r.height = round(Math.max(...r.items.map((i) => i.height)));
+      // Against the ROW, not against the box: a stretched box IS the row's
+      // height, and the air is the part of it nothing is drawn in.
+      for (const i of r.items) i.air = round(Math.max(0, r.height - (i.filled ?? i.height)));
+    }
+    return rows;
+  }
+  const boxOf = (el, label, extra = {}) => {
+    const b = el.getBoundingClientRect();
+    return { label, top: round(b.top + window.scrollY), width: round(b.width), height: round(b.height), ...extra };
+  };
+  // FILLED, NOT JUST TALL. Since 20j the phases are stretched to their row, so a
+  // box's height stops answering "how much of it is used" - and an instrument
+  // that reported air as zero here would be hiding the comb rather than
+  // measuring it. `filled` is where the last thing in the box ends.
+  const filledHeight = (el) => {
+    const box = el.getBoundingClientRect();
+    const last = el.lastElementChild;
+    if (!last) return round(box.height);
+    const cs = getComputedStyle(el);
+    return round(last.getBoundingClientRect().bottom - box.top + parseFloat(cs.paddingBottom || "0") +
+      parseFloat(cs.borderBottomWidth || "0"));
+  };
+  const host = document.querySelector("#rows");
+  const phases = host
+    ? [...host.querySelectorAll(":scope > .phase")].map((ph) =>
+        boxOf(ph, (ph.querySelector(":scope > header b") || { textContent: "?" }).textContent.trim(), {
+          wide: ph.dataset.wide === "1",
+          nodes: ph.querySelectorAll(":scope > .set > .node").length,
+          headHeight: round(ph.querySelector(":scope > header").getBoundingClientRect().height),
+          filled: filledHeight(ph)
+        })
+      )
+    : [];
+  const panels = [...document.querySelectorAll(".top > .panel")].map((p) =>
+    boxOf(p, [...p.classList].filter((c) => c !== "panel").join(".") || "panel", { filled: filledHeight(p) })
+  );
+  const packing = {
+    columns: host ? getComputedStyle(host).gridTemplateColumns.split(" ").filter(Boolean).length : 0,
+    mapHeight: host ? round(host.getBoundingClientRect().height) : 0,
+    mapRows: rowsOf(phases),
+    topRows: rowsOf(panels)
+  };
+  packing.air = round(packing.mapRows.reduce((a, r) => a + r.items.reduce((b, i) => b + i.air, 0), 0));
+
+  // ---- a broken word -------------------------------------------------------
+  // Deliberately breakable text says so: `overflow-wrap: anywhere` is on the
+  // identifier fields, the ARNs and the long links, and it is INHERITED, so the
+  // question is asked of the text node's own parent and answers for its
+  // ancestors too.
+  const broken = [];
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+    if (!n.nodeValue || !n.nodeValue.trim()) continue;
+    const parent = n.parentElement;
+    if (!parent) continue;
+    const cs = getComputedStyle(parent);
+    if (cs.display === "none" || cs.visibility === "hidden") continue;
+    if (cs.overflowWrap === "anywhere" || cs.wordBreak === "break-all") continue;
+    const words = /[^\s]{4,}/g;
+    let m;
+    while ((m = words.exec(n.nodeValue))) {
+      const range = document.createRange();
+      range.setStart(n, m.index);
+      range.setEnd(n, m.index + m[0].length);
+      if ([...range.getClientRects()].filter((r) => r.width > 0.5).length > 1) {
+        broken.push({ word: m[0], where: pathOf(parent) });
+      }
+    }
+  }
+
+  // ---- the floor, derived --------------------------------------------------
+  // For every node the map draws: the widest single word in its name, and the
+  // whole name on one line. Each is reported as the NODE width it implies, by
+  // adding back everything between the name's box and the node's - the icon,
+  // the gaps, the padding - so the number can be compared with --node-min.
+  const floors = [];
+  for (const node of document.querySelectorAll("#rows .node")) {
+    const name = node.querySelector(".head .name");
+    if (!name) continue;
+    const chrome = node.getBoundingClientRect().width - name.getBoundingClientRect().width;
+    let widest = 0;
+    let word = "";
+    for (const tn of [...name.childNodes].filter((x) => x.nodeType === 3)) {
+      const words = /[^\s]+/g;
+      let m;
+      while ((m = words.exec(tn.nodeValue))) {
+        const range = document.createRange();
+        range.setStart(tn, m.index);
+        range.setEnd(tn, m.index + m[0].length);
+        const w = [...range.getClientRects()].reduce((a, r) => a + r.width, 0);
+        if (w > widest) { widest = w; word = m[0]; }
+      }
+    }
+    if (!widest) continue;
+    const whole = document.createRange();
+    whole.selectNodeContents(name);
+    const lines = [...whole.getClientRects()].filter((r) => r.width > 0.5);
+    floors.push({
+      word,
+      lines: lines.length,
+      wholeWord: round(widest + chrome),
+      oneLine: round(lines.reduce((a, r) => a + r.width, 0) + chrome),
+      nodeWidth: round(node.getBoundingClientRect().width)
+    });
+  }
+
   // Same shape, same place: collapse the twelve identical table rows into one
   // row with a count, keeping the worst.
   function group(list, key) {
@@ -252,6 +390,18 @@ function measureInPage() {
     docOverflowX: round(doc.scrollWidth - doc.clientWidth),
     beyondParent: group(beyondParent, (i) => i.path + " | " + i.parent),
     contentWide: group(contentWide, (i) => i.path),
+    packing,
+    broken: (() => {
+      const byKey = new Map();
+      for (const b of broken) {
+        const k = b.word + " | " + b.where;
+        const seen = byKey.get(k);
+        if (seen) seen.count += 1;
+        else byKey.set(k, { ...b, count: 1 });
+      }
+      return [...byKey.values()];
+    })(),
+    floors: floors.sort((a, b) => b.wholeWord - a.wholeWord),
     banner: (() => {
       const b = document.querySelector(".banner.bad");
       return b ? b.textContent.trim().replace(/\s+/g, " ").slice(0, 160) : null;
@@ -394,6 +544,46 @@ async function main() {
       }
       if (r.contentWide.length > top) console.log(`    ... ${r.contentWide.length - top} more`);
     }
+  }
+
+  // ---- the packing, and what it costs in air ------------------------------
+  console.log("\nthe packing - every box against the height of the row it shares\n");
+  for (const r of results) {
+    if (r.cuts !== "closed") continue;
+    console.log(`${r.fixture} · ${r.viewport} · map ${r.packing.mapHeight}px in ${r.packing.columns} columns · air ${r.packing.air}px`);
+    for (const [what, rows] of [["top", r.packing.topRows], ["map", r.packing.mapRows]]) {
+      for (const row of rows) {
+        console.log(`  ${what} row  ${String(row.height + "px").padStart(8)}`);
+        for (const it of row.items) {
+          console.log(
+            `    ${String((it.filled ?? it.height) + "px").padStart(8)} filled  air ${String(it.air + "px").padStart(8)}` +
+            `  w ${String(it.width + "px").padStart(8)}` +
+            (it.nodes !== undefined ? `  ${it.wide ? "wide" : "    "} ${String(it.nodes).padStart(2)} nodes  head ${it.headHeight}px` : "") +
+            `  ${it.label}`
+          );
+        }
+      }
+    }
+  }
+
+  // ---- a word the line box split ------------------------------------------
+  console.log("\nbroken words - a word split across two lines, outside the fields that break on purpose\n");
+  for (const r of results) {
+    if (!r.broken.length) continue;
+    console.log(`${r.fixture} · ${r.viewport} · cuts ${r.cuts}`);
+    for (const b of r.broken) console.log(`    ${b.word}${b.count > 1 ? ` (x${b.count})` : ""}   ${b.where}`);
+  }
+  if (!results.some((r) => r.broken.length)) console.log("  none, at any viewport measured");
+
+  // ---- the floor the map is folded at -------------------------------------
+  console.log("\nthe floor - what the narrowest node would have to be, derived from what a node draws\n");
+  const allFloors = results.filter((r) => r.cuts === "closed").flatMap((r) => r.floors);
+  const worstWord = allFloors.reduce((a, b) => (b.wholeWord > a.wholeWord ? b : a), allFloors[0]);
+  const worstLine = allFloors.reduce((a, b) => (b.oneLine > a.oneLine ? b : a), allFloors[0]);
+  if (worstWord) {
+    console.log(`  every word whole   ${worstWord.wholeWord}px   the widest is "${worstWord.word}"`);
+    console.log(`  every name unwrapped ${worstLine.oneLine}px`);
+    console.log("  --node-min is the claim these two numbers are about.");
   }
 
   const jsonOut = arg("--json");
