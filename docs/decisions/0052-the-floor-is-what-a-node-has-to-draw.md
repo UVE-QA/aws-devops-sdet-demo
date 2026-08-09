@@ -147,8 +147,9 @@ the 1432.28 → 967.85px above is a reading rather than an impression.
 - `--node-min` is 18.5rem and carries the measurement that produced it. A node
   whose name gains a longer word moves this number; the instrument says by how
   much, and 143.69px is the line it may not go under.
-- The map is two rows at every desktop width. `layout.columns` is unchanged and
-  still computed — the fold, not the total, is what moved.
+- The map is two rows of five at 1920 and 2560, and THREE of four at 1440.
+  `layout.columns` is unchanged and still computed — the fold, not the total, is
+  what moved.
 - The page is about 300px taller on the desktop and 630px on the phone. Anything
   later that argues from "composed, not scrolled" is arguing against this
   decision and should say so.
