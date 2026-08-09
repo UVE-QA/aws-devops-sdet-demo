@@ -1,6 +1,6 @@
 {
   "schema": "timeline/1",
-  "environment": "stage",
+  "environment": "prod",
   "status": "complete",
   "started_at": "2026-08-08T20:51:41Z",
   "finished_at": "2026-08-08T20:59:27Z",

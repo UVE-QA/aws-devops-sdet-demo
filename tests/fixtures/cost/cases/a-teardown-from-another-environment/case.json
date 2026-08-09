@@ -1,0 +1,4 @@
+{
+  "description": "The prod teardown handed to the stage apply. The two runs are each internally fine, which is exactly why nothing downstream would have noticed.",
+  "environment": "stage"
+}

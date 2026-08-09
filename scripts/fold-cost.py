@@ -118,7 +118,69 @@ def component_cost(component: dict, unit_prices: dict, shape: dict, seconds: flo
     return quantity * float(price["usd"]) * hours
 
 
+def pairing_refusals(environment, apply_timeline, destroy_timeline) -> list[str]:
+    """Why these two timelines cannot be the two halves of one cycle.
+
+    A lifetime spans two runs, so this fold is the only thing here that takes
+    input from two of them — and until 20f it believed whatever it was handed.
+    That is worse than it sounds. A mismatched pair does not crash: `span()`
+    clamps a negative lifetime to zero, so the fold returns a small, plausible,
+    entirely wrong figure. A defect that answers is more expensive than one that
+    stops.
+
+    Four clauses. The fourth is deliberately WEAK, and the weakness is the
+    decision: ADR-0038 adopts orphaned resources into the state before a
+    teardown, so a destroy legitimately removes things its apply never created —
+    `tests/fixtures/cost/cases/a-delete-with-no-create-is-named` is that case,
+    and it stays green here. Only a teardown with NOTHING in common with the
+    apply is refused.
+    """
+    problems = []
+
+    # fold-timeline.py always writes `environment`, so a timeline without one did
+    # not come from this project. Refusing the absence rather than skipping the
+    # check: an unchecked field reads exactly like a passing one.
+    for role, timeline in (("apply", apply_timeline), ("destroy", destroy_timeline)):
+        if timeline is None:
+            continue
+        named = timeline.get("environment")
+        if named is None:
+            problems.append(f"the {role} timeline names no environment")
+        elif named != environment:
+            problems.append(f"the {role} timeline is {named}, not {environment}")
+
+    if apply_timeline.get("status") != "complete":
+        # A partial apply priced against a full teardown reports lifetimes for
+        # the resources terraform reached and silence for the ones it did not.
+        problems.append(
+            f"the apply timeline is {apply_timeline.get('status')!r}, and only a complete "
+            "apply knows everything the teardown is removing")
+
+    if destroy_timeline is None:
+        return problems
+
+    apply_end = parse_ts(apply_timeline.get("finished_at"))
+    destroy_start = parse_ts(destroy_timeline.get("started_at"))
+    if apply_end and destroy_start and destroy_start < apply_end:
+        problems.append(
+            f"the teardown started at {iso(destroy_start)}, before the apply finished at "
+            f"{iso(apply_end)}")
+
+    created = set(resources_of(apply_timeline, {"create", "replace"}))
+    deleted = set(resources_of(destroy_timeline, {"delete"}))
+    if deleted and not (created & deleted):
+        problems.append(
+            f"the teardown deleted {len(deleted)} resource(s) and this apply created none of "
+            "them")
+
+    return problems
+
+
 def build(environment, apply_timeline, destroy_timeline, rates, model, shape, as_of) -> dict:
+    problems = pairing_refusals(environment, apply_timeline, destroy_timeline)
+    if problems:
+        raise Refused("these timelines are not one cycle: " + "; ".join(problems))
+
     unit_prices = rates.get("unit_prices", {})
     created = resources_of(apply_timeline, {"create", "replace"})
     deleted = resources_of(destroy_timeline, {"delete"}) if destroy_timeline else {}

@@ -1,5 +1,6 @@
 {
   "schema": "timeline/1",
+  "environment": "stage",
   "status": "complete",
   "started_at": "2026-07-15T10:00:00Z",
   "finished_at": "2026-07-15T10:02:00Z",

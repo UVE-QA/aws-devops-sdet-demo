@@ -1,7 +1,7 @@
 {
   "schema": "timeline/1",
   "environment": "stage",
-  "status": "complete",
+  "status": "incomplete",
   "started_at": "2026-08-08T20:29:10Z",
   "finished_at": "2026-08-08T20:37:39Z",
   "run": {

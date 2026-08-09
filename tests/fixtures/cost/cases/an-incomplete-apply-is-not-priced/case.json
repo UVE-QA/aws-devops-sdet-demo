@@ -1,0 +1,4 @@
+{
+  "description": "An apply that died in the middle, priced against a teardown that finished. The fold would report lifetimes for the resources terraform reached and silence for the ones it never started.",
+  "environment": "stage"
+}

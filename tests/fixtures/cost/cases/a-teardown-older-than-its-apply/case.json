@@ -1,0 +1,4 @@
+{
+  "description": "A teardown that began before the apply finished. It cannot be removing what that apply built, and every lifetime it produces is negative - which span() clamps to zero rather than noticing.",
+  "environment": "stage"
+}

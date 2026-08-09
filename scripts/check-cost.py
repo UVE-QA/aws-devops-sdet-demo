@@ -121,11 +121,28 @@ def run_case(case_dir: pathlib.Path, fold_cost) -> tuple[bool, list[str]]:
     if as_of is None and destroy_timeline is None:
         return False, [f"{case_dir.name}: an open cycle needs an as_of, or the case is a clock"]
 
-    cost = fold_cost.build(case["environment"], apply_timeline, destroy_timeline,
-                           rates, model, shape, as_of)
-
     expected = json.loads(expected_path.read_text(encoding="utf-8"))
     expected.pop("description", None)
+
+    # A case may expect a REFUSAL rather than a fold (20f, the pairing rule).
+    # It is a branch and not a flag because the two outcomes are not comparable:
+    # there is no summary to diff when the fold declined to produce one, and a
+    # case that folds anyway has to FAIL rather than match nothing — an expected
+    # refusal that silently compares an empty expectation is the shape of gate
+    # this repository keeps finding.
+    if "refused" in expected:
+        try:
+            fold_cost.build(case["environment"], apply_timeline, destroy_timeline,
+                            rates, model, shape, as_of)
+        except fold_cost.Refused as exc:
+            if expected["refused"] not in str(exc):
+                return False, [f"refused with {str(exc)!r}, which does not contain "
+                               f"{expected['refused']!r}"]
+            return True, []
+        return False, ["expected a refusal; the fold produced a cost"]
+
+    cost = fold_cost.build(case["environment"], apply_timeline, destroy_timeline,
+                           rates, model, shape, as_of)
     problems = diff(expected, summarise(cost), case_dir.name)
     return not problems, problems
 

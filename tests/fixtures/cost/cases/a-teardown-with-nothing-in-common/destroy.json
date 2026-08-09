@@ -13,7 +13,7 @@
       "label": "op",
       "resources": [
         {
-          "address": "module.ecs.aws_ecs_service.app",
+          "address": "module.other_ecs.aws_ecs_service.app",
           "type": "aws_ecs_service",
           "action": "delete",
           "status": "complete",
@@ -21,7 +21,7 @@
           "finished_at": "2026-08-08T20:58:53Z"
         },
         {
-          "address": "module.rds.aws_db_instance.this",
+          "address": "module.other_rds.aws_db_instance.this",
           "type": "aws_db_instance",
           "action": "delete",
           "status": "complete",
@@ -29,7 +29,7 @@
           "finished_at": "2026-08-08T20:55:42Z"
         },
         {
-          "address": "module.alb.aws_lb.this",
+          "address": "module.other_alb.aws_lb.this",
           "type": "aws_lb",
           "action": "delete",
           "status": "complete",
@@ -37,7 +37,7 @@
           "finished_at": "2026-08-08T20:59:12Z"
         },
         {
-          "address": "module.alb.aws_lb_target_group.app",
+          "address": "module.other_alb.aws_lb_target_group.app",
           "type": "aws_lb_target_group",
           "action": "delete",
           "status": "complete",

@@ -1,0 +1,4 @@
+{
+  "description": "A teardown of an environment that shares not one resource with this apply. The weak clause of the pairing rule: some orphan deletes are legitimate (ADR-0038), all of them are not.",
+  "environment": "stage"
+}
