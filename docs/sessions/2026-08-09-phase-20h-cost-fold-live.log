@@ -1,0 +1,60 @@
+Phase 20h — the wired cost fold, first live run.
+
+Run:      destroy stage #41  (id 31296973693)
+Workflow: .github/workflows/destroy.yml, step "Price the cycle from its two
+          timelines" -> scripts/fold-cost.py, then "Publish status to the
+          dashboard" -> scripts/publish-status.sh
+
+The step is continue-on-error by design (ADR-0046: a refusal must not redden a
+teardown, because a red teardown holds the launch lock). Its green check is
+therefore not evidence. This log is.
+
+Taken with:
+  gh run view 31296973693 --log | grep -iE "anchor|cost|price|pairing"
+
+--- the anchor fetch, and what it would have said had it failed ---------------
+
+Price the cycle from its two timelines  anchor="/tmp/timeline-apply-stage.json"
+Price the cycle from its two timelines  if ! curl -fsS --retry 2 \
+Price the cycle from its two timelines       "${SITE_BASE_URL}/timeline/stage/apply.json" -o "$anchor"; then
+Price the cycle from its two timelines    echo "no apply anchor published for stage — nothing to price this teardown against"
+Price the cycle from its two timelines    exit 0
+Price the cycle from its two timelines  fi
+Price the cycle from its two timelines  python3 scripts/fold-cost.py \
+Price the cycle from its two timelines    --environment "stage" \
+Price the cycle from its two timelines    --apply "$anchor" \
+Price the cycle from its two timelines    --destroy "/tmp/timeline-stage.json" \
+Price the cycle from its two timelines    --out "/tmp/cost-stage.json"
+Price the cycle from its two timelines  SITE_BASE_URL: https://demo.uveapp.net
+
+--- what it printed ----------------------------------------------------------
+
+2026-08-09T05:43:44.7371957Z cost: stage — COMPUTED ESTIMATE, not a bill
+2026-08-09T05:43:44.7372455Z   rates captured 2026-08-08T23:13:42Z for us-west-2
+2026-08-09T05:43:44.7372964Z   cycle CLOSED  2026-08-09T05:13:18Z -> 2026-08-09T05:43:24Z  (1806s)
+2026-08-09T05:43:44.7373425Z   ESTIMATE  $0.0178 .. $0.0235
+2026-08-09T05:43:44.7373649Z
+2026-08-09T05:43:44.7373867Z   resource                           low s  high s       low $     high $  state
+2026-08-09T05:43:44.7374444Z   module.alb.aws_lb.this              1557    1766      0.0097     0.0110  closed
+2026-08-09T05:43:44.7375072Z   module.rds.aws_db_instance.this      812    1339      0.0043     0.0071  closed
+2026-08-09T05:43:44.7375740Z   module.ecs.aws_ecs_service.app      1100    1545      0.0038     0.0053  closed
+2026-08-09T05:43:44.7376126Z
+2026-08-09T05:43:44.7423056Z   32 created: 3 priced, 25 free, 4 not metered, 0 UNPRICED
+
+--- what was published -------------------------------------------------------
+
+2026-08-09T05:43:45.3562472Z   COST_JSON: /tmp/cost-stage.json
+2026-08-09T05:43:49.4372778Z published cost (COMPUTED ESTIMATE, $0.017822 .. $0.023457): https://demo.uveapp.net/cost/stage/31296973693-destroy.json
+
+--- the anchor it priced against ---------------------------------------------
+
+Published by deploy-stage #30 (id 31296181166) at the end of its own run:
+  "published the apply anchor: https://demo.uveapp.net/timeline/stage/apply.json"
+  environment stage, kind apply, status complete, 34 resource entries,
+  2026-08-09T05:13:18Z -> 2026-08-09T05:21:50Z
+
+Before that run, no anchor existed for stage: the clause that writes it landed
+in 222dd27 at 2026-08-09T00:28Z, after the previous teardown at
+2026-08-08T20:59Z. A teardown dispatched on its own would have taken the first
+branch above, printed "nothing to price", and exited zero — a green run with no
+cost object, which is what a broken fold would also look like.

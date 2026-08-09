@@ -2800,6 +2800,71 @@ in `docs/sessions/2026-08-09-phase-20g-the-page-fills-the-monitor-measure.log`.
   line to watch for the cost. Measure with `make measure-page` either side of
   any later desktop change; the figures above are the new before.
 
+### Phase 20h — The first priced cycle, and what the page said while it ran  ✅ DONE 2026-08-09
+One live stage cycle, dispatched by hand: `deploy-stage #30` then
+`destroy stage #41`. Summary in
+`docs/sessions/2026-08-09-phase-20h-the-fold-prices-a-cycle-the-page-dates-it-wrong.md`,
+the pricing step's own output in
+`docs/sessions/2026-08-09-phase-20h-cost-fold-live.log`. No ADR: this session
+found things and decided nothing structural.
+- Criteria: the wired cost fold exercised on a real pair of timelines; the page
+  observed doing its job at desktop width; the teardown verified against the AWS
+  CLI. All met.
+- **The fold priced a real cycle. `$0.0178 .. $0.0235`**, lifetime 1806s,
+  `32 created: 3 priced, 25 free, 4 not metered, 0 UNPRICED`. ADR-0046's four
+  pairing clauses all passed on genuine data, none of which had been asked
+  before. The step's green check is not the evidence — it is
+  `continue-on-error` and cannot fail; the log line is.
+- **The route was decided by two facts read out of the repository.** The fold is
+  wired into `destroy.yml` alone, and `self-service.yml` has its own teardown
+  job with no pricing step — so the public button cannot exercise it. And the
+  apply anchor's publishing clause landed AFTER the last teardown, so no anchor
+  existed: a destroy dispatched on its own would have printed `nothing to price`
+  and exited zero, green.
+- **Finding: a finished phase prints the previous cycle's duration, unlabelled.**
+  `last time` is emitted only while a phase is RUNNING, so a phase that ends
+  mid-run shows a stale figure beside a green `done`. This run's apply took
+  8m 30s; the page said 8m 26s. Four seconds — a defect that answers rather than
+  stops. `last time` appears nowhere outside `site/index.html`; no gate asserts
+  it, and `make live-state-check` does not look at it.
+- **Finding: `not run yet` on two nodes that had just run** — `ECR push` and
+  `migrate + seed`, neither a terraform resource, both correct DURING the run
+  and false at rest.
+- **Finding: a destroyed environment keeps its icons lit.** `.node.absent` means
+  no record, not "not in AWS". stage was verified gone and stayed at full
+  colour; prod, in the identical state, is grey. Two environments, same state,
+  drawn as opposites — beside a panel that reads `DESTROYED` in the present
+  tense.
+- **Finding: the cost line was read past by the person looking for it.** It
+  renders as an unheaded grey paragraph under the map; every other number on the
+  page is in a bordered box with a label.
+- **Confirmed live for the first time:** 20c's two fixes, ADR-0043's per-step
+  binding (two suites finished while two still ran), the phase clock not
+  resetting at `plan` -> `apply`, and the tests panel carrying real verdicts.
+- Validation:
+```bash
+  aws sts get-caller-identity --profile demo-admin
+  aws elbv2 describe-load-balancers --profile demo-admin --region us-west-2
+  aws rds describe-db-instances --profile demo-admin --region us-west-2
+  aws ecs list-clusters --profile demo-admin --region us-west-2
+  aws ec2 describe-nat-gateways --profile demo-admin --region us-west-2
+  aws eks list-clusters --profile demo-admin --region us-west-2
+```
+  All five empty, with `aws ecr describe-repositories` non-empty in the same
+  block under `set -e` — the control that makes an empty reading evidence
+  instead of a credential failure shaped like success.
+- Cost: **$0.0178 .. $0.0235**, computed by the thing under test. stage only;
+  prod was not deployed and not touched.
+- Noted, not fixed: `deploy-stage.yml` sets no `TF_VAR_expires_at`, so a
+  hand-dispatched stage carries no `ExpiresAt` tag and the watchdog cannot
+  collect it. The TTL, the day count and the lock are the BUTTON's guarantees.
+- Next allowed step: **the page's tense.** A figure is never printed without the
+  cycle it belongs to; `not run yet` is not said about something that just ran;
+  a destroyed environment does not read as a live one; the cost line gets a
+  place. All four are reachable on fixtures, so each can carry the break test
+  this project requires before a gate means anything. The packing left by 20g —
+  the comb and the ragged top row — comes after.
+
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,
 `phase complete`, `go next`, `ок`, `дальше`, `подтверждаю`.

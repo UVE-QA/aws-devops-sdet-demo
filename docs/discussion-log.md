@@ -6,6 +6,40 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
+**As of 2026-08-09 (20h — the first priced cycle).** One live stage cycle,
+dispatched by hand, and both things the cursor sent it for happened.
+
+**The wired cost fold priced a real pair of timelines: `$0.0178 .. $0.0235`,
+lifetime 1806s, `32 created: 3 priced, 25 free, 4 not metered, 0 UNPRICED`.**
+ADR-0046's four pairing clauses were all asked on genuine data for the first
+time and all passed. Two facts read out of the repository decided the route
+before anything was dispatched: the fold is wired into `destroy.yml` alone — the
+public button's own teardown job has no pricing step — and the apply anchor's
+publishing clause landed after the last teardown, so no anchor existed. A
+destroy dispatched on its own would have printed `nothing to price` and exited
+zero, green, which is also what a broken fold looks like.
+
+**The page was watched doing its job, and every finding is the same root: its
+figures come from the terraform timeline, published when the cycle ENDS.** So
+during a run it describes the previous cycle, and at rest it describes a cycle
+rather than the present. A phase that finished mid-run printed `8m 26s · done` —
+yesterday's figure, unlabelled, because `last time` is emitted only while a
+phase is RUNNING. This run's apply took 8m 30s. Four seconds apart: a defect
+that answers rather than one that stops, invisible to any eye, and asserted by
+nothing — `last time` appears nowhere outside `site/index.html`. `ECR push` and
+`migrate + seed` read `not run yet` minutes after running, because neither is a
+terraform resource. And a verified-destroyed stage kept its icons at full
+colour while prod, in the identical state, stayed grey: `.node.absent` means no
+record, not "not in AWS". The cost line itself renders as an unheaded grey
+paragraph under the map, and the person who ran the cycle looking for it read
+past it.
+
+Four confirmations came with it, all first-time-live: 20c's two fixes,
+ADR-0043's per-step binding, the phase clock not resetting at `plan` -> `apply`,
+and the tests panel carrying real verdicts. Teardown verified from the devbox
+with a control on a permanent level, because no non-empty reading had been taken
+first. The next step is the page's tense, then 20g's packing.
+
 **As of 2026-08-09 (20g — the page fills the monitor it was written for).** The
 cursor's step was the desktop, and its own line said that finding B is not the
 list. The list was produced by looking — six items — and the WIDTH turned out to
