@@ -155,8 +155,20 @@
 
          Still stated without 100vw anywhere: that is the viewport INCLUDING the
          scrollbar, and the map has already been bitten once by being laid out
-         against a width a scrollbar then took back. */
-      main { max-width: 96rem; margin: 0 auto; }
+         against a width a scrollbar then took back.
+
+         THE NUMBER MOVED IN 20g (ADR-0050). 96rem was what the map's ten
+         columns needed at the legibility floor, and nothing else asked - so it
+         was also the width the page STOPPED at: 1536px inside the stated
+         primary target of 2560, with 1024px of margin, and the same 1536px at
+         1920. The desktop the page was written for was 1920; the monitor it was
+         written FOR got the leftovers. The cost was not only air - a column
+         that narrow broke words across lines on the primary target
+         (`environme|nt` at 2560, `RDS PostgreSQ|L` at 1440), which reads as a
+         rendering fault rather than as a choice. 120rem is 1920px: the page
+         fills a 1920 screen, keeps a margin on a 2560 one, and the map's
+         columns widen past the longest word either draws. */
+      main { max-width: 120rem; margin: 0 auto; }
       h1 { font-size: 1.55rem; margin: 0 0 0.25rem; letter-spacing: -0.01em; }
       .sub { color: var(--muted); margin: 0 0 1.25rem; max-width: 46rem; }
       h2 {
@@ -345,13 +357,26 @@
          A test suite, a human approval and a teardown are NOT AWS services and
          get a project glyph — drawing them in AWS's visual language would be a
          claim about what they are. */
+      /* THE TEXT BADGE SIZES TO ITS WORD, THE AWS ONE STAYS A SQUARE. A fixed
+         1.4rem box was right for the one-glyph marks it was written for and
+         wrong for every longer one: `WWW` measured 31px of content in a 20px
+         box, `TEST` 26px in seven places, `YOU` 22px - on EVERY viewport
+         including 2560, not only on the phone. `.icon.aws` never showed it
+         because it clips; the text badge has nothing to clip with, so the
+         letters simply sat outside their own border. Clipping them instead
+         would have hidden a word rather than drawn it, so the box grows:
+         `min-width` keeps the square shape for a single glyph and the padding
+         keeps the letters off the dashed edge. The AWS mark keeps its exact
+         1.4rem square - it holds an unmodified Architecture Icon, and an icon
+         that changes size is a different mark. */
       .icon {
-        flex: 0 0 auto; width: 1.4rem; height: 1.4rem; border-radius: 5px;
+        flex: 0 0 auto; width: fit-content; min-width: 1.4rem; height: 1.4rem;
+        padding: 0 0.2rem; border-radius: 5px;
         border: 1px dashed var(--line); background: var(--off-bg);
         display: grid; place-items: center;
         font-size: 0.58rem; font-weight: 700; color: var(--muted); text-transform: uppercase;
       }
-      .icon.aws { border: 0; background: none; overflow: hidden; border-radius: 5px; }
+      .icon.aws { border: 0; background: none; overflow: hidden; border-radius: 5px; width: 1.4rem; padding: 0; }
       .icon.aws svg { width: 100%; height: 100%; display: block; }
       .node.absent .icon.aws { filter: grayscale(1); }
       .node .name { font-size: 0.78rem; font-weight: 600; line-height: 1.2; }
@@ -531,6 +556,13 @@
       .p-env { grid-column: span 3; }
       .p-arch { grid-column: span 5; }
       .p-run { grid-column: span 4; }
+      /* TRIED AT 1500 AND REVERTED, WITH THE FIGURE. At 1440 five hops share
+         5/12 of 1385px - about 100px each - and `RDS PostgreSQL` breaks as
+         `PostgreSQ|L`. Giving the path the full row below 1500 fixes that
+         and costs 290px of height (2123 -> 2412 at rest, 2190 -> 2480 in
+         flight): 2.4 screens becomes 2.7. A word break is cosmetic and a third
+         of a screen is not, so 1100 stays and the 1440 break goes on the list
+         for the session that repacks this row. */
       @media (max-width: 1100px) {
         .p-env { grid-column: span 6; } .p-arch { grid-column: span 12; } .p-run { grid-column: span 6; }
       }
