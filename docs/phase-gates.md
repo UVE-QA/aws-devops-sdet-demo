@@ -43,6 +43,7 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 20b.2 | The timeline from a live cycle, on the page | ✅ done — the apply half was never lit; see below | sessions/2026-08-08-phase-20b-2-a-cancelled-run-erases-nothing.md |
 | 20c   | The suites answer for themselves | ✅ done — the page reads both sources | sessions/2026-08-08-phase-20c-the-suites-answer-for-themselves.md + sessions/2026-08-08-phase-20c-a-node-answers-for-its-own-step.md |
 | 20d   | Cost, computed from lifetimes  | ✅ done — the reconciliation clause retired, not deferred | sessions/2026-08-08-phase-20d-cost-is-a-lifetime.md |
+| 20f   | The fold runs in the cycle     | ✅ done — no cycle ordered, $0 | sessions/2026-08-08-phase-20f-the-cost-fold-runs-in-the-cycle.md |
 
 Phase 17 (prod data continuity) is still open and still optional, in
 `docs/next-phases.md`. Phase 18 was pulled forward of both remaining phases
@@ -2457,12 +2458,58 @@ nobody held, in the one place a session goes to find out what to do next.
   cost, and a session record is not rewritten to free up a name.
 - Validation: none needed — no code, no gate, no infrastructure changed.
 - Cost: nothing.
-- Next allowed step: **20f — the cost fold runs in the cycle.** `fold-cost.py`
+- Next allowed step: **20f — the cost fold runs in the cycle.** `scripts/fold-cost.py`
   into `destroy.yml` beside `scripts/node-states.py`, an apply timeline anchored
   on the rule `nodes-apply.json` already follows, and the pairing rule with its
   four refusals. It is written and broken offline against fixtures; no cycle is
   ordered for it. One line on the page — last cycle, the band, the date — and
   nothing more, because where it belongs is 20e's question.
+  *(Done the same session. The rule grew a fifth clause once the break test
+  found one of the four was testing nothing.)*
+
+### Phase 20f — The teardown prices the cycle it just ended  ✅ DONE 2026-08-08
+**ADR-0046**, and the summary in
+`docs/sessions/2026-08-08-phase-20f-the-cost-fold-runs-in-the-cycle.md`.
+- Criteria: the fold wired into the teardown; an apply anchor it can trust; a
+  pairing rule with a break test; one line on the page. All met.
+- **The pairing rule is five clauses, not four.** Same environment, an apply that
+  is complete, a teardown that does not start before the apply finished, and two
+  resource sets with something in common — plus a timeline that names no
+  environment at all, which the break test found untested. The intersection
+  clause is deliberately WEAK: ADR-0038 adopts orphans before a teardown, so only
+  a pair with nothing in common is refused, and the existing partial-orphan
+  fixture stays green.
+- The anchor rides an existing rule rather than a new one:
+  `timeline/<env>/apply.json` is written inside the block that publishes
+  `nodes-apply.json`, on the same kind and the same completeness, so the anchor
+  and the at-rest numbers cannot disagree about which cycle they came from.
+- **The break test broke, and the instrument was the defect.** Four one-clause
+  breaks each reddened the same fixture; the identical loop then reported all
+  four green. CPython validates a `.pyc` on (mtime in whole seconds, source
+  size), every break leaves the file at exactly 18911 bytes, and the loop runs
+  inside a second. Five gates load a script under test through `importlib`; all
+  five now write no cache.
+- `make publish-prefixes-check` went RED unprompted on `cost/`, the first prefix
+  added since ADR-0044, and named the remedy. First time that gate has caught
+  something it was not shown in advance.
+- Deliberately not covered: pricing cannot fail a teardown
+  (`continue-on-error` — a red destroy job holds the launch lock), there is no
+  phase attribution, and no live cycle was ordered. The next teardown is the
+  first live exercise and costs nothing extra to wait for.
+- Validation:
+```bash
+  make docs-check cost-check rates-check node-states-check results-check \
+       timeline-check site-page-check site-data-check live-state-check \
+       publish-prefixes-check action-pins
+```
+- Cost: nothing. No cycle, no AWS call, nothing applied.
+- Next allowed step: **20e — the dashboard is navigable.** Its discovery step
+  first, per `docs/next-phases.md`: what a visitor is trying to reach and in what
+  order, before a line of layout. The three findings recorded there are the
+  starting material, and the timer question has a rule available from ADR-0043
+  that costs neither of ADR-0039 D4's variants. Separately and smaller: the
+  wired fold has never run live, so the next teardown of either environment is
+  worth watching for the cost line appearing.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

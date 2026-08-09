@@ -306,6 +306,18 @@ before it means anything. Decided closing Phase 19a.
   One re-measurement with the output redirected to a file settled it in seconds. The reading was indistinguishable
   from a real defect, which is the point - an instrument has to be trusted
   before its verdict means anything, and that includes the shell.
+- A BREAK TEST MEASURED THROUGH A BYTECODE CACHE MEASURES THE CACHE. On
+  2026-08-08 four different one-clause defects in the same function each reddened
+  the SAME fixture, and a later run of the identical loop reported all four
+  GREEN. Both readings are indistinguishable from a gate that cannot fail. The
+  gate was blameless: CPython validates a cached `.pyc` on (source mtime in whole
+  SECONDS, source size), every break replaced `problems.append(` with a
+  same-length no-op so all five variants were byte-for-byte the same SIZE, and
+  the loop finished inside one second. What settled it was measuring the five
+  variants rather than reasoning about them - identical to the byte, which nobody
+  would have predicted. Sibling of the pipe: there the shell stood between the
+  defect and the reading, here the loader did. A gate that loads the thing it is
+  testing has to load it from source, every time.
 - ONE DEFINITION, TWO HOSTS PROTECTS THE TARGET, NOT THE TOOL UNDER IT. On
   2026-07-28 `docker compose config --images app` filtered by service on the
   devbox and ignored the filter on the GitHub runner, handing the image scan

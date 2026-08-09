@@ -6,6 +6,45 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
+**As of 2026-08-08 (20f — the teardown prices the cycle it just ended).** The
+computation ADR-0045 built by hand now runs where a lifetime actually closes.
+**ADR-0046.**
+
+**The session opened by finding that the plan described a decision nobody had
+taken.** 20e's line about moving the per-node prose into hover was a spontaneous
+example, written into `docs/next-phases.md` with a costed collision worked out
+beneath it — in the one document a session reads to learn what to do next. The
+usual stale document says something that WAS true; this one said something that
+never was, and the analysis underneath made it read as more considered rather
+than less. 20e is restated around the requirement as it was actually given: the
+dashboard is a long strip you cannot navigate, which is wayfinding rather than
+density, and the phase now opens with a discovery step of its own and runs after
+the wiring.
+
+The pairing rule is what ADR-0045 said had to exist first, and its fourth clause
+is deliberately weak: ADR-0038 adopts orphans before a teardown, so only a pair
+with NOTHING in common is refused. `orphan_deletes` was already computed and
+nothing refused on it — the detector existed at the wrong threshold, wired to
+nothing. The anchor rides an existing rule rather than a new one, and is read
+over anonymous HTTPS because the object is public and the cheapest new path is
+the one that is not new.
+
+**The break test broke, and the instrument was the defect.** Four different
+one-clause breaks each reddened the same fixture; the identical loop then
+reported all four green. CPython validates a `.pyc` on (mtime in whole seconds,
+source size), every break left `fold-cost.py` at exactly 18911 bytes, and the
+loop ran inside a second. Measuring the five variants settled in seconds what
+reasoning had not. Five gates load a script under test through `importlib`; all
+five now write no cache. The re-run then found a clause that had never been
+tested at all.
+
+`make publish-prefixes-check` went red unprompted on `cost/`, the first prefix
+added since ADR-0044, and named the remedy — the deletion of 2026-08-08
+prevented rather than repeated, by a gate catching something it was not shown in
+advance. End to end on the real cycle: $0.018339 .. $0.023797, which is what 20d
+computed by hand. No cycle was ordered; the next teardown is the first live
+exercise.
+
 **As of 2026-08-08 (20d — cost is a lifetime, not a creation).** A cycle's cost is
 computed by a command from the cycle's own timelines and a captured rate table,
 instead of being worked out by hand in a session and written into a document.
