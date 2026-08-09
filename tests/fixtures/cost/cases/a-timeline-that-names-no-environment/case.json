@@ -1,0 +1,4 @@
+{
+  "description": "A destroy timeline with no `environment` field at all. fold-timeline.py has always written one, so a file without it did not come from here - and an unchecked field reads exactly like a passing one. This case exists because the break test found the clause untested: neutering it left every fixture green.",
+  "environment": "stage"
+}

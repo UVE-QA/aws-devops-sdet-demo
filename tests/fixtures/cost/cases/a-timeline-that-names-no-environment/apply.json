@@ -1,0 +1,50 @@
+{
+  "schema": "timeline/1",
+  "environment": "stage",
+  "status": "complete",
+  "started_at": "2026-08-08T20:29:10Z",
+  "finished_at": "2026-08-08T20:37:39Z",
+  "run": {
+    "id": "31276975666",
+    "job": "deploy"
+  },
+  "operations": [
+    {
+      "label": "op",
+      "resources": [
+        {
+          "address": "module.alb.aws_lb_target_group.app",
+          "type": "aws_lb_target_group",
+          "action": "create",
+          "status": "complete",
+          "started_at": "2026-08-08T20:29:26Z",
+          "finished_at": "2026-08-08T20:29:28Z"
+        },
+        {
+          "address": "module.alb.aws_lb.this",
+          "type": "aws_lb",
+          "action": "create",
+          "status": "complete",
+          "started_at": "2026-08-08T20:29:40Z",
+          "finished_at": "2026-08-08T20:32:33Z"
+        },
+        {
+          "address": "module.rds.aws_db_instance.this",
+          "type": "aws_db_instance",
+          "action": "create",
+          "status": "complete",
+          "started_at": "2026-08-08T20:32:41Z",
+          "finished_at": "2026-08-08T20:37:37Z"
+        },
+        {
+          "address": "module.ecs.aws_ecs_service.app",
+          "type": "aws_ecs_service",
+          "action": "create",
+          "status": "complete",
+          "started_at": "2026-08-08T20:32:45Z",
+          "finished_at": "2026-08-08T20:32:46Z"
+        }
+      ]
+    }
+  ]
+}
