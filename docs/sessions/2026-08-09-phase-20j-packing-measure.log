@@ -1,0 +1,491 @@
+# Phase 20j — the packing. measure-page, before and after.
+# Sandbox chromium 1194, fixtures at-rest + in-flight, cuts closed and open.
+# The instrument is the AFTER version in both halves: the packing, the broken
+# words and the two floors did not exist before this session, so the BEFORE half
+# is the page as origin/main 30a94bc drew it, measured by the new questions.
+
+=== BEFORE (origin/main 30a94bc) ===
+page height - document.scrollHeight, and screens of the viewport it was measured in
+
+  fixture     viewport    cuts      height    screens   doc overflow-x
+  at-rest     2560x1440   closed     1734px       1.2   -
+  at-rest     2560x1440   open       8345px       5.8   -
+  at-rest     1920x1080   closed     1742px       1.6   -
+  at-rest     1920x1080   open       8353px       7.7   -
+  at-rest     1440x900    closed     2123px       2.4   -
+  at-rest     1440x900    open       8935px       9.9   -
+  at-rest     390x844     closed     4842px       5.7   -
+  at-rest     390x844     open      16762px      19.9   120px
+  in-flight   2560x1440   closed     1760px       1.2   -
+  in-flight   2560x1440   open       8460px       5.9   -
+  in-flight   1920x1080   closed     1790px       1.7   -
+  in-flight   1920x1080   open       8476px       7.8   -
+  in-flight   1440x900    closed     2190px       2.4   -
+  in-flight   1440x900    open       9072px      10.1   -
+  in-flight   390x844     closed     4908px       5.8   -
+  in-flight   390x844     open      17231px      20.4   125px
+
+at-rest · 390x844 · cuts closed
+  beyond its parent's padding edge
+    169.13px  main > details#history-cut.cut > div#history > table
+              in main > details#history-cut.cut > div#history  474.94px in 305.81px
+  content wider than its own box
+       169px  main > details#history-cut.cut > div#history
+              475px of content in a 306px box, overflow-x: visible
+
+at-rest · 390x844 · cuts open
+  beyond its parent's padding edge
+    169.13px  main > details#history-cut.cut > div#history > table
+              in main > details#history-cut.cut > div#history  474.94px in 305.81px
+  content wider than its own box
+       169px  main > details#history-cut.cut > div#history
+              475px of content in a 306px box, overflow-x: visible
+       156px  main > details#history-cut.cut
+              489px of content in a 333px box, overflow-x: visible
+       155px  main
+              490px of content in a 335px box, overflow-x: visible
+
+in-flight · 390x844 · cuts closed
+  beyond its parent's padding edge
+    174.55px  main > details#history-cut.cut > div#history > table
+              in main > details#history-cut.cut > div#history  480.36px in 305.81px
+  content wider than its own box
+       174px  main > details#history-cut.cut > div#history
+              480px of content in a 306px box, overflow-x: visible
+
+in-flight · 390x844 · cuts open
+  beyond its parent's padding edge
+    174.55px  main > details#history-cut.cut > div#history > table
+              in main > details#history-cut.cut > div#history  480.36px in 305.81px
+  content wider than its own box
+       174px  main > details#history-cut.cut > div#history
+              480px of content in a 306px box, overflow-x: visible
+       161px  main > details#history-cut.cut
+              494px of content in a 333px box, overflow-x: visible
+       160px  main
+              495px of content in a 335px box, overflow-x: visible
+
+the packing - every box against the height of the row it shares
+
+at-rest · 2560x1440 · map 487.48px in 10 columns · air 1410.96px
+  top row     465px
+    465.01px filled  air      0px  w    471px  p-env
+    228.06px filled  air 236.94px  w    793px  p-arch
+    234.93px filled  air 230.07px  w    632px  p-run
+  map row  487.48px
+    204.58px filled  air  282.9px  w 183.36px        1 nodes  head 49.28px  Build
+    350.35px filled  air 137.13px  w 376.33px  wide  7 nodes  head 73.81px  Apply — stage
+    229.12px filled  air 258.36px  w 183.36px        1 nodes  head 73.81px  Provision — stage
+    487.49px filled  air      0px  w 183.38px        4 nodes  head 141.38px  Quality gate — stage
+    251.63px filled  air 235.85px  w 183.36px        1 nodes  head 73.81px  Approve
+     357.9px filled  air 129.58px  w 376.33px  wide  8 nodes  head 73.81px  Apply — prod
+    306.49px filled  air 180.99px  w 183.36px        2 nodes  head 122.44px  Quality gate — prod
+    301.33px filled  air 186.15px  w 183.38px        2 nodes  head 73.81px  Destroy
+at-rest · 1920x1080 · map 495.03px in 10 columns · air 1432.28px
+  top row     465px
+    465.01px filled  air      0px  w 457.25px  p-env
+    228.06px filled  air 236.94px  w 770.08px  p-arch
+    234.93px filled  air 230.07px  w 613.67px  p-run
+  map row  495.03px
+    204.58px filled  air 290.45px  w 177.86px        1 nodes  head 49.28px  Build
+    350.35px filled  air 144.68px  w 365.33px  wide  7 nodes  head 73.81px  Apply — stage
+     253.1px filled  air 241.93px  w 177.86px        1 nodes  head 97.8px  Provision — stage
+    495.04px filled  air      0px  w 177.88px        4 nodes  head 141.38px  Quality gate — stage
+    251.63px filled  air  243.4px  w 177.86px        1 nodes  head 73.81px  Approve
+     357.9px filled  air 137.13px  w 365.33px  wide  8 nodes  head 73.81px  Apply — prod
+    314.04px filled  air 180.99px  w 177.86px        2 nodes  head 122.44px  Quality gate — prod
+    301.33px filled  air  193.7px  w 177.88px        2 nodes  head 73.81px  Destroy
+at-rest · 1440x900 · map 796.84px in 5 columns · air 909.63px
+  top row     544px
+    544.01px filled  air      0px  w 337.25px  p-env
+    293.43px filled  air 250.57px  w 570.08px  p-arch
+    234.93px filled  air 309.07px  w 453.66px  p-run
+  map row  444.45px
+    187.69px filled  air 256.76px  w 269.31px        1 nodes  head 49.28px  Build
+     342.8px filled  air 101.65px  w 548.25px  wide  7 nodes  head 73.81px  Apply — stage
+    187.69px filled  air 256.76px  w 269.33px        1 nodes  head 49.28px  Provision — stage
+    444.46px filled  air      0px  w 269.33px        4 nodes  head 98.34px  Quality gate — stage
+  map row   342.8px
+    195.24px filled  air 147.56px  w 269.31px        1 nodes  head 49.28px  Approve
+     342.8px filled  air      0px  w 548.25px  wide  8 nodes  head 73.81px  Apply — prod
+     282.4px filled  air   60.4px  w 269.33px        2 nodes  head 98.34px  Quality gate — prod
+     256.3px filled  air   86.5px  w 269.33px        2 nodes  head 73.81px  Destroy
+at-rest · 390x844 · map 2101.08px in 2 columns · air 272.09px
+  top row     544px
+    544.01px filled  air      0px  w    335px  p-env
+  top row  536.44px
+    536.45px filled  air      0px  w    335px  p-arch
+  top row  253.34px
+    253.35px filled  air      0px  w    335px  p-run
+  map row  204.58px
+    204.58px filled  air      0px  w  162.7px        1 nodes  head 49.28px  Build
+  map row  357.89px
+     357.9px filled  air      0px  w    335px  wide  7 nodes  head 73.81px  Apply — stage
+  map row  523.58px
+    260.65px filled  air 262.93px  w  162.7px        1 nodes  head 97.8px  Provision — stage
+    523.58px filled  air      0px  w  162.7px        4 nodes  head 162.38px  Quality gate — stage
+  map row  266.59px
+     266.6px filled  air      0px  w  162.7px        1 nodes  head 73.81px  Approve
+  map row  365.44px
+    365.44px filled  air      0px  w    335px  wide  8 nodes  head 73.81px  Apply — prod
+  map row  335.03px
+    335.04px filled  air      0px  w  162.7px        2 nodes  head 143.44px  Quality gate — prod
+    325.87px filled  air   9.16px  w  162.7px        2 nodes  head 98.34px  Destroy
+in-flight · 2560x1440 · map 487.48px in 10 columns · air 1410.96px
+  top row  491.23px
+    491.24px filled  air      0px  w    471px  p-env
+    228.06px filled  air 263.17px  w    793px  p-arch
+    234.93px filled  air  256.3px  w    632px  p-run
+  map row  487.48px
+    204.58px filled  air  282.9px  w 183.36px        1 nodes  head 49.28px  Build
+    350.35px filled  air 137.13px  w 376.33px  wide  7 nodes  head 73.81px  Apply — stage
+    229.12px filled  air 258.36px  w 183.36px        1 nodes  head 73.81px  Provision — stage
+    487.49px filled  air      0px  w 183.38px        4 nodes  head 141.38px  Quality gate — stage
+    251.63px filled  air 235.85px  w 183.36px        1 nodes  head 73.81px  Approve
+     357.9px filled  air 129.58px  w 376.33px  wide  8 nodes  head 73.81px  Apply — prod
+    306.49px filled  air 180.99px  w 183.36px        2 nodes  head 122.44px  Quality gate — prod
+    301.33px filled  air 186.15px  w 183.38px        2 nodes  head 73.81px  Destroy
+in-flight · 1920x1080 · map 495.03px in 10 columns · air 1432.28px
+  top row  512.98px
+    512.99px filled  air      0px  w 457.25px  p-env
+    228.06px filled  air 284.92px  w 770.08px  p-arch
+    234.93px filled  air 278.05px  w 613.67px  p-run
+  map row  495.03px
+    204.58px filled  air 290.45px  w 177.86px        1 nodes  head 49.28px  Build
+    350.35px filled  air 144.68px  w 365.33px  wide  7 nodes  head 73.81px  Apply — stage
+     253.1px filled  air 241.93px  w 177.86px        1 nodes  head 97.8px  Provision — stage
+    495.04px filled  air      0px  w 177.88px        4 nodes  head 141.38px  Quality gate — stage
+    251.63px filled  air  243.4px  w 177.86px        1 nodes  head 73.81px  Approve
+     357.9px filled  air 137.13px  w 365.33px  wide  8 nodes  head 73.81px  Apply — prod
+    314.04px filled  air 180.99px  w 177.86px        2 nodes  head 122.44px  Quality gate — prod
+    301.33px filled  air  193.7px  w 177.88px        2 nodes  head 73.81px  Destroy
+in-flight · 1440x900 · map 796.84px in 5 columns · air 909.63px
+  top row  610.94px
+    610.95px filled  air      0px  w 337.25px  p-env
+    293.43px filled  air 317.51px  w 570.08px  p-arch
+    234.93px filled  air 376.01px  w 453.66px  p-run
+  map row  444.45px
+    187.69px filled  air 256.76px  w 269.31px        1 nodes  head 49.28px  Build
+     342.8px filled  air 101.65px  w 548.25px  wide  7 nodes  head 73.81px  Apply — stage
+    187.69px filled  air 256.76px  w 269.33px        1 nodes  head 49.28px  Provision — stage
+    444.46px filled  air      0px  w 269.33px        4 nodes  head 98.34px  Quality gate — stage
+  map row   342.8px
+    195.24px filled  air 147.56px  w 269.31px        1 nodes  head 49.28px  Approve
+     342.8px filled  air      0px  w 548.25px  wide  8 nodes  head 73.81px  Apply — prod
+     282.4px filled  air   60.4px  w 269.33px        2 nodes  head 98.34px  Quality gate — prod
+     256.3px filled  air   86.5px  w 269.33px        2 nodes  head 73.81px  Destroy
+in-flight · 390x844 · map 2101.08px in 2 columns · air 272.09px
+  top row  610.94px
+    610.95px filled  air      0px  w    335px  p-env
+  top row  536.44px
+    536.45px filled  air      0px  w    335px  p-arch
+  top row  253.34px
+    253.35px filled  air      0px  w    335px  p-run
+  map row  204.58px
+    204.58px filled  air      0px  w  162.7px        1 nodes  head 49.28px  Build
+  map row  357.89px
+     357.9px filled  air      0px  w    335px  wide  7 nodes  head 73.81px  Apply — stage
+  map row  523.58px
+    260.65px filled  air 262.93px  w  162.7px        1 nodes  head 97.8px  Provision — stage
+    523.58px filled  air      0px  w  162.7px        4 nodes  head 162.38px  Quality gate — stage
+  map row  266.59px
+     266.6px filled  air      0px  w  162.7px        1 nodes  head 73.81px  Approve
+  map row  365.44px
+    365.44px filled  air      0px  w    335px  wide  8 nodes  head 73.81px  Apply — prod
+  map row  335.03px
+    335.04px filled  air      0px  w  162.7px        2 nodes  head 143.44px  Quality gate — prod
+    325.87px filled  air   9.16px  w  162.7px        2 nodes  head 98.34px  Destroy
+
+broken words - a word split across two lines, outside the fields that break on purpose
+
+at-rest · 1440x900 · cuts closed
+    PostgreSQL   section.panel.p-arch > div#path.path > div.hop > b
+at-rest · 1440x900 · cuts open
+    PostgreSQL   section.panel.p-arch > div#path.path > div.hop > b
+at-rest · 390x844 · cuts closed
+    environment   div.set > div.node.absent > div.head > span.name
+    ss-9f4c1d7b3a2e8065   tbody > tr > td > a
+    ss-2b7e5a0c9d13f846   tbody > tr > td > a
+    ss-6d0a83f1c7b25e94   tbody > tr > td > a
+    deploy-stage.yml   details#detail.cut.detail > div#detail-body > h3 > span.note
+    promote-prod.yml   details#detail.cut.detail > div#detail-body > h3 > span.note
+    github.com/UVE-QA/aws-devops-sdet-demo   main > footer > p > a
+at-rest · 390x844 · cuts open
+    environment   div.set > div.node.absent > div.head > span.name
+    ss-9f4c1d7b3a2e8065   tbody > tr > td > a
+    ss-2b7e5a0c9d13f846   tbody > tr > td > a
+    ss-6d0a83f1c7b25e94   tbody > tr > td > a
+    deploy-stage.yml   details#detail.cut.detail > div#detail-body > h3 > span.note
+    promote-prod.yml   details#detail.cut.detail > div#detail-body > h3 > span.note
+    github.com/UVE-QA/aws-devops-sdet-demo   main > footer > p > a
+in-flight · 1440x900 · cuts closed
+    PostgreSQL   section.panel.p-arch > div#path.path > div.hop > b
+in-flight · 1440x900 · cuts open
+    PostgreSQL   section.panel.p-arch > div#path.path > div.hop > b
+in-flight · 390x844 · cuts closed
+    environment   div.set > div.node.absent > div.head > span.name
+    ss-9f4c1d7b3a2e8065   tbody > tr > td > a
+    ss-2b7e5a0c9d13f846   tbody > tr > td > a
+    ss-6d0a83f1c7b25e94   tbody > tr > td > a
+    deploy-stage.yml   details#detail.cut.detail > div#detail-body > h3 > span.note
+    promote-prod.yml   details#detail.cut.detail > div#detail-body > h3 > span.note
+    github.com/UVE-QA/aws-devops-sdet-demo   main > footer > p > a
+in-flight · 390x844 · cuts open
+    environment   div.set > div.node.absent > div.head > span.name
+    ss-9f4c1d7b3a2e8065   tbody > tr > td > a
+    ss-2b7e5a0c9d13f846   tbody > tr > td > a
+    ss-6d0a83f1c7b25e94   tbody > tr > td > a
+    deploy-stage.yml   details#detail.cut.detail > div#detail-body > h3 > span.note
+    promote-prod.yml   details#detail.cut.detail > div#detail-body > h3 > span.note
+    github.com/UVE-QA/aws-devops-sdet-demo   main > footer > p > a
+
+the floor - what the narrowest node would have to be, derived from what a node draws
+
+  every word whole   143.69px   the widest is "environment"
+  every name unwrapped 291.25px
+  --node-min is the claim these two numbers are about.
+
+=== AFTER (--node-min 18.5rem, the top row in two columns, the map stretched) ===
+page height - document.scrollHeight, and screens of the viewport it was measured in
+
+  fixture     viewport    cuts      height    screens   doc overflow-x
+  at-rest     2560x1440   closed     2039px       1.4   -
+  at-rest     2560x1440   open       8682px         6   -
+  at-rest     1920x1080   closed     2039px       1.9   -
+  at-rest     1920x1080   open       8682px         8   -
+  at-rest     1440x900    closed     2346px       2.6   -
+  at-rest     1440x900    open       9070px      10.1   -
+  at-rest     390x844     closed     5472px       6.5   -
+  at-rest     390x844     open      17392px      20.6   120px
+  in-flight   2560x1440   closed     2051px       1.4   -
+  in-flight   2560x1440   open       8995px       6.2   -
+  in-flight   1920x1080   closed     2051px       1.9   -
+  in-flight   1920x1080   open       8995px       8.3   -
+  in-flight   1440x900    closed     2402px       2.7   -
+  in-flight   1440x900    open       9383px      10.4   -
+  in-flight   390x844     closed     5539px       6.6   -
+  in-flight   390x844     open      17862px      21.2   125px
+
+at-rest · 390x844 · cuts closed
+  beyond its parent's padding edge
+    169.13px  main > details#history-cut.cut > div#history > table
+              in main > details#history-cut.cut > div#history  474.94px in 305.81px
+  content wider than its own box
+       169px  main > details#history-cut.cut > div#history
+              475px of content in a 306px box, overflow-x: visible
+
+at-rest · 390x844 · cuts open
+  beyond its parent's padding edge
+    169.13px  main > details#history-cut.cut > div#history > table
+              in main > details#history-cut.cut > div#history  474.94px in 305.81px
+  content wider than its own box
+       169px  main > details#history-cut.cut > div#history
+              475px of content in a 306px box, overflow-x: visible
+       156px  main > details#history-cut.cut
+              489px of content in a 333px box, overflow-x: visible
+       155px  main
+              490px of content in a 335px box, overflow-x: visible
+
+in-flight · 390x844 · cuts closed
+  beyond its parent's padding edge
+    174.55px  main > details#history-cut.cut > div#history > table
+              in main > details#history-cut.cut > div#history  480.36px in 305.81px
+  content wider than its own box
+       174px  main > details#history-cut.cut > div#history
+              480px of content in a 306px box, overflow-x: visible
+
+in-flight · 390x844 · cuts open
+  beyond its parent's padding edge
+    174.55px  main > details#history-cut.cut > div#history > table
+              in main > details#history-cut.cut > div#history  480.36px in 305.81px
+  content wider than its own box
+       174px  main > details#history-cut.cut > div#history
+              480px of content in a 306px box, overflow-x: visible
+       161px  main > details#history-cut.cut
+              494px of content in a 333px box, overflow-x: visible
+       160px  main
+              495px of content in a 335px box, overflow-x: visible
+
+the packing - every box against the height of the row it shares
+
+at-rest · 2560x1440 · map 796.84px in 5 columns · air 992.38px
+  top row  460.17px
+    427.65px filled  air  32.52px  w    632px  p-env
+    213.26px filled  air 246.91px  w   1276px  p-arch
+  top row  234.92px
+    234.93px filled  air      0px  w   1276px  p-run
+  map row  444.45px
+     170.8px filled  air 273.65px  w 376.31px        1 nodes  head 49.28px  Build
+     342.8px filled  air 101.65px  w 762.25px  wide  7 nodes  head 73.81px  Apply — stage
+     170.8px filled  air 273.65px  w 376.33px        1 nodes  head 49.28px  Provision — stage
+    444.46px filled  air      0px  w 376.33px        4 nodes  head 98.34px  Quality gate — stage
+  map row   342.8px
+     170.8px filled  air    172px  w 376.31px        1 nodes  head 49.28px  Approve
+     342.8px filled  air      0px  w 762.25px  wide  8 nodes  head 73.81px  Apply — prod
+    257.87px filled  air  84.93px  w 376.33px        2 nodes  head 73.81px  Quality gate — prod
+     256.3px filled  air   86.5px  w 376.33px        2 nodes  head 73.81px  Destroy
+at-rest · 1920x1080 · map 796.84px in 5 columns · air 967.85px
+  top row  460.17px
+    427.65px filled  air  32.52px  w 613.66px  p-env
+    213.26px filled  air 246.91px  w 1239.34px  p-arch
+  top row  234.92px
+    234.93px filled  air      0px  w 1239.34px  p-run
+  map row  444.45px
+     170.8px filled  air 273.65px  w 365.31px        1 nodes  head 49.28px  Build
+     342.8px filled  air 101.65px  w 740.25px  wide  7 nodes  head 73.81px  Apply — stage
+     170.8px filled  air 273.65px  w 365.33px        1 nodes  head 49.28px  Provision — stage
+    444.46px filled  air      0px  w 365.33px        4 nodes  head 98.34px  Quality gate — stage
+  map row   342.8px
+     170.8px filled  air    172px  w 365.31px        1 nodes  head 49.28px  Approve
+     342.8px filled  air      0px  w 740.25px  wide  8 nodes  head 73.81px  Apply — prod
+     282.4px filled  air   60.4px  w 365.33px        2 nodes  head 98.34px  Quality gate — prod
+     256.3px filled  air   86.5px  w 365.33px        2 nodes  head 73.81px  Destroy
+at-rest · 1440x900 · map 1088.83px in 4 columns · air 694.72px
+  top row  474.97px
+    465.01px filled  air   9.96px  w 453.66px  p-env
+    228.06px filled  air 246.91px  w 919.34px  p-arch
+  top row  234.92px
+    234.93px filled  air      0px  w 919.34px  p-run
+  map row   342.8px
+    187.69px filled  air 155.11px  w 339.05px        1 nodes  head 49.28px  Build
+     342.8px filled  air      0px  w  687.7px  wide  7 nodes  head 73.81px  Apply — stage
+    187.69px filled  air 155.11px  w 339.06px        1 nodes  head 49.28px  Provision — stage
+  map row  444.45px
+    444.46px filled  air      0px  w 339.05px        4 nodes  head 98.34px  Quality gate — stage
+    187.69px filled  air 256.76px  w 339.06px        1 nodes  head 49.28px  Approve
+     342.8px filled  air 101.65px  w  687.7px  wide  8 nodes  head 73.81px  Apply — prod
+  map row  282.39px
+     282.4px filled  air      0px  w 339.05px        2 nodes  head 98.34px  Quality gate — prod
+     256.3px filled  air  26.09px  w 339.06px        2 nodes  head 73.81px  Destroy
+at-rest · 390x844 · map 2731.2px in 1 columns · air 0px
+  top row     544px
+    544.01px filled  air      0px  w    335px  p-env
+  top row  536.44px
+    536.45px filled  air      0px  w    335px  p-arch
+  top row  253.34px
+    253.35px filled  air      0px  w    335px  p-run
+  map row  187.69px
+    187.69px filled  air      0px  w    335px        1 nodes  head 49.28px  Build
+  map row  528.05px
+    528.05px filled  air      0px  w    335px        7 nodes  head 73.81px  Apply — stage
+  map row  187.69px
+    187.69px filled  air      0px  w    335px        1 nodes  head 49.28px  Provision — stage
+  map row  444.45px
+    444.46px filled  air      0px  w    335px        4 nodes  head 98.34px  Quality gate — stage
+  map row  187.69px
+    187.69px filled  air      0px  w    335px        1 nodes  head 49.28px  Approve
+  map row   589.8px
+     589.8px filled  air      0px  w    335px        8 nodes  head 73.81px  Apply — prod
+  map row  282.39px
+     282.4px filled  air      0px  w    335px        2 nodes  head 98.34px  Quality gate — prod
+  map row   256.3px
+     256.3px filled  air      0px  w    335px        2 nodes  head 73.81px  Destroy
+in-flight · 2560x1440 · map 796.84px in 5 columns · air 992.38px
+  top row  472.81px
+    472.82px filled  air      0px  w    632px  p-env
+    213.26px filled  air 259.55px  w   1276px  p-arch
+  top row  241.25px
+    234.93px filled  air   6.32px  w   1276px  p-run
+  map row  444.45px
+     170.8px filled  air 273.65px  w 376.31px        1 nodes  head 49.28px  Build
+     342.8px filled  air 101.65px  w 762.25px  wide  7 nodes  head 73.81px  Apply — stage
+     170.8px filled  air 273.65px  w 376.33px        1 nodes  head 49.28px  Provision — stage
+    444.46px filled  air      0px  w 376.33px        4 nodes  head 98.34px  Quality gate — stage
+  map row   342.8px
+     170.8px filled  air    172px  w 376.31px        1 nodes  head 49.28px  Approve
+     342.8px filled  air      0px  w 762.25px  wide  8 nodes  head 73.81px  Apply — prod
+    257.87px filled  air  84.93px  w 376.33px        2 nodes  head 73.81px  Quality gate — prod
+     256.3px filled  air   86.5px  w 376.33px        2 nodes  head 73.81px  Destroy
+in-flight · 1920x1080 · map 796.84px in 5 columns · air 967.85px
+  top row  472.81px
+    472.82px filled  air      0px  w 613.66px  p-env
+    213.26px filled  air 259.55px  w 1239.34px  p-arch
+  top row  241.25px
+    234.93px filled  air   6.32px  w 1239.34px  p-run
+  map row  444.45px
+     170.8px filled  air 273.65px  w 365.31px        1 nodes  head 49.28px  Build
+     342.8px filled  air 101.65px  w 740.25px  wide  7 nodes  head 73.81px  Apply — stage
+     170.8px filled  air 273.65px  w 365.33px        1 nodes  head 49.28px  Provision — stage
+    444.46px filled  air      0px  w 365.33px        4 nodes  head 98.34px  Quality gate — stage
+  map row   342.8px
+     170.8px filled  air    172px  w 365.31px        1 nodes  head 49.28px  Approve
+     342.8px filled  air      0px  w 740.25px  wide  8 nodes  head 73.81px  Apply — prod
+     282.4px filled  air   60.4px  w 365.33px        2 nodes  head 98.34px  Quality gate — prod
+     256.3px filled  air   86.5px  w 365.33px        2 nodes  head 73.81px  Destroy
+in-flight · 1440x900 · map 1088.83px in 4 columns · air 694.72px
+  top row  530.91px
+    530.92px filled  air      0px  w 453.66px  p-env
+    228.06px filled  air 302.85px  w 919.34px  p-arch
+  top row  262.89px
+    234.93px filled  air  27.96px  w 919.34px  p-run
+  map row   342.8px
+    187.69px filled  air 155.11px  w 339.05px        1 nodes  head 49.28px  Build
+     342.8px filled  air      0px  w  687.7px  wide  7 nodes  head 73.81px  Apply — stage
+    187.69px filled  air 155.11px  w 339.06px        1 nodes  head 49.28px  Provision — stage
+  map row  444.45px
+    444.46px filled  air      0px  w 339.05px        4 nodes  head 98.34px  Quality gate — stage
+    187.69px filled  air 256.76px  w 339.06px        1 nodes  head 49.28px  Approve
+     342.8px filled  air 101.65px  w  687.7px  wide  8 nodes  head 73.81px  Apply — prod
+  map row  282.39px
+     282.4px filled  air      0px  w 339.05px        2 nodes  head 98.34px  Quality gate — prod
+     256.3px filled  air  26.09px  w 339.06px        2 nodes  head 73.81px  Destroy
+in-flight · 390x844 · map 2731.2px in 1 columns · air 0px
+  top row  610.94px
+    610.95px filled  air      0px  w    335px  p-env
+  top row  536.44px
+    536.45px filled  air      0px  w    335px  p-arch
+  top row  253.34px
+    253.35px filled  air      0px  w    335px  p-run
+  map row  187.69px
+    187.69px filled  air      0px  w    335px        1 nodes  head 49.28px  Build
+  map row  528.05px
+    528.05px filled  air      0px  w    335px        7 nodes  head 73.81px  Apply — stage
+  map row  187.69px
+    187.69px filled  air      0px  w    335px        1 nodes  head 49.28px  Provision — stage
+  map row  444.45px
+    444.46px filled  air      0px  w    335px        4 nodes  head 98.34px  Quality gate — stage
+  map row  187.69px
+    187.69px filled  air      0px  w    335px        1 nodes  head 49.28px  Approve
+  map row   589.8px
+     589.8px filled  air      0px  w    335px        8 nodes  head 73.81px  Apply — prod
+  map row  282.39px
+     282.4px filled  air      0px  w    335px        2 nodes  head 98.34px  Quality gate — prod
+  map row   256.3px
+     256.3px filled  air      0px  w    335px        2 nodes  head 73.81px  Destroy
+
+broken words - a word split across two lines, outside the fields that break on purpose
+
+at-rest · 390x844 · cuts closed
+    ss-9f4c1d7b3a2e8065   tbody > tr > td > a
+    ss-2b7e5a0c9d13f846   tbody > tr > td > a
+    ss-6d0a83f1c7b25e94   tbody > tr > td > a
+    deploy-stage.yml   details#detail.cut.detail > div#detail-body > h3 > span.note
+    promote-prod.yml   details#detail.cut.detail > div#detail-body > h3 > span.note
+    github.com/UVE-QA/aws-devops-sdet-demo   main > footer > p > a
+at-rest · 390x844 · cuts open
+    ss-9f4c1d7b3a2e8065   tbody > tr > td > a
+    ss-2b7e5a0c9d13f846   tbody > tr > td > a
+    ss-6d0a83f1c7b25e94   tbody > tr > td > a
+    deploy-stage.yml   details#detail.cut.detail > div#detail-body > h3 > span.note
+    promote-prod.yml   details#detail.cut.detail > div#detail-body > h3 > span.note
+    github.com/UVE-QA/aws-devops-sdet-demo   main > footer > p > a
+in-flight · 390x844 · cuts closed
+    ss-9f4c1d7b3a2e8065   tbody > tr > td > a
+    ss-2b7e5a0c9d13f846   tbody > tr > td > a
+    ss-6d0a83f1c7b25e94   tbody > tr > td > a
+    deploy-stage.yml   details#detail.cut.detail > div#detail-body > h3 > span.note
+    promote-prod.yml   details#detail.cut.detail > div#detail-body > h3 > span.note
+    github.com/UVE-QA/aws-devops-sdet-demo   main > footer > p > a
+in-flight · 390x844 · cuts open
+    ss-9f4c1d7b3a2e8065   tbody > tr > td > a
+    ss-2b7e5a0c9d13f846   tbody > tr > td > a
+    ss-6d0a83f1c7b25e94   tbody > tr > td > a
+    deploy-stage.yml   details#detail.cut.detail > div#detail-body > h3 > span.note
+    promote-prod.yml   details#detail.cut.detail > div#detail-body > h3 > span.note
+    github.com/UVE-QA/aws-devops-sdet-demo   main > footer > p > a
+
+the floor - what the narrowest node would have to be, derived from what a node draws
+
+  every word whole   143.69px   the widest is "environment"
+  every name unwrapped 295.58px
+  --node-min is the claim these two numbers are about.

@@ -6,6 +6,64 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
+**As of 2026-08-09 (20j — the packing, and the floor it was folded at).** 20g's
+two leftovers, the word break 20g reverted a fix for, and 20i's unsettled
++67px — all four on fixtures, $0, no cycle. **ADR-0052.**
+
+**The packing sat on a number nobody had measured.** `--node-min` decides how
+many columns the map folds into, it has been 12rem and then 7rem, and BOTH were
+measured against what a node contains rather than what it has to draw — which is
+the question the fold asks it. The instrument can ask the second question now: a
+`Range` over one word returns one client rect when the word sits on a line and
+two when the line box split it, so `environme|nt` stops being something a person
+noticed and becomes a number. Asked of the page as it stood, with no hint where
+to look, it reported both breaks this project knows about — `RDS PostgreSQ|L` at
+1440, which 20g found by eye, and `environment` on the phone, which nobody had,
+live in the published page since the composition landed and invisible to
+`make measure-page` because a broken word is not overflow. Derived from the words
+themselves: every word whole needs 143.69px, every name unwrapped needs 295.58px,
+against a claim of 112px. The floor is **18.5rem**: a node draws its NAME, not
+enough of it to be guessed at. 143.69px is kept as the line no future number may
+go under rather than as the floor. The map folds to five columns in two rows at
+1920 and 2560, four in three rows at 1440, one on a phone, and the page grows
+about 300px on the desktop (1.2 screens to 1.4 on the stated primary target) and
+630px on the phone — where it is not a preference, since two columns were
+breaking a word and one is not.
+
+**The top row was never three of anything, and the comb is smaller rather than
+gone.** 465 against 228 + 235 + a gap is 465 against 475, so the first screen is
+two columns — the environments panel down the left over both rows, the path and
+the run stacked beside it — which also settles the fix 20g reverted: the five
+hops go from 5/12 of the row to 8/12, 184px each at 1440, nothing breaks, and the
+row is 69px SHORTER instead of 290px taller. The fix was always width, and it came
+from packing rather than from a breakpoint. In the map nothing was packed by
+hand: a wider column costs the tallest phase its wrapped header, 141.38 →
+98.34px, and puts every phase in a row whose height comes from a shorter
+neighbour, so the air falls 1432.28 → 967.85px at 1920. `stretch` then gives the
+row one bottom edge and removes no air at all. Spending the rest means making the
+quality gate wide, which was measured at BOTH floors and loses at both — an
+eleventh column of 160.81px that breaks `environment` at 9rem, and three rows of
+four costing 2039 → 2205 at 1920 at the floor actually chosen.
+
+**The instrument was then aimed at its own new blind spot, and 20i's delta is
+settled.** Stretched boxes are all exactly as tall as their row, so an air measure
+written the obvious way would print `0px` and read as a comb that was removed;
+every box is measured twice now — how tall it is, and where the last thing inside
+it ends — which is what makes 1432.28 → 967.85px a reading rather than an
+impression. And per phase, at `d96d9af~1` and `d96d9af`: three
+`observer` nodes gained a state line, +33.78px each, two of them alone in their
+phone row and one sharing with a phase three times its height — +67.56px on the
+phone, +0 on every desktop, where all three sit in the row whose height comes
+from that same tall phase. The hypothesis was right in mechanism and wrong in one
+detail worth keeping: it named stage-apply's seven nodes as the absorbing row,
+and it is the quality gate, the same phase the comb is about.
+
+Next: **a live cycle** — the same one 20g and 20h left in the cursor. Nothing on
+the page blocks it now, it is the only thing that can put a figure in the cost
+box, and it is billable, so it is planned and confirmed before anything runs.
+
+---
+
 **As of 2026-08-09 (20i — the page's tense).** The four clauses 20h left in the
 cursor, all of them reachable on fixtures, $0 and no cycle. **ADR-0051.**
 

@@ -51,6 +51,7 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 20g   | The desktop: the page fills the monitor | ✅ done — $0, the comb left to its own session | sessions/2026-08-09-phase-20g-the-page-fills-the-monitor.md |
 | 20h   | The first priced cycle          | ✅ done — $0.0178 .. $0.0235, stage only | sessions/2026-08-09-phase-20h-the-fold-prices-a-cycle-the-page-dates-it-wrong.md |
 | 20i   | The page's tense               | ✅ done — $0, fixtures only | sessions/2026-08-09-phase-20i-the-pages-tense.md |
+| 20j   | The packing, and the floor it was folded at | ✅ done — $0, fixtures only | sessions/2026-08-09-phase-20j-the-floor-the-map-was-folded-at.md |
 
 Phase 17 (prod data continuity) is still open and still optional, in
 `docs/next-phases.md`. Phase 18 was pulled forward of both remaining phases
@@ -2953,6 +2954,89 @@ All four clauses the cursor named, on fixtures, $0. Summary in
   after it is the first that can show these four sentences against real records,
   the first that can put a figure in the cost box, and the only way to see the
   rendering half, which no gate here can.
+
+### Phase 20j — The packing, and the floor the map was folded at  ✅ DONE 2026-08-09
+20g's two leftovers, 1440's word break and 20i's unsettled +67px — all four, on
+fixtures, $0. Summary in
+`docs/sessions/2026-08-09-phase-20j-the-floor-the-map-was-folded-at.md`, the
+before/after pair in `docs/sessions/2026-08-09-phase-20j-packing-measure.log`.
+**ADR-0052.**
+- Criteria: the comb and the ragged top row decided rather than described; the
+  1440 break in the row being repacked; the +67px hypothesis settled by a
+  per-phase measurement. All met.
+- **A broken word is measurable now.** A `Range` over one word returns one client
+  rect on one line and two when the line box split it. Asked of the page as it
+  stood, with no hint where to look, it reported both breaks this project knows
+  about: `RDS PostgreSQ|L` at 1440, found by eye in 20g, and `environment` on the
+  phone — in the published page since the composition landed, and invisible to
+  `make measure-page`, which reports overflow, and a broken word is not overflow.
+- **The floor was a claim about the wrong thing.** `--node-min` has been 12rem and
+  then 7rem, and both were measured against what a node CONTAINS rather than what
+  it has to DRAW, which is the question the fold asks it. Derived: every word
+  whole needs 143.69px (`environment`, 89.63px), every name unwrapped needs
+  295.58px, against a claim of 112px. **18.5rem** — a node draws its name rather
+  than enough of it to be guessed at. 143.69px is kept as the line no future
+  number may go under, not as the floor. The map folds to five columns in two
+  rows at 1920 and 2560, four in three rows at 1440, one on a phone:
+```text
+  at-rest        2560    1920    1440     390     in-flight   2560    1920
+  before         1734    1742    2123    4842     before      1760    1790
+  after          2039    2039    2346    5472     after       2051    2051
+```
+  About 300px on the desktop — 1.2 screens becoming 1.4 on the stated primary
+  target — and 630px on the phone, which is the one viewport where it is not a
+  preference: two columns were breaking a word and one column is not.
+- **The top row was never three of anything** — 465 against 228 + 235 + a gap is
+  465 against 475. Two columns, `4 / 8 / 8` with `stretch`, source order
+  untouched. It also settles 20g's reverted fix: the five hops go from 5/12 to
+  8/12, 184px each at 1440, nothing breaks, and the row is 69px SHORTER instead
+  of 290px taller. The fix was always width; it came from packing rather than
+  from a breakpoint.
+- **The comb: two rows take a third of it, `stretch` takes the teeth, the rest is
+  structural.** Nothing was packed by hand — a wider column costs the tallest
+  phase its wrapped header (141.38 → 98.34px) and puts every phase in a row whose
+  height comes from a shorter neighbour, so the air falls 1432.28 → 967.85px at
+  1920 and 909.65 → 694.72px at 1440. `stretch` then makes the row one band and
+  removes no air at all. The lever that would spend the rest is making the
+  quality gate wide (`WIDE_AT` 6 → 4), and it was measured at BOTH floors and
+  loses at both: at 9rem it produces an eleventh column of 160.81px around a node
+  needing 143.69px and breaks `environment` at 1920 but not at 2560 — the 5px
+  `main` gains at its cap — and at 18.5rem it folds into three rows of four,
+  costing 2039 → 2205 at 1920 to save 2346 → 2219 at 1440.
+- **The instrument was aimed at its own new blind spot.** Stretched boxes are all
+  exactly as tall as their row, so an air measure written the obvious way would
+  have printed `0px` and read as a comb that was removed. Every box is measured
+  twice now — how tall it is, and where the last thing inside it ends — which is
+  what makes 1432.28 → 967.85px a reading rather than an impression.
+- **20i's +67px, settled exactly**, per phase at `d96d9af~1` and `d96d9af`: three
+  `observer` nodes gained a state line, +33.78px each; two are alone in their
+  phone row and one shares with a phase three times its height, giving +67.56px
+  on the phone and +0 on every desktop, where all three sit in the row whose
+  height comes from that same tall phase. Right in mechanism; wrong in one detail
+  worth keeping — it named stage-apply's seven as the absorbing row, and it is the
+  quality gate, the same phase the comb is about.
+- Validation:
+```bash
+  make site-page-check site-data-check docs-check
+  make page-tense-check
+  make live-state-check
+  make measure-page
+  make contrast-check
+```
+  `site-data` regenerated because it counts the files in `docs/decisions/` and
+  ADR-0052 makes it 53 — written BEFORE the validation run this time, which is
+  the one thing 20i got in the wrong order.
+- Cost: **nothing.** No cycle, no AWS call, nothing applied. `site/` changed, so
+  the next push republishes the static page.
+- Next allowed step: **a live cycle.** It is the same one 20g and 20h left in the
+  cursor and nothing on the page blocks it any more: the four tense clauses and
+  the packing are both done on fixtures, and a cycle is the only thing that can
+  show them against real records, put a figure in the cost box — still unmeasured,
+  because neither fixture set carries `cost/<env>/latest.json` — and exercise the
+  rendering half, which no gate here can. It is BILLABLE, so it is planned and
+  confirmed before anything runs, and the teardown of either environment is the
+  line to watch for the cost. Measure with `make measure-page` either side of any
+  later layout change; the figures above are the new before.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,
