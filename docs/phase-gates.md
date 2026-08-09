@@ -2717,6 +2717,10 @@ that deliberately did not decide the layout.
   make measure-page
   make site-page-check site-data-check docs-check
 ```
+  Run on the devbox after the patch landed: every figure identical to the
+  sandbox's, to the hundredth, with a different Playwright and a different
+  chromium. The instrument discovers where its browser lives, which is the shape
+  that has bitten this project before - here the two hosts agreed.
 - Cost: nothing. No cycle, no AWS call, nothing applied - and `site/` is
   untouched, so this one does not even republish the page.
 - Next allowed step: **20e — the phone, now with a baseline.** Two things are

@@ -159,6 +159,16 @@ make site-page-check site-data-check docs-check
 `site/` is untouched, so `contrast-check` and `live-state-check` have nothing new
 to say — they were run anyway and are green.
 
+**And then it ran on the devbox, and printed the same thing.** Every height, every
+screen count, and both overflow figures to the hundredth — 169.13px and 174.55px —
+identical to the sandbox, on a different machine with its own Playwright and its
+own chromium. That was the one real risk in this patch: the instrument DISCOVERS
+where its browser lives, and `docker compose config --images app` already taught
+this project that a target asking a tool to discover something gets a
+version-dependent fact rather than a definition. This time the two hosts agreed,
+and the agreement is worth more than the figures: it means a number in this
+summary can be re-derived by someone who has only the repository.
+
 ## Next
 
 The phone is still the next allowed step, and it now has a baseline that can be
