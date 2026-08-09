@@ -20,17 +20,16 @@
   "observed": {
     "resources": 32,
     "matched": 30,
-    "not_shown": 1,
+    "not_shown": 2,
     "read": 0,
-    "unknown": 1,
+    "unknown": 0,
     "nodes": 2
   },
   "not_shown": [
-    "module.network.aws_route_table_association.public[0]"
+    "module.network.aws_route_table_association.public[0]",
+    "module.network.aws_route_table_association.public[1]"
   ],
-  "unknown": [
-    "module.observability.aws_cloudwatch_log_metric_filter.spare"
-  ],
+  "unknown": [],
   "nodes": {
     "stage.rds": {
       "state": "measured",

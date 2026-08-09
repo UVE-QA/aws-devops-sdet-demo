@@ -243,8 +243,10 @@ async function openPage(browser, origin, sources, layerRef, now) {
   return { page, context, unmocked };
 }
 
+const REGIONS = ["map", "sub", "cost", "detail"];
+
 function disagreements(a, b) {
-  return ["map", "sub", "cost", "detail"].filter((k) => a[k] !== b[k]);
+  return REGIONS.filter((k) => a[k] !== b[k]);
 }
 
 async function main() {
@@ -293,15 +295,24 @@ async function main() {
     for (const [name, r] of [["before", coldBefore], ["after", coldAfter]]) {
       if (r.fp.banner) refuse(`the page drew a source-failure banner on "${name}": ${r.fp.banner}`);
     }
+    // EVERY region, not "at least one", and the difference cost a break test.
+    // The first version of this control asked whether the two sets rendered
+    // differently ANYWHERE, and stayed green with renderMapSub() unhooked from
+    // the re-read: a region nothing draws holds the same static markup in both
+    // sessions, so it converges trivially and its silence looks like agreement.
+    // A region that cannot move cannot testify - the same shape as the 20a
+    // measurement that asked the document about a box overflowing its parent.
     const moved = disagreements(coldBefore.fp, coldAfter.fp);
-    if (!moved.length) {
+    const mute = REGIONS.filter((k) => !moved.includes(k));
+    if (mute.length) {
       refuse(
-        "the two run-layer sets render the SAME page.\n" +
-          "  Convergence on a target that never moved is not evidence of anything,\n" +
-          "  and every case here would be green with the page's re-read deleted."
+        `these regions render identically from the two run-layer sets: ${mute.join(", ")}.\n` +
+          "  Convergence on something that never moved is not evidence, and a region\n" +
+          "  the page has stopped drawing at all reads exactly like this. Either the\n" +
+          "  fixtures no longer disagree about it, or nothing renders it any more."
       );
     }
-    console.log(`control: before and after differ in ${moved.join(", ")} — there is something to converge on`);
+    console.log(`control: before and after differ in ${moved.join(", ")} — every compared region can testify`);
 
     for (const name of cases) {
       const ref = { files: before };
