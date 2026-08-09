@@ -134,6 +134,28 @@ side, which is the guard that matters (see below). ADR-0039's promise to
 reconcile once against a real bill is retired in ADR-0045 D6 rather than left
 standing as pending work.
 
+### The first cycle it priced on its own (2026-08-09, Phase 20h)
+
+Wired into the teardown in Phase 20f, and run live for the first time here. Not
+worked out by hand afterwards — printed by `destroy stage #41` as the
+environment came down:
+
+```text
+cycle CLOSED  2026-08-09T05:13:18Z -> 2026-08-09T05:43:24Z  (1806s)
+ESTIMATE      $0.0178 .. $0.0235          stage only, prod not deployed
+  ALB     1557-1766s   $0.0097 .. $0.0110
+  RDS      812-1339s   $0.0043 .. $0.0071
+  ECS     1100-1545s   $0.0038 .. $0.0053
+32 created: 3 priced, 25 free, 4 not metered, 0 UNPRICED
+```
+
+Two things worth keeping from it. The ALB is the largest share of a short
+cycle — it meters from the moment it is created and the database takes minutes
+to become useful, so the cheapest saving in a demo is a shorter cycle rather
+than a smaller shape. And `0 UNPRICED` is the number to watch when `infra/`
+grows: it says every created resource landed in a class, rather than a new kind
+being silently free.
+
 ## The budget alarm
 
 `infra/modules/budgets` (ADR-0011) is applied at every environment level that
