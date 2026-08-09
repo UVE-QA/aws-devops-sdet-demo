@@ -6,6 +6,61 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
+**As of 2026-08-09 (20e.0 — the dashboard is composed, not scrolled).** The
+discovery step ran and renamed its own phase. **ADR-0047.**
+
+**"Navigable" was the wrong target, and it was the previous session's own word.**
+A section index makes a long strip traversable; it does not make it stop being a
+long strip. Asked directly, the requirement is a DASHBOARD rather than a long
+list of resources — where things are, how they connect, which tools are used, in
+what order, composed in blocks, with the detail under cuts. The desktop monitor
+is the primary target and the phone is last in the queue, both stated rather than
+inferred.
+
+The complaint was measured instead of quoted, at four viewports and with three
+remote sources unreachable, so every figure understates the live page: 3.6
+screens at 1920x1080, 10.5 at 390x844, and **0 in-page anchors, 0 `<nav>`, 0
+sticky elements** — the page has no navigation affordance at all, which makes the
+complaint literal rather than figurative. The per-cycle map is 46% of the page on
+a laptop, and the repository link — the one thing a thirty-second visitor needs —
+sits in the footer at 100% of scroll depth.
+
+**Then a channel nobody had measured.** Five of the map's six states ride a 1px
+border and nothing else, and three are under WCAG 1.4.11's 3:1 floor in the light
+theme: working 2.67, done 2.41, suite 1.98. Solid versus dashed at one pixel is
+not a channel, which is exactly what had been reported by eye. The pulse does not
+rescue the state that has it — a 1px ring fading to `opacity: 0`, fainter than
+the border it sits on for most of every beat.
+
+**The first contrast measurement was wrong and looked like a finding.**
+`color-mix()` resolves to `color(srgb 0.44 0.62 0.90)`, the parser divided those
+by 255, and six different colours came back at 20.92:1 in light and 1.23:1 in
+dark. Both readings are indistinguishable from real ones. What settled it was a
+control inside the measurement — black on white must read 21:1, through both
+notations — and it is printed on every run now. The pipe lesson in a new
+instrument: there the shell stood between the defect and the reading, here the
+colour parser did.
+
+The tools turned out to be missing rather than their icons: Terraform, Docker,
+Playwright, pytest and Alembic appear nowhere on the map, and `TEST` does not
+distinguish Playwright from pytest. Named in text, with vendor marks left as
+separate work exactly as `assets/github-logo/NOTICE.md` already did for GitHub's.
+
+The sketch is 1.1 screens at 1920x1080 and 1.0 at 2560x1440, with 0 boxes
+overflowing their own parent at any viewport — measured per-parent rather than
+against the document, which is 20a's lesson and which immediately caught a table
+74px past its container that the document measure could not have seen. `auto-fit`
+left phase 8 alone on a second row with a screen of air beside it, so the column
+count is deterministic and its span total must be COMPUTED rather than written
+down. Collapse follows GitHub Actions: the header answers whether anything is
+wrong and names the FAILING step, the lines inside carry per-step status — the
+first version collapsed to "the current step", which for a finished run is the
+last one, a green tick where the thing broke.
+
+Six things are open and named rather than dropped, the contrast gate among them.
+Nothing was applied, no AWS call was made, and `site/` and `assets/` were not
+touched.
+
 **As of 2026-08-08 (20f — the teardown prices the cycle it just ended).** The
 computation ADR-0045 built by hand now runs where a lifetime actually closes.
 **ADR-0046.**
