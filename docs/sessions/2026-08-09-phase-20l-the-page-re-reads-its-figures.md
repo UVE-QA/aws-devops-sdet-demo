@@ -145,8 +145,18 @@ make live-state-check
 make page-freshness-check
 ```
 
-All green. `page-freshness-check` needs chromium: on a machine whose build is not
-the pinned one, `CHROMIUM_PATH=` as for `measure-page` and `contrast-check`.
+All green, and **all six run on the devbox as well as in the session sandbox** —
+which is not ceremony for the new one. `make page-freshness-check` asks a browser
+a question, and the last time a target asked a tool to DISCOVER something the
+answer differed between these two hosts with a byte-identical recipe
+(`docker compose config --images app`, 2026-07-28). Measured rather than assumed:
+same three cases, same control, same verdict. The devbox found chromium without
+`CHROMIUM_PATH` — playwright's pinned build is there as a side effect of `make
+test-smoke`, which is the placement argument for putting this in `ci.yml`'s
+`local-ci` job made from the other end. A machine whose chromium is not the
+pinned one still needs `CHROMIUM_PATH=`, as for `measure-page` and
+`contrast-check`; the session sandbox was one, and that is how the escape hatch
+got exercised.
 
 ## Cost
 
