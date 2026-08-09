@@ -57,6 +57,19 @@ stage  993912191738.dkr.ecr.us-west-2.amazonaws.com/aws-devops-sdet-demo-app:482
 prod   993912191738.dkr.ecr.us-west-2.amazonaws.com/aws-devops-sdet-demo-app@sha256:b080e23c053d8e51d06ec7177c46939f6bb93f74e5f98dd986b8cf8b2a99357b
 ```
 
+## The release pointer, found after the fact
+
+```text
+release-20260809-2238-4828f2d
+```
+
+An annotated tag pushed by the green prod smoke (ADR-0029). 22:38Z falls inside
+`promote-prod #11`, so it is this cycle's. It was NOT observed while it happened:
+it arrived on a `git pull` after the session's documents were already written.
+The session watched a page for two hours and missed a thing that was recorded in
+git the whole time — the dashboard does not draw it, so nothing in the window
+being watched could have shown it.
+
 ## FINDING 1 — an in-progress run is counted as a success
 
 `Recent lifecycle runs` prints its verdict from two different populations:

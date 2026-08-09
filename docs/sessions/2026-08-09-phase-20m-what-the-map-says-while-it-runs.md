@@ -134,6 +134,11 @@ repository holds a cycle in mid-flight with an otherwise-green history.
   `@sha256:b080e23c…`.
 - **19f's teardown order earned itself**: `Destroy ALB first` 7m 43s, then
   `Terraform destroy` 0m 14s.
+- **ADR-0029's release pointer fired**, and was noticed only because a `git pull`
+  after the session's documents were written brought the tag down:
+  `release-20260809-2238-4828f2d`. 22:38Z is inside `promote-prod #11`, so the
+  annotated tag on a green prod smoke belongs to THIS cycle. Nobody looked for
+  it while it happened — it is on the repository, not on the page.
 
 ## Two things recorded as NOT measured
 
