@@ -2748,17 +2748,6 @@
           return envs.indexOf(env) !== -1;
         }
 
-        /* What a node says when no run is speaking for it. Suites do not come
-           here - they are observed by their report - and neither does a
-           permanent card, which has no cycle to report.
-
-              node     as the generator wrote it: `observer` is the field that
-                       says WHAT COULD EVER MEASURE THIS, and it is on every node
-                       already (assets/topology-groups.json)
-              record   the published node state, or null
-              envs     the word from envTense() for this node's environment
-              underWay underWayHere() for this node's environment: a cycle is
-                       running now and it is about this one */
         /* A RUN THAT HAS NOT FINISHED HAS NOT SUCCEEDED. The badge over the run
            history read `all 12 succeeded` while one of the twelve was still
            going: its numerator was failures among COMPLETED runs and its
@@ -2781,6 +2770,17 @@
           };
         }
 
+        /* What a node says when no run is speaking for it. Suites do not come
+           here - they are observed by their report - and neither does a
+           permanent card, which has no cycle to report.
+
+              node     as the generator wrote it: `observer` is the field that
+                       says WHAT COULD EVER MEASURE THIS, and it is on every node
+                       already (assets/topology-groups.json)
+              record   the published node state, or null
+              envs     the word from envTense() for this node's environment
+              underWay underWayHere() for this node's environment: a cycle is
+                       running now and it is about this one */
         function nodeTense(node, record, envs, underWay) {
           // NOTHING WILL EVER MEASURE THIS ONE. Terraform reports resources;
           // the image push, the migrate/seed task and the human approval are

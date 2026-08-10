@@ -100,10 +100,18 @@ EDITS: dict[str, list[tuple[str, str]]] = {}
 
 EDITS[NODE_STATES] = [
     (
-        """THE RULE, IN FULL
+        """So the join happens once, on the runner, and the page is left a renderer. What
+it fetches is already node states; the only thing it decides is how to draw
+them.
+
+THE RULE, IN FULL
 -----------------
 """,
-        """WHERE THE NODES COME FROM (schema 3)
+        """So the join happens once, on the runner, and the page is left a renderer. What
+it fetches is already node states; the only thing it decides is how to draw
+them.
+
+WHERE THE NODES COME FROM (schema 3)
 ------------------------------------
 The map's data is three contours, and the join needs two of them:
 
@@ -282,12 +290,20 @@ EDITS[FOLD_RESULTS] = [
 # reproduces exactly the node list schema 2 wrote inline.
 
 EDITS[TEMPLATE] = [
-    # 1. the resolver itself, inside the lifted RUN-LAYER block.
+    # 1. the resolver, and the state machine reading it. ONE edit and not two,
+    #    because an anchor that survives its own replacement cannot be told
+    #    apart from an unapplied one - see the invariant in plan_text().
     (
         """        /* Every phase and every node, in one pass. A node with its own binding
            answers for itself; a node without one inherits its phase's state and
            is MARKED as having done so, because the two must not render alike. */
-        function runLayerStates(observation, phases) {""",
+        function runLayerStates(observation, phases) {
+          const out = { phases: {}, nodes: {} };
+          const envs = (observation && observation.envs) || [];
+          (phases || []).forEach((p) => {
+            const ph = bindingState(observation, p.live);
+            if (ph.state) out.phases[p.id] = { state: ph.state, since: ph.since };
+            (p.nodes || []).forEach((n) => {""",
         """        /* THE TWO CONTOURS, JOINED, ONCE (schema 3). A phase holds the VERB
            nodes it owns and REFERENCES the resource nodes it acts on, as
            `touches: [{node, verb}]`. Only `creates` puts a node inside a
@@ -333,13 +349,12 @@ EDITS[TEMPLATE] = [
         /* Every phase and every node, in one pass. A node with its own binding
            answers for itself; a node without one inherits its phase's state and
            is MARKED as having done so, because the two must not render alike. */
-        function runLayerStates(observation, phases) {""",
-    ),
-    # 2. the state machine reads the resolved list.
-    (
-        """            if (ph.state) out.phases[p.id] = { state: ph.state, since: ph.since };
-            (p.nodes || []).forEach((n) => {""",
-        """            if (ph.state) out.phases[p.id] = { state: ph.state, since: ph.since };
+        function runLayerStates(observation, phases) {
+          const out = { phases: {}, nodes: {} };
+          const envs = (observation && observation.envs) || [];
+          (phases || []).forEach((p) => {
+            const ph = bindingState(observation, p.live);
+            if (ph.state) out.phases[p.id] = { state: ph.state, since: ph.since };
             phaseNodes(p).forEach((n) => {""",
     ),
     # 3. the map: DATA.phases is gone, and the width is measured on the
@@ -447,8 +462,21 @@ EDITS[TEMPLATE] = [
     #    runs, so a cycle in flight - the state the page is in whenever anybody
     #    is watching one - was counted as a success.
     (
-        """        function nodeTense(node, record, envs, underWay) {""",
-        """        /* A RUN THAT HAS NOT FINISHED HAS NOT SUCCEEDED. The badge over the run
+        """        function underWayHere(observation, env) {
+          if (!figuresAreOlder(observation)) return false;
+          const envs = (observation && observation.envs) || [];
+          return envs.indexOf(env) !== -1;
+        }
+
+        /* What a node says when no run is speaking for it. Suites do not come
+""",
+        """        function underWayHere(observation, env) {
+          if (!figuresAreOlder(observation)) return false;
+          const envs = (observation && observation.envs) || [];
+          return envs.indexOf(env) !== -1;
+        }
+
+        /* A RUN THAT HAS NOT FINISHED HAS NOT SUCCEEDED. The badge over the run
            history read `all 12 succeeded` while one of the twelve was still
            going: its numerator was failures among COMPLETED runs and its
            denominator was every run in the list, so an in-flight cycle scored
@@ -470,7 +498,8 @@ EDITS[TEMPLATE] = [
           };
         }
 
-        function nodeTense(node, record, envs, underWay) {""",
+        /* What a node says when no run is speaking for it. Suites do not come
+""",
     ),
     (
         """        var bad = runs.filter(function (r) {
@@ -812,6 +841,19 @@ def plan_text(path: Path, edits: list[tuple[str, str]]) -> tuple[str, bool]:
     text = original
     already = 0
     for anchor, replacement in edits:
+        # AN ANCHOR THAT SURVIVES ITS OWN REPLACEMENT IS NOT AN ANCHOR. Three of
+        # the edits below were first written as an insertion whose anchor sat at
+        # the boundary of the inserted text - `function nodeTense(...) {`, kept
+        # verbatim at the end of the replacement. Running the script twice found
+        # the anchor again and inserted the block a second time, and the
+        # "already applied" test below could never fire for it. So an insertion
+        # anchors on text the insertion BREAKS: the lines either side of it.
+        if anchor in replacement:
+            raise Refusal(
+                f"{path.relative_to(ROOT)}: an anchor is contained in its own replacement, "
+                f"so applying this edit leaves it matchable and a second run would apply it "
+                f"again.\n    {anchor.strip().splitlines()[0][:100]}"
+            )
         found = text.count(anchor)
         if found == 1:
             text = text.replace(anchor, replacement, 1)
