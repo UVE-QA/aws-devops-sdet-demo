@@ -23,6 +23,35 @@ say "=== the repository describes things that exist ==="
 python3 scripts/check-docs-references.py || fail=1
 
 say ""
+say "=== the generated artifacts still agree with the repository ==="
+# THE GATE THAT CATCHES THIS IS THE ONE THAT WAS NOT ON THIS LIST. Both
+# site/data/topology.json and site/index.html are build outputs that are
+# COMMITTED, and ci.yml regenerates each and refuses if the committed file
+# disagrees. Neither was checked here, so a session could close `clean` and
+# redden main in the same breath - and one did, twice:
+#
+#   20i   docs/decisions gained ADR-0051, topology.json was generated BEFORE it
+#         and never again. Green in the chat's sandbox, red on the devbox.
+#         Fixed by 1d8980b.
+#   21    the identical thing, two ADRs at once, 54 against 56. It reached main:
+#         run 31343885958 went red while session-close printed `clean`.
+#
+# What makes it specific rather than careless: topology.json counts the files in
+# docs/decisions/, so a DOCUMENTS-ONLY session - a session that deliberately
+# touches no code, which is exactly what a decisions phase is - changes a
+# generated number without going anywhere near the generator.
+#
+# Only site-data-check has ever fired. site-page-check is here because it is the
+# same species and costs nothing; saying so is cheaper than discovering it.
+#
+# NOT CLOSED BY THIS: ci.yml's cheap gate list is longer than these two -
+# timeline-check, node-states-check, results-check, live-state-check and
+# page-tense-check all run there and none runs here. Two lists that can disagree
+# is the defect one layer up, and it wants its own session.
+python3 scripts/generate-topology.py --check || fail=1
+python3 scripts/build-site-page.py --check >/dev/null || bad "site/index.html is not what the template builds - run \`make site-page\`"
+
+say ""
 say "=== the record of this session exists and agrees with itself ==="
 
 tracked="$(git ls-files docs/sessions)"
