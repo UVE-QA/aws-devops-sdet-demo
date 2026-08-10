@@ -104,6 +104,10 @@ function loadTense() {
   // of the page before looking for calls. Cutting only one would let a function
   // satisfy the check with its own definition, in the other block.
   const spans = [];
+  // Which block defines which name, decided by evaluating each block ALONE.
+  // Needed by the same-script check at the bottom: a name has to be traced to
+  // the script it is really declared in, not to the first block in the list.
+  const defines = [];
   for (const { begin, end } of BLOCKS) {
     const opens = html.split(begin).length - 1;
     const closes = html.split(end).length - 1;
@@ -129,6 +133,9 @@ function loadTense() {
     } catch (e) {
       refuse(`the block at \`${begin}\` does not evaluate: ${e}`);
     }
+    const alone = vm.createContext({});
+    vm.runInContext(source, alone, { filename: `site/index.html#${begin}` });
+    defines.push(API.filter((n) => vm.runInContext(`typeof ${n} === "function"`, alone)));
   }
   const api = {};
   for (const name of API) {
@@ -161,19 +168,57 @@ function loadTense() {
   // blocks in one context, cutting one leaves the other's definition standing
   // in the text, and `historyTally(` would have been "called" by its own
   // signature.
-  let outside = "";
-  let cut = 0;
-  for (const [from, to] of spans.sort((a, b) => a[0] - b[0])) {
-    outside += html.slice(cut, from);
-    cut = to;
-  }
-  outside = strip(outside + html.slice(cut));
+  //
+  // AND THE CALL MUST BE IN THE SAME <script> AS THE BLOCK. This half was added
+  // after a defect that was green here and red in check-page-freshness.mjs on
+  // another host: historyTally() was defined inside the map's script, which is
+  // WRAPPED in an IIFE on purpose, and called from the dashboard's script,
+  // which cannot see into it. `historyTally(` was present outside the blocks,
+  // so the check above passed - it was reading the call as text, and the call
+  // threw ReferenceError on every tick. Nothing else could see it: the block
+  // lifts and evaluates perfectly on its own, the cases all pass, and a cold
+  // load never goes through the caller. A text gate cannot know about scopes,
+  // but it can know that a wrapped script is not a place to put a function
+  // somebody else calls.
+  const ordered = spans.slice().sort((a, b) => a[0] - b[0]);
+  const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => ({
+    from: m.index,
+    to: m.index + m[0].length,
+  }));
+  const scriptOf = (at) => scripts.findIndex((s) => at >= s.from && at < s.to);
+  // One script's text with every block cut out of it, comments stripped.
+  const callable = scripts.map((s) => {
+    let text = "";
+    let cut = s.from;
+    for (const [from, to] of ordered) {
+      if (from < s.from || to > s.to) continue;
+      text += html.slice(cut, from);
+      cut = to;
+    }
+    return strip(text + html.slice(cut, s.to));
+  });
+
   for (const name of API) {
-    if (outside.indexOf(name + "(") === -1) {
+    const home = defines.findIndex((names) => names.includes(name));
+    const calledIn = callable
+      .map((text, i) => (text.indexOf(name + "(") === -1 ? -1 : i))
+      .filter((i) => i !== -1);
+    if (!calledIn.length) {
       refuse(
         `${name}() is defined in a lifted block and called nowhere outside the blocks.\n` +
           `The page would render exactly as it did before the block existed, and every ` +
           `case in this gate would still pass.`
+      );
+    }
+    if (home === -1) continue; // no block claims it: the check above is all there is
+    const homeScript = scriptOf(spans[home][0]);
+    if (!calledIn.includes(homeScript)) {
+      refuse(
+        `${name}() is defined in the block in script #${homeScript + 1} and called only from ` +
+          `script #${calledIn.map((i) => i + 1).join(", #")}.\n` +
+          `  The two scripts on this page do not share a scope - the map's is wrapped, ` +
+          `deliberately - so\n  that call throws ReferenceError at run time and takes its ` +
+          `caller's whole render pass with it.\n  Move the function beside its caller.`
       );
     }
   }
