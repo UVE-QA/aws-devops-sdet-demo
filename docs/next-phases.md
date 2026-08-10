@@ -1263,6 +1263,103 @@ figure written into the plan is a figure nobody re-measures:
   every viewport, including the primary target
 ```
 
+## Phase 21 — Processes and state are two contours  [DONE 2026-08-10, $0]
+
+**ADR-0054** and **ADR-0055**. A decisions session; no code, no cycle, nothing
+applied.
+
+The map draws a linear chain of phases and nests every AWS resource inside the
+phase that creates it, while the panel above the map reports the same
+environments as observed state. Two accounts of one thing, and where they
+disagree the page had an arbiter written into a fixture name rather than into a
+decision. ADR-0054 separates three contours — ESTATE (nouns, present tense,
+answered by observation in AWS), CYCLE (verbs, past or in flight, answered by
+the run layer) and ASSERTIONS (the suites, answered by the repository) — and
+makes the binding between a step and a resource a reference instead of
+containment.
+
+ADR-0055 retires the lettered sub-phase. From here phases are plain integers and
+each carries the sentence that closes it.
+
+**Closed by:** both ADRs accepted, the cursor and the plan carrying Phase 22 and
+Phase 23 with their closing conditions. Met.
+
+## Phase 22 — The model: three contours in the data  [$0, no page work]
+
+The generator and the editorial file, with the page left alone as far as it can
+be. ADR-0054 D8.
+
+```text
+assets/topology-groups.json   phases stop holding nodes and start holding
+                              references; the estate becomes its own section
+scripts/generate-topology.py  schema 2 -> 3; the assembly rewritten; the two
+                              phase-shaped coverage refusals re-pointed from
+                              group->phase-level to group->estate node.
+                              A NEW refusal: a suite no node draws is a red
+                              build - the clause ADR-0039 D2b claimed and never
+                              enforced, which is why tests/unit is invisible
+scripts/node-states.py        four indexers and the fixture stub
+scripts/check-results.py      one comprehension and one frozen stub
+scripts/check-live-state.mjs  runLayerStates and its cases; the via:"own" /
+                              via:"phase" expectations are hand-written and are
+                              re-derived by hand, not regenerated
+```
+
+Plus 20m's first finding, which belongs to no restructuring and is cheap: the
+run history badge scores an in-flight run as a success because its numerator is
+completed runs and its denominator is all of them. Fixed here, with a case.
+
+**Closes when:** `make site-data-check` is green on a schema-3
+`site/data/topology.json` in which no phase contains a resource node, every
+reference resolves, all five suites are drawn, and the new
+suite-drawn-by-nobody refusal has been broken on purpose once with its output
+kept. The badge fix has a case that fails without it.
+
+**Does not close when** the page renders. The page is Phase 23, and a session
+that starts fixing the layout here is how Phase 20 happened.
+
+## Phase 23 — The composition, re-measured, and the gate for a cycle in flight
+
+The layout, and the thing the cursor has owed since 20m.
+
+```text
+- the composition redrawn for three contours; ADR-0047 D1 and ADR-0052 D2/D3 go
+  with it
+- re-measured, not translated. Every figure in ADR-0050 and ADR-0052 is a
+  measurement of the old object and is retired by ADR-0054
+- assets/contrast-contract.json: the probe chain is data, and it is edited
+  rather than the script. A seventh node state makes the gate refuse, out loud,
+  by design
+- a fixture holding a cycle IN MID-FLIGHT with an otherwise-green history -
+  which this repository does not have, and the one in-flight fixture that
+  exists carries failures, so it never shows the green-while-unknown shape
+- the gate that reads it, and its break test
+```
+
+Expect the gate to be the hard part. That was the cursor's own prediction after
+20m and nothing since has argued with it.
+
+**Closes when:** the new gate is green on the page, red on each of 20m's three
+findings re-introduced one at a time, with a control green either side, and the
+exit codes recorded to a file with the tree committed first.
+
+## Still open, and unchanged by any of the above
+
+```text
+the convergence delay      20m watched a run go green between two observations,
+                           so the max-age=60 ceiling is bounded above by about
+                           two minutes and has never been measured. Wants one
+                           sample every few seconds across the moment a run
+                           goes green - not a cycle of its own.
+the map's dating sentence  cannot be settled until a cycle runs on a different
+                           DAY from the one before it. As of 2026-08-10 the
+                           newest cycle is 20m's, on 2026-08-09, so the next
+                           cycle finally qualifies.
+`not reached yet`          never appeared in 20m: it needs a node with no
+                           record at all, and every node carried one from the
+                           previous cycle.
+```
+
 ## Deliberately out of scope
 
 Not "someday" — considered and excluded, with reasons. Being able to explain why
