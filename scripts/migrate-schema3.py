@@ -461,6 +461,16 @@ EDITS[TEMPLATE] = [
     #    history counted failures among COMPLETED runs and divided them by ALL
     #    runs, so a cycle in flight - the state the page is in whenever anybody
     #    is watching one - was counted as a success.
+    #
+    #    THE SCORING FUNCTION GOES IN THE DASHBOARD'S SCRIPT, beside its only
+    #    caller. The first version of this patch put it in the map's script,
+    #    with the other four tense decisions, and the map's script is WRAPPED:
+    #    renderHistory() threw ReferenceError on every tick, renderAll() died
+    #    before announceCycle() and scheduleRefresh(), and an open tab held the
+    #    previous cycle's figures until it was reloaded. Only
+    #    page-freshness-check could see it, and it is not in this repository's
+    #    text gates - it needs a browser. The map's block gets a pointer to
+    #    where the fifth decision went, and why.
     (
         """        function underWayHere(observation, env) {
           if (!figuresAreOlder(observation)) return false;
@@ -476,29 +486,70 @@ EDITS[TEMPLATE] = [
           return envs.indexOf(env) !== -1;
         }
 
-        /* A RUN THAT HAS NOT FINISHED HAS NOT SUCCEEDED. The badge over the run
-           history read `all 12 succeeded` while one of the twelve was still
-           going: its numerator was failures among COMPLETED runs and its
-           denominator was every run in the list, so an in-flight cycle scored
-           as a success until it ended. Same species as the three findings
-           above - a figure about one moment printed as though it were about
-           now - which is why it is answered here and not in the renderer.
-
-           Counts and no words: the caller writes the sentence, so a change to
-           how the badge reads cannot silently change what it COUNTS. */
-        function historyTally(runs) {
-          const all = runs || [];
-          const finished = all.filter((r) => r && r.status === "completed");
-          const failed = finished.filter((r) => r.conclusion !== "success");
-          return {
-            runs: all.length,
-            finished: finished.length,
-            failed: failed.length,
-            unfinished: all.length - finished.length,
-          };
-        }
+        /* THE FIFTH TENSE DECISION IS NOT IN THIS BLOCK, and that is the
+           correction 22 needed. historyTally() answers a question of exactly
+           this kind - has this run finished, and may it be counted yet - but
+           its only caller is renderHistory(), in the DASHBOARD's script. This
+           script is wrapped, and the comment above the wrapper says why:
+           nothing in here is meant to be reachable from there. Written in here
+           anyway, renderHistory() threw ReferenceError on every tick and took
+           announceCycle() and scheduleRefresh() down with it - the whole
+           re-read, from one identifier in the wrong scope. So it lives beside
+           its caller, in a lifted block of its own, and
+           scripts/check-page-tense.mjs lifts both. */
 
         /* What a node says when no run is speaking for it. Suites do not come
+""",
+    ),
+    (
+        """      }
+
+      // THE HEADER OF A CLOSED CUT ANSWERS ONE QUESTION: is anything wrong
+""",
+        """      }
+
+      /* ==== RUN HISTORY TENSE - begin =======================================
+         Pure: no DOM, no fetch, no clock, no globals. Lifted out of the built
+         page by scripts/check-page-tense.mjs together with the PAGE TENSE block
+         in the map's script, and run in one context with it - the two are the
+         same kind of decision and are checked as one set.
+
+         WHY IT IS IN THIS SCRIPT AND NOT THAT ONE. The map's script is wrapped
+         in an IIFE on purpose: "nothing here is meant to be reachable from
+         there, and the next addition to either should not have to know the
+         other's identifier list." Phase 22 wrote this function in there, with
+         its only caller - renderHistory(), below - up here. renderHistory()
+         threw ReferenceError on every tick; renderAll() died before
+         announceCycle() and scheduleRefresh(); so the map never received
+         another observation to re-read its figures from, and the tab never
+         scheduled another bucket tick. An open tab sat on the previous cycle's
+         figures for as long as it stayed open, and Refresh re-threw.
+
+         ONE identifier in the wrong scope, three symptoms, and only
+         check-page-freshness.mjs could see any of them: a cold load renders
+         from the map's own bootstrap chain, which does not come through here,
+         so every lifted-block and fixture gate stayed green.
+
+         A RUN THAT HAS NOT FINISHED HAS NOT SUCCEEDED. The badge below read
+         `all 12 succeeded` with one of the twelve still going: its numerator
+         was failures among COMPLETED runs and its denominator was every run in
+         the list. Counts and no words - the caller writes the sentence, so a
+         change to how the badge reads cannot silently change what it counts.
+         ==================================================================== */
+      function historyTally(runs) {
+        var all = runs || [];
+        var finished = all.filter(function (r) { return r && r.status === "completed"; });
+        var failed = finished.filter(function (r) { return r.conclusion !== "success"; });
+        return {
+          runs: all.length,
+          finished: finished.length,
+          failed: failed.length,
+          unfinished: all.length - finished.length
+        };
+      }
+      /* ==== RUN HISTORY TENSE - end ========================================= */
+
+      // THE HEADER OF A CLOSED CUT ANSWERS ONE QUESTION: is anything wrong
 """,
     ),
     (
@@ -709,30 +760,264 @@ EDITS[LIVE_STATE_GATE] = [
 # --- scripts/check-page-tense.mjs -------------------------------------------
 
 EDITS[PAGE_TENSE_GATE] = [
+    # These four hunks are the whole of this gate's rewrite, and they are LONG
+    # because the rewrite is: two blocks instead of one, lifted into one
+    # context, and a coupling check that now asks which <script> a call is in.
+    # Written from the diff rather than by hand, and every anchor is proved
+    # unique and self-consuming by plan_text() before anything is written.
     (
-        """ *       ==== PAGE TENSE - begin ====
+        r""" * `last time` label appeared nowhere outside site/index.html. This gate is that
+ * check, and it is built like check-live-state.mjs for the same reason - the
+ * decision runs in the visitor's browser, so a copy of it in Python would be
+ * one definition on two hosts. It LIFTS THE BLOCK OUT OF THE BUILT PAGE:
+ *
+ *     site/index.html
+ *       ==== PAGE TENSE - begin ====
  *         figuresAreOlder(observation)
  *         envTense(observation, env)
  *         underWayHere(observation, env)
  *         nodeTense(node, record, envs, underWay)
- *       ==== PAGE TENSE - end ====
-""",
-        """ *       ==== PAGE TENSE - begin ====
- *         figuresAreOlder(observation)
- *         envTense(observation, env)
- *         underWayHere(observation, env)
- *         nodeTense(node, record, envs, underWay)
- *         historyTally(runs)
  *       ==== PAGE TENSE - end ====
  *
- * historyTally() joined them in 22 and is the same species: the run-history
- * badge scored a run that had not finished as one that had succeeded, because
- * it counted failures among completed runs and divided by every run there was.
+ * The cases are FLAT JSON FILES rather than a directory each: unlike the live
+ * state machine, which folds one whole observation into one whole answer, these
+""",
+        r""" * `last time` label appeared nowhere outside site/index.html. This gate is that
+ * check, and it is built like check-live-state.mjs for the same reason - the
+ * decision runs in the visitor's browser, so a copy of it in Python would be
+ * one definition on two hosts. It LIFTS THE BLOCKS OUT OF THE BUILT PAGE:
+ *
+ *     site/index.html
+ *       ==== RUN HISTORY TENSE - begin ====      the dashboard's script
+ *         historyTally(runs)
+ *       ==== RUN HISTORY TENSE - end ====
+ *
+ *       ==== PAGE TENSE - begin ====             the map's script
+ *         figuresAreOlder(observation)
+ *         envTense(observation, env)
+ *         underWayHere(observation, env)
+ *         nodeTense(node, record, envs, underWay)
+ *       ==== PAGE TENSE - end ====
+ *
+ * TWO BLOCKS AND ONE SET, because the page is two scripts and the map's is
+ * WRAPPED - deliberately, so that neither script has to know the other's
+ * identifier list. historyTally() joined the set in 22 and is the same species:
+ * the run-history badge scored a run that had not finished as one that had
+ * succeeded, counting failures among completed runs and dividing by every run
+ * there was. It was first written inside the map's wrapper, where its caller
+ * could not see it - renderHistory() threw on every tick and took the whole
+ * re-read down with it, which only check-page-freshness.mjs could see. A
+ * function lives beside its caller; this gate follows it there rather than
+ * making the page put them in one scope to be testable.
+ *
+ * The blocks are evaluated in ONE context, so a name defined in either is
+ * callable from a case, and the coupling check below is run against everything
+ * outside BOTH of them.
+ *
+ * The cases are FLAT JSON FILES rather than a directory each: unlike the live
+ * state machine, which folds one whole observation into one whole answer, these
 """,
     ),
     (
-        """const API = ["figuresAreOlder", "envTense", "underWayHere", "nodeTense"];""",
-        """const API = ["figuresAreOlder", "envTense", "underWayHere", "nodeTense", "historyTally"];""",
+        r"""const PAGE = path.join(ROOT, "site", "index.html");
+const CASES = path.join(ROOT, "tests", "fixtures", "page-tense", "cases");
+
+const BEGIN = "==== PAGE TENSE - begin";
+const END = "==== PAGE TENSE - end";
+const API = ["figuresAreOlder", "envTense", "underWayHere", "nodeTense"];
+
+function refuse(why) {
+  console.log(`page-tense-check: REFUSED\n${why}`);
+""",
+        r"""const PAGE = path.join(ROOT, "site", "index.html");
+const CASES = path.join(ROOT, "tests", "fixtures", "page-tense", "cases");
+
+// Two blocks, in two scripts, evaluated as one set. Adding a third is adding a
+// line here; what may not happen is a tense decision living in neither.
+const BLOCKS = [
+  { begin: "==== PAGE TENSE - begin", end: "==== PAGE TENSE - end" },
+  { begin: "==== RUN HISTORY TENSE - begin", end: "==== RUN HISTORY TENSE - end" },
+];
+const API = ["figuresAreOlder", "envTense", "underWayHere", "nodeTense", "historyTally"];
+
+function refuse(why) {
+  console.log(`page-tense-check: REFUSED\n${why}`);
+""",
+    ),
+    (
+        r"""    .replace(/(^|[^:])\/\/[^\n]*/g, "$1");
+}
+
+/** Lift the block out of the built page and evaluate it in its own context. */
+function loadTense() {
+  if (!fs.existsSync(PAGE)) {
+    refuse(`site/index.html does not exist. Build it with \`make site-page\`.`);
+  }
+  const html = fs.readFileSync(PAGE, "utf8");
+  const opens = html.split(BEGIN).length - 1;
+  const closes = html.split(END).length - 1;
+  if (opens !== 1 || closes !== 1) {
+    // The marker is the whole coupling between the page and this gate. A gate
+    // that silently found nothing to check is the empty result that reads as
+    // clean, which this repository has been caught by twice.
+    refuse(
+      `expected exactly one begin marker and one end marker in site/index.html, ` +
+        `found ${opens} and ${closes}. The block this gate checks is identified by them; ` +
+        `renaming one leaves the gate testing nothing at all.`
+    );
+  }
+  // Both markers sit INSIDE comments, so the slice starts after the opening
+  // comment's `*/` and stops before the closing comment's `/*`.
+  const body = html.slice(html.indexOf(BEGIN) + BEGIN.length, html.indexOf(END));
+  const source = body.slice(body.indexOf("*/") + 2, body.lastIndexOf("/*"));
+  const context = vm.createContext({});
+  try {
+    vm.runInContext(source, context, { filename: "site/index.html#page-tense" });
+  } catch (e) {
+    refuse(`the extracted block does not evaluate: ${e}`);
+  }
+  const api = {};
+  for (const name of API) {
+    const fn = vm.runInContext(`typeof ${name} === "function" ? ${name} : null`, context);
+    if (!fn) refuse(`the extracted block defines no ${name}()`);
+    api[name] = fn;
+  }
+  // A DECISION NOTHING CONSULTS IS NOT A DECISION. Everything below this line
+""",
+        r"""    .replace(/(^|[^:])\/\/[^\n]*/g, "$1");
+}
+
+/** Lift every block out of the built page and evaluate them in one context. */
+function loadTense() {
+  if (!fs.existsSync(PAGE)) {
+    refuse(`site/index.html does not exist. Build it with \`make site-page\`.`);
+  }
+  const html = fs.readFileSync(PAGE, "utf8");
+  const context = vm.createContext({});
+  // Where each block sits, so the coupling check below can cut ALL of them out
+  // of the page before looking for calls. Cutting only one would let a function
+  // satisfy the check with its own definition, in the other block.
+  const spans = [];
+  // Which block defines which name, decided by evaluating each block ALONE.
+  // Needed by the same-script check at the bottom: a name has to be traced to
+  // the script it is really declared in, not to the first block in the list.
+  const defines = [];
+  for (const { begin, end } of BLOCKS) {
+    const opens = html.split(begin).length - 1;
+    const closes = html.split(end).length - 1;
+    if (opens !== 1 || closes !== 1) {
+      // The marker is the whole coupling between the page and this gate. A gate
+      // that silently found nothing to check is the empty result that reads as
+      // clean, which this repository has been caught by twice.
+      refuse(
+        `expected exactly one \`${begin}\` and one \`${end}\` in site/index.html, ` +
+          `found ${opens} and ${closes}. The block this gate checks is identified by them; ` +
+          `renaming one leaves the gate testing nothing at all.`
+      );
+    }
+    // Both markers sit INSIDE comments, so the slice starts after the opening
+    // comment's `*/` and stops before the closing comment's `/*`.
+    const from = html.indexOf(begin);
+    const to = html.indexOf(end);
+    const body = html.slice(from + begin.length, to);
+    const source = body.slice(body.indexOf("*/") + 2, body.lastIndexOf("/*"));
+    spans.push([from, to + end.length]);
+    try {
+      vm.runInContext(source, context, { filename: `site/index.html#${begin}` });
+    } catch (e) {
+      refuse(`the block at \`${begin}\` does not evaluate: ${e}`);
+    }
+    const alone = vm.createContext({});
+    vm.runInContext(source, alone, { filename: `site/index.html#${begin}` });
+    defines.push(API.filter((n) => vm.runInContext(`typeof ${n} === "function"`, alone)));
+  }
+  const api = {};
+  for (const name of API) {
+    const fn = vm.runInContext(`typeof ${name} === "function" ? ${name} : null`, context);
+    if (!fn) refuse(`no lifted block defines ${name}()`);
+    api[name] = fn;
+  }
+  // A DECISION NOTHING CONSULTS IS NOT A DECISION. Everything below this line
+""",
+    ),
+    (
+        r"""  // crude - block comments, then `//` to end of line unless it is preceded by
+  // a colon, which is every URL in this file - and it is allowed to be, because
+  // its only failure mode is refusing a page that is fine, loudly.
+  const outside = strip(html.slice(0, html.indexOf(BEGIN)) + html.slice(html.indexOf(END)));
+  for (const name of API) {
+    if (outside.indexOf(name + "(") === -1) {
+      refuse(
+        `${name}() is defined in the PAGE TENSE block and called nowhere outside it.\n` +
+          `The page would render exactly as it did before the block existed, and every ` +
+          `case in this gate would still pass.`
+      );
+    }
+  }
+""",
+        r"""  // crude - block comments, then `//` to end of line unless it is preceded by
+  // a colon, which is every URL in this file - and it is allowed to be, because
+  // its only failure mode is refusing a page that is fine, loudly.
+  //
+  // EVERY block is cut out, not just the one a function came from: with two
+  // blocks in one context, cutting one leaves the other's definition standing
+  // in the text, and `historyTally(` would have been "called" by its own
+  // signature.
+  //
+  // AND THE CALL MUST BE IN THE SAME <script> AS THE BLOCK. This half was added
+  // after a defect that was green here and red in check-page-freshness.mjs on
+  // another host: historyTally() was defined inside the map's script, which is
+  // WRAPPED in an IIFE on purpose, and called from the dashboard's script,
+  // which cannot see into it. `historyTally(` was present outside the blocks,
+  // so the check above passed - it was reading the call as text, and the call
+  // threw ReferenceError on every tick. Nothing else could see it: the block
+  // lifts and evaluates perfectly on its own, the cases all pass, and a cold
+  // load never goes through the caller. A text gate cannot know about scopes,
+  // but it can know that a wrapped script is not a place to put a function
+  // somebody else calls.
+  const ordered = spans.slice().sort((a, b) => a[0] - b[0]);
+  const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => ({
+    from: m.index,
+    to: m.index + m[0].length,
+  }));
+  const scriptOf = (at) => scripts.findIndex((s) => at >= s.from && at < s.to);
+  // One script's text with every block cut out of it, comments stripped.
+  const callable = scripts.map((s) => {
+    let text = "";
+    let cut = s.from;
+    for (const [from, to] of ordered) {
+      if (from < s.from || to > s.to) continue;
+      text += html.slice(cut, from);
+      cut = to;
+    }
+    return strip(text + html.slice(cut, s.to));
+  });
+
+  for (const name of API) {
+    const home = defines.findIndex((names) => names.includes(name));
+    const calledIn = callable
+      .map((text, i) => (text.indexOf(name + "(") === -1 ? -1 : i))
+      .filter((i) => i !== -1);
+    if (!calledIn.length) {
+      refuse(
+        `${name}() is defined in a lifted block and called nowhere outside the blocks.\n` +
+          `The page would render exactly as it did before the block existed, and every ` +
+          `case in this gate would still pass.`
+      );
+    }
+    if (home === -1) continue; // no block claims it: the check above is all there is
+    const homeScript = scriptOf(spans[home][0]);
+    if (!calledIn.includes(homeScript)) {
+      refuse(
+        `${name}() is defined in the block in script #${homeScript + 1} and called only from ` +
+          `script #${calledIn.map((i) => i + 1).join(", #")}.\n` +
+          `  The two scripts on this page do not share a scope - the map's is wrapped, ` +
+          `deliberately - so\n  that call throws ReferenceError at run time and takes its ` +
+          `caller's whole render pass with it.\n  Move the function beside its caller.`
+      );
+    }
+  }
+""",
     ),
 ]
 
