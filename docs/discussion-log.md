@@ -6,6 +6,66 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
+**As of 2026-08-10 (22 — the model in the data, and a red main nobody saw).**
+`site/data/topology.json` is schema 3 — **estate**, **cycle**, **assertions** —
+the generator is rewritten around it and every consumer re-pointed. The page's
+composition is untouched, on purpose. No cycle, no AWS call, $0. **ADR-0056**.
+
+**Main was red before this phase started, and only a control run before touching
+anything found it.** `counts.adrs` said 54; `docs/decisions/` held 56. Phase 21
+added two ADRs and never re-ran the generator, so `082fbaf` (20l) was the last
+commit that wrote the file, and CI run 31343885958 was red while `make
+session-close` printed `clean`. **Second occurrence** — `1d8980b` in 20i is the
+first — and the recurrence has a specific cause: `session-close.sh` ran the prose
+check alone, and `topology.json` COUNTS THE FILES in `docs/decisions/`, so a
+documents-only session moves a generated number without going near the
+generator. Fixed with a break test both ways. NOT closed: `ci.yml` runs five more
+cheap gates that `session-close.sh` does not, and two lists that can disagree is
+the defect one layer up. It goes to Phase 23.
+
+**The verb was not in ADR-0054, and counting found it.** A phase referencing
+everything it touches gives the quality gate 4 own nodes + 3 references = 7,
+which crosses `WIDE_AT` and takes the map from ten columns to eleven — a reflow
+in the phase whose plan forbids touching the page. So a reference carries a verb
+— `creates, pushes, provisions, asserts, destroys`, closed, a sixth is a red
+build — and a phase draws only what it `creates` (**ADR-0056**). Geometry then
+measured rather than assumed: `1, 7, 1, 4, 1, 8, 2, 2`, wide `[stage-apply,
+prod-apply]`, ten columns, identical to schema 2.
+
+**The obvious refusal could not have failed.** "Every suite gets a node" is
+vacuous when the nodes are generated FROM the suites. What was written instead
+has a reachable false answer — every suite is either run by the cycle or declares
+`not_in_cycle` — and `tests/unit` is the second, in its own words, in the data.
+
+**Eight green gates hid two broken consumers.** After schema 3 landed,
+`index_members()` returned ZERO addresses from the real file and the page read a
+`DATA.phases` that no longer existed, while every cheap gate passed — each reads
+a frozen schema-2 fixture, an instrument aimed at an object that had stopped
+existing. `scripts/verify-schema3.sh` exists for that: its last row hands
+`node-states.py` the real file and counts what comes back, 0 → 29 addresses.
+
+**And the gate this environment cannot run caught the only regression.**
+`page-freshness-check` was red 3 of 3 on the devbox: `historyTally()` was written
+into the map's script, which is wrapped in an IIFE on purpose, and called from
+the dashboard's. `renderHistory()` threw on every tick, `renderAll()` died before
+`announceCycle()` and `scheduleRefresh()`, and an open tab held the previous
+cycle's figures until it was reloaded. One identifier in the wrong scope, three
+symptoms. The coupling check now requires a lifted function to be called from the
+same `<script>` as its block, and the runner prints a skipped browser gate as a
+row rather than omitting it — a gate absent from a table looks exactly like a
+gate that passed.
+
+Three process failures are written up at length in the summary, two of them a
+`git checkout` over uncommitted work, in the session that quotes **COMMIT BEFORE
+BREAKING THINGS ON PURPOSE**. `drawn` in the closing condition was read as
+*present in the topology*; the page's rendering of the assertions contour is
+Phase 23's, and is written down there.
+
+Next: **Phase 23 — the composition, re-measured, and the gate for a cycle in
+flight**, plus the assertions contour and the two-list problem.
+
+---
+
 **As of 2026-08-10 (21 — processes and state are two contours).** A decisions
 session. No code, no cycle, nothing applied, $0. **ADR-0054** and **ADR-0055**.
 

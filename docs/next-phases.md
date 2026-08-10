@@ -1336,12 +1336,37 @@ The layout, and the thing the cursor has owed since 20m.
 - the gate that reads it, and its break test
 ```
 
+Two items Phase 22 hands over, recorded here rather than quietly carried:
+
+```text
+the assertions contour   Phase 22 closed on "all five suites drawn", read as
+is not rendered          PRESENT IN THE TOPOLOGY: assertions.suites holds all
+                         five and tests/unit carries its `not_in_cycle` reason.
+                         NOTHING ON THE PAGE DRAWS THEM. Rendering the third
+                         contour is a composition decision and Phase 22 was
+                         forbidden to make one, so this is the last piece of
+                         ADR-0054 D1 with no pixels behind it.
+
+the two-list problem     scripts/session-close.sh checks two generated
+                         artifacts; ci.yml runs five more cheap gates it does
+                         not - timeline, node-states, results, live-state,
+                         page-tense. Phase 22 closed the specific hole that
+                         reddened main twice (topology.json counts the files in
+                         docs/decisions/, so a documents-only session moves a
+                         generated number) and deliberately left the shape. What
+                         fixes it has to be ONE list with two readers; a third
+                         copy of the list is the same defect with more places
+                         to disagree.
+```
+
 Expect the gate to be the hard part. That was the cursor's own prediction after
 20m and nothing since has argued with it.
 
 **Closes when:** the new gate is green on the page, red on each of 20m's three
 findings re-introduced one at a time, with a control green either side, and the
-exit codes recorded to a file with the tree committed first.
+exit codes recorded to a file with the tree committed first. The assertions
+contour is drawn, and `make session-close` and `ci.yml` no longer keep two
+lists.
 
 ## Still open, and unchanged by any of the above
 

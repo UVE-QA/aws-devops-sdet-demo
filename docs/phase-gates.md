@@ -56,6 +56,7 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 20l   | The page re-reads its figures | ✅ done — $0, fixtures only | sessions/2026-08-09-phase-20l-the-page-re-reads-its-figures.md |
 | 20m   | The cycle watched through one tab | ✅ done — $0.0529..$0.0584 + $0.0182..$0.0237 | sessions/2026-08-09-phase-20m-what-the-map-says-while-it-runs.md |
 | 21    | Processes and state are two contours | ✅ done — $0, decisions only | sessions/2026-08-10-phase-21-processes-and-state-are-two-contours.md |
+| 22    | The model in the data: three contours | ✅ done — $0; main was red when it started | sessions/2026-08-10-phase-22-the-model-in-the-data-and-a-red-main-nobody-saw.md |
 
 **Lettered sub-phases end here (ADR-0055).** From Phase 21 the identifier is a
 plain integer and every phase is planned together with the sentence that closes
@@ -3320,6 +3321,79 @@ A decisions session. No code, no cycle, nothing applied, $0. Summary in
   `make site-data-check` green on a topology in which no phase contains a
   resource node, every reference resolving, all five suites drawn, and the new
   refusal broken on purpose once with its output kept.
+
+### Phase 22 — The model in the data: three contours  ✅ DONE 2026-08-10
+Schema 3 in `site/data/topology.json`, the generator rewritten around it, every
+consumer re-pointed. The page's composition is untouched. $0, no cycle, nothing
+applied. Summary in
+`docs/sessions/2026-08-10-phase-22-the-model-in-the-data-and-a-red-main-nobody-saw.md`.
+**ADR-0056**. Break-test output in
+`docs/sessions/2026-08-10-phase-22-schema3-break-test.log` and
+`docs/sessions/2026-08-10-phase-22-session-close-break-test.log`.
+- Criteria: `make site-data-check` green on a schema-3 topology in which no phase
+  contains a resource node, every reference resolves, all five suites are drawn,
+  the new refusal is broken on purpose once with its output kept, and the badge
+  fix has a case that fails without it. **Met**, with one reading recorded below.
+- **MAIN WAS RED BEFORE THIS PHASE STARTED, AND ONLY A CONTROL FOUND IT.**
+  `counts.adrs` said 54 and `docs/decisions/` held 56: Phase 21 added ADR-0054
+  and ADR-0055 and never re-ran the generator, so `082fbaf` (20l) was the last
+  commit that wrote the file. CI run 31343885958 was red while `make
+  session-close` printed `clean`. **Second occurrence** — `1d8980b` in 20i is the
+  first. The cause of the recurrence is specific rather than careless:
+  `session-close.sh` ran the prose check alone, and `topology.json` COUNTS THE
+  FILES in `docs/decisions/`, so a documents-only session moves a generated
+  number without going near the generator. Fixed in `4d4662a` and `7fc790c`, with
+  a break test both ways in `519051c`. **NOT closed:** `ci.yml` runs five more
+  cheap gates that `session-close.sh` does not, and two lists that can disagree
+  is the defect one layer up. It goes to Phase 23.
+- **THE VERB WAS NOT IN ADR-0054, AND COUNTING FOUND IT.** A phase referencing
+  everything it touches gives the quality gate 4 own nodes + 3 references = 7,
+  which crosses `WIDE_AT` and takes the map from ten columns to eleven — a reflow
+  in the phase whose plan says the page is not touched. So a reference carries a
+  verb — `creates, pushes, provisions, asserts, destroys`, closed, a sixth is a
+  red build — and a phase draws only what it `creates` (**ADR-0056**). Geometry
+  then measured rather than hoped: `1, 7, 1, 4, 1, 8, 2, 2`, `wide =
+  [stage-apply, prod-apply]`, `columns = 10`, identical to schema 2 node for node
+  and in order.
+- **THE OBVIOUS REFUSAL COULD NOT HAVE FAILED.** "Every suite gets a node" is
+  vacuous when the nodes are generated FROM the suites. The one written has a
+  reachable false answer: every suite is either run by the cycle or declares
+  `not_in_cycle`. `tests/unit` is the second and says so in the data.
+- **EIGHT GREEN GATES HID TWO BROKEN CONSUMERS.** After schema 3 landed,
+  `index_members()` returned ZERO addresses from the real file and the page read
+  a `DATA.phases` that no longer existed — while every cheap gate passed, because
+  each reads a frozen schema-2 fixture. Hence `scripts/verify-schema3.sh`, whose
+  last row is not a gate: it hands `node-states.py` the real file and counts what
+  comes back (0 → 29 addresses).
+- **THE GATE THE SANDBOX CANNOT RUN CAUGHT THE ONLY REGRESSION.**
+  `page-freshness-check`, red 3 of 3 on the devbox: `historyTally()` was written
+  into the map's script, which is wrapped in an IIFE on purpose, and called from
+  the dashboard's. `renderHistory()` threw `ReferenceError` on every tick,
+  `renderAll()` died before `announceCycle()` and `scheduleRefresh()`, and an open
+  tab held the previous cycle's figures until it was reloaded — one identifier in
+  the wrong scope, three symptoms. The coupling check in
+  `scripts/check-page-tense.mjs` now requires a lifted function to be called from
+  the SAME `<script>` as its block, and `verify-schema3.sh` prints a skipped
+  browser gate as a row rather than omitting it.
+- **`drawn` was read as `present in the topology`.** All five suites are in
+  `assertions.suites`; nothing on the PAGE renders the assertions contour,
+  because rendering it is a composition decision and Phase 22 forbids those. It
+  is written into Phase 23 in `docs/next-phases.md`.
+- Validation:
+```bash
+  scripts/verify-schema3.sh
+  make site-data-check site-page-check docs-check
+  make page-freshness-check contrast-check     # devbox only, needs chromium
+```
+  Devbox: 14/14, both browser gates included. Sandbox: 12/12 with 2 SKIP and the
+  run reporting itself INCOMPLETE.
+- Cost: nothing. No AWS call, no cycle, nothing applied.
+- Next allowed step: **Phase 23 — the composition, re-measured, and the gate for
+  a cycle in flight.** Planned in `docs/next-phases.md`, with two items this phase
+  added to it: render the assertions contour, and the two-list problem between
+  `scripts/session-close.sh` and `.github/workflows/ci.yml`. It is $0 until the
+  in-flight fixture needs a real cycle behind it, and that is a separate,
+  billable decision.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,
