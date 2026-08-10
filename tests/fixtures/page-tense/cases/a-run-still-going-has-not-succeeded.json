@@ -1,0 +1,51 @@
+{
+  "description": "The badge over the run history said `all 12 succeeded` with one of the twelve still in flight. Its numerator was failures among COMPLETED runs and its denominator was every run in the list, so a cycle in progress — the state the page is in whenever anybody is actually watching it — was counted as a run that had succeeded. The same species as the three findings this directory was made for: a figure about one moment, printed as though it were about now. The verdict is only ever about the runs that finished.",
+  "checks": [
+    {
+      "fn": "historyTally",
+      "args": [
+        [
+          { "status": "in_progress", "conclusion": null },
+          { "status": "completed", "conclusion": "success" },
+          { "status": "completed", "conclusion": "success" }
+        ]
+      ],
+      "expect": { "runs": 3, "finished": 2, "failed": 0, "unfinished": 1 }
+    },
+    {
+      "fn": "historyTally",
+      "args": [
+        [
+          { "status": "queued", "conclusion": null },
+          { "status": "completed", "conclusion": "failure" },
+          { "status": "completed", "conclusion": "success" }
+        ]
+      ],
+      "expect": { "runs": 3, "finished": 2, "failed": 1, "unfinished": 1 }
+    },
+    {
+      "fn": "historyTally",
+      "args": [
+        [
+          { "status": "in_progress", "conclusion": null }
+        ]
+      ],
+      "expect": { "runs": 1, "finished": 0, "failed": 0, "unfinished": 1 }
+    },
+    {
+      "fn": "historyTally",
+      "args": [
+        [
+          { "status": "completed", "conclusion": "success" },
+          { "status": "completed", "conclusion": "cancelled" }
+        ]
+      ],
+      "expect": { "runs": 2, "finished": 2, "failed": 1, "unfinished": 0 }
+    },
+    {
+      "fn": "historyTally",
+      "args": [[]],
+      "expect": { "runs": 0, "finished": 0, "failed": 0, "unfinished": 0 }
+    }
+  ]
+}
