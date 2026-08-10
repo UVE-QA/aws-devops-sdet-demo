@@ -415,7 +415,7 @@ def build():
             if g["kind"] == "permanent" or not g.get("shown", True):
                 continue
             if gid not in drawn.get(rel[d], set()):
-                findings.append(f"undrawn: group {gid} owns resources in {rel[d]}, which no phase node draws")
+                findings.append(f"undrawn: group {gid} owns resources in {rel[d]}, which no estate environment draws")
 
     # 3. a node whose group owns nothing in its level. The module was removed and
     #    the map still shows it.

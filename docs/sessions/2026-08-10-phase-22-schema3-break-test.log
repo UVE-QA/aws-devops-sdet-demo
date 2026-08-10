@@ -1,0 +1,38 @@
+--- CONTROL
+exit 0
+site-data: wrote site/data/topology.json - 8 levels, 116 resources, 5 suites, 56 ADRs
+
+--- BREAK 1  NEW REFUSAL: tests/unit loses its not_in_cycle reason
+exit 1
+site-data: REFUSED
+suite unit (tests/unit) is run by no node in any phase and declares no `not_in_cycle` reason. A suite the cycle cannot run is a fact worth stating; a suite nobody noticed is how tests/unit stayed invisible.
+
+--- BREAK 2  NEW REFUSAL: a suite added and wired to nothing
+exit 1
+site-data: REFUSED
+suite contract (tests/api) is run by no node in any phase and declares no `not_in_cycle` reason. A suite the cycle cannot run is a fact worth stating; a suite nobody noticed is how tests/unit stayed invisible.
+
+--- BREAK 3  CITATION (ADR-0049 D6, re-pointed): a touch names a node that does not exist
+exit 1
+site-data: REFUSED
+phase destroy touches prod.rdz, which is not an estate node or a permanent card on this map
+
+--- BREAK 4  a verb outside the closed vocabulary
+exit 1
+site-data: REFUSED
+phase stage-gate touches stage.alb with the unknown verb 'pokes'. Known verbs: asserts, creates, destroys, provisions, pushes
+
+--- BREAK 5  COVERAGE, re-pointed: stage stops drawing the rds group
+exit 1
+site-data: REFUSED
+undrawn: group rds owns resources in infra/envs/stage, which no estate environment draws
+
+--- BREAK 6  a schema-2 leftover: a phase still holding a resource group
+exit 1
+site-data: REFUSED
+phase stage-apply still contains the resource group rds. Under ADR-0054 a phase REFERENCES estate nodes and does not hold them; move it to estate.environments[].draws and name it in this phase's `touches`.
+
+--- CONTROL AGAIN
+exit 0
+site-data: wrote site/data/topology.json - 8 levels, 116 resources, 5 suites, 56 ADRs
+
