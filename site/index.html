@@ -1577,13 +1577,20 @@
           el("history").innerHTML = '<p class="why">No lifecycle runs in the 40 most recent runs.</p>';
           return;
         }
-        var bad = runs.filter(function (r) {
-          return r.status === "completed" && r.conclusion !== "success";
-        }).length;
+        // The denominator is the FINISHED runs, never the whole list: see
+        // historyTally() in the PAGE TENSE block for what that was printing.
+        // A list with nothing finished in it gets neither verdict - `all 0
+        // succeeded` is a green badge over no evidence at all.
+        var tally = historyTally(runs);
         var newest = runs[0];
         summary(
-          '<span class="verdict ' + (bad ? "bad" : "ok") + '">' +
-          (bad ? bad + " of " + runs.length + " failed" : "all " + runs.length + " succeeded") +
+          '<span class="verdict ' + (tally.failed ? "bad" : tally.finished ? "ok" : "warn") + '">' +
+          (tally.failed
+            ? tally.failed + " of " + tally.finished + " failed"
+            : tally.finished
+            ? "all " + tally.finished + " succeeded"
+            : "none of " + tally.runs + " has finished") +
+          (tally.unfinished ? " &middot; " + tally.unfinished + " still going" : "") +
           '</span><span class="small">last: ' + esc(newest.name || newest.display_title) + " #" +
           esc(newest.run_number) + " &middot; " +
           esc(newest.status !== "completed" ? newest.status.replace("_", " ") : (newest.conclusion || "unknown")) +
@@ -2051,7 +2058,7 @@
                 survive a teardown &mdash; including the artifact that PROVES the teardown
                 worked &mdash; lives above the environments.</p>`;
           h += dl(
-            d.permanent.map((c) => [
+            d.estate.permanent.map((c) => [
               `${esc(c.label)} <span class="note">${esc(c.level)} &mdash; ${c.resources} blocks</span>`,
               esc(c.why) + "<br>" + c.members.map(esc).join("<br>"),
             ])
@@ -2061,10 +2068,10 @@
           h += `<p>Every phase is a job on a GitHub runner under a short-lived OIDC token.
                 Inside one apply Terraform works from a graph, so the order below is the
                 order of the PHASES; the entries within a phase are a set.</p>`;
-          d.phases.forEach((p) => {
+          d.cycle.phases.forEach((p) => {
             h += `<h3>${p.n}. ${esc(p.label)} <span class="note">${esc(p.workflow)}</span></h3>`;
             h += dl(
-              p.nodes.map((n) => {
+              phaseNodes(p).map((n) => {
                 const head = `${esc(n.label)}${n.env ? ` <span class="note">${esc(n.env)}</span>` : ""}`;
                 if (n.kind === "suite") {
                   // The count is COLLECTED (data/suites.json), not counted off
@@ -2178,7 +2185,7 @@
           const c = d.counts;
           $("#strip").innerHTML =
             `<span><b>permanent</b> ${c.permanent_levels} levels &middot; ${c.resources_permanent} blocks</span>` +
-            d.permanent.map((n) => `<span>${n.label}</span>`).join("") +
+            d.estate.permanent.map((n) => `<span>${n.label}</span>`).join("") +
             `<span><b>per cycle</b> ${c.cycle_levels} levels &middot; ${c.resources_per_cycle} blocks</span>` +
             `<p class="small" style="flex-basis:100%;margin:0.35rem 0 0">${rp.editorial}</p>`;
         }
@@ -2212,7 +2219,7 @@
           const W = host.clientWidth;
 
           const layout = DATA.layout || {};
-          const want = layout.columns || DATA.phases.length;
+          const want = layout.columns || DATA.cycle.phases.length;
           const wideAt = layout.wide_at || Infinity;
           // One column has to hold one node at the floor, plus the phase's own
           // padding and border on both sides. Measured from the stylesheet, not
@@ -2233,11 +2240,16 @@
           cols = Math.max(1, Math.min(want, cols));
           host.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
 
-          DATA.phases.forEach((p) => {
+          DATA.cycle.phases.forEach((p) => {
+            // Resolved ONCE per phase: the width, the tools, the shared word and
+            // the drawing all have to be looking at the same list, and a phase
+            // that measured itself on p.nodes alone would have found `Apply -
+            // stage` empty and stopped being wide.
+            const pn = phaseNodes(p);
             // A phase with six or more nodes takes two columns instead of twice
             // the height - unless the map has folded to one column, where two of
             // anything is not on offer.
-            const wide = p.nodes.length >= wideAt && cols >= 2;
+            const wide = pn.length >= wideAt && cols >= 2;
             const ph = document.createElement("section");
             ph.className = "phase";
             if (wide) ph.dataset.wide = "1";
@@ -2276,7 +2288,7 @@
             // never a second list written beside them (ADR-0047 D4). A suite
             // contributes the collector it was inventoried by.
             const tools = [];
-            p.nodes.forEach((n) => {
+            pn.forEach((n) => {
               const inv = n.kind === "suite" && RUNSTATE.inventory ? RUNSTATE.inventory[n.suite] : null;
               const t = n.tool || (inv && inv.collector) || null;
               if (t && tools.indexOf(t) < 0) tools.push(t);
@@ -2293,13 +2305,13 @@
             // stage`. Read back off the elements rather than decided by a second
             // copy of nodeEl's branches: one definition, two hosts is the shape
             // that has already cost this project a scan of postgres.
-            const drawn = p.nodes.map((n) => nodeEl(n));
+            const drawn = pn.map((n) => nodeEl(n));
             const words = drawn.map((e) => e.dataset.word || "");
             const sharedWord = words.length > 1 && words.every((w) => w && w === words[0]) ? words[0] : null;
-            const envs = p.nodes.map((n) => n.env || "");
+            const envs = pn.map((n) => n.env || "");
             const sharedEnv = envs.length > 1 && envs.every((e) => e && e === envs[0]) ? envs[0] : null;
             const nodes = sharedWord || sharedEnv
-              ? p.nodes.map((n) => nodeEl(n, { word: sharedWord, env: sharedEnv }))
+              ? pn.map((n) => nodeEl(n, { word: sharedWord, env: sharedEnv }))
               : drawn;
             if (sharedEnv) {
               ph.querySelector("header").insertAdjacentHTML(
@@ -2592,6 +2604,48 @@
           return none;
         }
 
+        /* THE TWO CONTOURS, JOINED, ONCE (schema 3). A phase holds the VERB
+           nodes it owns and REFERENCES the resource nodes it acts on, as
+           `touches: [{node, verb}]`. Only `creates` puts a node inside a
+           phase: `provisions`, `asserts` and `destroys` name a node some other
+           phase made, and taking any touch would draw stage.rds in four phases
+           at once - the picture the split was made to end.
+
+           EVERY READ SITE GOES THROUGH phaseNodes(). The map, the text under
+           the cut, the paint pass and the state machine below deciding for
+           themselves which nodes are in a phase is one definition on four
+           hosts, which is the shape that has already cost this project a scan
+           of the wrong image.
+
+           The estate is a module-level binding and not a parameter because
+           runLayerStates(observation, phases) KEEPS ITS SIGNATURE:
+           scripts/check-live-state.mjs lifts this block out of the built page
+           and calls it with two arguments, and a third one would leave the
+           gate running code the visitor's browser does not. The page sets it
+           when topology.json lands; the gate sets it from the frozen snapshot
+           beside its cases. */
+        let ESTATE_NODES = {};
+        function useEstate(estate) {
+          ESTATE_NODES = {};
+          const half = (estate && estate.environments) || [];
+          const all = ((estate && estate.permanent) || []).concat(
+            half.reduce((a, e) => a.concat(e.nodes || []), [])
+          );
+          all.forEach((n) => { ESTATE_NODES[n.id] = n; });
+        }
+        function phaseNodes(p) {
+          const own = (p && p.nodes) || [];
+          const made = ((p && p.touches) || [])
+            .filter((t) => t.verb === "creates")
+            .map((t) => ESTATE_NODES[t.node])
+            // An unresolvable reference is dropped rather than drawn as a
+            // hole. It cannot arrive from the generator - the ids on both
+            // sides come from one read of assets/topology-groups.json - and
+            // the gate that would catch one is site-data-check, not the page.
+            .filter(Boolean);
+          return own.concat(made);
+        }
+
         /* Every phase and every node, in one pass. A node with its own binding
            answers for itself; a node without one inherits its phase's state and
            is MARKED as having done so, because the two must not render alike. */
@@ -2601,7 +2655,7 @@
           (phases || []).forEach((p) => {
             const ph = bindingState(observation, p.live);
             if (ph.state) out.phases[p.id] = { state: ph.state, since: ph.since };
-            (p.nodes || []).forEach((n) => {
+            phaseNodes(p).forEach((n) => {
               if (n.live && n.live.length) {
                 const own = bindingState(observation, n.live);
                 if (own.state) out.nodes[n.id] = { state: own.state, since: own.since, via: "own" };
@@ -2705,6 +2759,28 @@
               envs     the word from envTense() for this node's environment
               underWay underWayHere() for this node's environment: a cycle is
                        running now and it is about this one */
+        /* A RUN THAT HAS NOT FINISHED HAS NOT SUCCEEDED. The badge over the run
+           history read `all 12 succeeded` while one of the twelve was still
+           going: its numerator was failures among COMPLETED runs and its
+           denominator was every run in the list, so an in-flight cycle scored
+           as a success until it ended. Same species as the three findings
+           above - a figure about one moment printed as though it were about
+           now - which is why it is answered here and not in the renderer.
+
+           Counts and no words: the caller writes the sentence, so a change to
+           how the badge reads cannot silently change what it COUNTS. */
+        function historyTally(runs) {
+          const all = runs || [];
+          const finished = all.filter((r) => r && r.status === "completed");
+          const failed = finished.filter((r) => r.conclusion !== "success");
+          return {
+            runs: all.length,
+            finished: finished.length,
+            failed: failed.length,
+            unfinished: all.length - finished.length,
+          };
+        }
+
         function nodeTense(node, record, envs, underWay) {
           // NOTHING WILL EVER MEASURE THIS ONE. Terraform reports resources;
           // the image push, the migrate/seed task and the human approval are
@@ -2773,11 +2849,15 @@
            figures instead of to "no observation yet". */
         function paint() {
           if (!DATA) return;
-          const states = runLayerStates(RUNSTATE.observation, DATA.phases);
+          const states = runLayerStates(RUNSTATE.observation, DATA.cycle.phases);
           RUNSTATE.phase = states.phases;
           RUNSTATE.node = states.nodes;
-          DATA.phases.forEach((p) => {
-            p.nodes.forEach((n) => {
+          DATA.cycle.phases.forEach((p) => {
+            // The measured figures are hung on the node OBJECTS, which the
+            // estate owns and the resolver hands out by reference - so a
+            // resource keeps what a cycle said about it however many phases
+            // name it.
+            phaseNodes(p).forEach((n) => {
               n.run = states.nodes[n.id];
               const observed = RUNSTATE.nodes[n.id];
               if (observed) {
@@ -2874,6 +2954,9 @@
           .then((d) => readRunLayer().then(() => d))
           .then((d) => {
             DATA = d;
+            // BEFORE paint(), which resolves: a paint against an empty estate
+            // would draw `Apply - stage` as an empty phase and light nothing.
+            useEstate(d.estate);
             paint();
             const c = d.counts;
             $("#outside-note").innerHTML = d.outside.note;
@@ -2887,7 +2970,7 @@
             });
 
             const perm = $("#perm");
-            d.permanent.forEach((n) => {
+            d.estate.permanent.forEach((n) => {
               const el = nodeEl({ ...n, state: "perm" });
               el.insertAdjacentHTML("beforeend",
                 `<div class="ident">${n.level}</div><div class="asserts">${n.why}</div>`);

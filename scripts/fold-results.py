@@ -233,8 +233,16 @@ def suite_status(tests: list[dict]) -> str:
 def fold(args) -> dict:
     inventory = json.loads(pathlib.Path(args.inventory).read_text())["suites"]
     topology = json.loads(pathlib.Path(args.topology).read_text())
+    # A suite is something a cycle DOES, so its node lives in the cycle contour
+    # (schema 3) beside the image push and the teardown - never in the estate,
+    # which is what exists between runs. Read through topology["phases"] this
+    # raised KeyError against the real file and nothing noticed: the gate over
+    # this fold reads a frozen stub, and the stub was still schema 2.
     node_ids = {
-        n["id"] for phase in topology["phases"] for n in phase["nodes"] if n.get("kind") == "suite"
+        n["id"]
+        for phase in topology["cycle"]["phases"]
+        for n in phase["nodes"]
+        if n.get("kind") == "suite"
     }
 
     reported: dict[str, list[dict]] = {}

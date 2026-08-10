@@ -11,9 +11,17 @@
  *
  *     site/index.html
  *       ==== RUN-LAYER STATE MACHINE - begin ====
+ *         useEstate(estate)
+ *         phaseNodes(p)
  *         bindingState(observation, bindings)
  *         runLayerStates(observation, phases)
  *       ==== RUN-LAYER STATE MACHINE - end ====
+ *
+ * Since schema 3 a phase REFERENCES the resource nodes it acts on instead of
+ * holding them, so the snapshot carries an `estate` beside its phases and this
+ * gate hands it over with useEstate() before folding anything. That is the one
+ * call the page makes too, in the same order, for the same reason: without it
+ * `Apply - stage` is an empty phase and the machine lights nothing.
  *
  * What it defends, in the three sentences 20c wrote down while watching a live
  * cycle and could not check afterwards:
@@ -84,16 +92,17 @@ function loadStateMachine() {
   const body = html.slice(html.indexOf(BEGIN) + BEGIN.length, html.indexOf(END));
   const source = body.slice(body.indexOf("*/") + 2, body.lastIndexOf("/*"));
   const context = vm.createContext({});
+  const EXPORTS = "({ bindingState, runLayerStates, useEstate, phaseNodes })";
   try {
-    vm.runInContext(source + "\n;({ bindingState, runLayerStates })", context, {
+    vm.runInContext(source + "\n;" + EXPORTS, context, {
       filename: "site/index.html#run-layer",
     });
   } catch (e) {
     refuse(`the extracted block does not evaluate: ${e}`);
   }
-  const api = vm.runInContext("({ bindingState, runLayerStates })", context);
-  if (typeof api.runLayerStates !== "function" || typeof api.bindingState !== "function") {
-    refuse("the extracted block defines no bindingState/runLayerStates");
+  const api = vm.runInContext(EXPORTS, context);
+  for (const name of ["bindingState", "runLayerStates", "useEstate", "phaseNodes"]) {
+    if (typeof api[name] !== "function") refuse(`the extracted block defines no ${name}`);
   }
   return api;
 }
@@ -129,11 +138,24 @@ function compare(expected, got) {
 
 function main() {
   const argCase = process.argv.indexOf("--case") !== -1 ? process.argv[process.argv.indexOf("--case") + 1] : null;
-  const { runLayerStates } = loadStateMachine();
+  const { runLayerStates, useEstate } = loadStateMachine();
 
   const phasesFile = path.join(FX, "phases.json");
   if (!fs.existsSync(phasesFile)) refuse(`${path.relative(ROOT, phasesFile)} does not exist`);
-  const phases = readJSON(phasesFile).phases;
+  const snapshot = readJSON(phasesFile);
+  const phases = snapshot.phases;
+  // A snapshot with no estate resolves every `creates` touch to nothing, and a
+  // machine that reports nothing at all still passes a subset check - so the
+  // absence is a refusal rather than a quiet zero. Regenerate it with
+  // tests/fixtures/live-state/refresh.py.
+  if (!snapshot.estate) {
+    refuse(
+      `${path.relative(ROOT, phasesFile)} carries no \`estate\`. Since schema 3 a phase ` +
+        `REFERENCES the resource nodes it creates, and without them every apply phase ` +
+        `folds as empty - which no case in here would report.`
+    );
+  }
+  useEstate(snapshot.estate);
 
   if (!fs.existsSync(CASES)) refuse(`${path.relative(ROOT, CASES)} does not exist`);
   let dirs = fs.readdirSync(CASES).filter((d) => fs.statSync(path.join(CASES, d)).isDirectory()).sort();

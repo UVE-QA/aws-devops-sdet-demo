@@ -19,6 +19,28 @@ So the join happens once, on the runner, and the page is left a renderer. What
 it fetches is already node states; the only thing it decides is how to draw
 them.
 
+WHERE THE NODES COME FROM (schema 3)
+------------------------------------
+The map's data is three contours, and the join needs two of them:
+
+    estate.environments[].nodes   the RESOURCE nodes. `resources` and `members`
+                                  are properties of a state level, so they live
+                                  here and nowhere else
+    cycle.phases[].nodes          the VERB nodes - the image push, the migrate
+                                  task, the suites, the teardown. Nothing
+                                  Terraform reports as a resource
+    cycle.phases[].touches        a phase's REFERENCE to an estate node, as
+                                  {node, verb}. A reference and not a node the
+                                  phase owns: three phases touch stage.rds, and
+                                  only the one whose verb is `creates` is the
+                                  phase that DRAWS it
+
+Until 22 this file walked `phases[].nodes` for all four of its indexes. Against
+the schema-3 file that is a list of verb nodes, not one of which carries a
+member, so index_members() returned an EMPTY dict and every resource of a live
+cycle would have been reported unknown. Every gate stayed green: the fixture
+under tests/fixtures/node-states/ was still schema 2.
+
 THE RULE, IN FULL
 -----------------
 Terraform reports RESOURCES; the map draws SERVICES (ADR-0039 D5). Every
@@ -132,6 +154,48 @@ def cycle_kind(timeline: dict) -> str:
     return "destroy" if "destroy" in commands else "apply"
 
 
+def estate_nodes(topology: dict, environment: str) -> list[dict]:
+    """The RESOURCE nodes of one environment, out of the estate contour.
+
+    Read off the node's own `env` rather than off the environment it is listed
+    under. The two agree today and the generator is what keeps them agreeing;
+    a node that disagreed with its level would otherwise land silently in the
+    other environment's index, which is the failure the filter below exists to
+    prevent in the first place.
+    """
+    return [
+        node
+        for environment_entry in topology.get("estate", {}).get("environments", []) or []
+        for node in environment_entry.get("nodes", []) or []
+        if node.get("env") == environment
+    ]
+
+
+def cycle_nodes(topology: dict) -> list[tuple[str, dict]]:
+    """(phase id, node) for every VERB node, in phase order."""
+    return [
+        (phase["id"], node)
+        for phase in topology.get("cycle", {}).get("phases", []) or []
+        for node in phase.get("nodes", []) or []
+    ]
+
+
+def creates(topology: dict) -> list[tuple[str, str]]:
+    """(phase id, estate node id) for every touch whose verb is `creates`.
+
+    The other four verbs are not drawing. `provisions`, `asserts` and
+    `destroys` name a node some other phase made, and a resolver that took any
+    touch would put stage.rds in four phases at once - which is the picture the
+    contour split was made to end.
+    """
+    return [
+        (phase["id"], touch["node"])
+        for phase in topology.get("cycle", {}).get("phases", []) or []
+        for touch in phase.get("touches", []) or []
+        if touch.get("verb") == "creates"
+    ]
+
+
 def index_members(topology: dict, environment: str) -> dict[str, str]:
     """Normalised member address -> node id, for ONE environment.
 
@@ -141,12 +205,9 @@ def index_members(topology: dict, environment: str) -> dict[str, str]:
     seen last, and half the map would light from the other environment's cycle.
     """
     index: dict[str, str] = {}
-    for phase in topology.get("phases", []):
-        for node in phase.get("nodes", []):
-            if node.get("env") != environment:
-                continue
-            for member in node.get("members", []) or []:
-                index[base_address(member)] = node["id"]
+    for node in estate_nodes(topology, environment):
+        for member in node.get("members", []) or []:
+            index[base_address(member)] = node["id"]
     return index
 
 
@@ -160,20 +221,29 @@ def index_hidden(topology: dict) -> dict[str, str]:
 
 
 def phase_of(topology: dict, environment: str) -> dict[str, str]:
-    """node id -> the phase that draws it, for this environment."""
+    """node id -> the phase that draws it, for this environment.
+
+    Two contours, one answer, and it has to be the SAME answer the page gets
+    from phaseNodes(): a phase's duration is measured over the nodes a reader
+    is looking at inside it, so a resource resolved into one phase here and
+    drawn in another there would put a number under the wrong heading.
+    """
     index: dict[str, str] = {}
-    for phase in topology.get("phases", []):
-        for node in phase.get("nodes", []):
-            if node.get("env") == environment:
-                index[node["id"]] = phase["id"]
+    for phase_id, node in cycle_nodes(topology):
+        if node.get("env") == environment:
+            index[node["id"]] = phase_id
+    owned = {node["id"] for node in estate_nodes(topology, environment)}
+    for phase_id, node_id in creates(topology):
+        if node_id in owned:
+            index[node_id] = phase_id
     return index
 
 
 def destroy_node(topology: dict, environment: str) -> str | None:
-    for phase in topology.get("phases", []):
-        for node in phase.get("nodes", []):
-            if node.get("service") == "destroy" and node.get("env") == environment:
-                return node["id"]
+    """The teardown node — a VERB node, so the cycle contour and not the estate."""
+    for _phase_id, node in cycle_nodes(topology):
+        if node.get("service") == "destroy" and node.get("env") == environment:
+            return node["id"]
     return None
 
 

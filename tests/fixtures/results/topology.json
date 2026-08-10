@@ -1,33 +1,35 @@
 {
-  "_": "Frozen: only the suite node ids, which is all the fold looks at.",
-  "phases": [
-    {
-      "nodes": [
-        {
-          "id": "suite.db.stage",
-          "kind": "suite"
-        },
-        {
-          "id": "suite.api.stage",
-          "kind": "suite"
-        },
-        {
-          "id": "suite.regression.stage",
-          "kind": "suite"
-        },
-        {
-          "id": "suite.smoke.stage",
-          "kind": "suite"
-        },
-        {
-          "id": "suite.db.prod",
-          "kind": "suite"
-        },
-        {
-          "id": "suite.smoke.prod",
-          "kind": "suite"
-        }
-      ]
-    }
-  ]
+  "_": "Frozen: only the suite node ids, which is all the fold looks at. Under `cycle` since schema 3 — a suite is something a cycle DOES, so its node is a verb node and never part of the estate.",
+  "cycle": {
+    "phases": [
+      {
+        "nodes": [
+          {
+            "id": "suite.db.stage",
+            "kind": "suite"
+          },
+          {
+            "id": "suite.api.stage",
+            "kind": "suite"
+          },
+          {
+            "id": "suite.regression.stage",
+            "kind": "suite"
+          },
+          {
+            "id": "suite.smoke.stage",
+            "kind": "suite"
+          },
+          {
+            "id": "suite.db.prod",
+            "kind": "suite"
+          },
+          {
+            "id": "suite.smoke.prod",
+            "kind": "suite"
+          }
+        ]
+      }
+    ]
+  }
 }

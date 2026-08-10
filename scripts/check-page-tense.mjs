@@ -32,7 +32,12 @@
  *         envTense(observation, env)
  *         underWayHere(observation, env)
  *         nodeTense(node, record, envs, underWay)
+ *         historyTally(runs)
  *       ==== PAGE TENSE - end ====
+ *
+ * historyTally() joined them in 22 and is the same species: the run-history
+ * badge scored a run that had not finished as one that had succeeded, because
+ * it counted failures among completed runs and divided by every run there was.
  *
  * The cases are FLAT JSON FILES rather than a directory each: unlike the live
  * state machine, which folds one whole observation into one whole answer, these
@@ -56,7 +61,7 @@ const CASES = path.join(ROOT, "tests", "fixtures", "page-tense", "cases");
 
 const BEGIN = "==== PAGE TENSE - begin";
 const END = "==== PAGE TENSE - end";
-const API = ["figuresAreOlder", "envTense", "underWayHere", "nodeTense"];
+const API = ["figuresAreOlder", "envTense", "underWayHere", "nodeTense", "historyTally"];
 
 function refuse(why) {
   console.log(`page-tense-check: REFUSED\n${why}`);

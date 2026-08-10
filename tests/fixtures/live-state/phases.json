@@ -1,6 +1,80 @@
 {
-  "_": "A FROZEN snapshot of what the run-layer state machine needs out of site/data/topology.json: the phase bindings, and each node's id, environment and own binding. Frozen on purpose, exactly like the inventory in tests/fixtures/results/: this gate is about the state machine, and if it read the live map then adding a node would redden it and teach the person who added it that the fixture is stale. Refresh it deliberately, with tests/fixtures/live-state/refresh.py, when the bindings themselves change.",
+  "_": "A FROZEN snapshot of what the run-layer state machine needs out of site/data/topology.json: the phase bindings, each node's id, environment and own binding, each phase's touches, and the estate nodes those touches name — the machine resolves them through phaseNodes(). Frozen on purpose, exactly like the inventory in tests/fixtures/results/: this gate is about the state machine, and if it read the live map then adding a node would redden it and teach the person who added it that the fixture is stale. Refresh it deliberately, with tests/fixtures/live-state/refresh.py, when the bindings themselves change.",
   "captured_from": "site/data/topology.json",
+  "estate": {
+    "environments": [
+      {
+        "id": "stage",
+        "nodes": [
+          {
+            "id": "stage.vpc",
+            "env": "stage"
+          },
+          {
+            "id": "stage.secrets",
+            "env": "stage"
+          },
+          {
+            "id": "stage.rds",
+            "env": "stage"
+          },
+          {
+            "id": "stage.alb",
+            "env": "stage"
+          },
+          {
+            "id": "stage.ecs",
+            "env": "stage"
+          },
+          {
+            "id": "stage.cloudwatch",
+            "env": "stage"
+          },
+          {
+            "id": "stage.budgets",
+            "env": "stage"
+          }
+        ]
+      },
+      {
+        "id": "prod",
+        "nodes": [
+          {
+            "id": "prod.vpc",
+            "env": "prod"
+          },
+          {
+            "id": "prod.secrets",
+            "env": "prod"
+          },
+          {
+            "id": "prod.rds",
+            "env": "prod"
+          },
+          {
+            "id": "prod.alb",
+            "env": "prod"
+          },
+          {
+            "id": "prod.ecs",
+            "env": "prod"
+          },
+          {
+            "id": "prod.cloudwatch",
+            "env": "prod"
+          },
+          {
+            "id": "prod.dnsrec",
+            "env": "prod"
+          },
+          {
+            "id": "prod.budgets",
+            "env": "prod"
+          }
+        ]
+      }
+    ]
+  },
   "phases": [
     {
       "id": "build",
@@ -29,6 +103,12 @@
           "id": "build.ecr",
           "env": "stage"
         }
+      ],
+      "touches": [
+        {
+          "node": "perm.ecr",
+          "verb": "pushes"
+        }
       ]
     },
     {
@@ -54,34 +134,35 @@
           ]
         }
       ],
-      "nodes": [
+      "nodes": [],
+      "touches": [
         {
-          "id": "stage.vpc",
-          "env": "stage"
+          "node": "stage.vpc",
+          "verb": "creates"
         },
         {
-          "id": "stage.secrets",
-          "env": "stage"
+          "node": "stage.secrets",
+          "verb": "creates"
         },
         {
-          "id": "stage.rds",
-          "env": "stage"
+          "node": "stage.rds",
+          "verb": "creates"
         },
         {
-          "id": "stage.alb",
-          "env": "stage"
+          "node": "stage.alb",
+          "verb": "creates"
         },
         {
-          "id": "stage.ecs",
-          "env": "stage"
+          "node": "stage.ecs",
+          "verb": "creates"
         },
         {
-          "id": "stage.cloudwatch",
-          "env": "stage"
+          "node": "stage.cloudwatch",
+          "verb": "creates"
         },
         {
-          "id": "stage.budgets",
-          "env": "stage"
+          "node": "stage.budgets",
+          "verb": "creates"
         }
       ]
     },
@@ -113,6 +194,16 @@
         {
           "id": "stage.migrate",
           "env": "stage"
+        }
+      ],
+      "touches": [
+        {
+          "node": "stage.ecs",
+          "verb": "provisions"
+        },
+        {
+          "node": "stage.rds",
+          "verb": "provisions"
         }
       ]
     },
@@ -220,6 +311,20 @@
             }
           ]
         }
+      ],
+      "touches": [
+        {
+          "node": "stage.alb",
+          "verb": "asserts"
+        },
+        {
+          "node": "stage.ecs",
+          "verb": "asserts"
+        },
+        {
+          "node": "stage.rds",
+          "verb": "asserts"
+        }
       ]
     },
     {
@@ -238,7 +343,8 @@
           "id": "gate.human",
           "env": "prod"
         }
-      ]
+      ],
+      "touches": []
     },
     {
       "id": "prod-apply",
@@ -254,38 +360,39 @@
           ]
         }
       ],
-      "nodes": [
+      "nodes": [],
+      "touches": [
         {
-          "id": "prod.vpc",
-          "env": "prod"
+          "node": "prod.vpc",
+          "verb": "creates"
         },
         {
-          "id": "prod.secrets",
-          "env": "prod"
+          "node": "prod.secrets",
+          "verb": "creates"
         },
         {
-          "id": "prod.rds",
-          "env": "prod"
+          "node": "prod.rds",
+          "verb": "creates"
         },
         {
-          "id": "prod.alb",
-          "env": "prod"
+          "node": "prod.alb",
+          "verb": "creates"
         },
         {
-          "id": "prod.ecs",
-          "env": "prod"
+          "node": "prod.ecs",
+          "verb": "creates"
         },
         {
-          "id": "prod.cloudwatch",
-          "env": "prod"
+          "node": "prod.cloudwatch",
+          "verb": "creates"
         },
         {
-          "id": "prod.dnsrec",
-          "env": "prod"
+          "node": "prod.dnsrec",
+          "verb": "creates"
         },
         {
-          "id": "prod.budgets",
-          "env": "prod"
+          "node": "prod.budgets",
+          "verb": "creates"
         }
       ]
     },
@@ -334,6 +441,20 @@
             }
           ]
         }
+      ],
+      "touches": [
+        {
+          "node": "prod.alb",
+          "verb": "asserts"
+        },
+        {
+          "node": "prod.ecs",
+          "verb": "asserts"
+        },
+        {
+          "node": "prod.rds",
+          "verb": "asserts"
+        }
       ]
     },
     {
@@ -368,6 +489,68 @@
         {
           "id": "destroy.prod",
           "env": "prod"
+        }
+      ],
+      "touches": [
+        {
+          "node": "stage.vpc",
+          "verb": "destroys"
+        },
+        {
+          "node": "stage.secrets",
+          "verb": "destroys"
+        },
+        {
+          "node": "stage.rds",
+          "verb": "destroys"
+        },
+        {
+          "node": "stage.alb",
+          "verb": "destroys"
+        },
+        {
+          "node": "stage.ecs",
+          "verb": "destroys"
+        },
+        {
+          "node": "stage.cloudwatch",
+          "verb": "destroys"
+        },
+        {
+          "node": "stage.budgets",
+          "verb": "destroys"
+        },
+        {
+          "node": "prod.vpc",
+          "verb": "destroys"
+        },
+        {
+          "node": "prod.secrets",
+          "verb": "destroys"
+        },
+        {
+          "node": "prod.rds",
+          "verb": "destroys"
+        },
+        {
+          "node": "prod.alb",
+          "verb": "destroys"
+        },
+        {
+          "node": "prod.ecs",
+          "verb": "destroys"
+        },
+        {
+          "node": "prod.cloudwatch",
+          "verb": "destroys"
+        },
+        {
+          "node": "prod.dnsrec",
+          "verb": "destroys"
+        },
+        {
+          "node": "prod.budgets",
+          "verb": "destroys"
         }
       ]
     }
