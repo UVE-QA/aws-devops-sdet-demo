@@ -1448,6 +1448,47 @@
         el("cycle").innerHTML = h;
       }
 
+      /* ==== RUN HISTORY TENSE - begin =======================================
+         Pure: no DOM, no fetch, no clock, no globals. Lifted out of the built
+         page by scripts/check-page-tense.mjs together with the PAGE TENSE block
+         in the map's script, and run in one context with it - the two are the
+         same kind of decision and are checked as one set.
+
+         WHY IT IS IN THIS SCRIPT AND NOT THAT ONE. The map's script is wrapped
+         in an IIFE on purpose: "nothing here is meant to be reachable from
+         there, and the next addition to either should not have to know the
+         other's identifier list." Phase 22 wrote this function in there, with
+         its only caller - renderHistory(), below - up here. renderHistory()
+         threw ReferenceError on every tick; renderAll() died before
+         announceCycle() and scheduleRefresh(); so the map never received
+         another observation to re-read its figures from, and the tab never
+         scheduled another bucket tick. An open tab sat on the previous cycle's
+         figures for as long as it stayed open, and Refresh re-threw.
+
+         ONE identifier in the wrong scope, three symptoms, and only
+         check-page-freshness.mjs could see any of them: a cold load renders
+         from the map's own bootstrap chain, which does not come through here,
+         so every lifted-block and fixture gate stayed green.
+
+         A RUN THAT HAS NOT FINISHED HAS NOT SUCCEEDED. The badge below read
+         `all 12 succeeded` with one of the twelve still going: its numerator
+         was failures among COMPLETED runs and its denominator was every run in
+         the list. Counts and no words - the caller writes the sentence, so a
+         change to how the badge reads cannot silently change what it counts.
+         ==================================================================== */
+      function historyTally(runs) {
+        var all = runs || [];
+        var finished = all.filter(function (r) { return r && r.status === "completed"; });
+        var failed = finished.filter(function (r) { return r.conclusion !== "success"; });
+        return {
+          runs: all.length,
+          finished: finished.length,
+          failed: failed.length,
+          unfinished: all.length - finished.length
+        };
+      }
+      /* ==== RUN HISTORY TENSE - end ========================================= */
+
       // THE HEADER OF A CLOSED CUT ANSWERS ONE QUESTION: is anything wrong
       // (ADR-0047 D2). The table inside answers which run, and a reader who can
       // see the verdict without opening it never has to.
@@ -2637,27 +2678,17 @@
           return envs.indexOf(env) !== -1;
         }
 
-        /* A RUN THAT HAS NOT FINISHED HAS NOT SUCCEEDED. The badge over the run
-           history read `all 12 succeeded` while one of the twelve was still
-           going: its numerator was failures among COMPLETED runs and its
-           denominator was every run in the list, so an in-flight cycle scored
-           as a success until it ended. Same species as the three findings
-           above - a figure about one moment printed as though it were about
-           now - which is why it is answered here and not in the renderer.
-
-           Counts and no words: the caller writes the sentence, so a change to
-           how the badge reads cannot silently change what it COUNTS. */
-        function historyTally(runs) {
-          const all = runs || [];
-          const finished = all.filter((r) => r && r.status === "completed");
-          const failed = finished.filter((r) => r.conclusion !== "success");
-          return {
-            runs: all.length,
-            finished: finished.length,
-            failed: failed.length,
-            unfinished: all.length - finished.length,
-          };
-        }
+        /* THE FIFTH TENSE DECISION IS NOT IN THIS BLOCK, and that is the
+           correction 22 needed. historyTally() answers a question of exactly
+           this kind - has this run finished, and may it be counted yet - but
+           its only caller is renderHistory(), in the DASHBOARD's script. This
+           script is wrapped, and the comment above the wrapper says why:
+           nothing in here is meant to be reachable from there. Written in here
+           anyway, renderHistory() threw ReferenceError on every tick and took
+           announceCycle() and scheduleRefresh() down with it - the whole
+           re-read, from one identifier in the wrong scope. So it lives beside
+           its caller, in a lifted block of its own, and
+           scripts/check-page-tense.mjs lifts both. */
 
         /* What a node says when no run is speaking for it. Suites do not come
            here - they are observed by their report - and neither does a

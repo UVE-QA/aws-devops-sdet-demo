@@ -24,20 +24,34 @@
  * `last time` label appeared nowhere outside site/index.html. This gate is that
  * check, and it is built like check-live-state.mjs for the same reason - the
  * decision runs in the visitor's browser, so a copy of it in Python would be
- * one definition on two hosts. It LIFTS THE BLOCK OUT OF THE BUILT PAGE:
+ * one definition on two hosts. It LIFTS THE BLOCKS OUT OF THE BUILT PAGE:
  *
  *     site/index.html
- *       ==== PAGE TENSE - begin ====
+ *       ==== RUN HISTORY TENSE - begin ====      the dashboard's script
+ *         historyTally(runs)
+ *       ==== RUN HISTORY TENSE - end ====
+ *
+ *       ==== PAGE TENSE - begin ====             the map's script
  *         figuresAreOlder(observation)
  *         envTense(observation, env)
  *         underWayHere(observation, env)
  *         nodeTense(node, record, envs, underWay)
- *         historyTally(runs)
  *       ==== PAGE TENSE - end ====
  *
- * historyTally() joined them in 22 and is the same species: the run-history
- * badge scored a run that had not finished as one that had succeeded, because
- * it counted failures among completed runs and divided by every run there was.
+ * TWO BLOCKS AND ONE SET, because the page is two scripts and the map's is
+ * WRAPPED - deliberately, so that neither script has to know the other's
+ * identifier list. historyTally() joined the set in 22 and is the same species:
+ * the run-history badge scored a run that had not finished as one that had
+ * succeeded, counting failures among completed runs and dividing by every run
+ * there was. It was first written inside the map's wrapper, where its caller
+ * could not see it - renderHistory() threw on every tick and took the whole
+ * re-read down with it, which only check-page-freshness.mjs could see. A
+ * function lives beside its caller; this gate follows it there rather than
+ * making the page put them in one scope to be testable.
+ *
+ * The blocks are evaluated in ONE context, so a name defined in either is
+ * callable from a case, and the coupling check below is run against everything
+ * outside BOTH of them.
  *
  * The cases are FLAT JSON FILES rather than a directory each: unlike the live
  * state machine, which folds one whole observation into one whole answer, these
@@ -59,8 +73,12 @@ const ROOT = path.dirname(HERE);
 const PAGE = path.join(ROOT, "site", "index.html");
 const CASES = path.join(ROOT, "tests", "fixtures", "page-tense", "cases");
 
-const BEGIN = "==== PAGE TENSE - begin";
-const END = "==== PAGE TENSE - end";
+// Two blocks, in two scripts, evaluated as one set. Adding a third is adding a
+// line here; what may not happen is a tense decision living in neither.
+const BLOCKS = [
+  { begin: "==== PAGE TENSE - begin", end: "==== PAGE TENSE - end" },
+  { begin: "==== RUN HISTORY TENSE - begin", end: "==== RUN HISTORY TENSE - end" },
+];
 const API = ["figuresAreOlder", "envTense", "underWayHere", "nodeTense", "historyTally"];
 
 function refuse(why) {
@@ -75,38 +93,47 @@ function strip(source) {
     .replace(/(^|[^:])\/\/[^\n]*/g, "$1");
 }
 
-/** Lift the block out of the built page and evaluate it in its own context. */
+/** Lift every block out of the built page and evaluate them in one context. */
 function loadTense() {
   if (!fs.existsSync(PAGE)) {
     refuse(`site/index.html does not exist. Build it with \`make site-page\`.`);
   }
   const html = fs.readFileSync(PAGE, "utf8");
-  const opens = html.split(BEGIN).length - 1;
-  const closes = html.split(END).length - 1;
-  if (opens !== 1 || closes !== 1) {
-    // The marker is the whole coupling between the page and this gate. A gate
-    // that silently found nothing to check is the empty result that reads as
-    // clean, which this repository has been caught by twice.
-    refuse(
-      `expected exactly one begin marker and one end marker in site/index.html, ` +
-        `found ${opens} and ${closes}. The block this gate checks is identified by them; ` +
-        `renaming one leaves the gate testing nothing at all.`
-    );
-  }
-  // Both markers sit INSIDE comments, so the slice starts after the opening
-  // comment's `*/` and stops before the closing comment's `/*`.
-  const body = html.slice(html.indexOf(BEGIN) + BEGIN.length, html.indexOf(END));
-  const source = body.slice(body.indexOf("*/") + 2, body.lastIndexOf("/*"));
   const context = vm.createContext({});
-  try {
-    vm.runInContext(source, context, { filename: "site/index.html#page-tense" });
-  } catch (e) {
-    refuse(`the extracted block does not evaluate: ${e}`);
+  // Where each block sits, so the coupling check below can cut ALL of them out
+  // of the page before looking for calls. Cutting only one would let a function
+  // satisfy the check with its own definition, in the other block.
+  const spans = [];
+  for (const { begin, end } of BLOCKS) {
+    const opens = html.split(begin).length - 1;
+    const closes = html.split(end).length - 1;
+    if (opens !== 1 || closes !== 1) {
+      // The marker is the whole coupling between the page and this gate. A gate
+      // that silently found nothing to check is the empty result that reads as
+      // clean, which this repository has been caught by twice.
+      refuse(
+        `expected exactly one \`${begin}\` and one \`${end}\` in site/index.html, ` +
+          `found ${opens} and ${closes}. The block this gate checks is identified by them; ` +
+          `renaming one leaves the gate testing nothing at all.`
+      );
+    }
+    // Both markers sit INSIDE comments, so the slice starts after the opening
+    // comment's `*/` and stops before the closing comment's `/*`.
+    const from = html.indexOf(begin);
+    const to = html.indexOf(end);
+    const body = html.slice(from + begin.length, to);
+    const source = body.slice(body.indexOf("*/") + 2, body.lastIndexOf("/*"));
+    spans.push([from, to + end.length]);
+    try {
+      vm.runInContext(source, context, { filename: `site/index.html#${begin}` });
+    } catch (e) {
+      refuse(`the block at \`${begin}\` does not evaluate: ${e}`);
+    }
   }
   const api = {};
   for (const name of API) {
     const fn = vm.runInContext(`typeof ${name} === "function" ? ${name} : null`, context);
-    if (!fn) refuse(`the extracted block defines no ${name}()`);
+    if (!fn) refuse(`no lifted block defines ${name}()`);
     api[name] = fn;
   }
   // A DECISION NOTHING CONSULTS IS NOT A DECISION. Everything below this line
@@ -129,11 +156,22 @@ function loadTense() {
   // crude - block comments, then `//` to end of line unless it is preceded by
   // a colon, which is every URL in this file - and it is allowed to be, because
   // its only failure mode is refusing a page that is fine, loudly.
-  const outside = strip(html.slice(0, html.indexOf(BEGIN)) + html.slice(html.indexOf(END)));
+  //
+  // EVERY block is cut out, not just the one a function came from: with two
+  // blocks in one context, cutting one leaves the other's definition standing
+  // in the text, and `historyTally(` would have been "called" by its own
+  // signature.
+  let outside = "";
+  let cut = 0;
+  for (const [from, to] of spans.sort((a, b) => a[0] - b[0])) {
+    outside += html.slice(cut, from);
+    cut = to;
+  }
+  outside = strip(outside + html.slice(cut));
   for (const name of API) {
     if (outside.indexOf(name + "(") === -1) {
       refuse(
-        `${name}() is defined in the PAGE TENSE block and called nowhere outside it.\n` +
+        `${name}() is defined in a lifted block and called nowhere outside the blocks.\n` +
           `The page would render exactly as it did before the block existed, and every ` +
           `case in this gate would still pass.`
       );
