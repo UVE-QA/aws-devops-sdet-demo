@@ -1,0 +1,41 @@
+--- CONTROL: tree as committed
+script exit: 1  (CONFOUNDED in a sandbox: HEAD!=origin/main and no INDEX row for today)
+=== the generated artifacts still agree with the repository ===
+site-data: clean - every resource assigned; 116 across 8 levels (55 permanent, 61 per cycle), 2 deliberately not shown
+18 icons, 50,168 bytes of sprite
+
+=== the record of this session exists and agrees with itself ===
+--- BREAK 1: counts.adrs forced back to 54 - the exact Phase 21 defect
+script exit: 1  (CONFOUNDED in a sandbox: HEAD!=origin/main and no INDEX row for today)
+=== the generated artifacts still agree with the repository ===
+site-data: DRIFT
+site/data/topology.json disagrees with infra/, tests/, .github/workflows/ or docs/decisions/.
+Run `make site-data` and commit the result.
+18 icons, 50,168 bytes of sprite
+
+=== the record of this session exists and agrees with itself ===
+--- BREAK 2: site/index.html edited in place
+script exit: 1  (CONFOUNDED in a sandbox: HEAD!=origin/main and no INDEX row for today)
+=== the generated artifacts still agree with the repository ===
+site-data: clean - every resource assigned; 116 across 8 levels (55 permanent, 61 per cycle), 2 deliberately not shown
+18 icons, 50,168 bytes of sprite
+session-close: site/index.html is not what the template builds - run `make site-page`
+
+=== the record of this session exists and agrees with itself ===
+--- CONTROL AGAIN: restored
+script exit: 1  (CONFOUNDED in a sandbox: HEAD!=origin/main and no INDEX row for today)
+=== the generated artifacts still agree with the repository ===
+site-data: clean - every resource assigned; 116 across 8 levels (55 permanent, 61 per cycle), 2 deliberately not shown
+18 icons, 50,168 bytes of sprite
+
+=== the record of this session exists and agrees with itself ===
+
+=== the two lines' OWN exit statuses, which is what feeds `|| fail=1` ===
+exit 0  <- python3 scripts/generate-topology.py --check
+exit 0  <- python3 scripts/build-site-page.py --check
+--- both artifacts broken ---
+exit 1  <- python3 scripts/generate-topology.py --check
+exit 1  <- python3 scripts/build-site-page.py --check
+--- restored ---
+exit 0  <- python3 scripts/generate-topology.py --check
+exit 0  <- python3 scripts/build-site-page.py --check
