@@ -55,6 +55,12 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 20k   | The live cycle, both environments, both priced | ✅ done — $0.0526..$0.0581 + $0.0172..$0.0227 | sessions/2026-08-09-phase-20k-the-open-page-never-gets-the-figures.md |
 | 20l   | The page re-reads its figures | ✅ done — $0, fixtures only | sessions/2026-08-09-phase-20l-the-page-re-reads-its-figures.md |
 | 20m   | The cycle watched through one tab | ✅ done — $0.0529..$0.0584 + $0.0182..$0.0237 | sessions/2026-08-09-phase-20m-what-the-map-says-while-it-runs.md |
+| 21    | Processes and state are two contours | ✅ done — $0, decisions only | sessions/2026-08-10-phase-21-processes-and-state-are-two-contours.md |
+
+**Lettered sub-phases end here (ADR-0055).** From Phase 21 the identifier is a
+plain integer and every phase is planned together with the sentence that closes
+it. Nothing above is renumbered: those identifiers are in the session filenames,
+in every row of `docs/sessions/INDEX.md` and in the ADRs that cite them.
 
 Phase 17 (prod data continuity) is still open and still optional, in
 `docs/next-phases.md`. Phase 18 was pulled forward of both remaining phases
@@ -3265,6 +3271,55 @@ timings and code paths in
   sentence cannot be settled until a cycle runs on a different DAY from the one
   before it.
 
+### Phase 21 — Processes and state are two contours  ✅ DONE 2026-08-10
+A decisions session. No code, no cycle, nothing applied, $0. Summary in
+`docs/sessions/2026-08-10-phase-21-processes-and-state-are-two-contours.md`.
+**ADR-0054** (the three contours) and **ADR-0055** (phases are numbered).
+- Criteria: the model decided and written down; the two implementation phases
+  planned in `docs/next-phases.md`, each with the condition that closes it. Met.
+- **THE PAGE ALREADY SEPARATES A PROCESS FROM A STATE, AND THE MAP CONTRADICTS
+  IT.** The panel above the map reports stage and prod as observed state; the map
+  below it draws the same environments a second time, as resource nodes nested
+  inside the phase that creates them. Where the two disagree the arbiter existed
+  only as the name of a fixture case — `an-environment-is-what-the-panel-above-
+  the-map-says-it-is`. Nesting gives a noun exactly one verb forever, and four
+  verbs touch an environment's database: apply creates it, provision migrates
+  into it, the gate asserts against it, destroy deletes it.
+- **TWO OF 20m'S THREE FINDINGS ARE THAT ENCODING.** The node renderer consults
+  the run layer before `nodeTense` because a node IS a step. And `prod.rds`,
+  drawn under `prod-apply`, is unreachable from the destroy phase — which is how
+  it stood at full colour with the previous cycle's figures for twelve measured
+  minutes while prod was being deleted. The third, the history badge counting an
+  in-flight run as a success, is a plain counting bug and survives the model
+  change untouched (ADR-0054 D7).
+- **MOST OF THE MODEL ALREADY EXISTS, UNNAMED.** `groups[].kind` in
+  `assets/topology-groups.json` is `permanent | node | hidden`; `observer` on
+  every node is `terraform | report | actions`; `perm.ecr` and `build.ecr` are
+  already the registry-noun and the push-verb kept apart; `request_path`'s
+  citation-by-id with a refusing build (ADR-0049 D6) is the reference mechanism,
+  already exercised both ways. This ADR names the distinction and makes the page
+  obey it rather than inventing one.
+- **ADR-0039 D2b is overturned in half.** Its "no separate tests panel" clause
+  argued one-story-two-places, and that argument is what the environments are
+  suffering from today. A suite carries two facts — what it contains and how it
+  ran — and ADR-0042 D5 already split exactly those two in the data. Its other
+  half, "a node is a suite × ENVIRONMENT", is kept: it was always about the run.
+- One hole found for free: `counts.suites` reports 5 and the map draws 4.
+  `tests/unit` is inventoried, counted and invisible, and no check objects,
+  although D2b claims a spec directory belonging to no display node is a red
+  build. Phase 22 writes that refusal.
+- Validation:
+```bash
+  make docs-check
+```
+- Cost: nothing. No AWS call, no cycle, nothing applied.
+- Next allowed step: **Phase 22 — the model in the data.** The generator, the
+  editorial file and the fixtures; the page is deliberately not touched, because
+  a session that starts fixing the layout there is how Phase 20 reached thirteen
+  entries. Its closing condition is in `docs/next-phases.md` and is checkable:
+  `make site-data-check` green on a topology in which no phase contains a
+  resource node, every reference resolving, all five suites drawn, and the new
+  refusal broken on purpose once with its output kept.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

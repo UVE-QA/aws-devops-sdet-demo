@@ -6,6 +6,58 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
+**As of 2026-08-10 (21 — processes and state are two contours).** A decisions
+session. No code, no cycle, nothing applied, $0. **ADR-0054** and **ADR-0055**.
+
+**The map mixes processes with the state those processes produce, and the page
+already agrees with the distinction the map contradicts.** The panel above the
+map reports stage and prod as observed state, from `status/<env>.json`, which
+never mentions a run. The map below it draws the same two environments a second
+time, as resource nodes nested inside the phase that creates them. Where the two
+accounts disagree, the arbitration existed only as the name of a fixture case:
+`an-environment-is-what-the-panel-above-the-map-says-it-is`.
+
+**Nesting stores a reference as containment, so a noun gets one verb forever** —
+while apply creates the database, provision migrates into it, the gate asserts
+against it and destroy deletes it. That is precisely two of 20m's three
+findings: the renderer consults the run layer before `nodeTense` because a node
+IS a step, and `prod.rds` is unreachable from the destroy phase, which is how it
+stood at full colour with the previous cycle's figures for twelve measured
+minutes while prod was being deleted. The third — the history badge scoring an
+in-flight run as a success — is a counting bug in the process contour and is
+recorded as NOT covered by any of this.
+
+**ADR-0054** separates three contours: ESTATE (the nouns, present tense,
+answered by observation in AWS), CYCLE (the verbs, past or in flight, answered
+by the run layer) and ASSERTIONS (the suites, answered by the repository). The
+binding becomes a reference and reuses ADR-0049 D6's citation-by-id, whose
+refusal is already exercised. Most of the model turned out to exist without a
+name — `groups[].kind`, `observer`, `perm.ecr` against `build.ecr`, `envPanel`.
+
+**ADR-0039 D2b is overturned in half.** Its "no separate tests panel" clause
+argued one story in two places, which is what the environments are doing today;
+a suite carries two facts, and ADR-0042 D5 had already split them in the data.
+Its "a node is a suite × ENVIRONMENT" half is kept — it was always about the
+run. Found for free: `counts.suites` reports 5, the map draws 4, `tests/unit` is
+invisible, and no check objects although D2b claims it should be a red build.
+
+**ADR-0055** retires the lettered sub-phase. The letter was meant to mean one
+session and never did — 20a took three — and the cause is that Phase 20's title
+carried no condition of completion. From 21, phases are integers and each is
+planned with the checkable sentence that closes it. Nothing before 21 is
+renumbered.
+
+Priced honestly rather than optimistically: ADR-0047 D1 and ADR-0052 D2/D3 are
+superseded, every measured layout figure in ADR-0050 and ADR-0052 is retired
+rather than translated, and `generate-topology.py`'s assembly and the live-state
+gate are rewrites. Split into **Phase 22** (the data; the page deliberately
+untouched) and **Phase 23** (the composition, re-measured, and the mid-flight
+gate 20m asked for).
+
+Next: **Phase 22 — the model in the data.**
+
+---
+
 **As of 2026-08-09 (20m — the cycle watched through one tab).** The live cycle
 the cursor had named since 20l, run in full and watched continuously from one
 Safari tab opened before it was dispatched and never reloaded.
