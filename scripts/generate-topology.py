@@ -62,6 +62,15 @@ class Refusal(Exception):
     """Something is missing or ambiguous enough that generating anything would lie."""
 
 
+# The verbs a cycle step may apply to an estate node (ADR-0054 D2). Closed on
+# purpose: an open vocabulary would let a typo become a new relationship, and the
+# page decides what it DRAWS from `creates` - the one verb that means "this step
+# is why the noun exists". The rest are relationships the page reads and Phase 23
+# composes; they are carried in the data from here so that composition has
+# something to compose.
+VERBS = {"creates", "pushes", "provisions", "asserts", "destroys"}
+
+
 # ---------------------------------------------------------------- terraform
 
 
@@ -381,10 +390,20 @@ def build():
     # 2. every group that owns resources in a level is drawn by that level's phase,
     #    or is explicitly not shown. A module instantiated into a level nobody draws
     #    is exactly the drift this gate is for.
+    #    RE-POINTED IN PHASE 22, and the question it asks is unchanged. It used
+    #    to read the phases, because a level was drawn by the phase that applied
+    #    it; under ADR-0054 a level is drawn by an estate environment and the
+    #    phase only references it. Same coverage, asked of the contour that owns
+    #    the answer.
+    estate_spec = spec.get("estate", {}).get("environments")
+    if not estate_spec:
+        raise Refusal(
+            "assets/topology-groups.json has no `estate.environments`. Under ADR-0054 the "
+            "nouns are their own contour; without it there is nothing for a phase to reference."
+        )
     drawn = {}
-    for p in spec["phases"]:
-        if "level" in p:
-            drawn.setdefault(p["level"], set()).update(n["group"] for n in p["nodes"] if "group" in n)
+    for e in estate_spec:
+        drawn.setdefault(e["level"], set()).update(e["draws"])
     for d in lv:
         present = {
             group_of(str(site.relative_to(ROOT)), decl) for _, site, decl in owned[d]
@@ -400,15 +419,12 @@ def build():
 
     # 3. a node whose group owns nothing in its level. The module was removed and
     #    the map still shows it.
-    for p in spec["phases"]:
-        for n in p["nodes"]:
-            gid = n.get("group")
-            if gid is None:
-                continue
+    for e in estate_spec:
+        for gid in e["draws"]:
             if gid not in groups:
-                findings.append(f"phase {p['id']} draws unknown group {gid}")
-            elif count_in(ROOT / p["level"], gid) == 0:
-                findings.append(f"empty node: group {gid} owns no resource in {p['level']}")
+                findings.append(f"environment {e['id']} draws unknown group {gid}")
+            elif count_in(ROOT / e["level"], gid) == 0:
+                findings.append(f"empty node: group {gid} owns no resource in {e['level']}")
 
     if findings:
         raise Refusal("\n".join(findings))
@@ -436,23 +452,49 @@ def build():
             }
         )
 
+    # ------------------------------------------------------- the estate contour
+    # The nouns (ADR-0054 D1). These used to be built inside the phase that
+    # applied them, which gave each one exactly one verb forever; they are built
+    # here now, once, and the phases reference them. Nothing about how a node is
+    # COMPUTED changed - same group, same level, same members - only who owns it.
+    environments = []
+    estate_ids = set()
+    for e in estate_spec:
+        env_nodes = []
+        for gid in e["draws"]:
+            g = groups[gid]
+            nid = f"{e['id']}.{gid}"
+            if nid in estate_ids:
+                raise Refusal(f"two estate nodes share the id {nid}")
+            estate_ids.add(nid)
+            env_nodes.append(
+                {
+                    "id": nid,
+                    "label": g["label"],
+                    "service": g["service"],
+                    "kind": "service",
+                    "env": e["id"],
+                    "observer": "terraform",
+                    "tool": "terraform",
+                    "resources": count_in(ROOT / e["level"], gid),
+                    "members": members_in(ROOT / e["level"], gid),
+                }
+            )
+        environments.append({"id": e["id"], "level": e["level"], "nodes": env_nodes})
+
+    # The set a reference may name, built before any phase is assembled so the
+    # refusal below cannot depend on the order phases happen to be written in.
+    reference_targets = estate_ids | {c["id"] for c in perm_cards}
+
     phases = []
     for p in spec["phases"]:
         nodes = []
         for n in p["nodes"]:
             if "group" in n:
-                g = groups[n["group"]]
-                nodes.append(
-                    {
-                        "id": f"{p['env']}.{g['id']}",
-                        "label": g["label"],
-                        "service": g["service"],
-                        "kind": "service",
-                        "env": p["env"],
-                        "observer": "terraform",
-                        "resources": count_in(ROOT / p["level"], g["id"]),
-                        "members": members_in(ROOT / p["level"], g["id"]),
-                    }
+                raise Refusal(
+                    f"phase {p['id']} still contains the resource group {n['group']}. Under "
+                    "ADR-0054 a phase REFERENCES estate nodes and does not hold them; move it "
+                    "to estate.environments[].draws and name it in this phase's `touches`."
                 )
             elif "suite" in n:
                 s = spec["suites"][n["suite"]]
@@ -501,6 +543,33 @@ def build():
         live, live_findings = live_bindings(f"phase {p['id']}", p)
         if live_findings:
             raise Refusal("\n".join(live_findings))
+
+        # THE BINDING, AS A REFERENCE (ADR-0054 D2). A step names the estate
+        # nodes it touches, by id, and names the VERB - because the property
+        # containment could not have is that a noun may be touched by any number
+        # of verbs and each says so separately. `stage.rds` is created by one
+        # phase, provisioned by a second, asserted against by a third and deleted
+        # by a fourth, and until now only the first was expressible; that is why
+        # `prod.rds` was unreachable from the destroy phase and stood at full
+        # colour for twelve measured minutes while prod was being deleted (20m).
+        #
+        # The refusal is ADR-0049 D6's, unchanged and already exercised both
+        # ways: a citation naming something this map does not have is a refusal
+        # rather than a blank box. Only the construction of the known set moved.
+        touches = []
+        for t in p.get("touches", []):
+            if t["node"] not in reference_targets:
+                raise Refusal(
+                    f"phase {p['id']} touches {t['node']}, which is not an estate node "
+                    "or a permanent card on this map"
+                )
+            if t["verb"] not in VERBS:
+                raise Refusal(
+                    f"phase {p['id']} touches {t['node']} with the unknown verb {t['verb']!r}. "
+                    f"Known verbs: {', '.join(sorted(VERBS))}"
+                )
+            touches.append({"node": t["node"], "verb": t["verb"]})
+
         phases.append(
             {
                 "id": p["id"],
@@ -509,6 +578,7 @@ def build():
                 "workflow": p["workflow"],
                 "live": live,
                 "nodes": nodes,
+                "touches": touches,
             }
         )
 
@@ -520,6 +590,9 @@ def build():
     # strip that kept describing infrastructure after it was deleted, which is
     # the 2026-08-08 finding ADR-0039 D1 exists to close.
     known = {c["id"]: c for c in perm_cards}
+    for e in environments:
+        for n in e["nodes"]:
+            known[n["id"]] = n
     for p in phases:
         for n in p["nodes"]:
             known[n["id"]] = n
@@ -578,8 +651,19 @@ def build():
     #
     # So the threshold stays where it is, and the phase that made it a question
     # is simply the tallest one the map has.
+    # WHAT A PHASE DRAWS, WHICH IS NO LONGER WHAT IT HOLDS (Phase 22). A phase
+    # draws its own nodes plus the estate nodes it CREATES - that verb and no
+    # other, because "this step is why the noun exists" is the one relationship a
+    # box inside a phase can honestly mean. Counted with every verb instead, the
+    # quality gate would gain its three asserted-against nodes, cross WIDE_AT and
+    # take the map from ten columns to eleven; measured, and that is a
+    # composition decision, which belongs to Phase 23 and not to naming the
+    # relationships. As written the total is unchanged at 10.
+    def drawn_count(p):
+        return len(p["nodes"]) + sum(1 for t in p["touches"] if t["verb"] == "creates")
+
     WIDE_AT = 6
-    wide = [p["id"] for p in phases if len(p["nodes"]) >= WIDE_AT]
+    wide = [p["id"] for p in phases if drawn_count(p) >= WIDE_AT]
     layout = {
         "wide_at": WIDE_AT,
         "wide": wide,
@@ -624,6 +708,52 @@ def build():
     if findings:
         raise Refusal("\n".join(findings))
 
+    # ---------------------------------------------------- the assertions contour
+    # What the repository CLAIMS, tenseless (ADR-0054 D1/D4). A suite carries two
+    # facts and ADR-0042 D5 had already split them in the data: what it contains,
+    # which belongs here, and how it ran, which is a run of suite x environment
+    # and stays in the cycle. ADR-0039 D2b forbade this contour on a
+    # one-story-two-places argument; that argument is what the environments were
+    # suffering from, and D2b applied it to the wrong object.
+    #
+    # THE REFUSAL THIS EXISTS TO WRITE, and the reason it is not the obvious one.
+    # `counts.suites` said 5 while the map drew 4 for months, because tests/unit
+    # is inventoried, counted and drawn by nothing. The obvious gate - "every
+    # suite gets a node" - CANNOT FAIL, since the nodes are generated FROM the
+    # suites, and a gate that is green on every possible input is the failure
+    # this repository keeps finding one layer down. The question worth asking is
+    # the one with a false answer available: is every suite either RUN by the
+    # cycle, or explicitly declared as one the cycle cannot run? tests/unit is
+    # the second, and it now says so instead of being absent.
+    run_by = {}
+    for p in phases:
+        for n in p["nodes"]:
+            if n.get("suite"):
+                run_by.setdefault(n["suite"], []).append(n["id"])
+    suites = []
+    for name, s in spec["suites"].items():
+        runs = sorted(run_by.get(name, []))
+        if not runs and not s.get("not_in_cycle"):
+            findings.append(
+                f"suite {name} ({s['dir']}) is run by no node in any phase and declares no "
+                "`not_in_cycle` reason. A suite the cycle cannot run is a fact worth stating; "
+                "a suite nobody noticed is how tests/unit stayed invisible."
+            )
+        suites.append(
+            {
+                "id": f"suite.{name}",
+                "suite": name,
+                "dir": s["dir"],
+                "pattern": s["pattern"],
+                "asserts": s["asserts"],
+                "spec_files": spec_files(s),
+                "run_by": runs,
+                "not_in_cycle": s.get("not_in_cycle"),
+            }
+        )
+    if findings:
+        raise Refusal("\n".join(findings))
+
     workflows = sorted(p.name for p in (ROOT / ".github/workflows").glob("*.yml"))
     adrs = list((ROOT / "docs/decisions").glob("*.md"))
     if not workflows or not adrs:
@@ -631,7 +761,7 @@ def build():
 
     return {
         "_": HEADER,
-        "schema": 2,
+        "schema": 3,
         "counts": {
             "levels": len(lv),
             "permanent_levels": len(permanent_levels),
@@ -649,8 +779,14 @@ def build():
         "layout": layout,
         "request_path": request_path,
         "outside": outside,
-        "permanent": perm_cards,
-        "phases": phases,
+        # THE THREE CONTOURS (ADR-0054 D1), symmetrical on purpose. `permanent`
+        # and `phases` used to sit at the top level beside each other with the
+        # environments inside the phases; a half-applied model is what this phase
+        # exists to end, so all three are sections, each named by what answers
+        # for it: AWS, the run layer, the repository.
+        "estate": {"permanent": perm_cards, "environments": environments},
+        "cycle": {"phases": phases},
+        "assertions": {"suites": suites},
         "not_shown": not_shown,
         "repeated": [
             {"address": a, "why": spec["repeated"][a]} for a in sorted(repeated)

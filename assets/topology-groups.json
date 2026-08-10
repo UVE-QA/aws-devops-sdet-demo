@@ -1,9 +1,7 @@
 {
   "_": "EDITORIAL INPUT to scripts/generate-topology.py. This file carries the two things that cannot be derived from infra/: which display group each resource BLOCK belongs to, and how the groups are arranged into phases. Everything countable - how many levels, how many resources, how many of them each node holds - is computed from the repository and never written here. Every resource block declared under infra/ must appear in `assign` exactly once, including the ones deliberately given no mark of their own; `make site-data-check` is red on any that does not.",
-  "schema": 2,
-
+  "schema": 3,
   "_outside": "The two things the map cannot derive from infra/, because neither is in it: the machine the code is written on, and the system that runs every phase below. A node here may cite a resource in `backed_by`; the generator is red if that resource is not declared, so a claim about the trust path stops being printable the moment the trust path is deleted.",
-
   "outside": {
     "label": "Outside the cycle",
     "note": "Neither is created or destroyed by a cycle, and neither appears in infra/. Everything below runs on a GitHub runner holding a token that lasts one job; no human runs an AWS command during a cycle, and there is no static AWS key in this project.",
@@ -25,21 +23,81 @@
       }
     ]
   },
-
   "_request_path": "EDITORIAL, and the panel on the page says so. WHERE THE REQUEST GOES is not stated anywhere under infra/ - a listener rule and a security group imply a hop, they never assert it - so the ORDER is written here, once. Everything else about a hop is derived: each one except the browser CITES a node or a permanent card by id, and the generator refuses when the citation names something the map does not have, so deleting the load balancer cannot leave this panel drawing one. The label and the service come from what is cited and are never written here again. THE TOOL NAMES ARE EDITORIAL TOO (ADR-0047 D4): `terraform` is derivable from a node's observer, `docker` and `alembic` are not, and a panel naming only the derivable ones would be quietly wrong about what builds the image and what migrates the database. The hops cite prod because prod is the environment a visitor's request reaches; stage is the same shape behind a name nobody is given.",
-
   "request_path": {
     "note": "the request path to prod, and the tool behind each hop",
     "editorial": "the order and the tool names are editorial; every hop cites a node this map already draws",
     "hops": [
-      { "id": "browser", "label": "Browser", "glyph": "WWW", "tools": [] },
-      { "id": "dns", "cites": "perm.dns", "tools": ["terraform"] },
-      { "id": "alb", "cites": "prod.alb", "tools": ["terraform"] },
-      { "id": "ecs", "cites": "prod.ecs", "tools": ["docker", "terraform"] },
-      { "id": "rds", "cites": "prod.rds", "tools": ["terraform", "alembic"] }
+      {
+        "id": "browser",
+        "label": "Browser",
+        "glyph": "WWW",
+        "tools": []
+      },
+      {
+        "id": "dns",
+        "cites": "perm.dns",
+        "tools": [
+          "terraform"
+        ]
+      },
+      {
+        "id": "alb",
+        "cites": "prod.alb",
+        "tools": [
+          "terraform"
+        ]
+      },
+      {
+        "id": "ecs",
+        "cites": "prod.ecs",
+        "tools": [
+          "docker",
+          "terraform"
+        ]
+      },
+      {
+        "id": "rds",
+        "cites": "prod.rds",
+        "tools": [
+          "terraform",
+          "alembic"
+        ]
+      }
     ]
   },
-
+  "_estate": "THE ESTATE CONTOUR (ADR-0054 D1). The nouns: what exists in AWS, present tense, answered by observation rather than by a run. An environment DRAWS display groups; it does not belong to the phase that creates it. Four verbs touch a database - apply creates it, provision migrates into it, the gate asserts against it, destroy deletes it - and containment could only ever record the first. `draws` is the same group id used in `assign`, so the coverage refusal that used to ask 'which phase draws this level' now asks 'which environment draws it'.",
+  "estate": {
+    "environments": [
+      {
+        "id": "stage",
+        "level": "infra/envs/stage",
+        "draws": [
+          "vpc",
+          "secrets",
+          "rds",
+          "alb",
+          "ecs",
+          "cloudwatch",
+          "budgets"
+        ]
+      },
+      {
+        "id": "prod",
+        "level": "infra/envs/prod",
+        "draws": [
+          "vpc",
+          "secrets",
+          "rds",
+          "alb",
+          "ecs",
+          "cloudwatch",
+          "dnsrec",
+          "budgets"
+        ]
+      }
+    ]
+  },
   "groups": [
     {
       "id": "perm.tfstate",
@@ -89,7 +147,6 @@
       "service": "lambda",
       "why": "the public launch button, its TTL and its watchdog"
     },
-
     {
       "id": "vpc",
       "kind": "node",
@@ -146,7 +203,6 @@
       "label": "Route 53 — app record",
       "service": "route53"
     },
-
     {
       "id": "adopted-not-created",
       "kind": "hidden",
@@ -155,9 +211,7 @@
       "why": "aws_default_security_group does not create anything. The module's own comment says so: AWS makes the group with the VPC and cannot delete it, Terraform adopts it to empty its rules, and a destroy drops it from state. Drawing it beside resources that ARE created would be a claim about creation that the code contradicts."
     }
   ],
-
   "_repeated": "Resource blocks carrying count or for_each. Each is ONE block and an unknown number of AWS objects, so each has to be acknowledged here by name with the reason; the generator is red on one that appears without an entry, and on an entry whose block no longer repeats. This is why every count in topology.json says resource BLOCKS and not resources - the two differ by exactly this list, and the difference is a fact about variables rather than about the repository.",
-
   "repeated": {
     "infra/dns::aws_route53_record.validation": "for_each over the wildcard certificate's domain_validation_options — one record per domain ACM asks about",
     "infra/public-site::aws_route53_record.cert_validation": "for_each over the dashboard certificate's domain_validation_options",
@@ -169,7 +223,6 @@
     "infra/modules/network::aws_subnet.private_db": "count = 2 — the RDS subnet group needs two AZs whether or not anything runs in the second",
     "infra/modules/network::aws_route_table_association.public": "count = 2 — one per public subnet"
   },
-
   "assign": {
     "infra/bootstrap": {
       "aws_s3_bucket.tfstate": "perm.tfstate",
@@ -286,9 +339,7 @@
       "aws_route53_record.app": "dnsrec"
     }
   },
-
   "_phases": "The order the cycle happens in, and - in `live` - how each phase is recognised WHILE IT RUNS. Every workflow here holds one job, so a job name cannot tell Build from Apply; the binding names a STEP, and scripts/generate-topology.py refuses if that step does not exist in that job of that workflow. A renamed step would otherwise break the pulse silently, which no other gate in this repository can see. `when: waiting` is the approval, which is not a step at all: it is the gap before the job starts, and the runs API reports it as a run in the waiting state. A SUITE NODE carries its own `live` in exactly the same shape, and must: which phase box a suite is drawn in is a layout decision, and on 2026-08-08 the two disagreed - suite.db.stage sits in the quality gate while its step runs in Provision, and prod's copy of the same suite sat in a phase that does bind that step. A node bound to its own step cannot inherit a phase's answer about a different one.",
-
   "phases": [
     {
       "id": "build",
@@ -312,6 +363,12 @@
         }
       ],
       "env": "stage",
+      "touches": [
+        {
+          "node": "perm.ecr",
+          "verb": "pushes"
+        }
+      ],
       "nodes": [
         {
           "id": "build.ecr",
@@ -346,16 +403,37 @@
         }
       ],
       "env": "stage",
-      "level": "infra/envs/stage",
-      "nodes": [
-        { "group": "vpc" },
-        { "group": "secrets" },
-        { "group": "rds" },
-        { "group": "alb" },
-        { "group": "ecs" },
-        { "group": "cloudwatch" },
-        { "group": "budgets" }
-      ]
+      "touches": [
+        {
+          "node": "stage.vpc",
+          "verb": "creates"
+        },
+        {
+          "node": "stage.secrets",
+          "verb": "creates"
+        },
+        {
+          "node": "stage.rds",
+          "verb": "creates"
+        },
+        {
+          "node": "stage.alb",
+          "verb": "creates"
+        },
+        {
+          "node": "stage.ecs",
+          "verb": "creates"
+        },
+        {
+          "node": "stage.cloudwatch",
+          "verb": "creates"
+        },
+        {
+          "node": "stage.budgets",
+          "verb": "creates"
+        }
+      ],
+      "nodes": []
     },
     {
       "id": "stage-provision",
@@ -381,6 +459,16 @@
         }
       ],
       "env": "stage",
+      "touches": [
+        {
+          "node": "stage.ecs",
+          "verb": "provisions"
+        },
+        {
+          "node": "stage.rds",
+          "verb": "provisions"
+        }
+      ],
       "nodes": [
         {
           "id": "stage.migrate",
@@ -416,6 +504,20 @@
         }
       ],
       "env": "stage",
+      "touches": [
+        {
+          "node": "stage.alb",
+          "verb": "asserts"
+        },
+        {
+          "node": "stage.ecs",
+          "verb": "asserts"
+        },
+        {
+          "node": "stage.rds",
+          "verb": "asserts"
+        }
+      ],
       "nodes": [
         {
           "id": "suite.db.stage",
@@ -516,6 +618,7 @@
         }
       ],
       "env": "prod",
+      "touches": [],
       "nodes": [
         {
           "id": "gate.human",
@@ -544,17 +647,41 @@
         }
       ],
       "env": "prod",
-      "level": "infra/envs/prod",
-      "nodes": [
-        { "group": "vpc" },
-        { "group": "secrets" },
-        { "group": "rds" },
-        { "group": "alb" },
-        { "group": "ecs" },
-        { "group": "cloudwatch" },
-        { "group": "dnsrec" },
-        { "group": "budgets" }
-      ]
+      "touches": [
+        {
+          "node": "prod.vpc",
+          "verb": "creates"
+        },
+        {
+          "node": "prod.secrets",
+          "verb": "creates"
+        },
+        {
+          "node": "prod.rds",
+          "verb": "creates"
+        },
+        {
+          "node": "prod.alb",
+          "verb": "creates"
+        },
+        {
+          "node": "prod.ecs",
+          "verb": "creates"
+        },
+        {
+          "node": "prod.cloudwatch",
+          "verb": "creates"
+        },
+        {
+          "node": "prod.dnsrec",
+          "verb": "creates"
+        },
+        {
+          "node": "prod.budgets",
+          "verb": "creates"
+        }
+      ],
+      "nodes": []
     },
     {
       "id": "prod-gate",
@@ -572,6 +699,20 @@
         }
       ],
       "env": "prod",
+      "touches": [
+        {
+          "node": "prod.alb",
+          "verb": "asserts"
+        },
+        {
+          "node": "prod.ecs",
+          "verb": "asserts"
+        },
+        {
+          "node": "prod.rds",
+          "verb": "asserts"
+        }
+      ],
       "nodes": [
         {
           "id": "suite.db.prod",
@@ -614,6 +755,68 @@
       "n": 8,
       "label": "Destroy",
       "workflow": "destroy.yml",
+      "touches": [
+        {
+          "node": "stage.vpc",
+          "verb": "destroys"
+        },
+        {
+          "node": "stage.secrets",
+          "verb": "destroys"
+        },
+        {
+          "node": "stage.rds",
+          "verb": "destroys"
+        },
+        {
+          "node": "stage.alb",
+          "verb": "destroys"
+        },
+        {
+          "node": "stage.ecs",
+          "verb": "destroys"
+        },
+        {
+          "node": "stage.cloudwatch",
+          "verb": "destroys"
+        },
+        {
+          "node": "stage.budgets",
+          "verb": "destroys"
+        },
+        {
+          "node": "prod.vpc",
+          "verb": "destroys"
+        },
+        {
+          "node": "prod.secrets",
+          "verb": "destroys"
+        },
+        {
+          "node": "prod.rds",
+          "verb": "destroys"
+        },
+        {
+          "node": "prod.alb",
+          "verb": "destroys"
+        },
+        {
+          "node": "prod.ecs",
+          "verb": "destroys"
+        },
+        {
+          "node": "prod.cloudwatch",
+          "verb": "destroys"
+        },
+        {
+          "node": "prod.dnsrec",
+          "verb": "destroys"
+        },
+        {
+          "node": "prod.budgets",
+          "verb": "destroys"
+        }
+      ],
       "live": [
         {
           "workflow": "destroy.yml",
@@ -654,12 +857,12 @@
       ]
     }
   ],
-
   "suites": {
     "unit": {
       "dir": "tests/unit",
       "pattern": "test_*.py",
-      "asserts": "the shape of the log line the 5xx alarm reads, and the scripts a teardown depends on — in-process, no network"
+      "asserts": "the shape of the log line the 5xx alarm reads, and the scripts a teardown depends on — in-process, no network",
+      "not_in_cycle": "in-process and importing the application, so there is nothing for a cycle to run it against: it runs in ci.yml and locally. Declared rather than inferred - a suite with neither a run node nor this reason is a red build (ADR-0054 D8)."
     },
     "db": {
       "dir": "tests/db",
@@ -681,5 +884,6 @@
       "pattern": "*.spec.ts",
       "asserts": "the page loads and the app reaches its database — read-only"
     }
-  }
+  },
+  "_suites": "THE ASSERTIONS CONTOUR (ADR-0054 D1/D4). What the repository claims, tenseless. Every suite here becomes a node; a RUN of a suite is suite x environment and lives in the cycle, referencing this one by id. A suite that no run node references must say why, in `not_in_cycle`, or the generator refuses: counts.suites said 5 while the map drew 4 for months, and nothing objected."
 }
