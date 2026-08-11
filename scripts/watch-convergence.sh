@@ -98,29 +98,52 @@ watch() {
   {
     echo "# watch-convergence  url=${url}"
     echo "# interval=${interval}s duration=${duration}s  started=$(iso_ms "$started")"
-    echo "# a transition is marked ** ; edge_fetch = Date - Age ; write->edge = edge_fetch - Last-Modified"
-    echo "# sighting_local                status age x-cache        etag         write->edge  edge->here  sha"
+    echo "# :: baseline (first sample, nothing observed to change) ; ** a transition"
+    echo "# sighting is when the RESPONSE arrived; window is how long that request took, so the"
+    echo "# change happened somewhere inside [sighting - window, sighting]. Late, never early."
+    echo "# edge_fetch = Date - Age ; write->edge = edge_fetch - Last-Modified"
+    echo "# sighting_local                status age x-cache        etag         write->edge  edge->here   window sha"
   } | tee -a "${WATCH_LOG:-/dev/null}"
 
   while [ $(( ($(now_ms) - started) / 1000 )) -lt "$duration" ]; do
-    local t0 out
+    # THE SIGHTING IS WHEN THE ANSWER ARRIVED, NOT WHEN THE QUESTION WAS ASKED.
+    # It was t0 for one version of this file, which is a timestamp that can
+    # PRECEDE the event it reports: the object may change at any point between
+    # the request leaving and the response landing. The devbox printed
+    # `lag -0.00s` on the first real run - two milliseconds of negative, which
+    # the self-test's `0 <= d` waved through only because printf had rounded
+    # -0.002 to -0.00. So t1 is the sighting, t0 survives as the width of the
+    # window the change could have happened in, and the reported instant is now
+    # never earlier than the truth. It is LATE by at most that width, which is
+    # printed rather than left to be assumed.
+    local t0 t1 out
     t0=$(now_ms)
     out=$(sample "$url")
+    t1=$(now_ms)
     read -r status age xcache etag lm dt sha <<<"$out"
     local key="${status}:${etag}:${sha}"
-    local mark="  " w2e="-" e2h="-"
-    if [ "$key" != "$prev_key" ]; then
+    local mark="  " w2e="-" e2h="-" win="-"
+    if [ -z "$prev_key" ]; then
+      # NOT A TRANSITION. The first sample is the baseline: nothing has been
+      # seen to change yet, and marking it `**` puts a change in the log that
+      # nobody observed.
+      mark="::"
+      prev_key="$key"
+    elif [ "$key" != "$prev_key" ]; then
       mark="**"
+      prev_key="$key"
+      prev_change_ms="$t1"
+    fi
+    if [ "$mark" != "  " ]; then
+      win=$(python3 -c "print(f'{($t1-$t0)/1000:.3f}s')")
       if [ "$age" != "-" ] && [ "$dt" != "-" ]; then
         local edge_ms=$(( dt - age * 1000 ))
         [ "$lm" != "-" ] && w2e=$(python3 -c "print(f'{($edge_ms-$lm)/1000:.1f}s')")
-        e2h=$(python3 -c "print(f'{($t0-$edge_ms)/1000:.1f}s')")
+        e2h=$(python3 -c "print(f'{($t1-$edge_ms)/1000:.1f}s')")
       fi
-      prev_key="$key"
-      prev_change_ms="$t0"
     fi
-    line=$(printf "%s %s %6s %3s %-14s %-12s %11s %11s %s" \
-      "$mark" "$(iso_ms "$t0")" "$status" "$age" "$xcache" "${etag:0:12}" "$w2e" "$e2h" "$sha")
+    line=$(printf "%s %s %6s %3s %-14s %-12s %11s %11s %8s %s" \
+      "$mark" "$(iso_ms "$t1")" "$status" "$age" "$xcache" "${etag:0:12}" "$w2e" "$e2h" "$win" "$sha")
     echo "$line" | tee -a "${WATCH_LOG:-/dev/null}"
     sleep "$interval"
   done
@@ -188,15 +211,25 @@ print(int(datetime.datetime.strptime(sys.argv[1],'%Y-%m-%dT%H:%M:%S.%fZ').replac
     delta=$(python3 -c "print(f'{($seen_ms-$t_change)/1000:.2f}')")
     echo "known change at   $(iso_ms "$t_change")"
     echo "reported first at $first_seen"
-    echo "lag              ${delta}s   (must be >= 0 and <= the 1s interval plus a request)"
+    echo "lag              ${delta}s   (must be > 0 and <= the 1s interval plus a request)"
+    # STRICTLY POSITIVE. A sighting is the arrival of an answer, so it is always
+    # LATER than the change it reports; zero or negative means the timestamp is
+    # being taken on the wrong side of the request, which is what the devbox
+    # printed as `-0.00s` and this check waved through on a printf rounding.
     python3 -c "
 import sys
 d=float('$delta')
-sys.exit(0 if 0 <= d <= 2.5 else 1)" || { echo "self-test: FAILED - the reported instant does not match the known one." >&2; rc=1; }
+sys.exit(0 if 0 < d <= 2.5 else 1)" || { echo "self-test: FAILED - the reported instant does not match the known one (a sighting that is not strictly later than the change is taken on the wrong side of the request)." >&2; rc=1; }
     # THE ARITHMETIC, AGAINST A SERVER WHOSE ANSWER IS KNOWN. Age 7, Last-Modified
     # 30 s behind Date, so the edge fetched it 23 s after the write, every time.
     local w2e
-    w2e=$(grep '^\*\*' "$dir/log" | tail -1 | awk '{print $(NF-2)}')
+    # FIELD 7 BY NAME, not by counting from the end. `$(NF-2)` was right until
+    # the window column was added, and then silently read `edge->here` instead -
+    # the self-test failed loudly, which is the only reason this is a footnote
+    # rather than a wrong number in the cycle log.
+    #   1 mark  2 sighting  3 status  4 age  5 x-cache  6 etag
+    #   7 write->edge  8 edge->here  9 window  10 sha
+    w2e=$(grep '^\*\*' "$dir/log" | tail -1 | awk '{print $7}')
     echo "write->edge      ${w2e}   (server declares Age 7 and Last-Modified 30 s back: must be 23.0s)"
     case "$w2e" in
       2[23].[0-9]s) : ;;

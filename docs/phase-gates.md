@@ -3717,8 +3717,25 @@ break test. It owes trust. `--self-test` points it at a server that declares
 answer, 23.0s. Its FIRST version was pointed at a plain `http.server`, which
 sends no `Age`: transitions were detected, both computed columns printed `-`, and
 it passed. That is a self-test that could not fail on the arithmetic it exists to
-check, and it is now one of the two recorded breaks -
+check, and it is now one of the three recorded breaks -
 `docs/sessions/2026-08-11-phase-28-watch-convergence-self-test.log`.
+
+**A SIGHTING IS THE ARRIVAL OF AN ANSWER, AND FOR ONE PATCH IT WAS THE ASKING OF
+A QUESTION.** The version delivered in 28.1 timestamped each sample BEFORE its
+request, so the instant it reported could precede the event it reported. The
+devbox printed it on the first real run - `lag -0.00s`, and the self-test passed,
+because `0 <= d` accepted -0.002 after printf had rounded it to `-0.00`. Nobody
+planted that; it is entry `[D]` in the log, verbatim, and the fix carries three
+consequences. The sighting is taken after the response; the width of the request
+is printed beside it, so the change is located in `[sighting - window, sighting]`
+- late, never early; and the self-test now demands a STRICTLY positive lag. The
+first sample is marked `::` rather than `**`, because a baseline is not a
+transition and marking it as one puts a change in the log that nobody observed.
+Two more sandbox breaks in the same file: `Last-Modified` moved so 23.0s is
+wrong, and `Age` removed so the columns go quiet again. A fourth, caught by the
+self-test while the fix was being written, is a footnote there - the check read
+`write->edge` with `awk $(NF-2)`, which was right until a column was added and
+then silently read `edge->here`. It went red rather than quiet.
 
 **`not reached yet` IS ARRANGED, BECAUSE IT CANNOT BE WAITED FOR.** The branch is
 `!record && underWay`, and every node has carried a record since the cycle of
