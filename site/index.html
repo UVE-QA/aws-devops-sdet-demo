@@ -2063,25 +2063,39 @@
             ? `${n.collected} test${n.collected === 1 ? "" : "s"} collected`
             : `${n.spec_files} spec file${n.spec_files === 1 ? "" : "s"}`;
 
+          // WHAT A NODE NOTHING WILL EVER MEASURE SAYS, in every branch the run
+          // layer speaks in. FINDING, 20m: the three nodes carrying
+          // `observer: "actions"` - the image push, the migrate/seed task and
+          // the human approval - kept their permanent `not measured here` at
+          // rest and lost it the moment a run touched their phase, because the
+          // run layer is consulted before nodeTense() and nodeTense() is where
+          // that sentence lives. One of the branches then PROMISED figures that
+          // will never arrive: Terraform reports resources and none of the three
+          // is one. The run layer's word about the step is worth keeping - it
+          // knows the step started and finished; what it cannot know is that
+          // anything follows. So the clause travels with it.
+          const unmeasurable = n.observer === "actions"
+            ? "its step is in Actions, not in a timeline" : "";
           let body = "";
           if (ownLive) {
             // A suite's observer is its report, and while the step is running
             // there is no report - saying `running now - report` names the thing
             // that does not exist yet.
             body = line("running now",
-              [n.kind === "suite" ? "its report arrives when the step ends" : ""], "", true);
+              [n.kind === "suite" ? "its report arrives when the step ends" : unmeasurable], "", true);
           } else if (phaseLive) {
             // FINDING, 20c: every node of a running phase said "running now"
             // while Terraform was creating exactly one of them. The page cannot
             // know which, so it says that instead of picking.
-            body = line("its phase is running", ["which node is unknown"]);
+            body = line("its phase is running", [unmeasurable || "which node is unknown"]);
           } else if (run && (run.state === "finished" || run.state === "failed") &&
                      !(n.kind === "suite" && n.result)) {
             // FINDING, 20c: a phase that had FINISHED fell back to "nothing
             // recorded yet", which is what a phase that never ran says. The
             // figures are real, they are just not published until the end.
             body = line(run.state === "failed" ? "failed in this run" : "finished in this run",
-              ["figures publish when the cycle ends"], run.state === "failed" ? "failed" : "");
+              [unmeasurable || "figures publish when the cycle ends"],
+              run.state === "failed" ? "failed" : "");
           } else if (n.kind === "suite" && n.result) {
             body = suiteFigures(n, line);
           } else if (n.kind === "suite" && n.unobserved) {
@@ -2995,6 +3009,20 @@
             return { word: "destroyed", note: "these figures are from the cycle that ended",
                      cls: "unobserved", gone: true };
           }
+          // NOTHING PUBLISHES UNTIL A CYCLE ENDS, so every figure drawn while
+          // one is running is the cycle before it - and the mirror clause above
+          // already says so for a phase the run has not REACHED. This is the
+          // same sentence for a node that has a record: 20m measured twelve
+          // minutes of prod.rds at full colour with the previous cycle's numbers
+          // while prod was being deleted, and the disclaimer that would have
+          // said so was attached to `destroyed` and to nothing else. `underWay`
+          // is the panel's own judgement handed in, not re-derived: it is true
+          // only when a run is in flight AND it is about this environment, which
+          // is what keeps prod quiet while stage is being built.
+          if (underWay) {
+            return { word: "measured", note: "these figures are from the cycle before this one",
+                     cls: "unobserved", gone: false };
+          }
           return { word: "measured", note: "", cls: "", gone: false };
         }
         /* ==== PAGE TENSE - end ================================================ */
@@ -3225,8 +3253,17 @@
                 // to `not reported` just as much as to a verdict: a suite this
                 // run has not reached yet is not a suite the run declined to
                 // run.
+                //
+                // AND ONLY WHEN THE RUN IN FLIGHT IS ABOUT THIS ENVIRONMENT.
+                // FINDING, 25: during a stage deploy every prod verdict read
+                // `from the previous run` too, and nothing was touching prod -
+                // a label that appears on everything during any run says
+                // nothing about anything. This is the exact mirror of what the
+                // node half got wrong two functions up, and it is the same
+                // predicate that fixes both.
                 const obsRun = RUNSTATE.observation && RUNSTATE.observation.run;
                 n.result_previous = !!(obsRun && obsRun.status !== "completed" &&
+                  underWayHere(RUNSTATE.observation, n.env) &&
                   env && env.run && String(env.run.id) !== String(obsRun.id));
               }
               n.state = observed ? observed.state : undefined;

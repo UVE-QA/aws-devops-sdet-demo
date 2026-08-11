@@ -1,0 +1,60 @@
+{
+  "description": "FINDING, 20m. Nothing publishes until a cycle ENDS, so a record on disk while a run is in flight is the cycle before it - and the disclaimer that says so was attached to `destroyed` and to nothing else. Twelve minutes of prod.rds at full colour with the previous cycle's figures were measured while prod was being deleted, and the same shape repeated on stage. The predicate is `underWay`, which is true only when a run is in flight AND it is about this environment: that second half is what keeps prod's own figures unqualified while stage is being built, and getting it wrong in the other direction is what put `from the previous run` on every prod verdict during a stage deploy.",
+  "checks": [
+    {
+      "fn": "nodeTense",
+      "args": [
+        { "id": "stage.rds", "kind": "service", "service": "rds", "observer": "terraform", "env": "stage" },
+        { "state": "measured", "duration_s": 287 },
+        "unknown",
+        true
+      ],
+      "expect": {
+        "word": "measured",
+        "note": "these figures are from the cycle before this one",
+        "cls": "unobserved",
+        "gone": false
+      }
+    },
+    {
+      "fn": "nodeTense",
+      "args": [
+        { "id": "prod.rds", "kind": "service", "service": "rds", "observer": "terraform", "env": "prod" },
+        { "state": "measured", "duration_s": 301 },
+        "up",
+        false
+      ],
+      "expect": { "word": "measured", "note": "", "cls": "", "gone": false }
+    },
+    {
+      "fn": "nodeTense",
+      "args": [
+        { "id": "stage.alb", "kind": "service", "service": "elb", "observer": "terraform", "env": "stage" },
+        { "state": "measured", "duration_s": 131 },
+        "destroyed",
+        false
+      ],
+      "expect": {
+        "word": "destroyed",
+        "note": "these figures are from the cycle that ended",
+        "cls": "unobserved",
+        "gone": true
+      }
+    },
+    {
+      "fn": "nodeTense",
+      "args": [
+        { "id": "stage.ecs", "kind": "service", "service": "ecs", "observer": "terraform", "env": "stage" },
+        null,
+        "unknown",
+        true
+      ],
+      "expect": {
+        "word": "not reached yet",
+        "note": "a cycle is under way and has not got here",
+        "cls": "unobserved",
+        "gone": false
+      }
+    }
+  ]
+}
