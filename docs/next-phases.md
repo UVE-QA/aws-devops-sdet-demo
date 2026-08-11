@@ -1336,7 +1336,14 @@ refusals broken on purpose six ways with a control green either side, and the
 readers from the same list. Met. Break-test output in
 `docs/sessions/2026-08-11-phase-23-one-list-break-test.log`.
 
-## Phase 24 — The composition, redrawn for three contours
+## Phase 24 — The composition, redrawn for three contours  [DRAWN 2026-08-11, $0 — NOT CLOSED]
+
+The three contours are on the page and gated (**ADR-0058**). What remains is the
+measurement: every ADR-0050 and ADR-0052 figure re-measured with
+`make measure-page`, `make contrast-check` and `make page-freshness-check` green
+on the new page, and a decision about the contrast contract's second ancestry.
+All three need the pinned browser, which is on the devbox. The closing sentence
+below is unchanged and still governs.
 
 The layout, on the model Phase 22 put in the data. **ADR-0054 D1**'s last piece
 with no pixels behind it.

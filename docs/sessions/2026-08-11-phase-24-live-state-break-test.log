@@ -1,0 +1,197 @@
+=== Phase 24 break test: claim 4 of live-state-check ===
+A gate seen only green is indistinguishable from a gate that cannot fail.
+The claim: no estate node may appear in the run layer's output (ADR-0054 D3).
+Tree committed first (4a0711d), so the restore below cannot lose anything.
+
+--- CONTROL, before -------------------------------------------------
+ok    a-completed-run-says-nothing
+ok    a-failed-step-reddens-the-suites-that-are-in-it
+ok    a-skipped-step-is-not-a-finished-one
+ok    a-suite-with-its-own-step-does-not-inherit-the-gate
+ok    a-teardown-lights-the-environment-it-names
+ok    a-teardown-that-names-no-environment-lights-both
+ok    an-api-that-answered-nothing-lights-nothing
+ok    an-apply-lights-the-phase-not-a-resource
+ok    an-approval-that-has-been-given-is-finished
+ok    another-workflow-is-not-this-cycle
+ok    the-approval-is-a-gap-not-a-step
+ok    the-db-suite-lights-in-the-phase-its-step-is-in
+
+12/12 observations fold as the page says they do
+exit=0
+
+--- BREAK: phaseNodes() resolves the creates touches again ----------
+phaseNodes() reverted to the Phase 22 resolver
+18 icons, 50,168 bytes of sprite
+ok    a-completed-run-says-nothing
+ok    a-failed-step-reddens-the-suites-that-are-in-it
+ok    a-skipped-step-is-not-a-finished-one
+FAIL  a-suite-with-its-own-step-does-not-inherit-the-gate
+      nodes.stage.vpc: the machine reported {"state":"finished","since":"2026-08-08T12:00:00Z","via":"phase"}, the case expects nothing
+      nodes.stage.secrets: the machine reported {"state":"finished","since":"2026-08-08T12:00:00Z","via":"phase"}, the case expects nothing
+      nodes.stage.rds: the machine reported {"state":"finished","since":"2026-08-08T12:00:00Z","via":"phase"}, the case expects nothing
+      nodes.stage.alb: the machine reported {"state":"finished","since":"2026-08-08T12:00:00Z","via":"phase"}, the case expects nothing
+      nodes.stage.ecs: the machine reported {"state":"finished","since":"2026-08-08T12:00:00Z","via":"phase"}, the case expects nothing
+      nodes.stage.cloudwatch: the machine reported {"state":"finished","since":"2026-08-08T12:00:00Z","via":"phase"}, the case expects nothing
+      nodes.stage.budgets: the machine reported {"state":"finished","since":"2026-08-08T12:00:00Z","via":"phase"}, the case expects nothing
+      nodes.stage.vpc: an ESTATE node reached the run layer ({"state":"finished","since":"2026-08-08T12:00:00Z","via":"phase"}). A noun is answered by observation and by nothing else (ADR-0054 D3); phaseNodes() must return a phase's own steps only.
+      nodes.stage.secrets: an ESTATE node reached the run layer ({"state":"finished","since":"2026-08-08T12:00:00Z","via":"phase"}). A noun is answered by observation and by nothing else (ADR-0054 D3); phaseNodes() must return a phase's own steps only.
+      nodes.stage.rds: an ESTATE node reached the run layer ({"state":"finished","since":"2026-08-08T12:00:00Z","via":"phase"}). A noun is answered by observation and by nothing else (ADR-0054 D3); phaseNodes() must return a phase's own steps only.
+      nodes.stage.alb: an ESTATE node reached the run layer ({"state":"finished","since":"2026-08-08T12:00:00Z","via":"phase"}). A noun is answered by observation and by nothing else (ADR-0054 D3); phaseNodes() must return a phase's own steps only.
+      nodes.stage.ecs: an ESTATE node reached the run layer ({"state":"finished","since":"2026-08-08T12:00:00Z","via":"phase"}). A noun is answered by observation and by nothing else (ADR-0054 D3); phaseNodes() must return a phase's own steps only.
+      nodes.stage.cloudwatch: an ESTATE node reached the run layer ({"state":"finished","since":"2026-08-08T12:00:00Z","via":"phase"}). A noun is answered by observation and by nothing else (ADR-0054 D3); phaseNodes() must return a phase's own steps only.
+      nodes.stage.budgets: an ESTATE node reached the run layer ({"state":"finished","since":"2026-08-08T12:00:00Z","via":"phase"}). A noun is answered by observation and by nothing else (ADR-0054 D3); phaseNodes() must return a phase's own steps only.
+ok    a-teardown-lights-the-environment-it-names
+ok    a-teardown-that-names-no-environment-lights-both
+ok    an-api-that-answered-nothing-lights-nothing
+FAIL  an-apply-lights-the-phase-not-a-resource
+      nodes.stage.vpc: the machine reported {"state":"running","since":"2026-08-08T11:00:00Z","via":"phase"}, the case expects nothing
+      nodes.stage.secrets: the machine reported {"state":"running","since":"2026-08-08T11:00:00Z","via":"phase"}, the case expects nothing
+      nodes.stage.rds: the machine reported {"state":"running","since":"2026-08-08T11:00:00Z","via":"phase"}, the case expects nothing
+      nodes.stage.alb: the machine reported {"state":"running","since":"2026-08-08T11:00:00Z","via":"phase"}, the case expects nothing
+      nodes.stage.ecs: the machine reported {"state":"running","since":"2026-08-08T11:00:00Z","via":"phase"}, the case expects nothing
+      nodes.stage.cloudwatch: the machine reported {"state":"running","since":"2026-08-08T11:00:00Z","via":"phase"}, the case expects nothing
+      nodes.stage.budgets: the machine reported {"state":"running","since":"2026-08-08T11:00:00Z","via":"phase"}, the case expects nothing
+      nodes.stage.vpc: an ESTATE node reached the run layer ({"state":"running","since":"2026-08-08T11:00:00Z","via":"phase"}). A noun is answered by observation and by nothing else (ADR-0054 D3); phaseNodes() must return a phase's own steps only.
+      nodes.stage.secrets: an ESTATE node reached the run layer ({"state":"running","since":"2026-08-08T11:00:00Z","via":"phase"}). A noun is answered by observation and by nothing else (ADR-0054 D3); phaseNodes() must return a phase's own steps only.
+      nodes.stage.rds: an ESTATE node reached the run layer ({"state":"running","since":"2026-08-08T11:00:00Z","via":"phase"}). A noun is answered by observation and by nothing else (ADR-0054 D3); phaseNodes() must return a phase's own steps only.
+      nodes.stage.alb: an ESTATE node reached the run layer ({"state":"running","since":"2026-08-08T11:00:00Z","via":"phase"}). A noun is answered by observation and by nothing else (ADR-0054 D3); phaseNodes() must return a phase's own steps only.
+      nodes.stage.ecs: an ESTATE node reached the run layer ({"state":"running","since":"2026-08-08T11:00:00Z","via":"phase"}). A noun is answered by observation and by nothing else (ADR-0054 D3); phaseNodes() must return a phase's own steps only.
+      nodes.stage.cloudwatch: an ESTATE node reached the run layer ({"state":"running","since":"2026-08-08T11:00:00Z","via":"phase"}). A noun is answered by observation and by nothing else (ADR-0054 D3); phaseNodes() must return a phase's own steps only.
+      nodes.stage.budgets: an ESTATE node reached the run layer ({"state":"running","since":"2026-08-08T11:00:00Z","via":"phase"}). A noun is answered by observation and by nothing else (ADR-0054 D3); phaseNodes() must return a phase's own steps only.
+FAIL  an-approval-that-has-been-given-is-finished
+      nodes.prod.vpc: the machine reported {"state":"running","since":"2026-08-08T12:00:00Z","via":"phase"}, the case expects nothing
+      nodes.prod.secrets: the machine reported {"state":"running","since":"2026-08-08T12:00:00Z","via":"phase"}, the case expects nothing
+      nodes.prod.rds: the machine reported {"state":"running","since":"2026-08-08T12:00:00Z","via":"phase"}, the case expects nothing
+      nodes.prod.alb: the machine reported {"state":"running","since":"2026-08-08T12:00:00Z","via":"phase"}, the case expects nothing
+      nodes.prod.ecs: the machine reported {"state":"running","since":"2026-08-08T12:00:00Z","via":"phase"}, the case expects nothing
+      nodes.prod.cloudwatch: the machine reported {"state":"running","since":"2026-08-08T12:00:00Z","via":"phase"}, the case expects nothing
+      nodes.prod.dnsrec: the machine reported {"state":"running","since":"2026-08-08T12:00:00Z","via":"phase"}, the case expects nothing
+      nodes.prod.budgets: the machine reported {"state":"running","since":"2026-08-08T12:00:00Z","via":"phase"}, the case expects nothing
+      nodes.prod.vpc: an ESTATE node reached the run layer ({"state":"running","since":"2026-08-08T12:00:00Z","via":"phase"}). A noun is answered by observation and by nothing else (ADR-0054 D3); phaseNodes() must return a phase's own steps only.
+      nodes.prod.secrets: an ESTATE node reached the run layer ({"state":"running","since":"2026-08-08T12:00:00Z","via":"phase"}). A noun is answered by observation and by nothing else (ADR-0054 D3); phaseNodes() must return a phase's own steps only.
+      nodes.prod.rds: an ESTATE node reached the run layer ({"state":"running","since":"2026-08-08T12:00:00Z","via":"phase"}). A noun is answered by observation and by nothing else (ADR-0054 D3); phaseNodes() must return a phase's own steps only.
+      nodes.prod.alb: an ESTATE node reached the run layer ({"state":"running","since":"2026-08-08T12:00:00Z","via":"phase"}). A noun is answered by observation and by nothing else (ADR-0054 D3); phaseNodes() must return a phase's own steps only.
+      nodes.prod.ecs: an ESTATE node reached the run layer ({"state":"running","since":"2026-08-08T12:00:00Z","via":"phase"}). A noun is answered by observation and by nothing else (ADR-0054 D3); phaseNodes() must return a phase's own steps only.
+      nodes.prod.cloudwatch: an ESTATE node reached the run layer ({"state":"running","since":"2026-08-08T12:00:00Z","via":"phase"}). A noun is answered by observation and by nothing else (ADR-0054 D3); phaseNodes() must return a phase's own steps only.
+      nodes.prod.dnsrec: an ESTATE node reached the run layer ({"state":"running","since":"2026-08-08T12:00:00Z","via":"phase"}). A noun is answered by observation and by nothing else (ADR-0054 D3); phaseNodes() must return a phase's own steps only.
+      nodes.prod.budgets: an ESTATE node reached the run layer ({"state":"running","since":"2026-08-08T12:00:00Z","via":"phase"}). A noun is answered by observation and by nothing else (ADR-0054 D3); phaseNodes() must return a phase's own steps only.
+ok    another-workflow-is-not-this-cycle
+ok    the-approval-is-a-gap-not-a-step
+FAIL  the-db-suite-lights-in-the-phase-its-step-is-in
+      nodes.stage.vpc: the machine reported {"state":"finished","since":"2026-08-08T11:00:00Z","via":"phase"}, the case expects nothing
+      nodes.stage.secrets: the machine reported {"state":"finished","since":"2026-08-08T11:00:00Z","via":"phase"}, the case expects nothing
+      nodes.stage.rds: the machine reported {"state":"finished","since":"2026-08-08T11:00:00Z","via":"phase"}, the case expects nothing
+      nodes.stage.alb: the machine reported {"state":"finished","since":"2026-08-08T11:00:00Z","via":"phase"}, the case expects nothing
+      nodes.stage.ecs: the machine reported {"state":"finished","since":"2026-08-08T11:00:00Z","via":"phase"}, the case expects nothing
+      nodes.stage.cloudwatch: the machine reported {"state":"finished","since":"2026-08-08T11:00:00Z","via":"phase"}, the case expects nothing
+      nodes.stage.budgets: the machine reported {"state":"finished","since":"2026-08-08T11:00:00Z","via":"phase"}, the case expects nothing
+      nodes.stage.vpc: an ESTATE node reached the run layer ({"state":"finished","since":"2026-08-08T11:00:00Z","via":"phase"}). A noun is answered by observation and by nothing else (ADR-0054 D3); phaseNodes() must return a phase's own steps only.
+      nodes.stage.secrets: an ESTATE node reached the run layer ({"state":"finished","since":"2026-08-08T11:00:00Z","via":"phase"}). A noun is answered by observation and by nothing else (ADR-0054 D3); phaseNodes() must return a phase's own steps only.
+      nodes.stage.rds: an ESTATE node reached the run layer ({"state":"finished","since":"2026-08-08T11:00:00Z","via":"phase"}). A noun is answered by observation and by nothing else (ADR-0054 D3); phaseNodes() must return a phase's own steps only.
+      nodes.stage.alb: an ESTATE node reached the run layer ({"state":"finished","since":"2026-08-08T11:00:00Z","via":"phase"}). A noun is answered by observation and by nothing else (ADR-0054 D3); phaseNodes() must return a phase's own steps only.
+      nodes.stage.ecs: an ESTATE node reached the run layer ({"state":"finished","since":"2026-08-08T11:00:00Z","via":"phase"}). A noun is answered by observation and by nothing else (ADR-0054 D3); phaseNodes() must return a phase's own steps only.
+      nodes.stage.cloudwatch: an ESTATE node reached the run layer ({"state":"finished","since":"2026-08-08T11:00:00Z","via":"phase"}). A noun is answered by observation and by nothing else (ADR-0054 D3); phaseNodes() must return a phase's own steps only.
+      nodes.stage.budgets: an ESTATE node reached the run layer ({"state":"finished","since":"2026-08-08T11:00:00Z","via":"phase"}). A noun is answered by observation and by nothing else (ADR-0054 D3); phaseNodes() must return a phase's own steps only.
+
+live-state-check: 4 of 12 cases disagree with the page
+exit=1
+
+--- RESTORE ---------------------------------------------------------
+18 icons, 50,168 bytes of sprite
+
+--- CONTROL, after --------------------------------------------------
+ok    a-completed-run-says-nothing
+ok    a-failed-step-reddens-the-suites-that-are-in-it
+ok    a-skipped-step-is-not-a-finished-one
+ok    a-suite-with-its-own-step-does-not-inherit-the-gate
+ok    a-teardown-lights-the-environment-it-names
+ok    a-teardown-that-names-no-environment-lights-both
+ok    an-api-that-answered-nothing-lights-nothing
+ok    an-apply-lights-the-phase-not-a-resource
+ok    an-approval-that-has-been-given-is-finished
+ok    another-workflow-is-not-this-cycle
+ok    the-approval-is-a-gap-not-a-step
+ok    the-db-suite-lights-in-the-phase-its-step-is-in
+
+12/12 observations fold as the page says they do
+exit=0
+
+=== IS CLAIM 4 DOING ANYTHING THE DIRECTION CHECK WAS NOT? ===========
+Above, every estate node produced TWO findings: compare() already objects
+to a node the case does not expect. So the break above does not prove
+claim 4 has force of its own. The case where it does is the one where the
+expectation AGREES with the machine - a resource node written back into an
+expected.json. Then compare() is satisfied and only claim 4 speaks.
+
+--- BREAK: phaseNodes reverted AND the expectation restored ----------
+phaseNodes reverted; the seven stage nodes written back into the expectation
+18 icons, 50,168 bytes of sprite
+FAIL  an-apply-lights-the-phase-not-a-resource
+      nodes.stage.vpc: an ESTATE node reached the run layer ({"state":"running","since":"2026-08-08T11:00:00Z","via":"phase"}). A noun is answered by observation and by nothing else (ADR-0054 D3); phaseNodes() must return a phase's own steps only.
+      nodes.stage.secrets: an ESTATE node reached the run layer ({"state":"running","since":"2026-08-08T11:00:00Z","via":"phase"}). A noun is answered by observation and by nothing else (ADR-0054 D3); phaseNodes() must return a phase's own steps only.
+      nodes.stage.rds: an ESTATE node reached the run layer ({"state":"running","since":"2026-08-08T11:00:00Z","via":"phase"}). A noun is answered by observation and by nothing else (ADR-0054 D3); phaseNodes() must return a phase's own steps only.
+      nodes.stage.alb: an ESTATE node reached the run layer ({"state":"running","since":"2026-08-08T11:00:00Z","via":"phase"}). A noun is answered by observation and by nothing else (ADR-0054 D3); phaseNodes() must return a phase's own steps only.
+      nodes.stage.ecs: an ESTATE node reached the run layer ({"state":"running","since":"2026-08-08T11:00:00Z","via":"phase"}). A noun is answered by observation and by nothing else (ADR-0054 D3); phaseNodes() must return a phase's own steps only.
+      nodes.stage.cloudwatch: an ESTATE node reached the run layer ({"state":"running","since":"2026-08-08T11:00:00Z","via":"phase"}). A noun is answered by observation and by nothing else (ADR-0054 D3); phaseNodes() must return a phase's own steps only.
+      nodes.stage.budgets: an ESTATE node reached the run layer ({"state":"running","since":"2026-08-08T11:00:00Z","via":"phase"}). A noun is answered by observation and by nothing else (ADR-0054 D3); phaseNodes() must return a phase's own steps only.
+
+live-state-check: 1 of 1 cases disagree with the page
+exit=1
+
+--- RESTORE ---------------------------------------------------------
+18 icons, 50,168 bytes of sprite
+ok    an-apply-lights-the-phase-not-a-resource
+
+1/1 observations fold as the page says they do
+exit=0
+
+=== THE TWO REFUSALS THAT KEEP CLAIM 4 FROM HOLDING VACUOUSLY ========
+
+--- BREAK: the snapshot carries no estate at all --------------------
+estate removed
+live-state-check: REFUSED
+tests/fixtures/live-state/phases.json carries no `estate`. This gate needs it to know which ids are NOUNS: since Phase 24 the run layer may not report on one at all (ADR-0054 D3), and without the estate that claim cannot be checked.
+exit=1
+
+--- BREAK: the estate is present and empty --------------------------
+estate emptied
+live-state-check: REFUSED
+tests/fixtures/live-state/phases.json carries an `estate` holding no nodes, so the claim that none of them reaches the run layer would hold vacuously everywhere.
+exit=1
+
+--- RESTORE and control ---------------------------------------------
+
+12/12 observations fold as the page says they do
+exit=0
+
+=== RENDER SMOKE, AND WHAT IT IS NOT =================================
+Run in the chat sandbox against site/index.html served over http, in
+chromium 1194 - NOT the build this repository pins. That makes it good
+evidence for 'does it draw and does anything throw' and NO evidence at
+all for a figure: an instrument has to be the right one before its
+verdict means anything, and measure-page belongs on the devbox.
+Offline, so status/*.json, the timeline objects and api.github.com are
+404 or CORS - which is why the caption below says nothing is measured.
+
+{
+ "estateEnvs": 2,
+ "estateNodes": 15,
+ "perm": 6,
+ "phases": 8,
+ "phaseNodes": 11,
+ "touches": 7,
+ "touchedby": 15,
+ "suites": 5,
+ "runsOff": 1,
+ "caption": "The word on each node is what AWS says now. Nothing has measured these resources yet, so there are no figures beside them.",
+ "assertionsSub": "5 suites in the repository, 180 tests collected from them by the tools that run them. What a run SAID about a suite is in the cycle above, drawn per environment; nothing here is about a run. 1 of them is outside the cycle and says so in its own words.",
+ "cols": 3
+
+overflow, every box against its OWN container (20a's lesson, at 1280):
+overflow: none
+
+11 phase-own nodes = 1 + 0 + 1 + 4 + 1 + 0 + 2 + 2, the two zeroes being
+the apply phases. 7 touch lines: approve touches nothing. 15 touched-by
+lines: every estate node names the steps that reach it. 1 suite with no
+run node, which is tests/unit carrying its own reason.

@@ -58,6 +58,7 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 21    | Processes and state are two contours | ✅ done — $0, decisions only | sessions/2026-08-10-phase-21-processes-and-state-are-two-contours.md |
 | 22    | The model in the data: three contours | ✅ done — $0; main was red when it started | sessions/2026-08-10-phase-22-the-model-in-the-data-and-a-red-main-nobody-saw.md |
 | 23    | One list of gates, two readers  | ✅ done — $0, nothing applied | sessions/2026-08-11-phase-23-one-list-two-readers.md |
+| 24    | The composition, three contours | 🟡 drawn and gated, NOT closed — the figures are not re-measured | sessions/2026-08-11-phase-24-a-reference-is-a-name.md |
 
 **Lettered sub-phases end here (ADR-0055).** From Phase 21 the identifier is a
 plain integer and every phase is planned together with the sentence that closes
@@ -3454,11 +3455,69 @@ Break-test output in
   make page-freshness-check contrast-check     # devbox only, needs chromium
 ```
 - Cost: nothing. No AWS call, no cycle, nothing applied.
-- Next allowed step: **Phase 24 — the composition, redrawn for three contours**,
-  planned in `docs/next-phases.md`, carrying the assertions contour that Phase 22
-  could not draw. Phase 25 is the in-flight gate after it. Both are $0 until the
-  in-flight fixture needs a real cycle behind it, which is a separate, billable
-  decision.
+- Next allowed step: closed by the section below, on 2026-08-11.
+
+### Phase 24 — The composition, redrawn for three contours  🟡 NOT CLOSED
+The page draws three contours: the estate (the nouns, from observation, with the
+permanent levels out from under their cut), the cycle (the map, naming what each
+phase touches instead of containing it) and the assertions (all five suites,
+with `tests/unit` outside the cycle in its own words). $0, no cycle, nothing
+applied. Summary in
+`docs/sessions/2026-08-11-phase-24-a-reference-is-a-name.md`. **ADR-0058**.
+Break-test output in
+`docs/sessions/2026-08-11-phase-24-live-state-break-test.log`.
+- Criteria: three contours drawn; the assertions contour renders all five suites
+  with `tests/unit` visibly outside the cycle; every ADR-0050 and ADR-0052 figure
+  re-measured on the new page with `make measure-page` and written down;
+  `contrast-check` reading its probe chain from `assets/contrast-contract.json`
+  and refusing by name on a state the chain does not cover; and `make gates`,
+  `make page-tense-check`, `make live-state-check`, `make site-page-check`,
+  `make contrast-check` and `make page-freshness-check` green on it.
+  **Partly met** — see the two items below.
+- **THE LOAD-BEARING CHANGE IS FOUR WORDS.** `phaseNodes()` returns a phase's own
+  steps and resolves nothing. Phase 22 resolved the `creates` touches here, which
+  kept the map identical to schema 2 and kept the defect with it: an estate node
+  reached through a phase is handed a RUN-LAYER state, which is the one source
+  **ADR-0051 D2** forbids re-deriving an observation from, and is why `prod.rds`
+  stood at full colour with the previous cycle's figures for twelve measured
+  minutes while prod was being deleted.
+- **TWO PHASES NOW DRAW NO NODE AT ALL**, and that is the honest picture: an
+  apply IS the creation of the nouns it names. `layout.columns` falls 10 → 8 and
+  `layout.wide` empties, both computed, both predicted by ADR-0054 in those
+  words.
+- **THE FIRST BREAK TEST DID NOT PROVE THE NEW CLAIM.** Reverting `phaseNodes()`
+  reddens four cases, but each estate node produces two findings — the gate's
+  existing both-directions comparison objects first. The break that proves claim
+  4 writes the seven resource nodes back into the EXPECTATION as well, so the
+  case agrees with the machine, `compare()` is silent, and only claim 4 speaks.
+  Both of its refusals were fired too, controls green either side.
+- **NOT DONE, AND THE REASON IS AN INSTRUMENT.** `make measure-page`,
+  `make contrast-check` and `make page-freshness-check` need the pinned browser;
+  the chat sandbox has a different chromium build. Measuring on a mismatched
+  instrument and writing the number down is what this file's own habits list
+  forbids twice over.
+- **A FINDING, NOT A MISSING STEP: THE CONTRAST GATE HAS ONE ANCESTRY AND THE
+  PAGE NOW HAS TWO.** `assets/contrast-contract.json`'s `chain` is
+  `main > .cycle > .phase > .set`; the estate contour draws the same six states
+  under `.contour > .estate-env > .set.estate-set`. No ancestor in either chain
+  paints a background, so the colours SHOULD be identical — and `should` is what
+  "an instrument aimed at the wrong scope reads green" is made of. Two chains is
+  a schema change to the contract, written down in **ADR-0058** rather than
+  smuggled in here.
+- Validation:
+```bash
+  make gates                                   # 12/12, 19 named as not runnable
+  make site-data-check site-page-check
+  make live-state-check page-tense-check docs-check
+  make measure-page contrast-check page-freshness-check   # devbox only
+```
+- Cost: nothing. No AWS call, no cycle, nothing applied. The published page
+  changes, so the next push to `main` republishes it.
+- Next allowed step: **finish Phase 24 on the devbox** — run the three browser
+  targets above, re-measure every ADR-0050/ADR-0052 figure on the new page and
+  write them down, then decide the contrast contract's second chain. Phase 25,
+  the in-flight gate, comes after. Both are $0 until the in-flight fixture needs
+  a real cycle behind it, which is a separate, billable decision.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

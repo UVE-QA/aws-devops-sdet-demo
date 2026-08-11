@@ -6,6 +6,58 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
+**As of 2026-08-11 (24 — the composition, redrawn for three contours).** The
+model ADR-0054 decided in Phase 21 and Phase 22 deliberately did not draw. The
+page carries three contours now: the ESTATE (the nouns — two environments with
+their resource nodes, the six permanent levels out from under their cut, one
+caption for the whole contour), the CYCLE (the map, naming what each phase
+touches instead of containing it) and the ASSERTIONS (all five suites,
+tenseless, with `tests/unit` outside the cycle in its own words). No cycle, no
+AWS call, nothing applied, $0. **ADR-0058**.
+
+**Main was green when this session started** — `ci #198` and `publish-site #35`
+on `6d0ee53`, checked before anything was touched. Phase 22 is why that is the
+first line of every summary now.
+
+**The load-bearing change is four words long.** `phaseNodes()` returns a phase's
+own steps and resolves nothing. Phase 22 resolved the `creates` touches there,
+which kept the map identical to schema 2 while the model under it changed — and
+kept the defect with it: an estate node reached through a phase is handed a
+RUN-LAYER state, which is the one source **ADR-0051 D2** forbids re-deriving an
+observation from, and is why `prod.rds` stood at full colour with the previous
+cycle's figures for twelve measured minutes while prod was being deleted.
+
+**Two phases now draw no node at all**, and that is the honest picture: an apply
+IS the creation of the nouns it names, and the boxes it used to hold were the
+same boxes the panel three inches above it was already drawing.
+`layout.columns` falls 10 → 8 and `layout.wide` empties, both computed, both
+predicted by ADR-0054 in exactly those words.
+
+**THE FIRST BREAK TEST DID NOT PROVE THE NEW CLAIM.** `check-live-state.mjs`
+gains claim 4 — no estate id may appear in the run layer's output — and
+reverting `phaseNodes()` reddens four cases with two findings per node, because
+the gate's existing both-directions comparison objects first. That break proves
+the comparison works, which was never in doubt. The break that proves claim 4
+writes the seven resource nodes back into the EXPECTATION as well, so the case
+agrees with the machine, `compare()` is silent, and claim 4 is the only thing
+left to speak. Sibling of the 2026-07-28 break test that failed to break,
+arriving from the other side: there a green reading hid a rule that did not
+match, here a red reading credited a new claim with somebody else's refusal.
+
+**NOT CLOSED, AND THE REASON IS AN INSTRUMENT.** Every layout figure in ADR-0050
+and ADR-0052 is retired by ADR-0054 and none has been replaced:
+`make measure-page`, `make contrast-check` and `make page-freshness-check` need
+the pinned browser, and the chat sandbox has a different chromium build.
+Measuring on a mismatched instrument and writing the number down is what the
+habits list forbids twice over.
+
+**A FINDING RATHER THAN A MISSING STEP: THE CONTRAST GATE HAS ONE ANCESTRY AND
+THE PAGE NOW HAS TWO.** The contract's `chain` is
+`main > .cycle > .phase > .set`; the estate contour draws the same six states
+under `.contour > .estate-env > .set.estate-set`. No ancestor in either chain
+paints a background, so the colours should be identical — and `should` is what
+"an instrument aimed at the wrong scope reads green" is made of.
+
 **As of 2026-08-11 (23 — one list of gates, two readers).** The item Phase 22
 handed forward, taken before the composition. The rest of the old Phase 23 is
 renumbered per **ADR-0055**: the composition is Phase 24, the in-flight gate is
