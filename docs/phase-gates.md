@@ -62,7 +62,7 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 25    | The gate for a cycle in flight  | ✅ done — $0, four findings, nine breaks | sessions/2026-08-11-phase-25-a-figure-names-its-cycle.md |
 | 26    | The instrument measures a page with figures on it | ✅ done — $0, every figure since 20e remeasured | sessions/2026-08-11-phase-26-every-figure-measured-the-short-page.md |
 | 27    | The contrast contract has three ancestries | ✅ done — $0, green answer, false premise | sessions/2026-08-11-phase-27-the-third-ancestry-and-a-false-premise.md |
-| 28    | The cycle on a different day    | 🟡 in flight | — |
+| 28    | The cycle on a different day    | ✅ done — $0.0846..$0.0958, two findings | sessions/2026-08-11-phase-28-the-qualifier-that-outlived-its-premise.md |
 
 **Lettered sub-phases end here (ADR-0055).** From Phase 21 the identifier is a
 plain integer and every phase is planned together with the sentence that closes
@@ -3687,8 +3687,8 @@ measurement. $0, no cycle, nothing applied. Summary in
   The broken-word rule's blindness to hyphens (Phase 26) is the one item that
   can be taken cold. Phase 17, prod data continuity, remains open and optional.
 
-### Phase 28 — The cycle on a different day, and the delay nobody measured  🟡 IN FLIGHT
-Opened 2026-08-11. **This section is written BEFORE the cycle, deliberately.**
+### Phase 28 — The cycle on a different day, and the delay nobody measured  ✅ DONE 2026-08-11
+Opened 2026-08-11. **The plan below was written BEFORE the cycle, deliberately.**
 Everything below is a plan and a set of decisions taken while nothing was
 running; what the cycle actually showed lands in a later patch, beside it, and
 the two are not merged. A session that writes its findings and its plan in one
@@ -3771,7 +3771,63 @@ qualifies, and ends on the same UTC day - no split-date confound either.
   bash scripts/watch-convergence.sh --self-test
   make gates
 ```
-- Next allowed step: **the cycle itself**, once this patch is on `main`.
+- **WHAT THE CYCLE SHOWED**, written after it ran and kept separate from the plan
+  above. Summary in
+  `docs/sessions/2026-08-11-phase-28-the-qualifier-that-outlived-its-premise.md`,
+  **ADR-0062**, transitions in
+  `docs/sessions/2026-08-11-phase-28-convergence.log`.
+- Criteria: a cycle on a different day; the convergence delay measured at the
+  second rather than bounded; `not reached yet` seen or shown unreachable. **All
+  three met**, the third by arranging the absence rather than waiting for it.
+- **`not reached yet` IS ON THE LIVE PAGE, AS A PAIR.** `not run yet` on all
+  eight prod nodes at 05:55:21Z with nothing in flight; `not reached yet · a
+  cycle is under way and has not got here` at 06:01:14Z with `promote-prod`
+  running, held over three samples across seven minutes. One tab, one input
+  changed. Production answers **403** for an absent key, not the 404 the probe
+  modelled — private bucket behind OAC without `s3:ListBucket` — and the page's
+  predicate is `r.ok`, so both reach the same branch.
+- **THE DATING SENTENCE IS ANSWERED BY TWO DATES AT ONCE.** At 06:40:33Z the cost
+  box read `stage … the cycle of 2026-08-09; prod … the cycle of 2026-08-11`.
+  Simultaneity settles what two consecutive readings could not.
+- **FIVE DELAYS, NOT ONE BOUND**: `1.1s 1.6s 8.6s` where the edge held nothing,
+  `57.6s 61.1s` where it held a copy with TTL still to run — roughly uniform in
+  `[0, 60]`. The two high draws are the instrument's own doing, because polling
+  every two seconds keeps the edge warm; that paragraph is in the script, because
+  the log without it says the opposite. The page's own `up to a minute behind the
+  write` is now measured rather than believed.
+- **A QUALIFIER OUTLIVED ITS PREMISE** (ADR-0062 D1). For about five minutes the
+  page drew `promote-prod #12`'s own figures under `these figures are from the
+  cycle before this one`, because a job publishes before its last step. The
+  mirror of 20m's third finding, and the same wrong predicate on both sides.
+- **THE FIRST NEWS ARRIVES ON THE SLOWEST CLOCK** (ADR-0062 D2). 293 s against a
+  300 s ceiling, on `destroy prod #46`, because the poll interval is conditioned
+  on already knowing a run is live. It lands on `Approve · a human, in the prod
+  environment`.
+- **VERSIONING DECLARED AND NOT APPLIED, NOT DIAGNOSED.**
+  `infra/public-site/main.tf` declares `status = "Enabled"` on the dashboard
+  bucket; the account returns empty where the tfstate bucket returns
+  `{"Status": "Enabled"}`, both `rc=0`. Whether Terraform's state knows is
+  unestablished — reading it under `demo-admin` returns 403, itself unexplained.
+  Deliberately not chased with a billable cycle running. **This is the one open
+  item this phase creates.**
+- Cost: **$0.0846 .. $0.0958** (`stage $0.0617 .. $0.0674`, `prod $0.0229 ..
+  $0.0284`) against a predicted `$0.07 .. $0.08`. Outside the band, which this
+  phase declared in advance would be a finding. Not the rates — the calendar:
+  two approval pauses and an observer make a cycle longer, and a prediction built
+  from a previous cycle imports that cycle's tempo.
+- Teardown confirmed against the AWS CLI, account first and the chain under
+  `set -e`: `993912191738`, then ecs, rds, alb, nat, eks all empty.
+- **METHOD FAILURE, RECORDED.** `gh run watch` blocked the terminal for sixteen
+  minutes and took with it the only turn in which the page could be sampled, so
+  the first `not reached yet` arrangement — on stage — was published over before
+  anyone looked at it. Recovered by repeating it on prod. A blocking command is a
+  choice about who gets to observe.
+- Next allowed step: **the fixture that publishes underneath a running page.**
+  Both of ADR-0062's findings live in the layer or the clock CHANGING mid-run,
+  and `tests/fixtures/page-inflight/` holds both still — which is why
+  `page-inflight-check` was green through all of this. Also open: the bucket
+  versioning above, and Phase 26's broken-word rule and hyphens, which can still
+  be taken cold.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

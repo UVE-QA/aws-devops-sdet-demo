@@ -1,0 +1,51 @@
+# TRANSITIONS ONLY, from scripts/watch-convergence.sh, over the cycle of 2026-08-11.
+# The per-sample logs (three streams, 2 s interval, about 90 minutes) stayed on the
+# devbox at /tmp/phase28/; what is evidence is the transitions and the two instants
+# this session wrote itself, and those are here verbatim.
+#
+# READ THE SAMPLING REGIME BEFORE THE NUMBERS. Polling every two seconds keeps a
+# fresh copy at the edge at all times with a full TTL ahead of it, so a write can
+# never find the edge empty and the delay is uniform in [0, 60]. A visitor who does
+# not poll often finds nothing cached and gets the object at once. Both are below.
+#
+# Columns: mark sighting status age x-cache etag write->edge edge->here window sha
+# `::` baseline, `**` transition. The two computed columns are empty here because
+# the version that took these readings conditioned them on `Age`, which CloudFront
+# omits on a MISS - the response that first carries a new object. That is ADR-0062
+# D3; the figures below were reconstructed from head-object afterwards and are
+# stated as such.
+
+=== timeline/stage/nodes-apply.json ===
+:: 2026-08-11T05:27:15.896Z    200   - Miss_from_cloudfront 13e59c1e4f64           -           -   0.411s 21d565d3da5e
+** 2026-08-11T05:29:18.185Z    403   - Error_from_cloudfront -                      -           -   0.220s -
+** 2026-08-11T05:46:34.113Z    200   - Miss_from_cloudfront c72e6055afe2           -           -   0.220s ad50513d556d
+
+=== status/stage.json ===
+:: 2026-08-11T05:27:15.896Z    200   - Miss_from_cloudfront 4288a2b23c12           -           -   0.412s 3eaadb4c86b2
+** 2026-08-11T05:46:36.585Z    200   - Miss_from_cloudfront e12f6974601d           -           -   0.235s a7ce15d122f4
+** 2026-08-11T06:51:02.569Z    200   - Miss_from_cloudfront e3f508fa4637           -           -   0.552s 4cd55fef97b9
+
+=== timeline/prod/nodes-apply.json ===
+:: 2026-08-11T05:53:22.546Z    200   - Miss_from_cloudfront 0f14afaed4cc           -           -   0.256s d0bcf2a31c8b
+** 2026-08-11T05:54:26.893Z    403   - Error_from_cloudfront -                      -           -   0.856s -
+** 2026-08-11T06:11:51.625Z    200   - Miss_from_cloudfront ecdfc2238030           -           -   0.534s 4f3b8c5713f4
+
+=== the two instants this session wrote, and therefore knows exactly ===
+2026-08-11T05:28:20.578Z   aws s3 rm timeline/stage/nodes-apply.json
+2026-08-11T05:53:25.801Z   aws s3 rm timeline/prod/nodes-apply.json
+
+=== the five measurements ===
+# THE EDGE HELD A COPY WITH A TTL STILL TO RUN (bounded by max-age=60 in
+# scripts/publish-status.sh, plus one 2 s sampling interval and a revalidation):
+#   stage nodes-apply   deleted 05:28:20.578 -> 403 at 05:29:18.185     57.6 s
+#   prod  nodes-apply   deleted 05:53:25.801 -> 403 at 05:54:26.893     61.1 s
+#
+# THE EDGE HELD NOTHING OR AN ERROR, so it went to the origin during the request.
+# Written-at from `aws s3api head-object`, except prod's which is the document's
+# own `written_at` and is therefore an upper bound on the write:
+#   stage nodes-apply   written 05:46:34    -> 200 at 05:46:34.113    <= 1.1 s
+#   status/stage.json   written 05:46:35    -> 200 at 05:46:36.585    <= 1.6 s
+#   prod  nodes-apply   written 06:11:43    -> 200 at 06:11:51.625    <= 8.6 s
+#
+# 403 rather than 404 for an absent key: the bucket is private behind OAC without
+# s3:ListBucket. The page's predicate is `r.ok`, so both reach the same branch.
