@@ -1,0 +1,100 @@
+{
+  "schema": 1,
+  "environment": "stage",
+  "kind": "apply",
+  "written_at": "2026-08-10T20:46:00Z",
+  "cycle": {
+    "status": "complete",
+    "date": "2026-08-10",
+    "started_at": "2026-08-10T20:29:40Z",
+    "finished_at": "2026-08-10T20:38:10Z",
+    "duration_seconds": 510,
+    "tool": "terraform",
+    "run": {
+      "id": "31459000063",
+      "number": "63",
+      "workflow": "deploy-stage",
+      "url": "https://github.com/UVE-QA/aws-devops-sdet-demo/actions/runs/31459000063"
+    }
+  },
+  "observed": {
+    "resources": 32,
+    "matched": 29,
+    "not_shown": 2,
+    "read": 0,
+    "unknown": 1,
+    "nodes": 7
+  },
+  "not_shown": [
+    "module.network.aws_route_table_association.public[0]",
+    "module.network.aws_route_table_association.public[1]"
+  ],
+  "unknown": [
+    "module.observability.aws_cloudwatch_log_metric_filter.app_5xx"
+  ],
+  "nodes": {
+    "stage.vpc": {
+      "state": "measured",
+      "duration_s": 22,
+      "identifier": "vpc-0f3a1c9d2b7e4a615",
+      "identifier_from": "module.network.aws_vpc.this",
+      "resources_observed": 6,
+      "resources_complete": 6
+    },
+    "stage.secrets": {
+      "state": "measured",
+      "duration_s": 5,
+      "identifier": "aws-devops-sdet-demo-stage-db",
+      "identifier_from": "module.rds.aws_secretsmanager_secret.db",
+      "resources_observed": 2,
+      "resources_complete": 2
+    },
+    "stage.rds": {
+      "state": "measured",
+      "duration_s": 287,
+      "identifier": "aws-devops-sdet-demo-stage",
+      "identifier_from": "module.rds.aws_db_instance.this",
+      "resources_observed": 4,
+      "resources_complete": 4
+    },
+    "stage.alb": {
+      "state": "measured",
+      "duration_s": 131,
+      "identifier": "demo-stage-alb",
+      "identifier_from": "module.alb.aws_lb.this",
+      "resources_observed": 5,
+      "resources_complete": 5
+    },
+    "stage.ecs": {
+      "state": "measured",
+      "duration_s": 94,
+      "identifier": "demo-stage",
+      "identifier_from": "module.ecs.aws_ecs_service.app",
+      "resources_observed": 8,
+      "resources_complete": 8
+    },
+    "stage.cloudwatch": {
+      "state": "measured",
+      "duration_s": 8,
+      "identifier": "/ecs/demo-stage",
+      "identifier_from": "module.observability.aws_cloudwatch_log_group.app",
+      "resources_observed": 3,
+      "resources_complete": 3
+    },
+    "stage.budgets": {
+      "state": "measured",
+      "duration_s": 3,
+      "identifier": "demo-stage-monthly",
+      "identifier_from": "module.budgets.aws_budgets_budget.monthly",
+      "resources_observed": 1,
+      "resources_complete": 1
+    }
+  },
+  "phases": {
+    "stage-apply": {
+      "duration_s": 510,
+      "started_at": "2026-08-10T20:29:40Z",
+      "finished_at": "2026-08-10T20:38:10Z"
+    }
+  }
+}

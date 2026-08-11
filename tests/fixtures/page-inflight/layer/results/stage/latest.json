@@ -1,0 +1,66 @@
+{
+  "_": "SYNTHETIC, shaped exactly as scripts/fold-results.py writes it. Published by deploy-stage #63; while #64 is in flight the page marks every verdict here `from the previous run`, which is the suite half of the same tense the node half gets wrong.",
+  "schema": 1,
+  "environment": "stage",
+  "run": {
+    "id": "31459000063",
+    "workflow": "deploy-stage",
+    "url": "https://github.com/UVE-QA/aws-devops-sdet-demo/actions/runs/31459000063"
+  },
+  "nodes": {
+    "suite.db.stage": {
+      "suite": "db",
+      "status": "passed",
+      "counts": {
+        "passed": 2,
+        "failed": 0,
+        "skipped": 0,
+        "not_run": 0,
+        "incomplete": 0
+      },
+      "duration_s": 2.4,
+      "tests": []
+    },
+    "suite.api.stage": {
+      "suite": "api",
+      "status": "passed",
+      "counts": {
+        "passed": 52,
+        "failed": 0,
+        "skipped": 0,
+        "not_run": 0,
+        "incomplete": 0
+      },
+      "duration_s": 18.9,
+      "tests": []
+    },
+    "suite.regression.stage": {
+      "suite": "regression",
+      "status": "passed",
+      "counts": {
+        "passed": 12,
+        "failed": 0,
+        "skipped": 0,
+        "not_run": 0,
+        "incomplete": 0
+      },
+      "duration_s": 26.1,
+      "tests": []
+    },
+    "suite.smoke.stage": {
+      "suite": "smoke",
+      "status": "passed",
+      "counts": {
+        "passed": 2,
+        "failed": 0,
+        "skipped": 0,
+        "not_run": 0,
+        "incomplete": 0
+      },
+      "duration_s": 7.8,
+      "tests": []
+    }
+  },
+  "unobserved": [],
+  "unknown": {}
+}

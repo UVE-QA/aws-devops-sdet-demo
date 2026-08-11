@@ -2043,6 +2043,13 @@
               ${n.env && !(shared && shared.env) ? `<span class="envtag ${n.env}">${n.env}</span>` : ""}
             </div>${meta ? `<div class="nmeta">${meta}</div>` : ""}${body}`;
           el.dataset.word = stateWord;
+          // THE NODE ANSWERS TO ITS OWN NAME. `data-word` has been here since
+          // 20j and says WHAT this box decided; nothing said WHICH box it is,
+          // so a gate reading the rendered page could only match on the label
+          // it draws - and two environments draw the same labels. The id is
+          // already in hand here. Same shape as ADR-0043's per-step binding:
+          // the thing that knows the identity is the thing that writes it down.
+          el.dataset.id = n.id;
           return el;
         }
 

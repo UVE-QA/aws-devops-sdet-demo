@@ -1,0 +1,218 @@
+{
+  "total_count": 1,
+  "jobs": [
+    {
+      "id": 89461000064,
+      "run_id": 31461000064,
+      "run_attempt": 1,
+      "name": "deploy",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-08-11T04:00:14Z",
+      "completed_at": "2026-08-11T04:18:36Z",
+      "html_url": "https://github.com/UVE-QA/aws-devops-sdet-demo/actions/runs/31461000064/job/89461000064",
+      "steps": [
+        {
+          "name": "Checkout",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-08-11T04:00:20Z",
+          "completed_at": "2026-08-11T04:03:40Z"
+        },
+        {
+          "name": "Set up Terraform",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-08-11T04:00:20Z",
+          "completed_at": "2026-08-11T04:03:40Z"
+        },
+        {
+          "name": "Configure AWS credentials (OIDC)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-08-11T04:00:20Z",
+          "completed_at": "2026-08-11T04:03:40Z"
+        },
+        {
+          "name": "Login to Amazon ECR",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-08-11T04:00:20Z",
+          "completed_at": "2026-08-11T04:03:40Z"
+        },
+        {
+          "name": "Terraform init (S3 backend)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-08-11T04:00:20Z",
+          "completed_at": "2026-08-11T04:03:40Z"
+        },
+        {
+          "name": "Resolve shared ECR repository URL",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-08-11T04:00:20Z",
+          "completed_at": "2026-08-11T04:03:40Z"
+        },
+        {
+          "name": "Build, tag, and push image",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-08-11T04:00:20Z",
+          "completed_at": "2026-08-11T04:03:40Z"
+        },
+        {
+          "name": "Terraform plan",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-08-11T04:00:20Z",
+          "completed_at": "2026-08-11T04:03:40Z"
+        },
+        {
+          "name": "Terraform apply",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-08-11T04:00:20Z",
+          "completed_at": "2026-08-11T04:03:40Z"
+        },
+        {
+          "name": "Read stage outputs",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-08-11T04:00:20Z",
+          "completed_at": "2026-08-11T04:03:40Z"
+        },
+        {
+          "name": "Wait for ECS service to be stable",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-08-11T04:00:20Z",
+          "completed_at": "2026-08-11T04:03:40Z"
+        },
+        {
+          "name": "Run one-off tasks (migrate, seed, db-assert)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-08-11T04:00:20Z",
+          "completed_at": "2026-08-11T04:03:40Z"
+        },
+        {
+          "name": "Set up Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-08-11T04:00:20Z",
+          "completed_at": "2026-08-11T04:03:40Z"
+        },
+        {
+          "name": "Set up Python",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-08-11T04:00:20Z",
+          "completed_at": "2026-08-11T04:03:40Z"
+        },
+        {
+          "name": "Every spec belongs to a project",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-08-11T04:00:20Z",
+          "completed_at": "2026-08-11T04:03:40Z"
+        },
+        {
+          "name": "API contract tests against the ALB",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 16,
+          "started_at": "2026-08-11T04:00:20Z",
+          "completed_at": "2026-08-11T04:03:40Z"
+        },
+        {
+          "name": "Playwright smoke + regression against the ALB",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 17,
+          "started_at": "2026-08-11T04:00:20Z",
+          "completed_at": "2026-08-11T04:03:40Z"
+        },
+        {
+          "name": "Assert the UI write reached RDS",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 18,
+          "started_at": "2026-08-11T04:00:20Z",
+          "completed_at": "2026-08-11T04:03:40Z"
+        },
+        {
+          "name": "Upload Playwright report",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 19,
+          "started_at": "2026-08-11T04:00:20Z",
+          "completed_at": "2026-08-11T04:03:40Z"
+        },
+        {
+          "name": "Observe what stage has in AWS",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 20,
+          "started_at": "2026-08-11T04:00:20Z",
+          "completed_at": "2026-08-11T04:03:40Z"
+        },
+        {
+          "name": "Fold the terraform event stream into a timeline",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 21,
+          "started_at": "2026-08-11T04:00:20Z",
+          "completed_at": "2026-08-11T04:03:40Z"
+        },
+        {
+          "name": "Join the timeline onto the map's nodes",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 22,
+          "started_at": "2026-08-11T04:00:20Z",
+          "completed_at": "2026-08-11T04:03:40Z"
+        },
+        {
+          "name": "Fold the test reports onto the map's suite nodes",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 23,
+          "started_at": "2026-08-11T04:00:20Z",
+          "completed_at": "2026-08-11T04:03:40Z"
+        },
+        {
+          "name": "Configure AWS credentials (OIDC, publish role)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 24,
+          "started_at": "2026-08-11T04:00:20Z",
+          "completed_at": "2026-08-11T04:03:40Z"
+        },
+        {
+          "name": "Publish status and report to the dashboard",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 25,
+          "started_at": "2026-08-11T04:00:20Z",
+          "completed_at": "2026-08-11T04:03:40Z"
+        }
+      ]
+    }
+  ]
+}

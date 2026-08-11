@@ -1,0 +1,18 @@
+{
+  "label": "in-flight",
+  "description": "deploy-stage #64 is running, its front on `Terraform apply`. Every finished run in the history succeeded. The cycle on disk is the one that ended on 2026-08-10; stage's status file was written by #63 and so cannot be checked against #64, which puts stage in `unknown`. prod is up and untouched by this run.",
+  "now": "2026-08-11T04:12:00Z",
+  "provenance": {
+    "runs.json": "SYNTHETIC. #64 in flight; every other lifecycle run completed and succeeded. Two non-lifecycle runs are present because a real answer contains them.",
+    "jobs.json": "SYNTHETIC. One job, 25 steps, the front on step 9; step 7 (the image push) is already over.",
+    "status-stage.json": "SYNTHETIC. Written by #63, so #64 makes it stale and the panel says `unknown`.",
+    "status-prod.json": "SYNTHETIC. Written by promote-prod #22, which is still the newest prod run, so prod reads `up`."
+  },
+  "cycle": {
+    "_": "DECLARED, not re-derived. Which environments the run in flight is about is a fact this fixture already fixed when it chose the workflow; making the gate work it out again from runs.json would put the page's WRITERS table in a second place (one definition, two hosts).",
+    "in_flight": true,
+    "environments": [
+      "stage"
+    ]
+  }
+}

@@ -1,0 +1,62 @@
+{
+  "schema": 1,
+  "environment": "stage",
+  "written_at": "2026-08-10T20:46:00Z",
+  "cycle": {
+    "status": "closed",
+    "usd": {
+      "low": 0.0526,
+      "high": 0.0581
+    },
+    "started_at": "2026-08-10T20:29:40Z",
+    "finished_at": "2026-08-10T20:38:10Z"
+  },
+  "counts": {
+    "created": 32,
+    "priced": 3,
+    "free": 25,
+    "not_metered": 4,
+    "unpriced": 0,
+    "orphan_deletes": 0
+  },
+  "unpriced": [],
+  "orphan_deletes": [],
+  "resources": {
+    "module.rds.aws_db_instance.this": {
+      "bucket": "priced",
+      "state": "closed",
+      "seconds": {
+        "low": 1780.0,
+        "high": 1960.0
+      },
+      "usd": {
+        "low": 0.0247,
+        "high": 0.0272
+      }
+    },
+    "module.alb.aws_lb.this": {
+      "bucket": "priced",
+      "state": "closed",
+      "seconds": {
+        "low": 1780.0,
+        "high": 1960.0
+      },
+      "usd": {
+        "low": 0.0223,
+        "high": 0.0246
+      }
+    },
+    "module.ecs.aws_ecs_service.app": {
+      "bucket": "priced",
+      "state": "closed",
+      "seconds": {
+        "low": 1780.0,
+        "high": 1960.0
+      },
+      "usd": {
+        "low": 0.0056,
+        "high": 0.0063
+      }
+    }
+  }
+}

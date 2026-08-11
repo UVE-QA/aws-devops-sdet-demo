@@ -1,0 +1,40 @@
+{
+  "_": "SYNTHETIC, shaped exactly as scripts/fold-results.py writes it. Published by promote-prod #22, which is still the newest prod run - so these verdicts are current and the page must NOT mark them as belonging to an earlier run.",
+  "schema": 1,
+  "environment": "prod",
+  "run": {
+    "id": "31458000022",
+    "workflow": "promote-prod",
+    "url": "https://github.com/UVE-QA/aws-devops-sdet-demo/actions/runs/31458000022"
+  },
+  "nodes": {
+    "suite.db.prod": {
+      "suite": "db",
+      "status": "passed",
+      "counts": {
+        "passed": 2,
+        "failed": 0,
+        "skipped": 0,
+        "not_run": 0,
+        "incomplete": 0
+      },
+      "duration_s": 2.2,
+      "tests": []
+    },
+    "suite.smoke.prod": {
+      "suite": "smoke",
+      "status": "passed",
+      "counts": {
+        "passed": 2,
+        "failed": 0,
+        "skipped": 0,
+        "not_run": 0,
+        "incomplete": 0
+      },
+      "duration_s": 8.3,
+      "tests": []
+    }
+  },
+  "unobserved": [],
+  "unknown": {}
+}

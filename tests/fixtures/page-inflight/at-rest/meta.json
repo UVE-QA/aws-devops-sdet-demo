@@ -1,0 +1,16 @@
+{
+  "label": "at-rest",
+  "description": "THE CONTROL. The same fixture thirteen minutes later: #64 finished, wrote stage's status file and published nothing else. Same run layer, same history, nothing in flight. Every claim this gate makes must hold here too, and the two renderings must DIFFER - a control that reproduces the state it is controlling for is not a control (2026-08-05).",
+  "now": "2026-08-11T04:25:00Z",
+  "provenance": {
+    "runs.json": "SYNTHETIC. Identical to in-flight except #64 is completed/success.",
+    "jobs.json": "SYNTHETIC. The same job with every step finished.",
+    "status-stage.json": "SYNTHETIC. Written by #64 itself, so stage reads `up`.",
+    "status-prod.json": "SYNTHETIC. Byte-identical to the in-flight one."
+  },
+  "cycle": {
+    "_": "DECLARED, not re-derived. Which environments the run in flight is about is a fact this fixture already fixed when it chose the workflow; making the gate work it out again from runs.json would put the page's WRITERS table in a second place (one definition, two hosts).",
+    "in_flight": false,
+    "environments": []
+  }
+}

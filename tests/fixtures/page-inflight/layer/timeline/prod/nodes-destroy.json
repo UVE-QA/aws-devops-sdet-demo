@@ -1,0 +1,47 @@
+{
+  "schema": 1,
+  "environment": "prod",
+  "kind": "destroy",
+  "written_at": "2026-08-10T19:52:30Z",
+  "cycle": {
+    "status": "complete",
+    "date": "2026-08-10",
+    "started_at": "2026-08-10T19:40:15Z",
+    "finished_at": "2026-08-10T19:52:20Z",
+    "duration_seconds": 725,
+    "tool": "terraform",
+    "run": {
+      "id": "31457000021",
+      "number": "21",
+      "workflow": "destroy",
+      "url": "https://github.com/UVE-QA/aws-devops-sdet-demo/actions/runs/31457000021"
+    }
+  },
+  "observed": {
+    "resources": 31,
+    "matched": 31,
+    "not_shown": 0,
+    "read": 0,
+    "unknown": 0,
+    "nodes": 1
+  },
+  "not_shown": [],
+  "unknown": [],
+  "nodes": {
+    "destroy.prod": {
+      "state": "measured",
+      "duration_s": 725,
+      "identifier": "prod",
+      "identifier_from": "the destroy run itself",
+      "resources_observed": 31,
+      "resources_complete": 31
+    }
+  },
+  "phases": {
+    "destroy": {
+      "duration_s": 725,
+      "started_at": "2026-08-10T19:40:15Z",
+      "finished_at": "2026-08-10T19:52:20Z"
+    }
+  }
+}

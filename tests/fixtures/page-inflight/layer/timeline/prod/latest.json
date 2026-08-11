@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "environment": "prod",
+  "kind": "apply",
+  "status": "complete",
+  "started_at": "2026-08-10T21:12:30Z",
+  "finished_at": "2026-08-10T21:21:50Z",
+  "duration_seconds": 560,
+  "written_at": "2026-08-10T21:38:00Z",
+  "run": {
+    "id": "31458000022",
+    "number": "22",
+    "workflow": "promote-prod"
+  }
+}

@@ -1,0 +1,108 @@
+{
+  "schema": 1,
+  "environment": "prod",
+  "kind": "apply",
+  "written_at": "2026-08-10T21:38:00Z",
+  "cycle": {
+    "status": "complete",
+    "date": "2026-08-10",
+    "started_at": "2026-08-10T21:12:30Z",
+    "finished_at": "2026-08-10T21:21:50Z",
+    "duration_seconds": 560,
+    "tool": "terraform",
+    "run": {
+      "id": "31458000022",
+      "number": "22",
+      "workflow": "promote-prod",
+      "url": "https://github.com/UVE-QA/aws-devops-sdet-demo/actions/runs/31458000022"
+    }
+  },
+  "observed": {
+    "resources": 34,
+    "matched": 31,
+    "not_shown": 2,
+    "read": 0,
+    "unknown": 1,
+    "nodes": 8
+  },
+  "not_shown": [
+    "module.network.aws_route_table_association.public[0]",
+    "module.network.aws_route_table_association.public[1]"
+  ],
+  "unknown": [
+    "module.observability.aws_cloudwatch_log_metric_filter.app_5xx"
+  ],
+  "nodes": {
+    "prod.vpc": {
+      "state": "measured",
+      "duration_s": 24,
+      "identifier": "vpc-0b82d4e6f1a90c37d",
+      "identifier_from": "module.network.aws_vpc.this",
+      "resources_observed": 6,
+      "resources_complete": 6
+    },
+    "prod.secrets": {
+      "state": "measured",
+      "duration_s": 5,
+      "identifier": "aws-devops-sdet-demo-prod-db",
+      "identifier_from": "module.rds.aws_secretsmanager_secret.db",
+      "resources_observed": 2,
+      "resources_complete": 2
+    },
+    "prod.rds": {
+      "state": "measured",
+      "duration_s": 301,
+      "identifier": "aws-devops-sdet-demo-prod",
+      "identifier_from": "module.rds.aws_db_instance.this",
+      "resources_observed": 4,
+      "resources_complete": 4
+    },
+    "prod.alb": {
+      "state": "measured",
+      "duration_s": 128,
+      "identifier": "demo-prod-alb",
+      "identifier_from": "module.alb.aws_lb.this",
+      "resources_observed": 5,
+      "resources_complete": 5
+    },
+    "prod.ecs": {
+      "state": "measured",
+      "duration_s": 89,
+      "identifier": "demo-prod",
+      "identifier_from": "module.ecs.aws_ecs_service.app",
+      "resources_observed": 8,
+      "resources_complete": 8
+    },
+    "prod.cloudwatch": {
+      "state": "measured",
+      "duration_s": 8,
+      "identifier": "/ecs/demo-prod",
+      "identifier_from": "module.observability.aws_cloudwatch_log_group.app",
+      "resources_observed": 3,
+      "resources_complete": 3
+    },
+    "prod.dnsrec": {
+      "state": "measured",
+      "duration_s": 41,
+      "identifier": "app.demo.uveapp.net",
+      "identifier_from": "aws_route53_record.app",
+      "resources_observed": 1,
+      "resources_complete": 1
+    },
+    "prod.budgets": {
+      "state": "measured",
+      "duration_s": 3,
+      "identifier": "demo-prod-monthly",
+      "identifier_from": "module.budgets.aws_budgets_budget.monthly",
+      "resources_observed": 1,
+      "resources_complete": 1
+    }
+  },
+  "phases": {
+    "prod-apply": {
+      "duration_s": 560,
+      "started_at": "2026-08-10T21:12:30Z",
+      "finished_at": "2026-08-10T21:21:50Z"
+    }
+  }
+}
