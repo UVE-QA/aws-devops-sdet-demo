@@ -127,6 +127,31 @@ function readContract() {
   const ids = contract.states.map((s) => s.id);
   const duplicate = ids.find((id, i) => ids.indexOf(id) !== i);
   if (duplicate) refuse(`the contract names the state "${duplicate}" twice.`);
+
+  /* THE CHAINS (Phase 27, ADR-0061). `chain` was a single list and the page has
+     three ancestries, so a contract still carrying the old key would measure one
+     of them and read green about the others - which is the defect this phase
+     exists to close, surviving the fix. It is named rather than migrated. */
+  if (contract.chain && !contract.chains) {
+    refuse(
+      "the contract carries `chain` and not `chains`. Since Phase 27 the page has three\n" +
+        "  ancestries and this gate probes each; a single chain would measure one of them\n" +
+        "  and say nothing about the other two."
+    );
+  }
+  if (!Array.isArray(contract.chains) || contract.chains.length === 0) {
+    refuse("the contract names no chains. Zero ancestries probed is not a pass.");
+  }
+  const chainIds = contract.chains.map((c) => c.id);
+  const twice = chainIds.find((id, i) => chainIds.indexOf(id) !== i);
+  if (twice) refuse(`the contract names the chain "${twice}" twice.`);
+  for (const chain of contract.chains) {
+    if (!chain.id) refuse("a chain in the contract has no `id`; a reading has to be attributable.");
+    if (!Array.isArray(chain.nodes) || chain.nodes.length === 0) {
+      refuse(`the chain "${chain.id}" declares no nodes, so its probes would hang off <body> ` +
+        "and measure an ancestry the page does not have.");
+    }
+  }
   return contract;
 }
 
@@ -143,18 +168,24 @@ function readStyles(pageRelative) {
   return blocks.join("\n");
 }
 
-function fixture(css, contract) {
-  const open = contract.chain
+/* ONE FIXTURE PER CHAIN, and the control goes inside every one of them. The
+   control is not a constant: `backdrop()` walks an element's ancestors, so a
+   chain that painted a background would move the control too - and that is
+   exactly the reading that would tell us the three ancestries are not
+   interchangeable. Measuring it once, outside, would throw that away. */
+function fixture(css, contract, chain) {
+  const open = chain.nodes
     .map((n) => `<${n.tag}${n.class ? ` class="${n.class}"` : ""}>`)
     .join("");
-  const close = [...contract.chain].reverse().map((n) => `</${n.tag}>`).join("");
+  const close = [...chain.nodes].reverse().map((n) => `</${n.tag}>`).join("");
+  const adds = chain.adds ? ` ${chain.adds}` : "";
 
   const probes = [
     ...contract.control.map(
       (c, i) => `<div id="control-${i}" style="${c.style}">control</div>`
     ),
     ...contract.states.map(
-      (s) => `<div id="state-${s.id}" class="${s.class}"><div class="head"><span class="name">${s.id}</span></div></div>`
+      (s) => `<div id="state-${s.id}" class="${s.class}${adds}"><div class="head"><span class="name">${s.id}</span></div></div>`
     ),
   ].join("");
 
@@ -303,13 +334,18 @@ async function main() {
   if (process.env.CHROMIUM_PATH) launch.executablePath = process.env.CHROMIUM_PATH;
   const browser = await chromium.launch(launch);
 
+  // results[chain.id][theme]. Three ancestries by two themes; the reading is
+  // only attributable if both are carried all the way to the report.
   const results = {};
-  for (const theme of ["light", "dark"]) {
-    const context = await browser.newContext({ colorScheme: theme });
-    const page = await context.newPage();
-    await page.setContent(fixture(css, contract), { waitUntil: "load" });
-    results[theme] = await page.evaluate(MEASURE, spec);
-    await context.close();
+  for (const chain of contract.chains) {
+    results[chain.id] = {};
+    for (const theme of ["light", "dark"]) {
+      const context = await browser.newContext({ colorScheme: theme });
+      const page = await context.newPage();
+      await page.setContent(fixture(css, contract, chain), { waitUntil: "load" });
+      results[chain.id][theme] = await page.evaluate(MEASURE, spec);
+      await context.close();
+    }
   }
   await browser.close();
 
@@ -318,58 +354,126 @@ async function main() {
   // The instrument first. Nothing below this means anything until it passes,
   // so a control that is off is a REFUSAL and not a failing check: a failing
   // check invites reading the table underneath it.
-  console.log("control  — black on white must read 21.00 through every notation the CSS uses");
-  for (const theme of ["light", "dark"]) {
-    for (const item of spec.filter((s) => s.control)) {
-      const got = results[theme].find((r) => r.id === item.id);
-      if (!got || got.error) {
-        refuse(`the control "${item.id}" could not be measured in the ${theme} theme: ${got ? got.error : "missing"}`);
-      }
-      const ok = Math.abs(got.ratio - item.control) < 0.005;
-      console.log(`  ${theme.padEnd(5)}  ${got.ratio.toFixed(2).padStart(6)}  ${item.id}`);
-      if (!ok) {
-        refuse(
-          `the control "${item.id}" reads ${got.ratio.toFixed(2)} in the ${theme} theme, not ${item.control.toFixed(2)}.\n` +
-            "  The instrument is wrong, so no verdict is available. Nothing above is evidence."
-        );
+  console.log("control  — black on white must read 21.00 through every notation the CSS uses,\n" +
+    "           in every ancestry, because the backdrop walk starts at the probe's parent");
+  for (const chain of contract.chains) {
+    for (const theme of ["light", "dark"]) {
+      for (const item of spec.filter((s) => s.control)) {
+        const got = results[chain.id][theme].find((r) => r.id === item.id);
+        if (!got || got.error) {
+          refuse(`the control "${item.id}" could not be measured in the ${theme} theme, in the ` +
+            `"${chain.id}" ancestry: ${got ? got.error : "missing"}`);
+        }
+        const ok = Math.abs(got.ratio - item.control) < 0.005;
+        console.log(`  ${chain.id.padEnd(11)}${theme.padEnd(6)}${got.ratio.toFixed(2).padStart(6)}  ${item.id}`);
+        if (!ok) {
+          refuse(
+            `the control "${item.id}" reads ${got.ratio.toFixed(2)} in the ${theme} theme, in the ` +
+              `"${chain.id}" ancestry, not ${item.control.toFixed(2)}.\n` +
+              "  The instrument is wrong, so no verdict is available. Nothing above is evidence."
+          );
+        }
       }
     }
   }
 
   console.log(`\nstate encoding — floor ${contract.floor.toFixed(1)}:1 (WCAG 1.4.11), boundary against the node's own background`);
-  console.log(`  ${"state".padEnd(12)}${"light".padStart(8)}${"dark".padStart(8)}`);
+  const themes = ["light", "dark"];
+  const columns = contract.chains.flatMap((c) => themes.map((t) => ({ chain: c, theme: t })));
+  console.log(
+    `  ${"".padEnd(12)}` +
+      contract.chains.map((c) => (c.id + (c.adds ? "*" : "")).padStart(16)).join("")
+  );
+  console.log(
+    `  ${"state".padEnd(12)}` +
+      contract.chains.map(() => `${"light".padStart(8)}${"dark".padStart(8)}`).join("")
+  );
+
+  // The reading that settles ADR-0058's open question, and it is a MEASUREMENT
+  // rather than the argument that no ancestor paints a background: for each
+  // state, the spread between the highest and the lowest ancestry, per theme.
+  const spread = [];
+
   for (const state of contract.states) {
     const row = {};
-    for (const theme of ["light", "dark"]) {
-      const got = results[theme].find((r) => r.id === state.id);
-      if (!got) refuse(`the state "${state.id}" was not measured in the ${theme} theme.`);
-      if (got.error) refuse(`the state "${state.id}" could not be measured in the ${theme} theme: ${got.error}`);
-      row[theme] = got;
+    for (const { chain, theme } of columns) {
+      const got = results[chain.id][theme].find((r) => r.id === state.id);
+      if (!got) {
+        refuse(`the state "${state.id}" was not measured in the ${theme} theme, in the "${chain.id}" ancestry.`);
+      }
+      if (got.error) {
+        refuse(`the state "${state.id}" could not be measured in the ${theme} theme, in the ` +
+          `"${chain.id}" ancestry: ${got.error}`);
+      }
+      row[`${chain.id}/${theme}`] = got;
     }
-    const mark = (theme) => {
-      if (state.exempt) return " ";
-      return row[theme].ratio < contract.floor ? "<" : " ";
+    const cell = ({ chain, theme }) => {
+      const got = row[`${chain.id}/${theme}`];
+      const mark = state.exempt ? " " : got.ratio < contract.floor ? "<" : " ";
+      return `${got.ratio.toFixed(2).padStart(7)}${mark}`;
     };
     const note = state.exempt ? "  exempt — the word carries it" : "";
-    console.log(
-      `  ${state.id.padEnd(12)}` +
-        `${row.light.ratio.toFixed(2).padStart(7)}${mark("light")}` +
-        `${row.dark.ratio.toFixed(2).padStart(7)}${mark("dark")}` +
-        note
-    );
+    console.log(`  ${state.id.padEnd(12)}` + columns.map(cell).join("") + note);
+
+    for (const theme of themes) {
+      const values = contract.chains.map((c) => row[`${c.id}/${theme}`].ratio);
+      spread.push({ state: state.id, theme, delta: Math.max(...values) - Math.min(...values) });
+    }
+
     if (VERBOSE) {
-      for (const theme of ["light", "dark"]) {
-        console.log(`      ${theme}: ${row[theme].raw} -> ${hex(row[theme].edge)} on ${hex(row[theme].against)}` + (row[theme].opacity !== 1 ? ` (opacity ${row[theme].opacity})` : ""));
-        for (const line of row[theme].trail) console.log(`        behind: ${line}`);
+      for (const { chain, theme } of columns) {
+        const got = row[`${chain.id}/${theme}`];
+        console.log(`      ${chain.id}/${theme}: ${got.raw} -> ${hex(got.edge)} on ${hex(got.against)}` +
+          (got.opacity !== 1 ? ` (opacity ${got.opacity})` : ""));
+        for (const line of got.trail) console.log(`        behind: ${line}`);
       }
     }
     if (state.exempt) continue;
-    for (const theme of ["light", "dark"]) {
-      if (row[theme].ratio < contract.floor) {
+    for (const { chain, theme } of columns) {
+      const got = row[`${chain.id}/${theme}`];
+      if (got.ratio < contract.floor) {
         problems.push(
-          `${state.id} (${state.what}) is ${row[theme].ratio.toFixed(2)}:1 in the ${theme} theme, under the ${contract.floor.toFixed(1)}:1 floor`
+          `${state.id} (${state.what}) is ${got.ratio.toFixed(2)}:1 in the ${theme} theme, in the ` +
+            `"${chain.id}" ancestry, under the ${contract.floor.toFixed(1)}:1 floor`
         );
       }
+    }
+  }
+
+  // ADR-0058 predicted the ancestries would read alike, on the grounds that no
+  // ancestor in either paints a background. Printed either way: agreement that
+  // was measured is worth as much here as disagreement, and it is the half this
+  // project keeps skipping.
+  if (contract.chains.length > 1) {
+    console.log(`\nancestries — the same state, drawn under a different contour`);
+    const exempt = new Set(contract.states.filter((s) => s.exempt).map((s) => s.id));
+    const report = (label, rows) => {
+      if (!rows.length) return;
+      const worst = rows.reduce((a, b) => (b.delta > a.delta ? b : a), rows[0]);
+      const names = [...new Set(rows.map((r) => r.state))].join(", ");
+      console.log(worst.delta < 0.005
+        ? `  ${label.padEnd(11)} identical across all ${contract.chains.length}, both themes — ${names}`
+        : `  ${label.padEnd(11)} ${worst.state} spans ${worst.delta.toFixed(2)} in the ${worst.theme} theme — ${names}`);
+    };
+    report("floored", spread.filter((s) => !exempt.has(s.state)));
+    report("exempt", spread.filter((s) => exempt.has(s.state)));
+    for (const chain of contract.chains.filter((c) => c.adds)) {
+      console.log(`  * ${chain.id} puts \`${chain.adds}\` on every node it draws`);
+    }
+
+    /* WHICH ANCESTOR ACTUALLY PAINTS, taken from the backdrop walk rather than
+       asserted. ADR-0058 left this open with the words "no ancestor in either
+       chain paints a background, so the colours SHOULD be identical" - and
+       `should` is what an instrument aimed at the wrong scope is made of. The
+       trail knows; printing it means the next schema change is argued from a
+       reading. `body` is excluded: it is the page colour, and every chain has
+       it. */
+    for (const chain of contract.chains) {
+      const sample = results[chain.id].light.find((r) => r.trail);
+      const painters = (sample ? sample.trail : [])
+        .filter((line) => !/^body /.test(line) && !/rgba\(0, 0, 0, 0\)$/.test(line));
+      console.log(`  ${chain.id.padEnd(12)}` +
+        (painters.length ? `paints: ${painters.join("; ")}` : "no ancestor paints a background"));
     }
   }
 
@@ -383,7 +487,8 @@ async function main() {
     );
     return 1;
   }
-  console.log(`\ncontrast-check: ${contract.states.length} states, both themes, none under the floor`);
+  console.log(`\ncontrast-check: ${contract.states.length} states, ${contract.chains.length} ancestries, ` +
+    "both themes, none under the floor");
   return 0;
 }
 

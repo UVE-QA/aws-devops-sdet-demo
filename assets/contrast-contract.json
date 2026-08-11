@@ -21,18 +21,64 @@
     "",
     "The six states are the six ADR-0047 measured. A seventh state on the map",
     "means a seventh line here - a state the contract does not name is not",
-    "checked, and the gate says so out loud rather than passing quietly."
+    "checked, and the gate says so out loud rather than passing quietly.",
+    "",
+    "PHASE 27: `chain` BECAME `chains`, AND THERE ARE THREE OF THEM. ADR-0058",
+    "found that the page had grown a second ancestry - the estate contour draws",
+    "the same states under `.contour > .estate-env > .set.estate-set` - while",
+    "this contract probed only the map's. No ancestor in either paints a",
+    "background, so the colours SHOULD be identical, and `should` is what an",
+    "instrument aimed at the wrong scope is made of.",
+    "",
+    "The THIRD was not in that finding. It was found by measuring the BUILT",
+    "page instead of reading the template: the assertions contour hangs its",
+    "suite nodes straight off `div.suites`, with no `.set` in between. It also",
+    "puts `assertion` on every node, which sets `opacity: 1`, and this gate",
+    "composites by opacity - so that chain carries an `adds`. A chain that draws",
+    "a node the page never draws would be measuring nothing.",
+    "",
+    "`gone` is the seventh state, added for the reason the paragraph above",
+    "predicted. Every CSS rule pairs it with `absent` and it is exempt for the",
+    "same reason - but until Phase 27 it was a state the page drew and this",
+    "contract did not name, which is the sentence above failing to be acted on."
   ],
 
   "floor": 3.0,
 
   "page": "site/index.html",
 
-  "chain": [
-    { "tag": "main", "class": "" },
-    { "tag": "div", "class": "cycle" },
-    { "tag": "section", "class": "phase" },
-    { "tag": "div", "class": "set" }
+  "chains": [
+    {
+      "id": "cycle",
+      "why": "the map. The chain this contract has always carried.",
+      "nodes": [
+        { "tag": "main", "class": "" },
+        { "tag": "div", "class": "cycle" },
+        { "tag": "section", "class": "phase" },
+        { "tag": "div", "class": "set" }
+      ]
+    },
+    {
+      "id": "estate",
+      "why": "the nouns, drawn as a contour of their own since Phase 24 (ADR-0058).",
+      "nodes": [
+        { "tag": "main", "class": "" },
+        { "tag": "section", "class": "contour" },
+        { "tag": "div", "class": "" },
+        { "tag": "section", "class": "estate-env" },
+        { "tag": "div", "class": "set estate-set" }
+      ]
+    },
+    {
+      "id": "assertions",
+      "why": "the suites. The third ancestry, and ADR-0058 named only two - measured on the built page rather than read off the template.",
+      "adds": "assertion",
+      "nodes": [
+        { "tag": "main", "class": "" },
+        { "tag": "section", "class": "contour" },
+        { "tag": "div", "class": "suites" }
+      ]
+    }
   ],
 
   "control": [
@@ -78,6 +124,22 @@
       "what": "a test suite - observed by its report, not by Terraform",
       "class": "node suite",
       "probe": { "on": "::before", "property": "background-color" }
+    },
+    {
+      "id": "gone",
+      "what": "an environment that is destroyed - drawn by the estate contour",
+      "class": "node gone",
+      "probe": { "on": "::before", "property": "background-color" },
+      "exempt": [
+        "The same exemption as `absent`, and not a second decision: every CSS",
+        "rule that names one names the other - the grayscale icon, the 0.45",
+        "opacity, the dashed border, the muted state word - and neither sets a",
+        "::before colour, so both fall to the base edge, var(--line).",
+        "",
+        "It is here because Phase 27 asked what the estate contour actually",
+        "draws and found a state the contract had never named. Measured on every",
+        "run, exempt from the floor, printed with the rest."
+      ]
     },
     {
       "id": "absent",
