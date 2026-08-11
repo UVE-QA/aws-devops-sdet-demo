@@ -1,0 +1,54 @@
+=== phase 27 - the contrast gate's refusals, on the new schema
+host: ip-172-26-4-52   commit: e9c5c01   chromium: chromium-1234 chromium_headless_shell-1234 ffmpeg-1011 
+exit codes are taken inside this script, straight after a redirect
+
+[0] control - the contract as committed
+exit=0
+  assertions  no ancestor paints a background
+
+contrast-check: 7 states, 3 ancestries, both themes, none under the floor
+
+[1] a probe that asks the chain for something that is not a colour
+exit=2
+  failed-now     3.17    3.29    3.17    3.29    3.17    3.29 
+  working        3.22    4.76    3.22    4.76    3.22    4.76 
+contrast-check: the state "done" could not be measured in the light theme, in the "cycle" ancestry: cannot read border-image-source as a colour: "none"
+
+[2] the OLD key: chain instead of chains
+exit=2
+contrast-check: the contract carries `chain` and not `chains`. Since Phase 27 the page has three
+  ancestries and this gate probes each; a single chain would measure one of them
+  and say nothing about the other two.
+
+[3] chains present and empty
+exit=2
+contrast-check: the contract names no chains. Zero ancestries probed is not a pass.
+
+[4] the same chain id twice
+exit=2
+contrast-check: the contract names the chain "cycle" twice.
+
+[5] a chain that declares no nodes
+exit=2
+contrast-check: the chain "estate" declares no nodes, so its probes would hang off <body> and measure an ancestry the page does not have.
+
+[6] a real floor failure - one state's edge lowered in the built page
+exit=1
+
+contrast-check: FAILED
+  done (finished in the run still going) is 1.10:1 in the light theme, in the "cycle" ancestry, under the 3.0:1 floor
+  done (finished in the run still going) is 1.10:1 in the light theme, in the "estate" ancestry, under the 3.0:1 floor
+  done (finished in the run still going) is 1.10:1 in the light theme, in the "assertions" ancestry, under the 3.0:1 floor
+
+  ADR-0047 D6: no state rides a boundary the eye cannot find. Raise the
+  colour, or carry the state on a second channel and say so in
+  assets/contrast-contract.json.
+
+[7] control again - the same table, so every restore was clean
+exit=0
+  assertions  no ancestor paints a background
+
+contrast-check: 7 states, 3 ancestries, both themes, none under the floor
+
+tree after:
+(empty = every break was undone)
