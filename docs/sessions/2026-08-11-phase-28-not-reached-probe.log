@@ -1,0 +1,51 @@
+# Does the map draw `not reached yet` when timeline/stage/nodes-apply.json 404s while a
+# cycle about stage is in flight? Asked BEFORE deleting that object from the live bucket.
+#
+# Throwaway probe, not committed as a gate: it answers one question once. It borrows
+# check-page-inflight.mjs's harness - the same static server, the same route mocks, the same
+# fixture (tests/fixtures/page-inflight, state in-flight, clock 2026-08-11T04:12:00Z,
+# cycle.environments = [stage]) - and renders site/index.html as published.
+#
+# Sandbox chromium-1194, not the pinned build, and not the devbox. Same caveat Phase 25's
+# break tests carried in their own header.
+#
+# THE ONE PATH ALLOWED TO 404 is /timeline/stage/nodes-apply.json. Any other missing
+# document is a refusal, because a page missing more of its layer than intended would
+# answer this question for the wrong reason.
+
+## [0] the object absent - the state the deletion will produce
+# probe: stage/nodes-apply.json ABSENT
+# fixture clock 2026-08-11T04:12:00Z, cycle in flight about ["stage"]
+404s served: ["/timeline/stage/nodes-apply.json"]
+map-sub: Generated from infra/ and tests/. At rest it shows the last cycle that finished, dated 2026-08-10; the map is on the page whether or not anything is running.180 tests are collected from the suites themselves; the verdicts below are what a run reported — stage from deploy-stage, prod from promote-prod.
+  stage.vpc              word="not reached yet"    state="not reached yet · a cycle is under way and has not got here"
+  stage.secrets          word="not reached yet"    state="not reached yet · a cycle is under way and has not got here"
+  stage.rds              word="not reached yet"    state="not reached yet · a cycle is under way and has not got here"
+  stage.alb              word="not reached yet"    state="not reached yet · a cycle is under way and has not got here"
+  stage.ecs              word="not reached yet"    state="not reached yet · a cycle is under way and has not got here"
+  stage.cloudwatch       word="not reached yet"    state="not reached yet · a cycle is under way and has not got here"
+  stage.budgets          word="not reached yet"    state="not reached yet · a cycle is under way and has not got here"
+  prod.vpc               word="measured"           state="measured · 24s"
+  prod.rds               word="measured"           state="measured · 5m 1s"
+  stage.migrate          word="not measured here"  state="not measured here · its step is in Actions, not in a timeline"
+exit=0
+
+## [1] CONTROL, the same fixture with the layer untouched. What must differ is named first:
+##     the seven stage apply nodes, and only those. prod's figures and the actions-observer
+##     node must not move, or the reading is of a page that lost its layer rather than one
+##     document.
+# probe: CONTROL (layer untouched)
+# fixture clock 2026-08-11T04:12:00Z, cycle in flight about ["stage"]
+404s served: []
+map-sub: Generated from infra/ and tests/. At rest it shows the last cycle that finished, dated 2026-08-10; the map is on the page whether or not anything is running.180 tests are collected from the suites themselves; the verdicts below are what a run reported — stage from deploy-stage, prod from promote-prod.
+  stage.vpc              word="measured"           state="measured · these figures are from the cycle before this one · 22s"
+  stage.secrets          word="measured"           state="measured · these figures are from the cycle before this one · 5s"
+  stage.rds              word="measured"           state="measured · these figures are from the cycle before this one · 4m 47s"
+  stage.alb              word="measured"           state="measured · these figures are from the cycle before this one · 2m 11s"
+  stage.ecs              word="measured"           state="measured · these figures are from the cycle before this one · 1m 34s"
+  stage.cloudwatch       word="measured"           state="measured · these figures are from the cycle before this one · 8s"
+  stage.budgets          word="measured"           state="measured · these figures are from the cycle before this one · 3s"
+  prod.vpc               word="measured"           state="measured · 24s"
+  prod.rds               word="measured"           state="measured · 5m 1s"
+  stage.migrate          word="not measured here"  state="not measured here · its step is in Actions, not in a timeline"
+exit=0

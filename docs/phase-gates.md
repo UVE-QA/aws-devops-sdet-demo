@@ -62,6 +62,7 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 25    | The gate for a cycle in flight  | ✅ done — $0, four findings, nine breaks | sessions/2026-08-11-phase-25-a-figure-names-its-cycle.md |
 | 26    | The instrument measures a page with figures on it | ✅ done — $0, every figure since 20e remeasured | sessions/2026-08-11-phase-26-every-figure-measured-the-short-page.md |
 | 27    | The contrast contract has three ancestries | ✅ done — $0, green answer, false premise | sessions/2026-08-11-phase-27-the-third-ancestry-and-a-false-premise.md |
+| 28    | The cycle on a different day    | 🟡 in flight | — |
 
 **Lettered sub-phases end here (ADR-0055).** From Phase 21 the identifier is a
 plain integer and every phase is planned together with the sentence that closes
@@ -3685,6 +3686,75 @@ measurement. $0, no cycle, nothing applied. Summary in
   of them is a session on its own: each needs a live cycle to happen around it.
   The broken-word rule's blindness to hyphens (Phase 26) is the one item that
   can be taken cold. Phase 17, prod data continuity, remains open and optional.
+
+### Phase 28 — The cycle on a different day, and the delay nobody measured  🟡 IN FLIGHT
+Opened 2026-08-11. **This section is written BEFORE the cycle, deliberately.**
+Everything below is a plan and a set of decisions taken while nothing was
+running; what the cycle actually showed lands in a later patch, beside it, and
+the two are not merged. A session that writes its findings and its plan in one
+breath cannot afterwards tell which came first.
+
+- Closes when: a full cycle has run on a day different from the previous one,
+  the convergence delay is a number measured at the second it happened rather
+  than bounded from two observations, and `not reached yet` has either been seen
+  on the live page or shown - with the mechanism named - to be unreachable by a
+  cycle that follows a completed cycle.
+- The three items come from `docs/next-phases.md` "Still open". None is a session
+  on its own; all three need a live cycle around them, which is why they are one
+  phase and not three.
+
+**THE DELAY IS TWO DELAYS.** `scripts/watch-convergence.sh` samples the first -
+an object is written into S3 and the edge serves its cached copy until
+`max-age=60` expires - and the page's own 30 s tick (ADR-0053) is the second.
+20m's "bounded above by about two minutes" is the sum of both taken from two
+glances, and a sum cannot say which half to fix. No AWS credential is needed:
+`Last-Modified` is the write, and `Date - Age` is the instant the edge fetched
+it, so both are in the response a visitor gets.
+
+**THE INSTRUMENT IS NOT A GATE**, so it is not in `assets/gates.json` and owes no
+break test. It owes trust. `--self-test` points it at a server that declares
+`Age: 7` and a `Last-Modified` 30 s behind `Date`, so `write->edge` has one right
+answer, 23.0s. Its FIRST version was pointed at a plain `http.server`, which
+sends no `Age`: transitions were detected, both computed columns printed `-`, and
+it passed. That is a self-test that could not fail on the arithmetic it exists to
+check, and it is now one of the two recorded breaks -
+`docs/sessions/2026-08-11-phase-28-watch-convergence-self-test.log`.
+
+**`not reached yet` IS ARRANGED, BECAUSE IT CANNOT BE WAITED FOR.** The branch is
+`!record && underWay`, and every node has carried a record since the cycle of
+2026-08-09, so a cycle following a completed cycle cannot reach it - 20m raised
+this and left it open. `timeline/stage/nodes-apply.json` is therefore backed up
+and DELETED from the bucket immediately before dispatch, with the restore command
+prepared in advance rather than improvised; the cycle's own publish restores it
+at the end. The three links were read in `assets/index.template.html` -
+`readJSON` returns null on a non-ok response, `readRunLayer` skips a null
+document, `nodeTense` takes the `!record` branch - and then rendered rather than
+argued: `docs/sessions/2026-08-11-phase-28-not-reached-probe.log`, seven stage
+nodes reading `not reached yet · a cycle is under way and has not got here`,
+against a control where the same seven read `measured · these figures are from
+the cycle before this one` and prod's figures do not move.
+
+**THE CONFOUND, NAMED BEFORE IT COULD BE EXPLAINED AWAY.** `readRunLayer` does
+`next.cycles.push(doc.cycle)`, so deleting that document also removes stage's
+apply cycle from the array the map's dating sentence is built from. Every dating
+observation taken DURING the cycle is therefore taken on a page with a document
+deliberately absent, and says so. The decisive one is taken after the cycle ends,
+when the document is back and all four cycles are dated 2026-08-11.
+
+**The date arithmetic, checked rather than assumed.** `scripts/node-states.py`
+line 361 takes the cycle's date from the UTC date of the timeline's `started_at`.
+At 2026-08-11T04:51Z the page reads `dated 2026-08-09`, so any cycle started now
+qualifies, and ends on the same UTC day - no split-date confound either.
+
+- Expected cost, from 20m: stage `$0.0529 .. $0.0584`, prod `$0.0182 .. $0.0237`,
+  so about `$0.07 .. $0.08` for the pair. Anything outside that band is itself a
+  finding.
+- Validation (before the cycle):
+```bash
+  bash scripts/watch-convergence.sh --self-test
+  make gates
+```
+- Next allowed step: **the cycle itself**, once this patch is on `main`.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,
