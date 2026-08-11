@@ -47,5 +47,5 @@
       ]
     }
   ],
-  "_": "The gate phase is running and three of its four suites have not started. Only the one whose step is in progress lights; regression and smoke report NOTHING rather than inheriting the phase, and the db suite - drawn in this same phase - is already finished. This is the whole of ADR-0043 D1 in one observation."
+  "_": "A suite with a binding of its own answers for itself; `stage.migrate` has none and inherits the phase it is a step of, which is claim 1 with the subject it still has. The seven stage resources that used to be inherited here are nouns and left with ADR-0054 D3."
 }

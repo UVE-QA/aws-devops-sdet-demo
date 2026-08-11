@@ -309,6 +309,46 @@
       .perm { display: grid; gap: var(--gap); grid-template-columns: repeat(auto-fit, minmax(var(--card-min), 1fr)); }
       .perm .node { border-style: dashed; }
 
+      /* ---------- the three contours (ADR-0054 D1) ----------
+         A contour is a titled REGION, not a panel: a panel is a box on the
+         first screen and a contour is a whole account of the system. The page
+         carries three, and each is headed by what answers for it - AWS, a run,
+         the repository - because the one thing the old composition could not
+         say is which of them a reader was looking at. */
+      .contour { margin: 1.5rem 0 0; }
+      .contour > h2 { margin: 0 0 0.2rem; }
+      .contour .contour-sub {
+        margin: 1.1rem 0 0.4rem; font-size: 0.9rem; font-weight: 700;
+        display: flex; align-items: baseline; gap: 0.5rem; flex-wrap: wrap;
+      }
+      .estate-env { margin: 0 0 0.8rem; }
+      .estate-env > header { display: flex; align-items: center; gap: 0.5rem; margin: 0 0 0.35rem; }
+      .estate-env > header .wf {
+        font-family: ui-monospace, Menlo, monospace; font-size: 0.66rem; color: var(--muted);
+      }
+      /* The estate's own grid uses --node-min, the MAP's floor, and not the
+         wider --card-min the permanent and outside cards use: these are the
+         same objects the map used to draw, and shrinking or growing them on
+         the way across would have been a second opinion about how big a
+         resource node is. */
+      .estate-set {
+        display: grid; gap: var(--gap);
+        grid-template-columns: repeat(auto-fit, minmax(var(--node-min), 1fr));
+      }
+      /* The reference, drawn as a name at both ends (ADR-0058). Muted on
+         purpose: it is the relationship, and the thing it points at is
+         already drawn full strength somewhere else on this page. */
+      .verb { font-weight: 700; color: var(--accent); }
+      .touchedby { font-size: 0.64rem; color: var(--muted); margin-top: 0.3rem; line-height: 1.45; }
+      .touches { margin: 0.4rem 0 0; font-size: 0.7rem; color: var(--muted); line-height: 1.5; }
+      .suites {
+        display: grid; gap: var(--gap);
+        grid-template-columns: repeat(auto-fit, minmax(var(--card-min), 1fr));
+      }
+      .node.assertion { opacity: 1; border-style: solid; }
+      .runs { font-size: 0.68rem; color: var(--muted); margin-top: 0.35rem; line-height: 1.45; }
+      .runs.off { font-style: italic; }
+
       /* ---------- phases ----------
          ONE GRID, AND ITS COLUMN COUNT IS COMPUTED (ADR-0047 D5). This was a
          greedy serpentine of variable-width clusters with arrows between them
@@ -867,9 +907,34 @@
         </section>
       </div>
 
+      <!-- CONTOUR 1 OF 3 - THE ESTATE (ADR-0054 D1, D5). The nouns: the
+           permanent levels and the two workload environments, present tense,
+           answered by observation in AWS and by nothing else.
+
+           They were drawn twice until this phase - once as state in the panel
+           above, once as a child of the phase that creates them - and the two
+           accounts disagreed often enough that the arbiter had to be written
+           down as a page-tense case. The resource nodes live HERE now, and the
+           map names them instead of containing them.
+
+           The caption is the CONTOUR'S, not a node's (ADR-0054 D6): the words
+           are observed now, the figures beside them belong to a cycle, and
+           there is one place to say so rather than one per state - which is how
+           it came to be attached to `destroyed` and to nothing else. -->
+      <section class="contour" id="c-estate">
+        <h2>The estate <span class="note">&mdash; the nouns. What is in AWS, answered by observation</span></h2>
+        <p class="sub" id="estate-caption">Reading the topology&hellip;</p>
+        <div id="estate-envs"></div>
+        <h3 class="contour-sub">Permanent <span class="note" id="perm-note">no destroy workflow touches these</span></h3>
+        <div class="perm" id="perm"></div>
+      </section>
+
+      <!-- CONTOUR 2 OF 3 - THE CYCLE. The verbs, in the order they happen. A
+           phase draws its own steps and NAMES the estate nodes it touches
+           (ADR-0058); it no longer contains them. -->
       <div class="maphead">
         <h2>What a cycle does, in the order it does it
-          <span class="note">&mdash; generated from <code>infra/</code> and <code>tests/</code>, not written by hand</span>
+          <span class="note">&mdash; the verbs, generated from <code>infra/</code> and <code>tests/</code>, not written by hand</span>
         </h2>
         <!-- THE LEGEND IS A CUT IN THIS HEADER (ADR-0048 D2). Every node now
              carries the word for its own state, so a decoder is not what this
@@ -909,6 +974,24 @@
         <p class="approx" id="cost-line"></p>
       </section>
 
+      <!-- CONTOUR 3 OF 3 - THE ASSERTIONS (ADR-0054 D1, D4). What the
+           repository claims and checks. Tenseless: a suite is a property of the
+           repository, and how it RAN is a property of a run - which is drawn in
+           the cycle above, as suite x environment, and is a different object
+           (ADR-0039 D2b's second half, which stands).
+
+           ADR-0039 D2b's FIRST half forbade a panel like this on the grounds
+           that it would be a second place telling the same story. It is the
+           opposite: `tests/unit` was inventoried, counted in `counts.suites`
+           and drawn nowhere, because it runs in no cycle and the map only had
+           somewhere to put a run. All five are here, and the one that no cycle
+           runs says so in its own words rather than by being absent. -->
+      <section class="contour" id="c-assertions">
+        <h2>What the repository asserts <span class="note">&mdash; the suites themselves, collected, with no tense</span></h2>
+        <p class="sub" id="assertions-sub">Reading the topology&hellip;</p>
+        <div class="suites" id="suites"></div>
+      </section>
+
       <!-- BELOW THE FOLD. A cut here is not hidden content (ADR-0047 D2): the
            header answers the one question - is anything wrong - and the lines
            inside answer which. A green run has nothing worth opening, and that
@@ -918,11 +1001,6 @@
       <details class="cut" id="history-cut">
         <summary id="history-summary">Recent lifecycle runs <span class="small">reading run history&hellip;</span></summary>
         <div id="history"></div>
-      </details>
-
-      <details class="cut" id="perm-cut">
-        <summary>Permanent <span class="small" id="perm-note">no destroy workflow touches these</span></summary>
-        <div class="perm" id="perm"></div>
       </details>
 
       <details class="cut" id="outside-cut">
@@ -2256,6 +2334,12 @@
             set.style.gridTemplateColumns = `repeat(${wide ? 2 : 1}, minmax(0, 1fr))`;
             nodes.forEach((n) => set.appendChild(n));
             ph.appendChild(set);
+            // WHAT THIS STEP TOUCHES, NAMED (ADR-0058). Two phases draw no node
+            // of their own at all now - an apply IS the creation of the nouns it
+            // names - and this line is the whole of what they say. It is a
+            // reference in text, not a box: a box inside a phase means
+            // containment, and containment is what ADR-0054 took away.
+            ph.insertAdjacentHTML("beforeend", touchLine(p));
             host.appendChild(ph);
           });
         }
@@ -2563,17 +2647,25 @@
           );
           all.forEach((n) => { ESTATE_NODES[n.id] = n; });
         }
+        /* A PHASE'S NODES ARE ITS OWN STEPS, AND NOTHING ELSE (Phase 24,
+           ADR-0058). Phase 22 resolved the `creates` touches into drawable
+           nodes here, which kept the map identical to schema 2 while the model
+           under it changed. It also kept the two things ADR-0054 D3 separates
+           welded together: an estate node reached through a phase is handed a
+           RUN-LAYER state, and the run layer is the one source ADR-0051 D2
+           forbids re-deriving an observation from.
+
+           So the resolution is gone and the estate is drawn from observation,
+           in its own contour. What the phase says about the same node is a
+           NAME beside its header, built from `touches` in renderTouches() -
+           outside this block, because it is a rendering concern and this block
+           is lifted verbatim by scripts/check-live-state.mjs.
+
+           The gate now asserts the consequence directly: no estate node may
+           appear in the fold's output at all. That refusal is the whole
+           reason this function got smaller, so it is the thing under gate. */
         function phaseNodes(p) {
-          const own = (p && p.nodes) || [];
-          const made = ((p && p.touches) || [])
-            .filter((t) => t.verb === "creates")
-            .map((t) => ESTATE_NODES[t.node])
-            // An unresolvable reference is dropped rather than drawn as a
-            // hole. It cannot arrive from the generator - the ids on both
-            // sides come from one read of assets/topology-groups.json - and
-            // the gate that would catch one is site-data-check, not the page.
-            .filter(Boolean);
-          return own.concat(made);
+          return (p && p.nodes) || [];
         }
 
         /* Every phase and every node, in one pass. A node with its own binding
@@ -2605,6 +2697,55 @@
           return out;
         }
         /* ==== RUN-LAYER STATE MACHINE - end =================================== */
+
+        /* ---------------------------------------------------------------- THE
+           BINDING, RENDERED (ADR-0054 D2, ADR-0058). A cycle step names the
+           estate nodes it touches; an estate node names the steps that touch
+           it. Neither contains the other, and the same `touches` array is read
+           from both ends - so the two accounts cannot drift, which is precisely
+           what nesting could not promise.
+
+           Deliberately BELOW the marker above. scripts/check-live-state.mjs
+           lifts everything between the two markers and runs it; a rendering
+           helper in there would be code the gate carries and the state machine
+           does not need. */
+        function estateNodes() {
+          return Object.keys(ESTATE_NODES).map((id) => ESTATE_NODES[id]);
+        }
+
+        let TOUCHED_BY = {};
+        let CYCLE_NODES = {};
+        function useTouches(phases) {
+          TOUCHED_BY = {};
+          CYCLE_NODES = {};
+          (phases || []).forEach((p) => {
+            (p.nodes || []).forEach((n) => { CYCLE_NODES[n.id] = { node: n, phase: p }; });
+            (p.touches || []).forEach((t) => {
+              (TOUCHED_BY[t.node] = TOUCHED_BY[t.node] || []).push({ phase: p, verb: t.verb });
+            });
+          });
+        }
+
+        /* WHAT A PHASE SAYS ABOUT NOUNS IT DOES NOT DRAW. The environment is
+           printed with the label only when the group spans both, because
+           `destroys` is the one verb that reaches across them and the other four
+           do not - a phase called `Apply - stage` that prefixed every noun with
+           `stage` is the repetition ADR-0047 D3 already refused once. */
+        function touchLine(p) {
+          const by = {}, order = [];
+          ((p && p.touches) || []).forEach((t) => {
+            if (!by[t.verb]) { by[t.verb] = []; order.push(t.verb); }
+            by[t.verb].push(ESTATE_NODES[t.node] || { id: t.node, label: t.node });
+          });
+          if (!order.length) return ``;
+          return `<p class="touches">` + order.map((v) => {
+            const ns = by[v];
+            const envs = ns.map((n) => n.env || "");
+            const spans = envs.some((e) => e !== envs[0]);
+            return `<span class="verb">${esc(v)}</span> ` + ns.map((n) =>
+              esc((spans && n.env ? n.env + " " : "") + n.label)).join(" &middot; ");
+          }).join("<br>") + `</p>`;
+        }
 
         /* ==== PAGE TENSE - begin ==============================================
            Pure: no DOM, no fetch, no clock, no globals. scripts/check-page-tense.mjs
@@ -2767,11 +2908,146 @@
            nothing behind - the measured numbers are held in RUNSTATE, never
            overwritten in DATA, so a phase that stops running goes back to its
            figures instead of to "no observation yet". */
+        /* THE ESTATE CONTOUR, DRAWN (ADR-0054 D1, D5). One block per
+           environment and one for the permanent levels, all of them nouns, all
+           of them answered by observation. `nodeEl` is reused unchanged: an
+           estate node reaches its tense branch on its own now, because paint()
+           leaves `run` unset for it, and that branch is the gated one. */
+        function estateNodeEl(n) {
+          const el = nodeEl(n);
+          const by = TOUCHED_BY[n.id] || [];
+          if (by.length) {
+            el.insertAdjacentHTML("beforeend",
+              `<div class="touchedby">` + by.map((t) =>
+                `${esc(t.phase.label)} <span class="verb">${esc(t.verb)}</span>`
+              ).join(" &middot; ") + `</div>`);
+          }
+          return el;
+        }
+
+        function renderEstate(d) {
+          const host = $("#estate-envs");
+          if (!host || !d) return;
+          host.innerHTML = "";
+          (d.estate.environments || []).forEach((e) => {
+            const sec = document.createElement("section");
+            sec.className = "estate-env";
+            sec.innerHTML = `<header><span class="envtag ${esc(e.id)}">${esc(e.id)}</span>` +
+              `<span class="wf">${esc(e.level)}</span></header>`;
+            const set = document.createElement("div");
+            set.className = "set estate-set";
+            (e.nodes || []).forEach((n) => set.appendChild(estateNodeEl(n)));
+            sec.appendChild(set);
+            host.appendChild(sec);
+          });
+
+          // The permanent levels, out from under the cut they were put under by
+          // ADR-0047 D1 on the grounds that the first screen is the cycle. The
+          // first screen carries both contours now, and a noun that survives
+          // every teardown is not a footnote to the nouns that do not.
+          const perm = $("#perm");
+          if (perm) {
+            perm.innerHTML = "";
+            (d.estate.permanent || []).forEach((n) => {
+              const el = estateNodeEl({ ...n, state: "perm" });
+              el.insertAdjacentHTML("beforeend",
+                `<div class="ident">${esc(n.level)}</div><div class="asserts">${esc(n.why)}</div>`);
+              perm.appendChild(el);
+            });
+          }
+        }
+
+        /* ONE CAPTION FOR THE WHOLE CONTOUR (ADR-0054 D6). It was hung on
+           `destroyed` and on nothing else, so during `unknown` - the state an
+           environment is in whenever a run is touching it - every figure above
+           was presented unqualified. There is one place for it now and no state
+           it can be forgotten in. */
+        function renderEstateCaption() {
+          const cap = $("#estate-caption");
+          if (!cap) return;
+          const date = measuredOn();
+          cap.innerHTML =
+            `The word on each node is what AWS says now. ` +
+            (date
+              ? `The figures beside it were measured by the cycle that finished ${date}` +
+                (figuresAreOlder(RUNSTATE.observation)
+                  ? `, and something has run since &mdash; so they are the previous cycle's, whatever the words say.`
+                  : `.`)
+              : `Nothing has measured these resources yet, so there are no figures beside them.`);
+        }
+
+        /* THE ASSERTIONS CONTOUR (ADR-0054 D1, D4, D8). Tenseless on purpose:
+           every figure here is a property of the repository, collected by the
+           tools that run the suites, and not one of them is about a run. Where
+           a suite RUNS is a reference into the cycle above, and the suite that
+           no cycle runs carries its own reason instead of being absent -
+           `tests/unit` was inventoried, counted and drawn nowhere until now. */
+        function renderSuites(d) {
+          const host = $("#suites");
+          if (!host || !d || !d.assertions) return;
+          host.innerHTML = "";
+          (d.assertions.suites || []).forEach((s) => {
+            const inv = RUNSTATE.inventory ? RUNSTATE.inventory[s.suite] : null;
+            const el = document.createElement("div");
+            el.className = "node suite assertion";
+            const count = inv && inv.count != null
+              ? `${inv.count} test${inv.count === 1 ? "" : "s"} collected`
+              : `${s.spec_files} spec file${s.spec_files === 1 ? "" : "s"}`;
+            const where = (s.run_by || [])
+              .map((id) => CYCLE_NODES[id])
+              .filter(Boolean)
+              .map((c) => `${esc(c.node.env || "")} <span class="note">in ${esc(c.phase.label)}</span>`);
+            el.innerHTML =
+              `<div class="head">${iconEl("suite")}` +
+              `<span class="name">${esc(s.dir)}</span></div>` +
+              `<div class="nmeta">${esc((inv && inv.collector) || "")}` +
+              `${inv && inv.collector ? " &middot; " : ""}<span class="mono">${esc(s.pattern)}</span></div>` +
+              `<div class="nstate"><span class="word">${count}</span></div>` +
+              `<div class="asserts">${esc(s.asserts)}</div>` +
+              (where.length
+                ? `<div class="runs"><span class="verb">runs</span> ${where.join(" &middot; ")}</div>`
+                : `<div class="runs off">${esc(s.not_in_cycle || "no cycle runs this suite, and the repository does not say why — which is a red build")}</div>`);
+            host.appendChild(el);
+          });
+
+          const sub = $("#assertions-sub");
+          if (!sub) return;
+          const collected = RUNSTATE.inventory
+            ? Object.keys(RUNSTATE.inventory).reduce((t, k) => t + (RUNSTATE.inventory[k].count || 0), 0)
+            : null;
+          const outside = (d.assertions.suites || []).filter((s) => s.not_in_cycle).length;
+          sub.innerHTML =
+            `${(d.assertions.suites || []).length} suites in the repository` +
+            (collected ? `, ${collected} tests collected from them by the tools that run them` : ``) +
+            `. What a run SAID about a suite is in the cycle above, drawn per environment; nothing here is about a run.` +
+            (outside
+              ? ` ${outside} of them is outside the cycle and says so in its own words.`
+              : ``);
+        }
+
         function paint() {
           if (!DATA) return;
           const states = runLayerStates(RUNSTATE.observation, DATA.cycle.phases);
           RUNSTATE.phase = states.phases;
           RUNSTATE.node = states.nodes;
+          // THE ESTATE IS PAINTED FIRST, AND WITHOUT THE RUN LAYER (ADR-0054
+          // D3). A noun's word comes from the observation and its figures come
+          // from the last cycle that measured it; the run layer is not
+          // consulted, and `run` is CLEARED rather than left - a node that was
+          // lit by a phase before this phase and never unlit is exactly the
+          // twelve minutes prod.rds spent at full colour while it was being
+          // deleted.
+          estateNodes().forEach((n) => {
+            n.run = undefined;
+            const observed = RUNSTATE.nodes[n.id];
+            if (observed) {
+              n.duration_s = observed.duration_s;
+              n.identifier = observed.identifier;
+              n.resources_observed = observed.resources_observed;
+              n.resources_complete = observed.resources_complete;
+            }
+            n.state = observed ? observed.state : undefined;
+          });
           DATA.cycle.phases.forEach((p) => {
             // The measured figures are hung on the node OBJECTS, which the
             // estate owns and the resolver hands out by reference - so a
@@ -2877,6 +3153,10 @@
             // BEFORE paint(), which resolves: a paint against an empty estate
             // would draw `Apply - stage` as an empty phase and light nothing.
             useEstate(d.estate);
+            // The other half of the same read: which step touches which noun,
+            // indexed from BOTH ends so the estate contour and the map are
+            // drawn from one array rather than from two agreeing lists.
+            useTouches(d.cycle.phases);
             paint();
             const c = d.counts;
             $("#outside-note").innerHTML = d.outside.note;
@@ -2887,14 +3167,6 @@
               const el = nodeEl({ ...n, state: "perm" });
               el.insertAdjacentHTML("beforeend", `<div class="asserts">${n.why}</div>`);
               outside.appendChild(el);
-            });
-
-            const perm = $("#perm");
-            d.estate.permanent.forEach((n) => {
-              const el = nodeEl({ ...n, state: "perm" });
-              el.insertAdjacentHTML("beforeend",
-                `<div class="ident">${n.level}</div><div class="asserts">${n.why}</div>`);
-              perm.appendChild(el);
             });
 
             const hidden = d.not_shown.reduce((a, g) => a + g.resources, 0);
@@ -2914,6 +3186,9 @@
             $("#adr-count").textContent = c.adrs;
             renderPath(d);
             renderDetail(d);
+            renderEstate(d);
+            renderEstateCaption();
+            renderSuites(d);
             render();
             // The observation that arrived while this chain was still in the
             // air. No re-read: the layer was fetched two steps ago, and asking
@@ -3005,6 +3280,13 @@
           // in the bootstrap chain, for the same reason everything else in 20l
           // was: nothing re-read, so nothing needed re-drawing.
           renderDetail(DATA);
+          // THE ESTATE RE-DRAWS ON THE SAME TICK AS THE MAP. It is the contour
+          // whose words come from the observation, so leaving it out of the
+          // redraw would have given it the one property the panel it replaces
+          // never had: going stale while the page around it refreshed.
+          renderEstate(DATA);
+          renderEstateCaption();
+          renderSuites(DATA);
           render();
         }
 

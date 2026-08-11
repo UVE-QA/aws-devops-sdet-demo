@@ -18,10 +18,11 @@
  *       ==== RUN-LAYER STATE MACHINE - end ====
  *
  * Since schema 3 a phase REFERENCES the resource nodes it acts on instead of
- * holding them, so the snapshot carries an `estate` beside its phases and this
- * gate hands it over with useEstate() before folding anything. That is the one
- * call the page makes too, in the same order, for the same reason: without it
- * `Apply - stage` is an empty phase and the machine lights nothing.
+ * holding them, and since Phase 24 it does not draw them either: the estate is
+ * a contour of its own, answered by observation. The snapshot still carries an
+ * `estate` beside its phases and this gate still hands it over with
+ * useEstate() - not to resolve anything now, but because knowing which ids are
+ * NOUNS is what makes claim 4 checkable.
  *
  * What it defends, in the three sentences 20c wrote down while watching a live
  * cycle and could not check afterwards:
@@ -36,6 +37,14 @@
  *      quality gate and its report comes out of a step in Provision, so a suite
  *      that inherited its phase lit in the wrong minute - and prod, whose gate
  *      does bind its db step, disagreed with stage about the same suite.
+ *   4. AN ESTATE NODE NEVER REACHES THE RUN LAYER (Phase 24, ADR-0054 D3).
+ *      Claim 1 was the best available answer while a resource was a child of
+ *      the phase that made it; it is not an answer at all for `prod.rds`, which
+ *      four verbs touch and which stood at full colour with the previous
+ *      cycle's figures for twelve measured minutes while prod was being
+ *      deleted, because the destroy phase could not reach it. A noun is
+ *      answered by observation now. This one is checked against EVERY case, not
+ *      against a case written for it.
  *
  * The phases it folds are a FROZEN snapshot in tests/fixtures/live-state/, not
  * site/data/topology.json, for the reason check-results.py freezes its
@@ -144,18 +153,34 @@ function main() {
   if (!fs.existsSync(phasesFile)) refuse(`${path.relative(ROOT, phasesFile)} does not exist`);
   const snapshot = readJSON(phasesFile);
   const phases = snapshot.phases;
-  // A snapshot with no estate resolves every `creates` touch to nothing, and a
-  // machine that reports nothing at all still passes a subset check - so the
-  // absence is a refusal rather than a quiet zero. Regenerate it with
+  // THE ESTATE IS WHAT CLAIM 4 IS MEASURED AGAINST. Without it this gate cannot
+  // tell a NOUN from a step, so its strongest claim would quietly become
+  // unverifiable - the empty result that reads as clean, which this repository
+  // has been caught by twice. A refusal, not a quiet zero. Regenerate it with
   // tests/fixtures/live-state/refresh.py.
   if (!snapshot.estate) {
     refuse(
-      `${path.relative(ROOT, phasesFile)} carries no \`estate\`. Since schema 3 a phase ` +
-        `REFERENCES the resource nodes it creates, and without them every apply phase ` +
-        `folds as empty - which no case in here would report.`
+      `${path.relative(ROOT, phasesFile)} carries no \`estate\`. This gate needs it to know ` +
+        `which ids are NOUNS: since Phase 24 the run layer may not report on one at all ` +
+        `(ADR-0054 D3), and without the estate that claim cannot be checked.`
     );
   }
   useEstate(snapshot.estate);
+  // Claim 4, and the reason phaseNodes() got smaller: AN ESTATE NODE NEVER
+  // APPEARS IN THE RUN LAYER AT ALL. It is checked against every case rather
+  // than against the one case somebody remembered to write, because the defect
+  // it replaces - prod.rds at full colour for twelve measured minutes while
+  // prod was being deleted - arrived through a phase nobody was looking at.
+  const ESTATE_IDS = new Set([
+    ...snapshot.estate.environments.flatMap((e) => (e.nodes || []).map((n) => n.id)),
+    ...(snapshot.estate.permanent || []).map((n) => n.id),
+  ]);
+  if (!ESTATE_IDS.size) {
+    refuse(
+      `${path.relative(ROOT, phasesFile)} carries an \`estate\` holding no nodes, so the ` +
+        `claim that none of them reaches the run layer would hold vacuously everywhere.`
+    );
+  }
 
   if (!fs.existsSync(CASES)) refuse(`${path.relative(ROOT, CASES)} does not exist`);
   let dirs = fs.readdirSync(CASES).filter((d) => fs.statSync(path.join(CASES, d)).isDirectory()).sort();
@@ -181,6 +206,15 @@ function main() {
       continue;
     }
     const findings = compare(expected, got);
+    for (const id of Object.keys(got.nodes || {})) {
+      if (ESTATE_IDS.has(id)) {
+        findings.push(
+          `nodes.${id}: an ESTATE node reached the run layer (${JSON.stringify(got.nodes[id])}). ` +
+            `A noun is answered by observation and by nothing else (ADR-0054 D3); ` +
+            `phaseNodes() must return a phase's own steps only.`
+        );
+      }
+    }
     if (findings.length) {
       failed++;
       console.log(`FAIL  ${name}`);

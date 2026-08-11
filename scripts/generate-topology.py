@@ -651,16 +651,20 @@ def build():
     #
     # So the threshold stays where it is, and the phase that made it a question
     # is simply the tallest one the map has.
-    # WHAT A PHASE DRAWS, WHICH IS NO LONGER WHAT IT HOLDS (Phase 22). A phase
-    # draws its own nodes plus the estate nodes it CREATES - that verb and no
-    # other, because "this step is why the noun exists" is the one relationship a
-    # box inside a phase can honestly mean. Counted with every verb instead, the
-    # quality gate would gain its three asserted-against nodes, cross WIDE_AT and
-    # take the map from ten columns to eleven; measured, and that is a
-    # composition decision, which belongs to Phase 23 and not to naming the
-    # relationships. As written the total is unchanged at 10.
+    # WHAT A PHASE DRAWS, NARROWED AGAIN (Phase 24, ADR-0058). Phase 22 had a
+    # phase draw its own nodes PLUS the estate nodes it creates, which kept the
+    # geometry identical to schema 2 while the model underneath it changed. The
+    # composition decision it deferred is now taken: under ADR-0054 D5 the estate
+    # contour draws those nouns, so a phase draws its own steps and NAMES what it
+    # touches instead of containing it.
+    #
+    # The count therefore falls to the phase's own nodes, and the two figures
+    # ADR-0054 predicted follow from the data rather than from a preference: the
+    # tallest phase is the quality gate at 4, nothing reaches WIDE_AT, `wide` is
+    # empty and `columns` is 8. Nothing here is a literal - remove the estate
+    # contour and this recomputes on its own.
     def drawn_count(p):
-        return len(p["nodes"]) + sum(1 for t in p["touches"] if t["verb"] == "creates")
+        return len(p["nodes"])
 
     WIDE_AT = 6
     wide = [p["id"] for p in phases if drawn_count(p) >= WIDE_AT]

@@ -37,5 +37,5 @@
       ]
     }
   ],
-  "_": "Terraform creates ONE resource at a time and the page is never told which, so every node of the running phase inherits the phase and is marked as having done so. Not one of the seven may come back via `own`. The clock starts at `Terraform plan`, the first bound step to have begun, not at the step running right now."
+  "_": "The phase lights and NOT ONE RESOURCE DOES. Until Phase 24 the seven stage nodes were children of this phase and inherited it, marked `via: \"phase\"`, because Terraform creates one at a time and the page is never told which - the best answer available to a picture built on containment. Under ADR-0054 D3 a noun is answered by observation instead, so the honest rendering of `which one` is that the run layer says nothing about any of them. `build.ecr` stays: it is a STEP, the push, and the registry it pushes to is a different object. The clock still starts at `Terraform plan`, the first bound step to have begun, not at the step running right now."
 }

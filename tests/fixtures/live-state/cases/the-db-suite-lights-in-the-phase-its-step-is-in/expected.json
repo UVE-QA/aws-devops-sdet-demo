@@ -19,41 +19,6 @@
       "since": "2026-08-08T10:00:00Z",
       "via": "phase"
     },
-    "stage.vpc": {
-      "state": "finished",
-      "since": "2026-08-08T11:00:00Z",
-      "via": "phase"
-    },
-    "stage.secrets": {
-      "state": "finished",
-      "since": "2026-08-08T11:00:00Z",
-      "via": "phase"
-    },
-    "stage.rds": {
-      "state": "finished",
-      "since": "2026-08-08T11:00:00Z",
-      "via": "phase"
-    },
-    "stage.alb": {
-      "state": "finished",
-      "since": "2026-08-08T11:00:00Z",
-      "via": "phase"
-    },
-    "stage.ecs": {
-      "state": "finished",
-      "since": "2026-08-08T11:00:00Z",
-      "via": "phase"
-    },
-    "stage.cloudwatch": {
-      "state": "finished",
-      "since": "2026-08-08T11:00:00Z",
-      "via": "phase"
-    },
-    "stage.budgets": {
-      "state": "finished",
-      "since": "2026-08-08T11:00:00Z",
-      "via": "phase"
-    },
     "stage.migrate": {
       "state": "running",
       "since": "2026-08-08T13:00:00Z",

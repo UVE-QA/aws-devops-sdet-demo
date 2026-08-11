@@ -17,11 +17,8 @@
   "measured_cycle": null,
   "layout": {
     "wide_at": 6,
-    "wide": [
-      "stage-apply",
-      "prod-apply"
-    ],
-    "columns": 10
+    "wide": [],
+    "columns": 8
   },
   "request_path": {
     "note": "the request path to prod, and the tool behind each hop",

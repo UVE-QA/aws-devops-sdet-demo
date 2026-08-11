@@ -49,5 +49,5 @@
       ]
     }
   ],
-  "_": "suite.db.stage is DRAWN in the quality gate and its report comes out of a step in Provision. Its own binding is what answers: it is running while the gate phase has not started. Under the phase's answer it would have been dark here and lit later, during tests it takes no part in - and prod, whose gate phase does bind its db step, would have said the opposite about the same suite."
+  "_": "suite.db.stage is DRAWN in the quality gate and its report comes out of a step in Provision. Its own binding is what answers: it is running while the gate phase has not started. Under the phase's answer it would have been dark here and lit later, during tests it takes no part in - and prod, whose gate phase does bind its db step, would have said the opposite about the same suite. The seven stage resources this case used to carry are gone from it for a different reason: they are nouns and the run layer no longer speaks for them."
 }

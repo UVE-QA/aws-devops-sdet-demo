@@ -35,5 +35,5 @@
       ]
     }
   ],
-  "_": "The job leaving the queue IS the approval being given, and the gate node has to stop saying `waiting for a human` at that moment rather than at the end of the run."
+  "_": "The job leaving the queue IS the approval being given, and the gate node has to stop saying `waiting for a human` at that moment rather than at the end of the run. The eight prod resources that used to be lit by the apply phase behind it are not here any more: they are nouns, and prod's own observation answers for them (ADR-0054 D3)."
 }
