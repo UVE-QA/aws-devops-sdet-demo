@@ -1,0 +1,714 @@
+{
+  "_comment": "COMPUTED by scripts/fold-cost.py from resource LIFETIMES and a dated rate table. An estimate, expressed as a band, and not a bill: no billing API is consulted anywhere in this project (ADR-0045).",
+  "schema": "cost/1",
+  "environment": "stage",
+  "kind": "computed_estimate",
+  "written_at": "2026-08-09T23:07:51Z",
+  "rates": {
+    "captured_at": "2026-08-08T23:13:42Z",
+    "region": "us-west-2",
+    "source": "AWS Price List Query API (pricing:GetProducts, endpoint us-east-1)"
+  },
+  "shape": {
+    "task_vcpu": 0.25,
+    "task_gb": 0.5,
+    "task_count": 1,
+    "db_instance_class": "db.t4g.micro",
+    "db_allocated_gb": 20,
+    "from": {
+      "task_cpu": "infra/envs/stage/variables.tf",
+      "task_memory": "infra/envs/stage/variables.tf",
+      "desired_count": "infra/envs/stage/variables.tf",
+      "db_instance_class": "infra/envs/stage/variables.tf",
+      "db_allocated_gb": "infra/modules/rds"
+    }
+  },
+  "cycle": {
+    "status": "closed",
+    "started_at": "2026-08-09T21:58:47Z",
+    "finished_at": "2026-08-09T23:07:30Z",
+    "duration_seconds": 4123.0,
+    "apply_run": {
+      "id": "31338176627",
+      "number": "32",
+      "attempt": "1",
+      "workflow": "deploy-stage",
+      "url": "https://github.com/UVE-QA/aws-devops-sdet-demo/actions/runs/31338176627"
+    },
+    "destroy_run": {
+      "id": "31340738466",
+      "number": "45",
+      "attempt": "1",
+      "workflow": "destroy",
+      "url": "https://github.com/UVE-QA/aws-devops-sdet-demo/actions/runs/31340738466"
+    },
+    "usd": {
+      "low": 0.052932,
+      "high": 0.058416
+    }
+  },
+  "counts": {
+    "created": 32,
+    "priced": 3,
+    "free": 25,
+    "not_metered": 4,
+    "unpriced": 0,
+    "orphan_deletes": 0
+  },
+  "unpriced": [],
+  "orphan_deletes": [],
+  "resources": [
+    {
+      "address": "module.rds.random_password.db",
+      "type": "random_password",
+      "created": {
+        "started_at": "2026-08-09T21:58:50Z",
+        "finished_at": "2026-08-09T21:58:50Z"
+      },
+      "deleted": null,
+      "bucket": "free",
+      "state": "free",
+      "seconds": {
+        "low": null,
+        "high": null
+      },
+      "usd": {
+        "low": null,
+        "high": null
+      },
+      "reason": "not an AWS resource"
+    },
+    {
+      "address": "module.network.aws_vpc.this",
+      "type": "aws_vpc",
+      "created": {
+        "started_at": "2026-08-09T21:58:50Z",
+        "finished_at": "2026-08-09T21:59:03Z"
+      },
+      "deleted": null,
+      "bucket": "free",
+      "state": "free",
+      "seconds": {
+        "low": null,
+        "high": null
+      },
+      "usd": {
+        "low": null,
+        "high": null
+      },
+      "reason": "no charge"
+    },
+    {
+      "address": "module.observability.aws_cloudwatch_log_group.app",
+      "type": "aws_cloudwatch_log_group",
+      "created": {
+        "started_at": "2026-08-09T21:58:50Z",
+        "finished_at": "2026-08-09T21:58:51Z"
+      },
+      "deleted": null,
+      "bucket": "not_metered",
+      "state": "not_metered",
+      "seconds": {
+        "low": null,
+        "high": null
+      },
+      "usd": {
+        "low": null,
+        "high": null
+      },
+      "reason": "billed on bytes ingested and bytes stored. Neither is a lifetime and neither is visible in a timeline; measuring it would need a CloudWatch API call, which this fold deliberately does not make (ADR-0039 D2)."
+    },
+    {
+      "address": "module.rds.aws_secretsmanager_secret.db",
+      "type": "aws_secretsmanager_secret",
+      "created": {
+        "started_at": "2026-08-09T21:58:50Z",
+        "finished_at": "2026-08-09T21:58:51Z"
+      },
+      "deleted": null,
+      "bucket": "not_metered",
+      "state": "not_metered",
+      "seconds": {
+        "low": null,
+        "high": null
+      },
+      "usd": {
+        "low": null,
+        "high": null
+      },
+      "reason": "billed per secret-month plus API calls. Same shape and same reasoning as the alarm."
+    },
+    {
+      "address": "module.observability.aws_cloudwatch_metric_alarm.http_5xx",
+      "type": "aws_cloudwatch_metric_alarm",
+      "created": {
+        "started_at": "2026-08-09T21:58:50Z",
+        "finished_at": "2026-08-09T21:58:51Z"
+      },
+      "deleted": null,
+      "bucket": "not_metered",
+      "state": "not_metered",
+      "seconds": {
+        "low": null,
+        "high": null
+      },
+      "usd": {
+        "low": null,
+        "high": null
+      },
+      "reason": "billed per alarm-month, which IS a lifetime this fold could price. Left out of v1 on purpose and named here rather than dropped: one alarm over half an hour is far below the width of the band the estimate already reports, and adding it would mean a fourth price lookup for a figure that cannot change the answer."
+    },
+    {
+      "address": "module.budgets.aws_budgets_budget.monthly[0]",
+      "type": "aws_budgets_budget",
+      "created": {
+        "started_at": "2026-08-09T21:58:50Z",
+        "finished_at": "2026-08-09T21:58:57Z"
+      },
+      "deleted": null,
+      "bucket": "free",
+      "state": "free",
+      "seconds": {
+        "low": null,
+        "high": null
+      },
+      "usd": {
+        "low": null,
+        "high": null
+      },
+      "reason": "the first two budgets per account are free and this project has fewer than two per account at any time"
+    },
+    {
+      "address": "module.observability.aws_cloudwatch_log_metric_filter.http_5xx",
+      "type": "aws_cloudwatch_log_metric_filter",
+      "created": {
+        "started_at": "2026-08-09T21:58:51Z",
+        "finished_at": "2026-08-09T21:58:51Z"
+      },
+      "deleted": null,
+      "bucket": "not_metered",
+      "state": "not_metered",
+      "seconds": {
+        "low": null,
+        "high": null
+      },
+      "usd": {
+        "low": null,
+        "high": null
+      },
+      "reason": "no charge for the filter; what it produces is a metric, and the alarm below is what is billable."
+    },
+    {
+      "address": "module.network.aws_default_security_group.this",
+      "type": "aws_default_security_group",
+      "created": {
+        "started_at": "2026-08-09T21:59:03Z",
+        "finished_at": "2026-08-09T21:59:05Z"
+      },
+      "deleted": null,
+      "bucket": "free",
+      "state": "free",
+      "seconds": {
+        "low": null,
+        "high": null
+      },
+      "usd": {
+        "low": null,
+        "high": null
+      },
+      "reason": "no charge"
+    },
+    {
+      "address": "module.network.aws_subnet.public[0]",
+      "type": "aws_subnet",
+      "created": {
+        "started_at": "2026-08-09T21:59:03Z",
+        "finished_at": "2026-08-09T21:59:14Z"
+      },
+      "deleted": null,
+      "bucket": "free",
+      "state": "free",
+      "seconds": {
+        "low": null,
+        "high": null
+      },
+      "usd": {
+        "low": null,
+        "high": null
+      },
+      "reason": "no charge"
+    },
+    {
+      "address": "module.network.aws_internet_gateway.this",
+      "type": "aws_internet_gateway",
+      "created": {
+        "started_at": "2026-08-09T21:59:03Z",
+        "finished_at": "2026-08-09T21:59:04Z"
+      },
+      "deleted": null,
+      "bucket": "free",
+      "state": "free",
+      "seconds": {
+        "low": null,
+        "high": null
+      },
+      "usd": {
+        "low": null,
+        "high": null
+      },
+      "reason": "no charge while attached to a VPC; there is no NAT gateway in v0, which is the one that would cost money"
+    },
+    {
+      "address": "module.network.aws_subnet.private_db[1]",
+      "type": "aws_subnet",
+      "created": {
+        "started_at": "2026-08-09T21:59:03Z",
+        "finished_at": "2026-08-09T21:59:04Z"
+      },
+      "deleted": null,
+      "bucket": "free",
+      "state": "free",
+      "seconds": {
+        "low": null,
+        "high": null
+      },
+      "usd": {
+        "low": null,
+        "high": null
+      },
+      "reason": "no charge"
+    },
+    {
+      "address": "module.network.aws_subnet.public[1]",
+      "type": "aws_subnet",
+      "created": {
+        "started_at": "2026-08-09T21:59:03Z",
+        "finished_at": "2026-08-09T21:59:15Z"
+      },
+      "deleted": null,
+      "bucket": "free",
+      "state": "free",
+      "seconds": {
+        "low": null,
+        "high": null
+      },
+      "usd": {
+        "low": null,
+        "high": null
+      },
+      "reason": "no charge"
+    },
+    {
+      "address": "module.network.aws_subnet.private_db[0]",
+      "type": "aws_subnet",
+      "created": {
+        "started_at": "2026-08-09T21:59:03Z",
+        "finished_at": "2026-08-09T21:59:07Z"
+      },
+      "deleted": null,
+      "bucket": "free",
+      "state": "free",
+      "seconds": {
+        "low": null,
+        "high": null
+      },
+      "usd": {
+        "low": null,
+        "high": null
+      },
+      "reason": "no charge"
+    },
+    {
+      "address": "module.alb.aws_security_group.alb",
+      "type": "aws_security_group",
+      "created": {
+        "started_at": "2026-08-09T21:59:03Z",
+        "finished_at": "2026-08-09T21:59:06Z"
+      },
+      "deleted": null,
+      "bucket": "free",
+      "state": "free",
+      "seconds": {
+        "low": null,
+        "high": null
+      },
+      "usd": {
+        "low": null,
+        "high": null
+      },
+      "reason": "no charge"
+    },
+    {
+      "address": "module.alb.aws_lb_target_group.app",
+      "type": "aws_lb_target_group",
+      "created": {
+        "started_at": "2026-08-09T21:59:03Z",
+        "finished_at": "2026-08-09T21:59:04Z"
+      },
+      "deleted": null,
+      "bucket": "free",
+      "state": "free",
+      "seconds": {
+        "low": null,
+        "high": null
+      },
+      "usd": {
+        "low": null,
+        "high": null
+      },
+      "reason": "no charge"
+    },
+    {
+      "address": "module.network.aws_route_table.public",
+      "type": "aws_route_table",
+      "created": {
+        "started_at": "2026-08-09T21:59:04Z",
+        "finished_at": "2026-08-09T21:59:05Z"
+      },
+      "deleted": null,
+      "bucket": "free",
+      "state": "free",
+      "seconds": {
+        "low": null,
+        "high": null
+      },
+      "usd": {
+        "low": null,
+        "high": null
+      },
+      "reason": "no charge"
+    },
+    {
+      "address": "module.rds.aws_db_subnet_group.this",
+      "type": "aws_db_subnet_group",
+      "created": {
+        "started_at": "2026-08-09T21:59:07Z",
+        "finished_at": "2026-08-09T21:59:08Z"
+      },
+      "deleted": null,
+      "bucket": "free",
+      "state": "free",
+      "seconds": {
+        "low": null,
+        "high": null
+      },
+      "usd": {
+        "low": null,
+        "high": null
+      },
+      "reason": "no charge"
+    },
+    {
+      "address": "module.network.aws_route_table_association.public[1]",
+      "type": "aws_route_table_association",
+      "created": {
+        "started_at": "2026-08-09T21:59:15Z",
+        "finished_at": "2026-08-09T21:59:15Z"
+      },
+      "deleted": null,
+      "bucket": "free",
+      "state": "free",
+      "seconds": {
+        "low": null,
+        "high": null
+      },
+      "usd": {
+        "low": null,
+        "high": null
+      },
+      "reason": "no charge"
+    },
+    {
+      "address": "module.network.aws_route_table_association.public[0]",
+      "type": "aws_route_table_association",
+      "created": {
+        "started_at": "2026-08-09T21:59:15Z",
+        "finished_at": "2026-08-09T21:59:15Z"
+      },
+      "deleted": null,
+      "bucket": "free",
+      "state": "free",
+      "seconds": {
+        "low": null,
+        "high": null
+      },
+      "usd": {
+        "low": null,
+        "high": null
+      },
+      "reason": "no charge"
+    },
+    {
+      "address": "module.alb.aws_lb.this",
+      "type": "aws_lb",
+      "created": {
+        "started_at": "2026-08-09T21:59:15Z",
+        "finished_at": "2026-08-09T22:01:58Z"
+      },
+      "deleted": {
+        "started_at": "2026-08-09T23:06:50Z",
+        "finished_at": "2026-08-09T23:07:17Z"
+      },
+      "bucket": "priced",
+      "state": "closed",
+      "seconds": {
+        "low": 3892.0,
+        "high": 4082.0
+      },
+      "usd": {
+        "low": 0.024325,
+        "high": 0.025513
+      },
+      "minimum_seconds_applied": false,
+      "note": "LCU charges are real and are NOT included: an LCU is a usage measurement, not a lifetime, and nothing in a timeline can see one. A demo cycle serves a handful of requests, so the omission is small and it is stated rather than hidden."
+    },
+    {
+      "address": "module.alb.aws_lb_listener.http",
+      "type": "aws_lb_listener",
+      "created": {
+        "started_at": "2026-08-09T22:01:58Z",
+        "finished_at": "2026-08-09T22:01:59Z"
+      },
+      "deleted": null,
+      "bucket": "free",
+      "state": "free",
+      "seconds": {
+        "low": null,
+        "high": null
+      },
+      "usd": {
+        "low": null,
+        "high": null
+      },
+      "reason": "no charge; the load balancer hour is the aws_lb line"
+    },
+    {
+      "address": "module.ecs.aws_ecs_cluster.this",
+      "type": "aws_ecs_cluster",
+      "created": {
+        "started_at": "2026-08-09T22:01:59Z",
+        "finished_at": "2026-08-09T22:02:10Z"
+      },
+      "deleted": null,
+      "bucket": "free",
+      "state": "free",
+      "seconds": {
+        "low": null,
+        "high": null
+      },
+      "usd": {
+        "low": null,
+        "high": null
+      },
+      "reason": "no charge for the cluster itself; the capacity under it is the aws_ecs_service line"
+    },
+    {
+      "address": "module.ecs.aws_iam_role.execution",
+      "type": "aws_iam_role",
+      "created": {
+        "started_at": "2026-08-09T22:01:59Z",
+        "finished_at": "2026-08-09T22:01:59Z"
+      },
+      "deleted": null,
+      "bucket": "free",
+      "state": "free",
+      "seconds": {
+        "low": null,
+        "high": null
+      },
+      "usd": {
+        "low": null,
+        "high": null
+      },
+      "reason": "IAM is free"
+    },
+    {
+      "address": "module.ecs.aws_iam_role.task",
+      "type": "aws_iam_role",
+      "created": {
+        "started_at": "2026-08-09T22:01:59Z",
+        "finished_at": "2026-08-09T22:01:59Z"
+      },
+      "deleted": null,
+      "bucket": "free",
+      "state": "free",
+      "seconds": {
+        "low": null,
+        "high": null
+      },
+      "usd": {
+        "low": null,
+        "high": null
+      },
+      "reason": "IAM is free"
+    },
+    {
+      "address": "module.ecs.aws_security_group.app",
+      "type": "aws_security_group",
+      "created": {
+        "started_at": "2026-08-09T22:01:59Z",
+        "finished_at": "2026-08-09T22:02:02Z"
+      },
+      "deleted": null,
+      "bucket": "free",
+      "state": "free",
+      "seconds": {
+        "low": null,
+        "high": null
+      },
+      "usd": {
+        "low": null,
+        "high": null
+      },
+      "reason": "no charge"
+    },
+    {
+      "address": "module.ecs.aws_iam_role_policy.execution_read_secret",
+      "type": "aws_iam_role_policy",
+      "created": {
+        "started_at": "2026-08-09T22:01:59Z",
+        "finished_at": "2026-08-09T22:01:59Z"
+      },
+      "deleted": null,
+      "bucket": "free",
+      "state": "free",
+      "seconds": {
+        "low": null,
+        "high": null
+      },
+      "usd": {
+        "low": null,
+        "high": null
+      },
+      "reason": "IAM is free"
+    },
+    {
+      "address": "module.ecs.aws_iam_role_policy_attachment.execution_managed",
+      "type": "aws_iam_role_policy_attachment",
+      "created": {
+        "started_at": "2026-08-09T22:01:59Z",
+        "finished_at": "2026-08-09T22:01:59Z"
+      },
+      "deleted": null,
+      "bucket": "free",
+      "state": "free",
+      "seconds": {
+        "low": null,
+        "high": null
+      },
+      "usd": {
+        "low": null,
+        "high": null
+      },
+      "reason": "IAM is free"
+    },
+    {
+      "address": "module.ecs.aws_ecs_task_definition.app",
+      "type": "aws_ecs_task_definition",
+      "created": {
+        "started_at": "2026-08-09T22:01:59Z",
+        "finished_at": "2026-08-09T22:02:00Z"
+      },
+      "deleted": null,
+      "bucket": "free",
+      "state": "free",
+      "seconds": {
+        "low": null,
+        "high": null
+      },
+      "usd": {
+        "low": null,
+        "high": null
+      },
+      "reason": "no charge to register a revision, and deregistered revisions are free for ever \u2014 which is why they are the documented exception to the leftover sweep (ADR-0041)"
+    },
+    {
+      "address": "module.rds.aws_security_group.rds",
+      "type": "aws_security_group",
+      "created": {
+        "started_at": "2026-08-09T22:02:02Z",
+        "finished_at": "2026-08-09T22:02:05Z"
+      },
+      "deleted": null,
+      "bucket": "free",
+      "state": "free",
+      "seconds": {
+        "low": null,
+        "high": null
+      },
+      "usd": {
+        "low": null,
+        "high": null
+      },
+      "reason": "no charge"
+    },
+    {
+      "address": "module.rds.aws_db_instance.this",
+      "type": "aws_db_instance",
+      "created": {
+        "started_at": "2026-08-09T22:02:05Z",
+        "finished_at": "2026-08-09T22:07:02Z"
+      },
+      "deleted": {
+        "started_at": "2026-08-09T22:59:38Z",
+        "finished_at": "2026-08-09T23:03:31Z"
+      },
+      "bucket": "priced",
+      "state": "closed",
+      "seconds": {
+        "low": 3156.0,
+        "high": 3686.0
+      },
+      "usd": {
+        "low": 0.016789,
+        "high": 0.019608
+      },
+      "minimum_seconds_applied": false,
+      "note": "AWS bills a deleted RDS instance for a minimum of ten minutes. A cycle is about half an hour, so the minimum does not usually bind \u2014 it binds on a cycle that dies early, which is exactly the cycle whose cost somebody would otherwise report as nearly nothing."
+    },
+    {
+      "address": "module.ecs.aws_ecs_service.app",
+      "type": "aws_ecs_service",
+      "created": {
+        "started_at": "2026-08-09T22:02:10Z",
+        "finished_at": "2026-08-09T22:02:11Z"
+      },
+      "deleted": {
+        "started_at": "2026-08-09T22:59:38Z",
+        "finished_at": "2026-08-09T23:06:48Z"
+      },
+      "bucket": "priced",
+      "state": "closed",
+      "seconds": {
+        "low": 3447.0,
+        "high": 3878.0
+      },
+      "usd": {
+        "low": 0.011818,
+        "high": 0.013296
+      },
+      "minimum_seconds_applied": false,
+      "note": "Fargate bills TASKS, and a task is not a Terraform resource \u2014 nothing in the event stream has ever seen one start. The service's lifetime is used as a proxy for the task's, which overstates slightly (the service exists before its first task is running) and is labelled as a proxy wherever it renders."
+    },
+    {
+      "address": "module.rds.aws_secretsmanager_secret_version.db",
+      "type": "aws_secretsmanager_secret_version",
+      "created": {
+        "started_at": "2026-08-09T22:07:02Z",
+        "finished_at": "2026-08-09T22:07:03Z"
+      },
+      "deleted": null,
+      "bucket": "free",
+      "state": "free",
+      "seconds": {
+        "low": null,
+        "high": null
+      },
+      "usd": {
+        "low": null,
+        "high": null
+      },
+      "reason": "a version is part of its secret and is not billed separately"
+    }
+  ]
+}

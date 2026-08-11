@@ -1,0 +1,115 @@
+{
+  "schema": "node-states/1",
+  "environment": "prod",
+  "kind": "apply",
+  "written_at": "2026-08-09T22:38:59Z",
+  "cycle": {
+    "status": "complete",
+    "date": "2026-08-09",
+    "started_at": "2026-08-09T22:25:12Z",
+    "finished_at": "2026-08-09T22:33:32Z",
+    "duration_seconds": 500.0,
+    "tool": {
+      "name": "terraform",
+      "version": "1.15.5",
+      "message": "Terraform 1.15.5"
+    },
+    "run": {
+      "id": "31339081127",
+      "number": "11",
+      "attempt": "1",
+      "workflow": "promote-prod",
+      "url": "https://github.com/UVE-QA/aws-devops-sdet-demo/actions/runs/31339081127"
+    }
+  },
+  "observed": {
+    "resources": 36,
+    "matched": 33,
+    "not_shown": 1,
+    "read": 2,
+    "unknown": 0,
+    "nodes": 8
+  },
+  "not_shown": [
+    "module.network.aws_default_security_group.this"
+  ],
+  "read": [
+    "module.ecs.data.aws_iam_policy_document.ecs_assume",
+    "module.ecs.data.aws_iam_policy_document.read_db_secret"
+  ],
+  "unknown": [],
+  "phases": {
+    "prod-apply": {
+      "duration_s": 498.0,
+      "started_at": "2026-08-09T22:25:14Z",
+      "finished_at": "2026-08-09T22:33:32Z",
+      "nodes": 8
+    }
+  },
+  "nodes": {
+    "prod.alb": {
+      "state": "measured",
+      "duration_s": 187.0,
+      "identifier": "arn:aws:elasticloadbalancing:us-west-2:993912191738:loadbalancer/app/aws-devops-sdet-demo-prod-alb/f8812a0d8e5a4afa",
+      "identifier_from": "module.alb.aws_lb.this",
+      "resources_observed": 5,
+      "resources_complete": 5
+    },
+    "prod.budgets": {
+      "state": "measured",
+      "duration_s": 8.0,
+      "identifier": "993912191738:aws-devops-sdet-demo-prod-monthly",
+      "identifier_from": "module.budgets.aws_budgets_budget.monthly[0]",
+      "resources_observed": 1,
+      "resources_complete": 1
+    },
+    "prod.cloudwatch": {
+      "state": "measured",
+      "duration_s": 1.0,
+      "identifier": "/aws-devops-sdet-demo/prod/app",
+      "identifier_from": "module.observability.aws_cloudwatch_log_group.app",
+      "resources_observed": 3,
+      "resources_complete": 3
+    },
+    "prod.dnsrec": {
+      "state": "measured",
+      "duration_s": 31.0,
+      "identifier": "Z0075526IEV5ME131TFQ_app.demo.uveapp.net_A",
+      "identifier_from": "aws_route53_record.app",
+      "resources_observed": 1,
+      "resources_complete": 1
+    },
+    "prod.ecs": {
+      "state": "measured",
+      "duration_s": 12.0,
+      "identifier": "arn:aws:ecs:us-west-2:993912191738:cluster/aws-devops-sdet-demo-prod-cluster",
+      "identifier_from": "module.ecs.aws_ecs_cluster.this",
+      "resources_observed": 8,
+      "resources_complete": 8
+    },
+    "prod.rds": {
+      "state": "measured",
+      "duration_s": 498.0,
+      "identifier": "db-XPNEAGXGDCWCYJGFF5VAE53GSA",
+      "identifier_from": "module.rds.aws_db_instance.this",
+      "resources_observed": 4,
+      "resources_complete": 4
+    },
+    "prod.secrets": {
+      "state": "measured",
+      "duration_s": 498.0,
+      "identifier": "arn:aws:secretsmanager:us-west-2:993912191738:secret:aws-devops-sdet-demo-prod-db-credentials-tCXhRr|terraform-20260809223332269800000005",
+      "identifier_from": "module.rds.aws_secretsmanager_secret_version.db",
+      "resources_observed": 2,
+      "resources_complete": 2
+    },
+    "prod.vpc": {
+      "state": "measured",
+      "duration_s": 27.0,
+      "identifier": "subnet-090d895d08435e2d0",
+      "identifier_from": "module.network.aws_subnet.public[0]",
+      "resources_observed": 9,
+      "resources_complete": 9
+    }
+  }
+}

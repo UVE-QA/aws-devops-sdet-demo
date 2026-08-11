@@ -19,6 +19,18 @@
  * `meta.now` pinning the clock: `12 min ago` stays `12 min ago` forever, and
  * two measurements six months apart are comparable.
  *
+ * AND FOR TWO PHASES IT MOCKED THREE OF FOUR (Phase 26, ADR-0059 D5, ADR-0060).
+ * The FOURTH source is the run layer: ten origin-relative documents a cycle
+ * publishes into the bucket beside the page. They are not in site/ and never
+ * will be, the guard above only watches what LEAVES the origin, and the page's
+ * own reader turns a 404 into `null` without a banner. So every measurement
+ * this project took between 20e and Phase 25 was of a page on which every node
+ * read `not run yet` and not one figure was printed - the short bodies. It was
+ * found by building a fixture for a different gate, not by this instrument.
+ * The layer now comes from tests/fixtures/page-measure/layer/ - one copy for
+ * both sets, because both declare the same `meta.now` - and an origin 404 is a
+ * refusal here exactly as it is in check-page-inflight.mjs.
+ *
  *     at-rest     nothing running, both environments destroyed - the page most
  *                 of the time, and both status files are REAL captures
  *     in-flight   a deploy running, stage stale against it, prod up with every
@@ -30,9 +42,12 @@
  * banner and carries on, so a broken mock looks like a short page rather than
  * like an error - the empty result that looks clean, which this project has
  * been bitten by twice. So: every request that leaves the origin and is not
- * mocked is recorded and refuses the run, and the page is asked afterwards
- * whether it drew a source-failure banner. Either one aborts without printing
- * a figure.
+ * mocked is recorded and refuses the run, every 404 from this instrument's OWN
+ * server is recorded and refuses the run, every file under the layer is parsed
+ * before the browser starts - a document that is present and unreadable is
+ * `null` to the page and absent to a 404 check - and the page is asked
+ * afterwards whether it drew a source-failure banner. Any one of them aborts
+ * without printing a figure.
  *
  * WHAT IT MEASURES, and why the second one is the point:
  *
@@ -86,6 +101,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SITE = path.join(ROOT, "site");
 const FIXTURES = path.join(ROOT, "tests/fixtures/page-measure");
+const LAYER = path.join(FIXTURES, "layer");
 
 const VIEWPORTS = [
   { name: "2560x1440", width: 2560, height: 1440, note: "the stated primary target" },
@@ -150,6 +166,33 @@ function readFixture(name) {
   };
 }
 
+/* AND A DOCUMENT THAT IS PRESENT BUT UNREADABLE IS THE SAME DEFECT ONE STEP IN.
+   readJSON() on the page is `r.ok ? r.json() : null` with a `.catch(() => null)`
+   around it, so a layer document that does not parse is indistinguishable from
+   one that 404s: the node falls back to `not run yet` and the page is short and
+   quiet again. The 404 refusal below cannot see it - the request succeeded. So
+   every file under the layer is parsed here, before the browser starts. */
+function auditLayer() {
+  if (!fs.existsSync(LAYER)) {
+    refuse(`${path.relative(ROOT, LAYER)} does not exist, and without the run layer every node ` +
+      "on the measured page reads `not run yet`.");
+  }
+  const walk = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
+    e.isDirectory() ? walk(path.join(dir, e.name)) : [path.join(dir, e.name)]);
+  const files = walk(LAYER);
+  if (!files.length) refuse(`${path.relative(ROOT, LAYER)} is empty.`);
+  for (const file of files) {
+    try {
+      JSON.parse(fs.readFileSync(file, "utf8"));
+    } catch (e) {
+      refuse(`${path.relative(ROOT, file)} is not valid JSON: ${e.message}\n` +
+        "  The page's own reader turns that into `null` and draws the node as if the document " +
+        "were absent, so this would measure a short page with nothing to say it.");
+    }
+  }
+  return files.length;
+}
+
 const MIME = {
   ".html": "text/html; charset=utf-8",
   ".json": "application/json; charset=utf-8",
@@ -160,12 +203,35 @@ const MIME = {
   ".ico": "image/x-icon"
 };
 
-function serveSite() {
+/* THE SITE, WITH THE RUN LAYER OVER THE TOP - and until Phase 26 the second
+   half of that sentence was missing, which is the whole of ADR-0059 D5. The
+   layer is what a cycle publishes into the bucket beside the page; site/ in the
+   repository does not contain it and never will. Served from the fixture, at
+   the same paths, exactly as check-page-inflight.mjs serves its own copy.
+
+   EVERY 404 FROM THIS SERVER IS RECORDED, and the caller refuses on it. The
+   route handler above only sees what LEAVES the origin, so for two phases the
+   ten run-layer documents 404ed here in silence and the page rendered happily,
+   shorter and quieter, with every node reading `not run yet` and no banner
+   drawn. The empty result that looks clean, one directory below the guard that
+   was watching for it. */
+function serve(notFound) {
   const server = http.createServer((req, res) => {
     const url = new URL(req.url, "http://127.0.0.1");
-    let file = path.join(SITE, decodeURIComponent(url.pathname));
-    if (url.pathname.endsWith("/")) file = path.join(file, "index.html");
-    if (!file.startsWith(SITE) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) {
+    const rel = decodeURIComponent(url.pathname).replace(/^\/+/, "");
+    let file = path.join(LAYER, rel);
+    if (!file.startsWith(LAYER) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) {
+      file = path.join(SITE, rel);
+    }
+    if (rel === "" || rel.endsWith("/")) file = path.join(SITE, rel, "index.html");
+    if (!file.startsWith(SITE) && !file.startsWith(LAYER)) {
+      notFound.push("/" + rel);
+      res.writeHead(403, { "content-type": "text/plain" });
+      res.end("refused");
+      return;
+    }
+    if (!fs.existsSync(file) || fs.statSync(file).isDirectory()) {
+      notFound.push("/" + rel);
       res.writeHead(404, { "content-type": "text/plain" });
       res.end("not found");
       return;
@@ -421,7 +487,9 @@ async function main() {
   if (!viewports.length) refuse(`no viewport called "${viewportFilter}".`);
   const top = Number(arg("--top", "12"));
 
-  const { server, port } = await serveSite();
+  auditLayer();
+  const notFound = [];
+  const { server, port } = await serve(notFound);
   const origin = `http://127.0.0.1:${port}`;
   const launch = { args: ["--no-sandbox"] };
   if (process.env.CHROMIUM_PATH) launch.executablePath = process.env.CHROMIUM_PATH;
@@ -488,6 +556,16 @@ async function main() {
           refuse(
             "the page asked for a source nobody mocked, so this measurement would be of a page " +
               "missing part of itself:\n  " + [...new Set(unmocked)].join("\n  ")
+          );
+        }
+        if (notFound.length) {
+          await browser.close();
+          server.close();
+          refuse(
+            "the page asked this instrument's own server for documents it does not have. A page " +
+              "missing its run layer draws no figure at all - every node reads `not run yet` - and " +
+              "is SHORTER than the page a visitor gets, with no banner to say so:\n  " +
+              [...new Set(notFound)].join("\n  ")
           );
         }
         if (measured.banner) {

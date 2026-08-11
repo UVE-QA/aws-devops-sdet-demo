@@ -1,0 +1,58 @@
+{
+  "schema": "node-states/1",
+  "environment": "prod",
+  "kind": "destroy",
+  "written_at": "2026-08-09T22:55:49Z",
+  "cycle": {
+    "status": "complete",
+    "date": "2026-08-09",
+    "started_at": "2026-08-09T22:47:28Z",
+    "finished_at": "2026-08-09T22:55:24Z",
+    "duration_seconds": 476.0,
+    "tool": {
+      "name": "terraform",
+      "version": "1.15.5",
+      "message": "Terraform 1.15.5"
+    },
+    "run": {
+      "id": "31340096295",
+      "number": "44",
+      "attempt": "1",
+      "workflow": "destroy",
+      "url": "https://github.com/UVE-QA/aws-devops-sdet-demo/actions/runs/31340096295"
+    }
+  },
+  "observed": {
+    "resources": 37,
+    "matched": 34,
+    "not_shown": 0,
+    "read": 3,
+    "unknown": 0,
+    "nodes": 1
+  },
+  "not_shown": [],
+  "read": [
+    "data.aws_acm_certificate.wildcard",
+    "data.aws_route53_zone.demo",
+    "module.network.data.aws_availability_zones.available"
+  ],
+  "unknown": [],
+  "phases": {
+    "destroy": {
+      "duration_s": 468.0,
+      "started_at": "2026-08-09T22:47:36Z",
+      "finished_at": "2026-08-09T22:55:24Z",
+      "nodes": 1
+    }
+  },
+  "nodes": {
+    "destroy.prod": {
+      "state": "measured",
+      "duration_s": 468.0,
+      "identifier": null,
+      "identifier_from": null,
+      "resources_observed": 34,
+      "resources_complete": 34
+    }
+  }
+}
