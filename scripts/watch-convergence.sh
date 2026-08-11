@@ -54,8 +54,17 @@
 #     already measured a pipe, a bytecode cache and a control that reproduced
 #     the defect it was controlling for.
 #
+# WHAT THE SAMPLER DOES TO WHAT IT MEASURES, measured in Phase 28. Polling every
+# two seconds keeps a copy at the edge with a full TTL ahead of it at all times,
+# so a write always lands INSIDE a sixty-second window and the delay is uniform
+# in [0, 60]. A visitor who does not poll often finds no copy at the edge and
+# gets the object at once. Both were seen in one cycle: two draws at 57.6s and
+# 61.1s against three at 1.1s, 1.6s and 8.6s. The high numbers are the price of
+# watching, not a property of the system, and a log of them without this
+# paragraph would say the opposite.
+#
 # Output: one line per sample to stdout, and the same lines to
-# $WATCH_LOG if set. Transitions are marked `**`.
+# $WATCH_LOG if set. `::` is the baseline, `**` a transition.
 set -uo pipefail
 
 interval_default=2
@@ -136,9 +145,27 @@ watch() {
     fi
     if [ "$mark" != "  " ]; then
       win=$(python3 -c "print(f'{($t1-$t0)/1000:.3f}s')")
-      if [ "$age" != "-" ] && [ "$dt" != "-" ]; then
-        local edge_ms=$(( dt - age * 1000 ))
-        [ "$lm" != "-" ] && w2e=$(python3 -c "print(f'{($edge_ms-$lm)/1000:.1f}s')")
+      # AGE IS ABSENT ON EXACTLY THE INTERESTING RESPONSE. This condition used
+      # to require it, and CloudFront omits `Age` on a MISS - which is the
+      # response that FIRST carries a new object, the one measurement this
+      # instrument exists to take. Three of the five transitions in Phase 28's
+      # cycle printed `-` here and had to be reconstructed by hand from
+      # head-object afterwards.
+      #
+      # With `Age`      the edge fetched at (Date - Age): a hit on a copy it has
+      #                 been holding, and `edge->here` is the part after that.
+      # Without `Age`   the edge went to the origin during THIS request, so the
+      #                 fetch is inside [t0, t1] and `edge->here` is that width.
+      # Either way `write->edge` needs `Last-Modified`, and that is what the
+      # condition asks for now.
+      if [ "$lm" != "-" ]; then
+        local edge_ms
+        if [ "$age" != "-" ] && [ "$dt" != "-" ]; then
+          edge_ms=$(( dt - age * 1000 ))
+        else
+          edge_ms=$t1
+        fi
+        w2e=$(python3 -c "print(f'{($edge_ms-$lm)/1000:.1f}s')")
         e2h=$(python3 -c "print(f'{($t1-$edge_ms)/1000:.1f}s')")
       fi
     fi
@@ -200,7 +227,7 @@ self_test() {
   t_change=$(cat "$dir/t_change" 2>/dev/null || echo "")
   first_seen=$(grep '^\*\*' "$dir/log" | tail -1 | awk '{print $2}')
   echo "--- self-test ---"
-  grep -E '^(\*\*|  )' "$dir/log" | tail -12
+  grep -E '^(::|\*\*|  )' "$dir/log" | tail -12
   if [ -z "$t_change" ] || [ -z "$first_seen" ]; then
     echo "self-test: REFUSED - no transition was reported at all." >&2; rc=2
   else
