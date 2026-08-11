@@ -7,6 +7,16 @@ than shrink past its floor — is unchanged, and this is the first session that
 measured what the floor is. Closes the two items **ADR-0050** named and left: the
 comb and the ragged top row.
 
+**Remeasured in Phase 26 (ADR-0060 D4), and this is the ADR the remeasurement
+splits in two.** Every figure below was taken on a page whose run layer 404ed,
+so no node printed a figure. **D1 is untouched to the hundredth of a pixel** —
+143.69px and 295.58px both reproduce exactly with the layer served, because the
+floor is a horizontal measurement of node names and what the layer adds is
+vertical. **D3's comb saving is 3.5x smaller than recorded at 1920**: the pair
+`1432.28 -> 967.85` becomes `1214.93 -> 1083.51`. At 1440 it goes the other way
+— `909.65 -> 694.72` becomes `1025.29 -> 758.20`, a larger saving. Nothing below
+is retracted; the difference is in ADR-0060 D4.
+
 ## Context
 
 Three numbers have been the map's legibility floor, and the first two were

@@ -1402,7 +1402,22 @@ during a stage deploy that never touches prod.
 **Carried forward, both from Phase 24:** the contrast contract has one ancestry
 and the page has two. It travels with 27.
 
-## Phase 26 — The instrument measures a page that has figures on it
+## Phase 26 — The instrument measures a page that has figures on it  [DONE 2026-08-11, $0]
+
+Closed with **ADR-0060**. The layer is served from
+`tests/fixtures/page-measure/layer/` — ten REAL documents, the cycle 20m ran on
+2026-08-09 — an origin 404 refuses, and a document that is present and
+unparseable refuses too. That second refusal was not in the plan below; it came
+from asking what the planned one does not cover.
+
+Every figure was remeasured on its own commit, with the BASELINE half re-run in
+the same session, so the comparison is instrument-to-instrument rather than
+figure-to-memory — and the baseline reproduced every recorded number exactly,
+which is what turns a claim into a comparison. **`--node-min` is untouched to
+the hundredth of a pixel**: the floor is a horizontal measurement and the
+layer's effect is vertical. **ADR-0052 D3's comb saving is 3.5x smaller at
+1920**, and LARGER at 1440. **ADR-0058 D6 survives**, at 674px instead of 703px
+and 3.1 screens instead of 2.9.
 
 **ADR-0059 D5.** `measure-page.mjs` guards the requests that LEAVE the origin
 and lets the run layer's ten origin-relative documents 404 against its own static
@@ -1433,8 +1448,13 @@ the number first.
 
 ## Phase 27 — The contrast contract has two ancestries
 
-Carried from Phase 24 and past Phase 25, which did not reach it — the smaller of
-the two items 24 handed forward, and the one with no evidence behind it yet.
+Carried from Phase 24 and past Phase 25 and Phase 26, neither of which reached
+it — the smaller of the two items 24 handed forward, and the one with no
+evidence behind it yet.
+
+Phase 26 added a second small item to travel with it: the broken-word rule has
+no concept of a hyphen, and now produces two false positives on the desktop
+rather than one (`read-only` and `promote-prod`).
 
 `assets/contrast-contract.json` declares one probe chain,
 `main > .cycle > .phase > .set`. Since 24 the estate contour draws the same six

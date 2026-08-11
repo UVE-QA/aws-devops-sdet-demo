@@ -5,6 +5,14 @@ Accepted (Phase 24, 2026-08-11). Implemented in the same session: the page
 draws three contours, `phaseNodes()` returns a phase's own steps only, and
 `scripts/check-live-state.mjs` gains the claim that follows from it.
 
+**D6's figures were remeasured in Phase 26 (ADR-0060 D4).** They were taken on a
+page whose run layer 404ed. `2039 -> 3116px` and `1.9 -> 2.9 screens` become
+`2215 -> 3321px` and `2.1 -> 3.1`; the cuts-open pair `8682 -> 7979` becomes
+`9091 -> 8417`, so the sentence D6 rests on — the total content got SHORTER —
+holds at 674px instead of 703px. The two levers D6 declined are not remeasured:
+they were never committed, their figures were taken on the short page too, and
+at face value they now reach about 2.6 screens rather than 2.4.
+
 Implements **ADR-0054** D1, D3, D4, D5 and D6, and finishes the composition
 those decisions re-opened. Narrows **ADR-0056**'s second sentence — a phase
 draws only what it `creates` — to: a phase draws no estate node at all, and

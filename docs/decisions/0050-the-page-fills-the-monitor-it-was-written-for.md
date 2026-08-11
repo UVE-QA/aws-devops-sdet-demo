@@ -5,6 +5,13 @@ Accepted (Phase 20g, 2026-08-09, the desktop). Supersedes **ADR-0049 D1**'s
 figure — one width, and the reading measure on the prose, is unchanged; the
 number is not.
 
+**Remeasured in Phase 26 (ADR-0060 D4).** Every figure below was taken on a page
+whose run layer 404ed, so no node printed a figure and the bodies were short.
+D1's heights are 51–70px taller when the layer is served, the saving grows
+rather than shrinks (88 → 107px at 1920, 118 → 136px at 2560), 1440 is unchanged
+either way exactly as recorded, and the decision is untouched. The figures below
+are left as they were measured.
+
 ## Context
 
 ADR-0049 D1 set `main` to 96rem because that is "what the map's computed column

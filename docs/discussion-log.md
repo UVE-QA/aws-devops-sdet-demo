@@ -6,6 +6,55 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
+**As of 2026-08-11 (26 — every figure measured the short page).** The instrument
+measures a page with figures on it. `measure-page.mjs` mocked three of the
+page's four sources and let the fourth — the run layer, ten origin-relative
+documents — 404 against its own static server, so every layout figure argued
+from since 20e was of a page on which no node printed anything. It serves the
+layer now, refuses on an origin 404 and on a document that is present and
+unparseable, and every recorded figure has been remeasured on its own commit. No
+cycle, no AWS call, nothing applied, $0. **ADR-0060**. One line of the published
+page moves — `topology.json` counts the decision records, so a new ADR takes
+`adrs` from 60 to 61 and would have reddened `site-data-check` on a
+documentation-only patch.
+
+**Main was green when this session started** — `ci #31454354555` on `440f988`,
+checked before anything was touched.
+
+**THE OLD FIGURES ARE NOT RETRACTED, AND THE REPRODUCTION IS WHY.** Each was
+measured again by the instrument that produced it, on its own commit, in this
+session: 1878, 1760/1790/2190, 2039 at 1.9 screens, 8682, 3116, 7979, 1432.28,
+967.85, 694.72, 143.69, 295.58 — all exact. One exception, recorded rather than
+rounded away: 909.65px comes back as 909.63px, on both hosts. That baseline half
+is what makes this a comparison instead of a claim.
+
+**The one number that set a CSS variable is the one the defect could not
+reach.** `--node-min: 18.5rem` rests on 143.69px and 295.58px, and both
+reproduce to the hundredth with the layer served, because the floor is a
+horizontal measurement of node names and what the layer adds is vertical.
+
+**ADR-0052 D3 is the casualty, and only at one viewport.** The comb saving 20j
+recorded at 1920 — `1432.28 → 967.85` — is `1214.93 → 1083.51` on a page with
+figures: 3.5x smaller. At 1440 it goes the other way and is LARGER, 267px
+against 215px. Air is the gap between a box and the row it shares, so filling
+the boxes moves both terms.
+
+**ADR-0058 D6 survives with its arithmetic moved**: 674px shorter with the cuts
+open rather than 703px, and the accepted page is 3.1 screens rather than 2.9.
+Its two declined levers are NOT remeasured — never committed, and their figures
+were taken on the short page too.
+
+**A refusal nobody planned.** `.catch(() => null)` in the page's own reader
+makes a malformed layer document indistinguishable from an absent one, and a 404
+check cannot see it — the request succeeded. Every file under the layer is
+parsed before the browser starts.
+
+**Instrument parity, measured rather than promised.** chromium-1234 on the
+devbox and chromium-1194 in the chat sandbox agree to the pixel at 2560, 1920
+and 1440, and differ by up to 15px at 390x844. Phase 25 flagged its sandbox
+break tests for being taken off the pinned build; for a phase whose subject is
+measurement, that had to be answered with a number.
+
 **As of 2026-08-11 (25 — the gate for a cycle in flight).** The page tells the
 truth while a cycle is running, and a gate holds it there.
 `tests/fixtures/page-inflight/` and `make page-inflight-check`, the first gate

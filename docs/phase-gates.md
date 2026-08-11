@@ -60,6 +60,7 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 23    | One list of gates, two readers  | ✅ done — $0, nothing applied | sessions/2026-08-11-phase-23-one-list-two-readers.md |
 | 24    | The composition, three contours | ✅ done — $0, 1.9 → 2.9 screens, accepted with figures | sessions/2026-08-11-phase-24-a-reference-is-a-name.md |
 | 25    | The gate for a cycle in flight  | ✅ done — $0, four findings, nine breaks | sessions/2026-08-11-phase-25-a-figure-names-its-cycle.md |
+| 26    | The instrument measures a page with figures on it | ✅ done — $0, every figure since 20e remeasured | sessions/2026-08-11-phase-26-every-figure-measured-the-short-page.md |
 
 **Lettered sub-phases end here (ADR-0055).** From Phase 21 the identifier is a
 plain integer and every phase is planned together with the sentence that closes
@@ -3576,12 +3577,70 @@ Break-test output in
 ```
 - Cost: nothing. No AWS call, no cycle, nothing applied. The published page
   changes, so the next push to `main` republishes it.
-- Next allowed step: **Phase 26 — the instrument measures a page that has
-  figures on it**, planned in `docs/next-phases.md`: serve the run layer to
-  `measure-page.mjs` from a fixture, refuse on an origin 404 there too, and
-  remeasure ADR-0050, ADR-0052 and ADR-0058 D6 against the same instrument on
-  the same commits. $0. Phase 27 — the contrast contract's second ancestry — is
-  the smaller item and is still carried.
+- Next allowed step: closed by the section below, on 2026-08-11.
+
+### Phase 26 — The instrument measures a page that has figures on it  ✅ DONE 2026-08-11
+`measure-page.mjs` serves the run layer and refuses without it, and every layout
+figure this project has argued from since 20e has been remeasured on the commit
+it was recorded on. $0, no cycle, nothing applied, nothing under `site/` or
+`assets/` touched. Summary in
+`docs/sessions/2026-08-11-phase-26-every-figure-measured-the-short-page.md`.
+**ADR-0060**. Break-test output in
+`docs/sessions/2026-08-11-phase-26-layer-break-test.log`; the remeasurement in
+`docs/sessions/2026-08-11-phase-26-remeasurement.log`.
+- Criteria: the run layer served from a fixture exactly as
+  `scripts/check-page-inflight.mjs` serves it; an origin 404 a refusal there
+  too; ADR-0050's, ADR-0052's and ADR-0058 D6's figures remeasured against the
+  same instrument on the same commits, written down beside the old ones with the
+  difference stated. **Met**, and the baseline half of every pair was re-run in
+  the same session so the comparison is instrument-to-instrument.
+- **THE OLD FIGURES ARE NOT RETRACTED, AND THE REPRODUCTION IS WHY THEY NEED NOT
+  BE.** Each recorded number was measured again by the instrument that produced
+  it, on its own commit, and came back exactly: 1878, 1760/1790/2190, 2039 at
+  1.9 screens, 8682, 3116, 7979, 1432.28, 967.85, 694.72, 143.69, 295.58. One
+  exception, recorded rather than rounded away — 20j's 909.65px of air at 1440
+  comes back as 909.63px, on both hosts.
+- **`--node-min: 18.5rem` IS UNTOUCHED TO THE HUNDREDTH OF A PIXEL.** The floor
+  is a horizontal measurement of node names and what the layer adds is vertical,
+  so the single figure here that set a CSS variable is the one figure the defect
+  could not have reached.
+- **ADR-0052 D3's COMB SAVING IS 3.5x SMALLER AT 1920** — `1432.28 → 967.85`
+  becomes `1214.93 → 1083.51` — and the correction does not have one sign: at
+  1440 the saving is LARGER, 267px against 215px.
+- **ADR-0058 D6 SURVIVES WITH ITS ARITHMETIC MOVED.** The sentence it rests on
+  is that the total content got shorter with the cuts open; it did, by 674px
+  rather than 703px, and the page it accepted is 3.1 screens rather than 2.9.
+- **D2 WAS NOT IN THE PLAN.** A layer document that is present and unparseable is
+  `null` to the page and invisible to a 404 check, so every file under the layer
+  is parsed before the browser starts. Found by asking what the planned refusal
+  does not cover.
+- **THE 403 BRANCH IS CARRIED AND IS NOT CLAIMED AS EXERCISED**: no browser can
+  produce a path that escapes both roots, because `..` above the document root is
+  normalised away before the request is sent.
+- Two findings nobody was looking for: the broken-word report was short too — on
+  the desktop it now finds `promote-prod` beside `read-only`, both hyphen breaks
+  and both false positives of one rule — and the two fixture sets converge inside
+  the map, 852.31px in 4 columns for both, because they share one layer.
+- Validation:
+```bash
+  make gates                                   # 12/12
+  make measure-page                            # devbox only
+  make site-data-check site-page-check
+  make live-state-check page-tense-check page-inflight-check
+  make contrast-check page-freshness-check     # devbox only
+  make docs-check
+```
+- Cost: nothing. No AWS call, no cycle, nothing applied. One line of the
+  published page changes and it was nearly missed: `site/data/topology.json`
+  counts `docs/decisions/*.md`, so ADR-0060 takes `adrs` from 60 to 61 and
+  `make site-data-check` would have reddened a documentation-only patch — 20i's
+  finding still working. `site/index.html` is byte-identical; the count is
+  fetched at run time. The next push republishes.
+- Next allowed step: **Phase 27 — the contrast contract has two ancestries**,
+  planned in `docs/next-phases.md`. `chain` becomes a list, the gate probes both
+  the cycle's and the estate's, and 24's finding is closed with a measurement
+  rather than with an argument. The broken-word rule's blindness to hyphens is
+  the smaller item now travelling with it. $0.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,
