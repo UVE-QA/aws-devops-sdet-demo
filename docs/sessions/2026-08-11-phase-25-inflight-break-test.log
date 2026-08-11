@@ -3,8 +3,18 @@ Phase 25 - make page-inflight-check: the evidence that it can fail
 
 A gate that has only ever been seen GREEN is indistinguishable from a gate that
 cannot fail, so every verdict below was measured rather than reasoned about, and
-the exit status is recorded next to it. Taken on the devbox with the tree
-committed first.
+the exit status is recorded next to it. The tree was committed before every
+break, and restored and checked clean after it.
+
+WHERE THIS WAS TAKEN, because it is not the usual place. The chat session that
+wrote this phase ran the gate in its own sandbox, against its own clone, with
+CHROMIUM_PATH pointing at chromium-1194 rather than the build Playwright 1.62
+pins. That is a different machine and a different browser from the devbox, and
+`one definition, two hosts` is a trap this project has already paid for. So this
+log is evidence that the gate CAN fail and that each break reddens the claim it
+is aimed at - it is not evidence about the devbox. Re-running it there is a
+one-line job and the numbers should be identical; if they are not, that
+difference is the finding.
 
 The first entry is not a break test. It is the gate run against the page AS IT
 STOOD, before anything was fixed - which is stronger evidence than a
