@@ -61,6 +61,7 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 24    | The composition, three contours | ✅ done — $0, 1.9 → 2.9 screens, accepted with figures | sessions/2026-08-11-phase-24-a-reference-is-a-name.md |
 | 25    | The gate for a cycle in flight  | ✅ done — $0, four findings, nine breaks | sessions/2026-08-11-phase-25-a-figure-names-its-cycle.md |
 | 26    | The instrument measures a page with figures on it | ✅ done — $0, every figure since 20e remeasured | sessions/2026-08-11-phase-26-every-figure-measured-the-short-page.md |
+| 27    | The contrast contract has three ancestries | ✅ done — $0, green answer, false premise | sessions/2026-08-11-phase-27-the-third-ancestry-and-a-false-premise.md |
 
 **Lettered sub-phases end here (ADR-0055).** From Phase 21 the identifier is a
 plain integer and every phase is planned together with the sentence that closes
@@ -3636,11 +3637,54 @@ it was recorded on. $0, no cycle, nothing applied, nothing under `site/` or
   `make site-data-check` would have reddened a documentation-only patch — 20i's
   finding still working. `site/index.html` is byte-identical; the count is
   fetched at run time. The next push republishes.
-- Next allowed step: **Phase 27 — the contrast contract has two ancestries**,
-  planned in `docs/next-phases.md`. `chain` becomes a list, the gate probes both
-  the cycle's and the estate's, and 24's finding is closed with a measurement
-  rather than with an argument. The broken-word rule's blindness to hyphens is
-  the smaller item now travelling with it. $0.
+- Next allowed step: closed by the section below, on 2026-08-11.
+
+### Phase 27 — The contrast contract has three ancestries  ✅ DONE 2026-08-11
+`chain` became `chains`, the gate probes each, and 24's open item closes with a
+measurement. $0, no cycle, nothing applied. Summary in
+`docs/sessions/2026-08-11-phase-27-the-third-ancestry-and-a-false-premise.md`.
+**ADR-0061**. Break-test output in
+`docs/sessions/2026-08-11-phase-27-chains-break-test.log`.
+- Criteria: `chain` becomes a list and the gate probes each; the by-name refusal
+  survives the schema change and is fired on it; 24's finding closed with a
+  measurement rather than an argument; both readings written down beside each
+  other; a control green either side. **Met** — and exceeded on the first
+  clause, because there turned out to be three chains.
+- **THREE ANCESTRIES, NOT TWO.** The assertions contour hangs its suite nodes
+  straight off `div.suites`, with no `.set` in between. Found by walking upwards
+  from a real node on the RENDERED page; ADR-0058's count of two came from
+  reading the template, which would also have answered.
+- **THE ANSWER IS GREEN AND THE PREMISE WAS FALSE.** The five floored states read
+  identically across all three, both themes. ADR-0058 argued they would, on the
+  grounds that no ancestor in either chain paints a background — and
+  `section.phase` paints `color(srgb 1 1 1 / 0.55)`. The gate prints the painters
+  from the backdrop walk now instead of asserting the opposite. The two exempt
+  states carry the evidence at 0.01, because they are the only ones drawn with a
+  transparent own background at 45% opacity; the five with an opaque `::before`
+  are invariant to their backdrop, which is why a wrong premise produced a right
+  answer.
+- **A SEVENTH STATE THE CONTRACT HAD ALREADY ASKED FOR.** `gone` is drawn by the
+  estate contour and was not named. The file's own paragraph says an unnamed
+  state is not checked and that the gate should say so out loud — written down,
+  never acted on, and noticed only by asking what the second chain draws.
+- Six refusals fired on the new schema plus one real floor failure, controls
+  green either side, in `scripts/break-contrast-chains.sh` — committed, because
+  the subject is a schema and the next change to it owes the same proof.
+- Validation:
+```bash
+  make gates                                   # 12/12
+  make contrast-check                          # devbox only
+  make site-data-check site-page-check docs-check
+```
+- Cost: nothing. No AWS call, no cycle, nothing applied. One line of
+  `site/data/topology.json` moves — ADR-0061 takes `adrs` from 61 to 62 — so the
+  next push republishes.
+- Next allowed step: **nothing is queued.** The polish track's carried items are
+  now empty except the three in `docs/next-phases.md` under "Still open" — the
+  convergence delay, the map's dating sentence and `not reached yet` — and none
+  of them is a session on its own: each needs a live cycle to happen around it.
+  The broken-word rule's blindness to hyphens (Phase 26) is the one item that
+  can be taken cold. Phase 17, prod data continuity, remains open and optional.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

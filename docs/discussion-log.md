@@ -6,6 +6,36 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
+**As of 2026-08-11 (27 — the third ancestry, and a premise that was not true).**
+`assets/contrast-contract.json`'s `chain` became `chains` and the gate probes
+each. No cycle, no AWS call, nothing applied, $0. **ADR-0061**.
+
+**THREE ancestries, not two.** ADR-0058's finding named the map's and the
+estate's; the assertions contour hangs its suite nodes straight off
+`div.suites`, with no `.set` in between. Found by walking upwards from a real
+node on the RENDERED page — the template would have answered too, and reading
+the template is where two came from.
+
+**THE ANSWER IS GREEN AND THE PREMISE WAS FALSE.** The five floored states read
+identically across all three ancestries in both themes, so 24's open item closes
+with a measurement rather than an argument. But the argument it was left with —
+"no ancestor in either chain paints a background" — is not true: `section.phase`
+paints `color(srgb 1 1 1 / 0.55)`. The two exempt states carry the evidence at
+0.01, because they are the only ones drawn with a transparent own background at
+45% opacity; the five with an opaque `::before` are invariant to what is behind
+them, which is precisely why a wrong premise produced a right answer. 0.01 on
+two exempt states is worth nothing; the sentence that would have been quoted
+next time is worth something.
+
+**A seventh state the contract had already asked for.** `gone` is drawn by the
+estate contour and was never named, while the file's own prose said an unnamed
+state is not checked and the gate should say so out loud.
+
+**Six refusals on the new schema plus a real floor failure**, controls green
+either side, in `scripts/break-contrast-chains.sh` — committed rather than typed
+into a session, because the subject is a schema and the next change to it owes
+the same proof.
+
 **As of 2026-08-11 (26 — every figure measured the short page).** The instrument
 measures a page with figures on it. `measure-page.mjs` mocked three of the
 page's four sources and let the fourth — the run layer, ten origin-relative

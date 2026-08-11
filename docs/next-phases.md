@@ -1446,15 +1446,32 @@ the phase is the difference.
 **Does not close when** the page is re-laid-out. That is a decision, and it needs
 the number first.
 
-## Phase 27 — The contrast contract has two ancestries
+## Phase 27 — The contrast contract has two ancestries  [DONE 2026-08-11, $0 — there were three]
 
-Carried from Phase 24 and past Phase 25 and Phase 26, neither of which reached
-it — the smaller of the two items 24 handed forward, and the one with no
-evidence behind it yet.
+Closed with **ADR-0061**. `chain` became `chains`; the gate probes each, and the
+count in the heading above was wrong: the assertions contour hangs its suite
+nodes straight off `div.suites`, and that third ancestry was found by walking
+upwards from a real node on the RENDERED page rather than reading the template,
+which is where two came from.
 
-Phase 26 added a second small item to travel with it: the broken-word rule has
-no concept of a hyphen, and now produces two false positives on the desktop
-rather than one (`read-only` and `promote-prod`).
+**The answer is green and the premise was false.** The five floored states read
+identically across all three ancestries, in both themes — so 24's item closes
+with a measurement. But ADR-0058 argued it would come out that way because no
+ancestor in either chain paints a background, and `section.phase` paints
+`color(srgb 1 1 1 / 0.55)`. The two exempt states carry the evidence at 0.01,
+being the only ones drawn transparent at 45% opacity. The gate prints the
+painters from the backdrop walk now instead of asserting the opposite.
+
+`gone` turned out to be a seventh state the contract had never named, which its
+own prose had asked for in advance.
+
+Six refusals fired on the new schema plus a real floor failure, in
+`scripts/break-contrast-chains.sh`.
+
+**Still carried:** the broken-word rule has no concept of a hyphen, and since
+Phase 26 produces two false positives on the desktop rather than one
+(`read-only` and `promote-prod`). It is the one remaining item that can be taken
+without a live cycle around it.
 
 `assets/contrast-contract.json` declares one probe chain,
 `main > .cycle > .phase > .set`. Since 24 the estate contour draws the same six
