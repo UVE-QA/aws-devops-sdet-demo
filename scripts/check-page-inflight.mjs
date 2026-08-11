@@ -1,0 +1,495 @@
+#!/usr/bin/env node
+/**
+ * THE GATE OVER WHAT THE PAGE SAYS WHILE A CYCLE IS RUNNING.
+ *
+ * Phase 20m watched a full cycle from one tab and found the page's account of it
+ * wrong three ways, every one of them invisible at rest. Phase 22 fixed the
+ * first. This gate is the instrument the other two never had, and the reason
+ * they never had one is worth stating: every page gate here examines the page AT
+ * REST, or lifts one pure function out of it and hands that function data.
+ *
+ *     check-page-tense.mjs   lifts nodeTense() and historyTally() and asks them
+ *                            questions. Both were CORRECT while the page was
+ *                            wrong: during a run the renderer never called one
+ *                            of them.
+ *     check-live-state.mjs   the run layer's own model, no page involved.
+ *     check-page-freshness   an open tab against a fresh load - and both render
+ *                            the same wrong caption, so they converge and it is
+ *                            green.
+ *     site-page-check        the built page against a fresh build.
+ *
+ * A function that answers correctly and is not called is exactly the shape of
+ * defect this repository keeps finding, so the subject here is the RENDERED
+ * PAGE, in the state a visitor is most likely to be looking at it: while
+ * something is running.
+ *
+ * THE FIXTURE IS THE HARD HALF, AND IT DID NOT EXIST. 20m's own note said so.
+ * tests/fixtures/page-inflight/ carries two things no page-measure set does:
+ *
+ *   an otherwise-green history   a red row gives the badge a bad verdict for a
+ *                                reason that has nothing to do with the run in
+ *                                flight, so the green-while-unknown shape - the
+ *                                one the first finding was about - never appears
+ *   the RUN LAYER               the ten documents readRunLayer() fetches. The
+ *                                page-measure sets mock the three REMOTE sources
+ *                                and let these ten 404 against the static
+ *                                server, so every node on that page reads `not
+ *                                run yet` and nothing prints a figure at all.
+ *                                A finding about a figure needs a figure.
+ *
+ * TWO STATES OVER ONE LAYER, AND THE SECOND IS THE CONTROL. `in-flight` has
+ * deploy-stage #64 running with its front on `Terraform apply`; `at-rest` is the
+ * same fixture thirteen minutes later, #64 finished, nothing else changed. Every
+ * claim below is made in both states. On 2026-08-05 this project built a control
+ * that reproduced the defect it was controlling for, so the two renderings are
+ * required to DIFFER before either verdict is believed.
+ *
+ * WHY IT REFUSES ON A 404 FROM ITS OWN SERVER, and measure-page.mjs does not.
+ * That script guards the requests that LEAVE the origin and lets origin requests
+ * through to a static directory that does not contain the run layer. Nothing is
+ * wrong with the guard; the requests it cannot see are the ones that matter
+ * here, and a page missing its whole run layer renders happily, shorter and
+ * quieter, with no banner. The empty result that looks clean. So here every
+ * origin 404 is a refusal.
+ *
+ *     node scripts/check-page-inflight.mjs
+ *     node scripts/check-page-inflight.mjs --state in-flight
+ *     node scripts/check-page-inflight.mjs --dump      # every node, as rendered
+ *
+ * CHROMIUM_PATH= on a machine whose chromium is not the pinned build, exactly as
+ * for measure-page.mjs, check-contrast.mjs and check-page-freshness.mjs.
+ *
+ * Exit status: 0 when every claim held, 1 when one did not, 2 when it refused to
+ * measure at all.
+ */
+import fs from "node:fs";
+import http from "node:http";
+import path from "node:path";
+import process from "node:process";
+import { fileURLToPath, pathToFileURL } from "node:url";
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const SITE = path.join(ROOT, "site");
+const FIXTURE = path.join(ROOT, "tests/fixtures/page-inflight");
+const LAYER = path.join(FIXTURE, "layer");
+const TOPOLOGY = path.join(SITE, "data/topology.json");
+const VIEWPORT = { width: 1440, height: 900 };
+const SETTLE_MS = 700;
+
+/* THE SENTENCES THAT QUALIFY A FIGURE, listed rather than pattern-matched. Each
+   one is written by a named branch of the page, and this gate reads the sentence
+   a VISITOR reads rather than a data attribute, because the subject of the third
+   finding is a sentence: `prod.rds` stood at full colour with the previous
+   cycle's figures for twelve measured minutes and every one of those minutes was
+   a person reading a number. Rewording one of these reddens the gate, and that
+   is correct - the wording IS the claim. */
+const QUALIFIERS = [
+  "the cycle that ended",        // nodeTense(), the destroyed branch
+  "the cycle before this one",   // nodeTense(), the under-way branch
+  "from the previous run"        // suiteFigures(), n.result_previous
+];
+
+/* WHAT A NODE NOTHING CAN MEASURE IS NOT ALLOWED TO SAY. `figures publish when
+   the cycle ends` is true of a phase whose numbers arrive at the end and false
+   forever of the image push, the migrate/seed task and the human approval -
+   Terraform reports resources and none of the three is one. */
+const PROMISE = "figures publish when the cycle ends";
+const NOT_MEASURED = ["not measured here", "its step is in Actions, not in a timeline"];
+
+function refuse(message) {
+  console.error(`page-inflight: ${message}`);
+  process.exit(2);
+}
+
+function arg(flag, fallback = null) {
+  const i = process.argv.indexOf(flag);
+  return i === -1 ? fallback : process.argv[i + 1];
+}
+
+function readJSON(file, what) {
+  if (!fs.existsSync(file)) refuse(`${path.relative(ROOT, file)} is missing (${what}).`);
+  try {
+    return JSON.parse(fs.readFileSync(file, "utf8"));
+  } catch (e) {
+    refuse(`${path.relative(ROOT, file)} is not valid JSON: ${e.message}`);
+  }
+}
+
+// Same loader as measure-page.mjs and check-page-freshness.mjs: Playwright lives
+// with the suites that use it, and guessing a location is not evidence.
+async function loadChromium() {
+  const candidates = [
+    process.env.PLAYWRIGHT_MODULE,
+    path.join(ROOT, "tests/playwright/node_modules/@playwright/test/index.js"),
+    path.join(ROOT, "tests/playwright/node_modules/playwright/index.js")
+  ].filter(Boolean);
+  for (const candidate of candidates) {
+    if (!fs.existsSync(candidate)) continue;
+    const mod = await import(pathToFileURL(candidate).href);
+    const chromium = mod.chromium || (mod.default && mod.default.chromium);
+    if (chromium) return chromium;
+  }
+  refuse(
+    "Playwright is not installed where this expects it.\n" +
+      "  Looked in: " + candidates.join(", ") + "\n" +
+      "  Run `npm ci` in tests/playwright, or set PLAYWRIGHT_MODULE."
+  );
+}
+
+/* EVERY NODE THE MAP CAN DRAW, indexed by the id it now writes into the DOM.
+   Walked rather than reached into by path: the estate hangs its nodes off an
+   environment group and the cycle hangs them off a phase, and a walk cannot go
+   stale when schema 3 grows a third place to put one. */
+function topologyIndex(topology) {
+  const byId = {};
+  (function walk(node) {
+    if (Array.isArray(node)) return node.forEach(walk);
+    if (!node || typeof node !== "object") return;
+    if (typeof node.id === "string" && (node.observer || node.kind)) {
+      byId[node.id] = { id: node.id, label: node.label, env: node.env || null,
+                        kind: node.kind || null, observer: node.observer || null };
+    }
+    Object.values(node).forEach(walk);
+  })(topology);
+  return byId;
+}
+
+const MIME = {
+  ".html": "text/html; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".js": "text/javascript; charset=utf-8",
+  ".svg": "image/svg+xml",
+  ".png": "image/png",
+  ".ico": "image/x-icon"
+};
+
+/* THE SITE, WITH THE RUN LAYER OVER THE TOP. The layer is what a cycle
+   publishes into the bucket beside the page; site/ in the repository does not
+   contain it and never will. Serving the fixture's copy at the same paths is
+   what makes the map draw figures at all. */
+function serve(notFound) {
+  const server = http.createServer((req, res) => {
+    const url = new URL(req.url, "http://127.0.0.1");
+    const rel = decodeURIComponent(url.pathname).replace(/^\/+/, "");
+    let file = path.join(LAYER, rel);
+    if (!file.startsWith(LAYER) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) {
+      file = path.join(SITE, rel);
+    }
+    if (rel === "" || rel.endsWith("/")) file = path.join(SITE, rel, "index.html");
+    if (!file.startsWith(SITE) && !file.startsWith(LAYER)) {
+      notFound.push("/" + rel);
+      res.writeHead(403, { "content-type": "text/plain" });
+      res.end("refused");
+      return;
+    }
+    if (!fs.existsSync(file) || fs.statSync(file).isDirectory()) {
+      notFound.push("/" + rel);
+      res.writeHead(404, { "content-type": "text/plain" });
+      res.end("not found");
+      return;
+    }
+    res.writeHead(200, { "content-type": MIME[path.extname(file)] || "application/octet-stream" });
+    res.end(fs.readFileSync(file));
+  });
+  return new Promise((resolve) => {
+    server.listen(0, "127.0.0.1", () => resolve({ server, port: server.address().port }));
+  });
+}
+
+/* WHAT IS READ OFF THE RENDERED PAGE. Text and two data attributes, no pixels -
+   a layout question is measure-page.mjs's. `data-id` is the binding this phase
+   added to nodeEl(); without it the only handle on a box is the label it draws,
+   and stage and prod draw the same labels. */
+const OBSERVE = () => {
+  const t = (el) => (el ? el.textContent.replace(/\s+/g, " ").trim() : null);
+  return {
+    history: t(document.querySelector("#history-summary")),
+    verdict: t(document.querySelector("#history-summary .verdict")),
+    mapSub: t(document.querySelector("#map-sub")),
+    banner: (() => {
+      const b = document.querySelector(".banner.bad");
+      return b ? t(b).slice(0, 200) : null;
+    })(),
+    rows: [...document.querySelectorAll("#history table tbody tr")].map((tr) =>
+      [...tr.children].map((td) => t(td))),
+    nodes: [...document.querySelectorAll(".node")]
+      .filter((n) => n.dataset.id)
+      .map((n) => ({
+        id: n.dataset.id,
+        word: n.dataset.word || "",
+        state: t(n.querySelector(".nstate")),
+        text: t(n)
+      }))
+  };
+};
+
+async function render(browser, origin, state, notFound) {
+  const dir = path.join(FIXTURE, state);
+  if (!fs.existsSync(dir)) refuse(`no state called "${state}" in ${path.relative(ROOT, FIXTURE)}.`);
+  const meta = readJSON(path.join(dir, "meta.json"), "the fixture's clock and its declared cycle");
+  if (!meta.now) refuse(`${state}/meta.json declares no \`now\`; every age string would drift.`);
+  if (!meta.cycle) refuse(`${state}/meta.json declares no \`cycle\`; this gate would have to re-derive which environments the run is about, which is the page's WRITERS table in a second place.`);
+  const runs = readJSON(path.join(dir, "runs.json"), "the run history");
+  const jobs = readJSON(path.join(dir, "jobs.json"), "the current run's steps");
+  const status = {
+    stage: readJSON(path.join(dir, "status-stage.json"), "what the bucket last observed of stage"),
+    prod: readJSON(path.join(dir, "status-prod.json"), "what the bucket last observed of prod")
+  };
+
+  const context = await browser.newContext({ viewport: VIEWPORT });
+  const page = await context.newPage();
+  await page.clock.setFixedTime(new Date(meta.now));
+
+  const unmocked = [];
+  await page.route("**/*", async (route) => {
+    const url = route.request().url();
+    if (url.startsWith(origin)) {
+      if (/\/status\/(stage|prod)\.json/.test(url)) {
+        const env = url.includes("stage") ? "stage" : "prod";
+        return route.fulfill({ status: 200, contentType: "application/json",
+                               body: JSON.stringify(status[env]) });
+      }
+      return route.continue();
+    }
+    if (url.startsWith("https://api.github.com/")) {
+      const body = /\/jobs(\?|$)/.test(url) ? jobs : runs;
+      return route.fulfill({
+        status: 200, contentType: "application/json",
+        headers: { "x-ratelimit-remaining": "57",
+                   "x-ratelimit-reset": String(Math.floor(Date.parse(meta.now) / 1000) + 1800) },
+        body: JSON.stringify(body)
+      });
+    }
+    unmocked.push(url);
+    return route.abort();
+  });
+
+  await page.goto(origin + "/index.html", { waitUntil: "load" });
+  await page.waitForLoadState("networkidle");
+  await page.waitForTimeout(SETTLE_MS);
+  const seen = await page.evaluate(OBSERVE);
+  await context.close();
+
+  if (unmocked.length) {
+    refuse("the page asked for a source nobody mocked, so this reading would be of a page " +
+      "missing part of itself:\n  " + [...new Set(unmocked)].join("\n  "));
+  }
+  if (notFound.length) {
+    refuse("the page asked this gate's own server for documents it does not have, and a page " +
+      "missing its run layer renders quietly and prints no figures at all - which is the " +
+      "state every one of these claims would then be measured in:\n  " +
+      [...new Set(notFound)].join("\n  "));
+  }
+  if (seen.banner) {
+    refuse(`the page drew a source-failure banner - "${seen.banner}".`);
+  }
+  return { state, meta, runs, seen };
+}
+
+/* THE FIXTURE HAS TO BE THE THING IT CLAIMS TO BE, checked before any verdict is
+   read off it. A fixture whose history carries a failure cannot show the shape
+   the first finding was about; a fixture with nothing in flight cannot show the
+   other two. Both are silent failures - the gate would simply pass. */
+function auditFixture({ state, meta, runs }) {
+  const WRITERS = {
+    ".github/workflows/deploy-stage.yml": ["stage"],
+    ".github/workflows/promote-prod.yml": ["prod"],
+    ".github/workflows/self-service.yml": ["stage"],
+    ".github/workflows/destroy.yml": null
+  };
+  const lifecycle = (runs.workflow_runs || []).filter((r) => r.path in WRITERS);
+  if (!lifecycle.length) refuse(`${state}: the fixture's history contains no lifecycle run at all.`);
+  const bad = lifecycle.filter((r) => r.status === "completed" && r.conclusion !== "success");
+  if (bad.length) {
+    refuse(`${state}: the fixture's history is not otherwise-green - ` +
+      bad.map((r) => `${r.name} #${r.run_number} ${r.conclusion}`).join(", ") +
+      ". A red row gives the badge a bad verdict for a reason that has nothing to do with " +
+      "the run in flight, and the green-while-unknown shape never appears.");
+  }
+  const flying = lifecycle.filter((r) => r.status !== "completed");
+  if (meta.cycle.in_flight && flying.length !== 1) {
+    refuse(`${state}: declares a cycle in flight and its history holds ${flying.length} unfinished runs.`);
+  }
+  if (!meta.cycle.in_flight && flying.length !== 0) {
+    refuse(`${state}: declares nothing in flight and its history holds ${flying.length} unfinished runs.`);
+  }
+  return { lifecycle, flying };
+}
+
+// ---- the claims -----------------------------------------------------------
+// Each returns a list of findings. A claim with no findings held.
+
+/* CLAIM 1 - THE VERDICT COUNTS ONLY THE RUNS THAT FINISHED. 20m read `all 12
+   succeeded` five times with one of the twelve still going, and proved it by the
+   pair either side of a completion: the row changed and the badge did not. */
+function claimVerdict({ state, meta, seen }, { lifecycle, flying }) {
+  const out = [];
+  const drawn = seen.rows.length;
+  const finished = drawn - flying.filter((r) => lifecycle.indexOf(r) < drawn).length;
+  const verdict = seen.verdict || "";
+  const m = /all (\d+) succeeded/.exec(verdict);
+  if (meta.cycle.in_flight) {
+    if (!/still going/.test(verdict)) {
+      out.push(`the verdict does not name the run in flight: "${verdict}"`);
+    }
+    if (m && Number(m[1]) === drawn) {
+      out.push(`the verdict counts every drawn run as succeeded (${m[1]} of ${drawn}) ` +
+        `while one has not finished: "${verdict}"`);
+    }
+  } else {
+    if (/still going/.test(verdict)) {
+      out.push(`nothing is in flight and the verdict says otherwise: "${verdict}"`);
+    }
+    if (!m || Number(m[1]) !== drawn) {
+      out.push(`every drawn run finished and succeeded, and the verdict does not say so: "${verdict}"`);
+    }
+  }
+  void finished;
+  return out;
+}
+
+/* CLAIM 2 - A NODE NOTHING CAN EVER MEASURE NEVER PROMISES FIGURES. The image
+   push, the migrate/seed task and the human approval carry `observer: actions`
+   in the topology, which is the field that says what could ever measure this.
+   At rest all three say so. During a run the run layer speaks first and one of
+   them promises numbers that will never arrive. */
+function claimNeverMeasured({ seen }, index) {
+  const out = [];
+  for (const node of seen.nodes) {
+    const known = index[node.id];
+    if (!known || known.observer !== "actions") continue;
+    const text = node.text || "";
+    if (text.includes(PROMISE)) {
+      out.push(`${node.id} (${known.label}) promises figures nothing will ever measure: "${node.state}"`);
+    } else if (!NOT_MEASURED.some((p) => text.includes(p))) {
+      out.push(`${node.id} (${known.label}) does not say that nothing measures it: "${node.state}"`);
+    }
+  }
+  return out;
+}
+
+/* CLAIM 3 - A FIGURE PRINTED WHILE A CYCLE IS IN FLIGHT SAYS WHICH CYCLE IT IS
+   FROM. Nothing publishes until a cycle ends, so every figure drawn during one
+   belongs to the cycle before it. 20m measured twelve minutes of prod.rds at
+   full colour with the previous cycle's numbers while prod was being deleted. */
+function claimFiguresDated({ meta, seen }, index) {
+  const out = [];
+  const under = new Set(meta.cycle.in_flight ? meta.cycle.environments : []);
+  for (const node of seen.nodes) {
+    const known = index[node.id];
+    if (!known || !known.env) continue;
+    const state = node.state || "";
+    if (!/\d/.test(state)) continue;                    // nothing numeric was printed
+    const qualified = QUALIFIERS.some((q) => state.includes(q));
+    if (under.has(known.env) && !qualified) {
+      out.push(`${node.id} (${known.env}) prints a figure from the cycle before this one ` +
+        `and does not say so: "${state}"`);
+    }
+    if (!under.has(known.env) && qualified) {
+      out.push(`${node.id} (${known.env}) calls its figure earlier, and no run is touching ` +
+        `${known.env}: "${state}"`);
+    }
+  }
+  return out;
+}
+
+/* THE CONTROL THAT MUST DIFFER. Two renderings that agree would make every claim
+   above true of a page that draws nothing at all. What must differ is named
+   rather than hashed: the verdict, because one state has a run in flight, and at
+   least one node's state line, because that is where the other two claims live.
+   On 2026-08-05 a control inherited the defect it was controlling for; naming
+   the difference first is the cheap version of not doing that again. */
+function controlDiffers(a, b) {
+  const out = [];
+  if ((a.seen.verdict || "") === (b.seen.verdict || "")) {
+    out.push(`both states print the same run-history verdict, "${a.seen.verdict}" - ` +
+      `one of them is supposed to have a run in flight`);
+  }
+  const byId = Object.fromEntries(b.seen.nodes.map((n) => [n.id, n.state]));
+  const moved = a.seen.nodes.filter((n) => byId[n.id] !== undefined && byId[n.id] !== n.state);
+  if (!moved.length) {
+    out.push("no node on the map says anything different between the two states, so the " +
+      "in-flight fixture is not in flight as far as the page is concerned");
+  }
+  return out;
+}
+
+async function main() {
+  if (!fs.existsSync(path.join(SITE, "index.html"))) {
+    refuse("site/index.html does not exist. Run `make site-page` first.");
+  }
+  const index = topologyIndex(readJSON(TOPOLOGY, "the map's own data"));
+  if (!Object.keys(index).length) refuse("site/data/topology.json indexed no nodes at all.");
+
+  const wanted = arg("--state");
+  const states = wanted ? [wanted] : ["in-flight", "at-rest"];
+  const chromium = await loadChromium();
+  const notFound = [];
+  const { server, port } = await serve(notFound);
+  const origin = `http://127.0.0.1:${port}`;
+  const launch = { args: ["--no-sandbox"] };
+  if (process.env.CHROMIUM_PATH) launch.executablePath = process.env.CHROMIUM_PATH;
+  const browser = await chromium.launch(launch);
+
+  const readings = [];
+  try {
+    for (const state of states) {
+      notFound.length = 0;
+      const reading = await render(browser, origin, state, notFound);
+      reading.audit = auditFixture(reading);
+      readings.push(reading);
+    }
+  } finally {
+    await browser.close();
+    server.close();
+  }
+
+  if (arg("--dump", false) !== false || process.argv.includes("--dump")) {
+    for (const r of readings) {
+      console.log(`\n--- ${r.state} --- ${r.seen.history}`);
+      for (const n of r.seen.nodes) console.log(`  ${n.id.padEnd(24)}${n.state || ""}`);
+    }
+    console.log("");
+  }
+
+  const CLAIMS = [
+    ["the verdict counts only the runs that finished", claimVerdict],
+    ["a node nothing can ever measure never promises figures", claimNeverMeasured],
+    ["a figure printed while a cycle is in flight says which cycle it is from", claimFiguresDated]
+  ];
+
+  let failed = 0;
+  for (const r of readings) {
+    for (const [name, fn] of CLAIMS) {
+      const findings = fn(r, fn === claimVerdict ? r.audit : index);
+      if (findings.length) {
+        failed += 1;
+        console.log(`FAIL  ${r.state}: ${name}`);
+        findings.forEach((f) => console.log(`        ${f}`));
+      } else {
+        console.log(`ok    ${r.state}: ${name}`);
+      }
+    }
+  }
+
+  if (readings.length === 2) {
+    const diff = controlDiffers(readings[0], readings[1]);
+    if (diff.length) {
+      console.error("\npage-inflight: the control does not differ from the subject.");
+      diff.forEach((d) => console.error(`  ${d}`));
+      process.exit(2);
+    }
+    console.log("ok    the two states differ, so the control is a control");
+  } else {
+    console.log(`note  only "${readings[0].state}" was read, so the control did not run`);
+  }
+
+  if (failed) {
+    console.error(`\npage-inflight: ${failed} claim${failed === 1 ? "" : "s"} did not hold.`);
+    process.exit(1);
+  }
+  console.log("\npage-inflight: every claim held, in both states.");
+}
+
+await main();

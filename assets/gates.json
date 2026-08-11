@@ -28,6 +28,8 @@
       "needs": "playwright and chromium, which are a side effect of `make test-smoke` in ci.yml's local-ci job" },
     { "target": "page-freshness-check",    "local": false, "browser": true,
       "needs": "playwright and chromium, same as contrast-check; it drives the built page in a browser" },
+    { "target": "page-inflight-check",      "local": false, "browser": true,
+      "needs": "playwright and chromium, same as contrast-check; it renders the built page over a fixture holding a cycle in flight" },
     { "target": "suite-inventory-check",   "local": false,
       "needs": "the unit venv, the api venv and playwright's node_modules, each a side effect of a step above it (ADR-0042 D2)" },
     { "target": "self-service-cors-check", "local": false,

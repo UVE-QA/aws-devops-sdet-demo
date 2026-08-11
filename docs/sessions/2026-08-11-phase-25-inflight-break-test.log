@@ -1,0 +1,37 @@
+Phase 25 - make page-inflight-check: the evidence that it can fail
+==================================================================
+
+A gate that has only ever been seen GREEN is indistinguishable from a gate that
+cannot fail, so every verdict below was measured rather than reasoned about, and
+the exit status is recorded next to it. Taken on the devbox with the tree
+committed first.
+
+The first entry is not a break test. It is the gate run against the page AS IT
+STOOD, before anything was fixed - which is stronger evidence than a
+re-introduced defect, because the defect was already there and 20m had watched a
+live cycle print it.
+
+------------------------------------------------------------------------------
+[0] THE GATE ON THE UNFIXED PAGE - commit 094c561, nothing fixed yet
+    $ make page-inflight-check
+ok    in-flight: the verdict counts only the runs that finished
+FAIL  in-flight: a node nothing can ever measure never promises figures
+        build.ecr (ECR push) promises figures nothing will ever measure: "finished in this run · figures publish when the cycle ends"
+FAIL  in-flight: a figure printed while a cycle is in flight says which cycle it is from
+        stage.vpc (stage) prints a figure from the cycle before this one and does not say so: "measured · 22s"
+        stage.secrets (stage) prints a figure from the cycle before this one and does not say so: "measured · 5s"
+        stage.rds (stage) prints a figure from the cycle before this one and does not say so: "measured · 4m 47s"
+        stage.alb (stage) prints a figure from the cycle before this one and does not say so: "measured · 2m 11s"
+        stage.ecs (stage) prints a figure from the cycle before this one and does not say so: "measured · 1m 34s"
+        stage.cloudwatch (stage) prints a figure from the cycle before this one and does not say so: "measured · 8s"
+        stage.budgets (stage) prints a figure from the cycle before this one and does not say so: "measured · 3s"
+        suite.db.prod (prod) calls its figure earlier, and no run is touching prod: "2 of 2 · 2.2s · from the previous run"
+        suite.smoke.prod (prod) calls its figure earlier, and no run is touching prod: "2 of 2 · 8.3s · from the previous run"
+        destroy.stage (stage) prints a figure from the cycle before this one and does not say so: "11m 18s"
+ok    at-rest: the verdict counts only the runs that finished
+ok    at-rest: a node nothing can ever measure never promises figures
+ok    at-rest: a figure printed while a cycle is in flight says which cycle it is from
+ok    the two states differ, so the control is a control
+
+page-inflight: 2 claims did not hold.
+    exit=1

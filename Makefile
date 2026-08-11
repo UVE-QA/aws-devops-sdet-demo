@@ -7,8 +7,8 @@
         self-service-package self-service-cors-check site-page site-page-check \
         site-data site-data-check timeline-check node-states-check \
         suite-inventory suite-inventory-check results-check live-state-check \
-        page-tense-check page-freshness-check publish-prefixes-check \
-        contrast-check measure-page gates gates-check
+        page-tense-check page-freshness-check page-inflight-check \
+        publish-prefixes-check contrast-check measure-page gates gates-check
 
 # Bring up postgres + app (build app image if needed), detached.
 local-up:
@@ -330,6 +330,26 @@ page-tense-check:
 # ci.yml's `local-ci` job rather than in `checks`.
 page-freshness-check:
 	node scripts/check-page-freshness.mjs
+
+# THE GATE 20m OWED. Every other page gate examines the page AT REST or lifts one
+# pure function out of it, and both of 20m's remaining findings were functions
+# that answer correctly and are not called while a run is in flight. So this one
+# renders the page in the state a visitor is most likely to be looking at it -
+# something running - and reads the sentences a visitor reads.
+#
+# The fixture is the half that did not exist: tests/fixtures/page-inflight/
+# carries an otherwise-green history AND the run layer, the ten documents
+# readRunLayer() fetches per page. The page-measure sets mock the three REMOTE
+# sources and let those ten 404 against the static server, so every node there
+# reads `not run yet` and no figure is printed at all - and a finding about a
+# figure needs a figure. This gate refuses on an origin 404 for that reason.
+#
+# Two states over one layer, and `at-rest` is the control: the same fixture
+# thirteen minutes later. They are required to DIFFER before any verdict is
+# believed. Same Playwright and chromium as contrast-check, page-freshness-check
+# and measure-page, same CHROMIUM_PATH escape hatch, same place in ci.yml.
+page-inflight-check:
+	node scripts/check-page-inflight.mjs
 
 # THE GATE UNDER ADR-0047 D6. Every state on the map carries a boundary, and a
 # boundary that identifies state has a 3:1 floor (WCAG 1.4.11). Three states
