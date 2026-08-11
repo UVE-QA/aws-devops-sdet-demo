@@ -1,0 +1,194 @@
+=== phase 26 - the same instrument on the same commits
+host: ip-172-26-4-52   chromium: chromium-1234 chromium_headless_shell-1234 ffmpeg-1011 
+each commit is measured twice: with the instrument it was measured by THEN,
+and with the Phase 26 instrument, which serves the run layer.
+
+----- d5dbbaf   fixture in-flight   baseline instrument: own
+  baseline exit=0
+  fixture     viewport    cuts      height    screens   doc overflow-x
+  in-flight   2560x1440   closed     1878px       1.3   -
+  in-flight   2560x1440   open       8658px         6   -
+  in-flight   1920x1080   closed     1878px       1.7   -
+  in-flight   1920x1080   open       8658px         8   -
+  in-flight   1440x900    closed     2190px       2.4   -
+  in-flight   1440x900    open       9046px      10.1   -
+  in-flight   390x844     closed     4818px       5.7   -
+  in-flight   390x844     open      17051px      20.2   125px
+
+  WITH THE LAYER exit=0
+  fixture     viewport    cuts      height    screens   doc overflow-x
+  in-flight   2560x1440   closed     1948px       1.4   -
+  in-flight   2560x1440   open       8960px       6.2   -
+  in-flight   1920x1080   closed     1948px       1.8   -
+  in-flight   1920x1080   open       8960px       8.3   -
+  in-flight   1440x900    closed     2337px       2.6   -
+  in-flight   1440x900    open       9426px      10.5   -
+  in-flight   390x844     closed     5169px       6.1   -
+  in-flight   390x844     open      17733px        21   125px
+
+in-flight · 2560x1440 · map 523.58px in 10 columns · air 1338.57px
+in-flight · 1920x1080 · map 523.58px in 10 columns · air 1338.57px
+in-flight · 1440x900 · map 873.97px in 5 columns · air 1075.96px
+in-flight · 390x844 · map 2194.64px in 2 columns · air 318.54px
+  every word whole   135.92px   the widest is "environment"
+  every name unwrapped 283.48px
+
+----- c845476   fixture in-flight   baseline instrument: own
+  baseline exit=0
+  fixture     viewport    cuts      height    screens   doc overflow-x
+  in-flight   2560x1440   closed     1760px       1.2   -
+  in-flight   2560x1440   open       8435px       5.9   -
+  in-flight   1920x1080   closed     1790px       1.7   -
+  in-flight   1920x1080   open       8450px       7.8   -
+  in-flight   1440x900    closed     2190px       2.4   -
+  in-flight   1440x900    open       9046px      10.1   -
+  in-flight   390x844     closed     4841px       5.7   -
+  in-flight   390x844     open      17073px      20.2   125px
+
+  WITH THE LAYER exit=0
+  fixture     viewport    cuts      height    screens   doc overflow-x
+  in-flight   2560x1440   closed     1812px       1.3   -
+  in-flight   2560x1440   open       8718px       6.1   -
+  in-flight   1920x1080   closed     1841px       1.7   -
+  in-flight   1920x1080   open       8733px       8.1   -
+  in-flight   1440x900    closed     2337px       2.6   -
+  in-flight   1440x900    open       9426px      10.5   -
+  in-flight   390x844     closed     5191px       6.2   -
+  in-flight   390x844     open      17755px        21   125px
+
+in-flight · 2560x1440 · map 487.48px in 10 columns · air 1294.96px
+in-flight · 1920x1080 · map 495.03px in 10 columns · air 1316.27px
+in-flight · 1440x900 · map 873.97px in 5 columns · air 1075.96px
+in-flight · 390x844 · map 2217.16px in 2 columns · air 326.09px
+  every word whole   143.69px   the widest is "environment"
+  every name unwrapped 291.25px
+
+----- 21062cc   fixture at-rest   baseline instrument: fd76351
+  baseline exit=0
+  fixture     viewport    cuts      height    screens   doc overflow-x
+  at-rest     2560x1440   closed     1734px       1.2   -
+  at-rest     2560x1440   open       8345px       5.8   -
+  at-rest     1920x1080   closed     1742px       1.6   -
+  at-rest     1920x1080   open       8353px       7.7   -
+  at-rest     1440x900    closed     2123px       2.4   -
+  at-rest     1440x900    open       8935px       9.9   -
+  at-rest     390x844     closed     4842px       5.7   -
+  at-rest     390x844     open      16762px      19.9   120px
+
+at-rest · 2560x1440 · map 487.48px in 10 columns · air 1410.96px
+at-rest · 1920x1080 · map 495.03px in 10 columns · air 1432.28px
+at-rest · 1440x900 · map 796.84px in 5 columns · air 909.63px
+at-rest · 390x844 · map 2101.08px in 2 columns · air 272.09px
+  every word whole   143.69px   the widest is "environment"
+  every name unwrapped 291.25px
+  WITH THE LAYER exit=0
+  fixture     viewport    cuts      height    screens   doc overflow-x
+  at-rest     2560x1440   closed     1833px       1.3   -
+  at-rest     2560x1440   open       8676px         6   -
+  at-rest     1920x1080   closed     1841px       1.7   -
+  at-rest     1920x1080   open       8684px         8   -
+  at-rest     1440x900    closed     2317px       2.6   -
+  at-rest     1440x900    open       9362px      10.4   -
+  at-rest     390x844     closed     5277px       6.3   -
+  at-rest     390x844     open      17528px      20.8   120px
+
+at-rest · 2560x1440 · map 487.48px in 10 columns · air 1193.61px
+at-rest · 1920x1080 · map 495.03px in 10 columns · air 1214.93px
+at-rest · 1440x900 · map 873.97px in 5 columns · air 1025.29px
+at-rest · 390x844 · map 2284.72px in 2 columns · air 292.31px
+  every word whole   143.69px   the widest is "environment"
+  every name unwrapped 291.25px
+
+----- fd76351   fixture at-rest   baseline instrument: own
+  baseline exit=0
+  fixture     viewport    cuts      height    screens   doc overflow-x
+  at-rest     2560x1440   closed     2039px       1.4   -
+  at-rest     2560x1440   open       8682px         6   -
+  at-rest     1920x1080   closed     2039px       1.9   -
+  at-rest     1920x1080   open       8682px         8   -
+  at-rest     1440x900    closed     2346px       2.6   -
+  at-rest     1440x900    open       9070px      10.1   -
+  at-rest     390x844     closed     5472px       6.5   -
+  at-rest     390x844     open      17392px      20.6   120px
+
+at-rest · 2560x1440 · map 796.84px in 5 columns · air 992.38px
+at-rest · 1920x1080 · map 796.84px in 5 columns · air 967.85px
+at-rest · 1440x900 · map 1088.83px in 4 columns · air 694.72px
+at-rest · 390x844 · map 2731.2px in 1 columns · air 0px
+  every word whole   143.69px   the widest is "environment"
+  every name unwrapped 295.58px
+  WITH THE LAYER exit=0
+  fixture     viewport    cuts      height    screens   doc overflow-x
+  at-rest     2560x1440   closed     2215px       1.5   -
+  at-rest     2560x1440   open       9091px       6.3   -
+  at-rest     1920x1080   closed     2215px       2.1   -
+  at-rest     1920x1080   open       9091px       8.4   -
+  at-rest     1440x900    closed     2553px       2.8   -
+  at-rest     1440x900    open       9510px      10.6   -
+  at-rest     390x844     closed     6051px       7.2   -
+  at-rest     390x844     open      18302px      21.7   120px
+
+at-rest · 2560x1440 · map 873.97px in 5 columns · air 1108.04px
+at-rest · 1920x1080 · map 873.97px in 5 columns · air 1083.51px
+at-rest · 1440x900 · map 1178.42px in 4 columns · air 758.2px
+at-rest · 390x844 · map 3058.98px in 1 columns · air 0px
+  every word whole   143.69px   the widest is "environment"
+  every name unwrapped 295.58px
+
+----- 6d0ee53   fixture at-rest   baseline instrument: own
+  baseline exit=0
+  fixture     viewport    cuts      height    screens   doc overflow-x
+  at-rest     2560x1440   closed     2039px       1.4   -
+  at-rest     2560x1440   open       8682px         6   -
+  at-rest     1920x1080   closed     2039px       1.9   -
+  at-rest     1920x1080   open       8682px         8   -
+  at-rest     1440x900    closed     2354px       2.6   -
+  at-rest     1440x900    open       9070px      10.1   -
+  at-rest     390x844     closed     5507px       6.5   -
+  at-rest     390x844     open      17473px      20.7   120px
+
+at-rest · 2560x1440 · map 796.84px in 5 columns · air 992.38px
+at-rest · 1920x1080 · map 796.84px in 5 columns · air 967.85px
+at-rest · 1440x900 · map 1088.83px in 4 columns · air 694.72px
+at-rest · 390x844 · map 2731.2px in 1 columns · air 0px
+  every word whole   143.69px   the widest is "environment"
+  every name unwrapped 295.58px
+  WITH THE LAYER exit=0
+  fixture     viewport    cuts      height    screens   doc overflow-x
+  at-rest     2560x1440   closed     2215px       1.5   -
+  at-rest     2560x1440   open       9091px       6.3   -
+  at-rest     1920x1080   closed     2215px       2.1   -
+  at-rest     1920x1080   open       9091px       8.4   -
+  at-rest     1440x900    closed     2561px       2.8   -
+  at-rest     1440x900    open       9510px      10.6   -
+  at-rest     390x844     closed     6087px       7.2   -
+  at-rest     390x844     open      18384px      21.8   120px
+
+at-rest · 2560x1440 · map 873.97px in 5 columns · air 1108.04px
+at-rest · 1920x1080 · map 873.97px in 5 columns · air 1083.51px
+at-rest · 1440x900 · map 1178.42px in 4 columns · air 758.2px
+at-rest · 390x844 · map 3058.98px in 1 columns · air 0px
+  every word whole   143.69px   the widest is "environment"
+  every name unwrapped 295.58px
+
+----- HEAD, the baseline instrument (no layer), for the pair ADR-0058 D6 records
+  baseline exit=0
+  fixture     viewport    cuts      height    screens   doc overflow-x
+  at-rest     2560x1440   closed     3116px       2.2   -
+  at-rest     2560x1440   open       7979px       5.5   -
+  at-rest     1920x1080   closed     3116px       2.9   -
+  at-rest     1920x1080   open       7979px       7.4   -
+  at-rest     1440x900    closed     3266px       3.6   -
+  at-rest     1440x900    open       8184px       9.1   -
+  at-rest     390x844     closed     8579px      10.2   -
+  at-rest     390x844     open      17871px      21.2   120px
+
+at-rest · 2560x1440 · map 813.75px in 4 columns · air 1304.6px
+at-rest · 1920x1080 · map 813.75px in 4 columns · air 1304.6px
+at-rest · 1440x900 · map 888.67px in 4 columns · air 1403.76px
+at-rest · 390x844 · map 2179.67px in 1 columns · air 0px
+  every word whole   143.69px   the widest is "environment"
+  every name unwrapped 295.58px
+
+tree after:
+(empty = nothing was left behind)

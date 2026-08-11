@@ -1,0 +1,28 @@
+=== phase 26 - the layer refusals
+host: ip-172-26-4-52   commit: b44f3ad   chromium: chromium-1234 chromium_headless_shell-1234 ffmpeg-1011 
+exit codes taken inside this block, straight after a redirect - never through the pipe into tee
+
+[0] control - the layer in place
+exit=0
+  at-rest     1920x1080   closed     3321px       3.1   -
+
+[1] one document removed
+exit=2
+measure-page: the page asked this instrument's own server for documents it does not have. A page missing its run layer draws no figure at all - every node reads `not run yet` - and is SHORTER than the page a visitor gets, with no banner to say so:
+  /timeline/stage/nodes-apply.json
+
+[2] the whole layer gone
+exit=2
+measure-page: tests/fixtures/page-measure/layer does not exist, and without the run layer every node on the measured page reads `not run yet`.
+
+[3] a document present and unreadable
+exit=2
+measure-page: tests/fixtures/page-measure/layer/cost/stage/latest.json is not valid JSON: Expected double-quoted property name in JSON at position 22
+  The page's own reader turns that into `null` and draws the node as if the document were absent, so this would measure a short page with nothing to say it.
+
+[4] control again - the same figure, so the restore was clean
+exit=0
+  at-rest     1920x1080   closed     3321px       3.1   -
+
+tree after:
+(empty = every break was undone)
