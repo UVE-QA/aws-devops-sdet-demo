@@ -35,3 +35,190 @@ ok    the two states differ, so the control is a control
 
 page-inflight: 2 claims did not hold.
     exit=1
+
+==============================================================================
+AFTER THE FIX (commit 725af47). Each defect is reintroduced ALONE, the page is
+rebuilt, the built page is checked to have actually changed - a break measured
+through an unchanged artifact measures the artifact (2026-08-08) - and the tree
+is restored and verified clean between every pair.
+==============================================================================
+------------------------------------------------------------------------------
+[control] the tree as committed
+    $ make page-inflight-check
+    ok    in-flight: the verdict counts only the runs that finished
+    ok    in-flight: a node nothing can ever measure never promises figures
+    ok    in-flight: a figure printed while a cycle is in flight says which cycle it is from
+    ok    at-rest: the verdict counts only the runs that finished
+    ok    at-rest: a node nothing can ever measure never promises figures
+    ok    at-rest: a figure printed while a cycle is in flight says which cycle it is from
+    ok    the two states differ, so the control is a control
+    
+    page-inflight: every claim held, in both states.
+    exit=0
+    tree restored, clean
+------------------------------------------------------------------------------
+[1] FINDING 2 REINTRODUCED - the finished branch promises figures again
+    assets/index.template.html: the `unmeasurable ||` clause removed
+    changed: 2 files changed, 2 insertions(+), 2 deletions(-)
+    $ make page-inflight-check
+    ok    in-flight: the verdict counts only the runs that finished
+    FAIL  in-flight: a node nothing can ever measure never promises figures
+            build.ecr (ECR push) promises figures nothing will ever measure: "finished in this run · figures publish when the cycle ends"
+    ok    in-flight: a figure printed while a cycle is in flight says which cycle it is from
+    ok    at-rest: the verdict counts only the runs that finished
+    ok    at-rest: a node nothing can ever measure never promises figures
+    ok    at-rest: a figure printed while a cycle is in flight says which cycle it is from
+    ok    the two states differ, so the control is a control
+    
+    page-inflight: 1 claim did not hold.
+    exit=1
+    tree restored, clean
+------------------------------------------------------------------------------
+[2] FINDING 3 REINTRODUCED - nodeTense() loses the under-way branch
+    assets/index.template.html: the whole `if (underWay)` clause deleted
+    changed: 2 files changed, 8 deletions(-)
+    $ make page-inflight-check
+    ok    in-flight: the verdict counts only the runs that finished
+    ok    in-flight: a node nothing can ever measure never promises figures
+    FAIL  in-flight: a figure printed while a cycle is in flight says which cycle it is from
+            stage.vpc (stage) prints a figure from the cycle before this one and does not say so: "measured · 22s"
+            stage.secrets (stage) prints a figure from the cycle before this one and does not say so: "measured · 5s"
+            stage.rds (stage) prints a figure from the cycle before this one and does not say so: "measured · 4m 47s"
+            stage.alb (stage) prints a figure from the cycle before this one and does not say so: "measured · 2m 11s"
+            stage.ecs (stage) prints a figure from the cycle before this one and does not say so: "measured · 1m 34s"
+            stage.cloudwatch (stage) prints a figure from the cycle before this one and does not say so: "measured · 8s"
+            stage.budgets (stage) prints a figure from the cycle before this one and does not say so: "measured · 3s"
+            destroy.stage (stage) prints a figure from the cycle before this one and does not say so: "11m 18s"
+    ok    at-rest: the verdict counts only the runs that finished
+    ok    at-rest: a node nothing can ever measure never promises figures
+    ok    at-rest: a figure printed while a cycle is in flight says which cycle it is from
+    ok    the two states differ, so the control is a control
+    
+    page-inflight: 1 claim did not hold.
+    exit=1
+    tree restored, clean
+------------------------------------------------------------------------------
+[3] FINDING 4 REINTRODUCED - result_previous stops asking whose run it is
+    assets/index.template.html: the underWayHere() conjunct removed
+    changed: 2 files changed, 2 deletions(-)
+    $ make page-inflight-check
+    ok    in-flight: the verdict counts only the runs that finished
+    ok    in-flight: a node nothing can ever measure never promises figures
+    FAIL  in-flight: a figure printed while a cycle is in flight says which cycle it is from
+            suite.db.prod (prod) calls its figure earlier, and no run is touching prod: "2 of 2 · 2.2s · from the previous run"
+            suite.smoke.prod (prod) calls its figure earlier, and no run is touching prod: "2 of 2 · 8.3s · from the previous run"
+    ok    at-rest: the verdict counts only the runs that finished
+    ok    at-rest: a node nothing can ever measure never promises figures
+    ok    at-rest: a figure printed while a cycle is in flight says which cycle it is from
+    ok    the two states differ, so the control is a control
+    
+    page-inflight: 1 claim did not hold.
+    exit=1
+    tree restored, clean
+------------------------------------------------------------------------------
+[4] FINDING 1 REINTRODUCED - the badge counts unfinished runs again
+    assets/index.template.html: historyTally()'s `finished` filter removed. This is
+    the defect Phase 22 fixed, and this is the first fixture that can SHOW it,
+    because its history is otherwise green
+    changed: 2 files changed, 2 insertions(+), 2 deletions(-)
+    $ make page-inflight-check
+    FAIL  in-flight: the verdict counts only the runs that finished
+            the verdict does not name the run in flight: "1 of 12 failed"
+    ok    in-flight: a node nothing can ever measure never promises figures
+    ok    in-flight: a figure printed while a cycle is in flight says which cycle it is from
+    ok    at-rest: the verdict counts only the runs that finished
+    ok    at-rest: a node nothing can ever measure never promises figures
+    ok    at-rest: a figure printed while a cycle is in flight says which cycle it is from
+    ok    the two states differ, so the control is a control
+    
+    page-inflight: 1 claim did not hold.
+    exit=1
+    tree restored, clean
+
+==============================================================================
+THE REFUSALS. A gate that reports on a fixture which cannot show the thing it
+exists for is worse than no gate: it is a green badge over no evidence. Each
+refusal exits 2, which is make's number for a failed recipe as well - measured,
+not assumed, in Phase 24 and again here.
+==============================================================================
+------------------------------------------------------------------------------
+[5] REFUSAL - the run layer taken away
+    tests/fixtures/page-inflight/layer moved aside. THIS IS THE STATE BOTH
+    page-measure SETS ARE PERMANENTLY IN: those ten documents 404 against the
+    static server there and measure-page.mjs prints a figure without a word,
+    because its own refusal only watches requests that LEAVE the origin
+    changed: 10 files changed, 562 deletions(-)
+    $ make page-inflight-check
+    page-inflight: the page asked this gate's own server for documents it does not have, and a page missing its run layer renders quietly and prints no figures at all - which is the state every one of these claims would then be measured in:
+      /timeline/stage/nodes-apply.json
+      /timeline/stage/nodes-destroy.json
+      /timeline/stage/latest.json
+      /results/stage/latest.json
+      /cost/stage/latest.json
+      /timeline/prod/nodes-apply.json
+      /timeline/prod/nodes-destroy.json
+      /timeline/prod/latest.json
+      /results/prod/latest.json
+      /cost/prod/latest.json
+    exit=2
+    tree restored, clean
+------------------------------------------------------------------------------
+[6] REFUSAL - a red row planted in the in-flight history
+    deploy-stage #62 given conclusion `failure`
+    changed: 1 file changed, 1 insertion(+), 1 deletion(-)
+    $ make page-inflight-check
+    page-inflight: in-flight: the fixture's history is not otherwise-green - deploy-stage #62 failure. A red row gives the badge a bad verdict for a reason that has nothing to do with the run in flight, and the green-while-unknown shape never appears.
+    exit=2
+    tree restored, clean
+------------------------------------------------------------------------------
+[7] REFUSAL - the control handed the subject's sources and left lying
+    at-rest's four source files overwritten with in-flight's, its meta untouched.
+    It refuses - but by the FIXTURE AUDIT, on the disagreement between the meta and
+    the history, not by the control check. Recorded as it happened: the break I
+    wrote to exercise controlDiffers() did not reach it, and [9] is the one that
+    does
+    changed: 3 files changed, 78 insertions(+), 78 deletions(-)
+    $ make page-inflight-check
+    page-inflight: at-rest: declares nothing in flight and its history holds 1 unfinished runs.
+    exit=2
+    tree restored, clean
+------------------------------------------------------------------------------
+[8] REFUSAL - at-rest's meta claims a cycle in flight
+    at-rest/meta.json cycle.in_flight flipped to true
+    changed: 1 file changed, 4 insertions(+), 2 deletions(-)
+    $ make page-inflight-check
+    page-inflight: at-rest: declares a cycle in flight and its history holds 0 unfinished runs.
+    exit=2
+    tree restored, clean
+------------------------------------------------------------------------------
+[9] REFUSAL - the control made into a second copy of the subject
+    in-flight's sources replaced by at-rest's AND its meta told the truth about
+    them, so both audits pass, both states render the same page, and the control
+    check is the only thing left to speak
+    changed: 4 files changed, 80 insertions(+), 82 deletions(-)
+    $ make page-inflight-check
+    ok    in-flight: the verdict counts only the runs that finished
+    ok    in-flight: a node nothing can ever measure never promises figures
+    ok    in-flight: a figure printed while a cycle is in flight says which cycle it is from
+    ok    at-rest: the verdict counts only the runs that finished
+    ok    at-rest: a node nothing can ever measure never promises figures
+    ok    at-rest: a figure printed while a cycle is in flight says which cycle it is from
+    
+    page-inflight: the control does not differ from the subject.
+      both states print the same run-history verdict, "all 12 succeeded" - one of them is supposed to have a run in flight
+      no node on the map says anything different between the two states, so the in-flight fixture is not in flight as far as the page is concerned
+    exit=2
+    tree restored, clean
+------------------------------------------------------------------------------
+[control] the tree as committed, once more, after every break
+    $ make page-inflight-check
+    ok    in-flight: the verdict counts only the runs that finished
+    ok    in-flight: a node nothing can ever measure never promises figures
+    ok    in-flight: a figure printed while a cycle is in flight says which cycle it is from
+    ok    at-rest: the verdict counts only the runs that finished
+    ok    at-rest: a node nothing can ever measure never promises figures
+    ok    at-rest: a figure printed while a cycle is in flight says which cycle it is from
+    ok    the two states differ, so the control is a control
+    
+    page-inflight: every claim held, in both states.
+    exit=0
