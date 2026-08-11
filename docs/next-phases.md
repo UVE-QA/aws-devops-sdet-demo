@@ -1345,7 +1345,7 @@ open, which is the estate coming out from under a cut; accepted with both
 figures in **ADR-0058 D6**, along with the two levers declined.
 
 **Carried forward:** the contrast contract has one ancestry and the page now has
-two. It travels with Phase 25.
+two. It travelled with Phase 25, which did not reach it; it travels with 27.
 
 The layout, on the model Phase 22 put in the data. **ADR-0054 D1**'s last piece
 with no pixels behind it.
@@ -1379,25 +1379,78 @@ history came out of a harness thrown away with the session that wrote it, and
 20a's own gate found a phase row 7px wider than its container while four
 document-level measurements read green.
 
-## Phase 25 — The gate for a cycle in flight
+## Phase 25 — The gate for a cycle in flight  [DONE 2026-08-11, $0]
 
-The thing the cursor has owed since 20m.
+The thing the cursor had owed since 20m. `tests/fixtures/page-inflight/` and
+`make page-inflight-check` (**ADR-0059**): the first gate here whose subject is
+the whole rendered page in a state that is not rest.
+
+**The prediction was wrong, and in an interesting direction.** The cursor said
+to expect the GATE to be the hard part. The gate took an afternoon; the FIXTURE
+found three things, because building it meant asking what the page actually
+reads — and the answer included ten documents no fixture in this repository had
+ever supplied.
+
+**Closed by:** the gate green in both states with the control differing, red on
+the unfixed page before anything was touched, red on each of four findings
+reintroduced one at a time, five refusals fired, controls green either side,
+exit codes in `docs/sessions/2026-08-11-phase-25-inflight-break-test.log` with
+the tree committed first. The fourth finding is new and was found by the
+fixture: `result_previous` marked every prod verdict `from the previous run`
+during a stage deploy that never touches prod.
+
+**Carried forward, both from Phase 24:** the contrast contract has one ancestry
+and the page has two. It travels with 27.
+
+## Phase 26 — The instrument measures a page that has figures on it
+
+**ADR-0059 D5.** `measure-page.mjs` guards the requests that LEAVE the origin
+and lets the run layer's ten origin-relative documents 404 against its own static
+server. Measured: ten 404s per fixture, on both sets, with `unmocked` empty and
+no banner drawn. Every node on the measured page reads `not run yet` and not one
+figure is printed, so every layout figure this project has argued from since 20e
+is a measurement of the short bodies.
 
 ```text
-- a fixture holding a cycle IN MID-FLIGHT with an otherwise-green history -
-  which this repository does not have, and the one in-flight fixture that
-  exists carries failures, so it never shows the green-while-unknown shape
-- the gate that reads it, and its break test
+- the run layer served to measure-page.mjs, from a fixture, exactly as
+  check-page-inflight.mjs serves it
+- the same refusal: an origin 404 is a refusal, not a shorter page
+- ADR-0050's and ADR-0052's figures, and ADR-0058 D6's 2039 -> 3116px and
+  1.9 -> 2.9 screens, REMEASURED against the same instrument on the same
+  commits, so the comparison is instrument-to-instrument and not
+  figure-to-memory
+- whatever the remeasurement says about the two levers ADR-0058 D6 declined
 ```
 
-Expect the gate to be the hard part. That was the cursor's own prediction after
-20m and nothing since has argued with it.
+**Closes when:** `make measure-page` refuses with the layer taken away, and the
+figures above are remeasured and written down beside the old ones with the
+difference stated. The old numbers are not retracted by this phase — they were
+honestly measured with an instrument whose limit nobody knew — and the point of
+the phase is the difference.
 
-**Closes when:** the new gate is green on the page, red on each of 20m's three
-findings re-introduced one at a time, with a control green either side, and the
-exit codes recorded to a file with the tree committed first. It is $0 until the
-in-flight fixture needs a real cycle behind it, and that is a separate, billable
-decision.
+**Does not close when** the page is re-laid-out. That is a decision, and it needs
+the number first.
+
+## Phase 27 — The contrast contract has two ancestries
+
+Carried from Phase 24 and past Phase 25, which did not reach it — the smaller of
+the two items 24 handed forward, and the one with no evidence behind it yet.
+
+`assets/contrast-contract.json` declares one probe chain,
+`main > .cycle > .phase > .set`. Since 24 the estate contour draws the same six
+states under `.contour > .estate-env > .set.estate-set`. No ancestor in either
+chain paints a background, so the colours SHOULD be identical — and `should` is
+what "an instrument aimed at the wrong scope reads green" is made of.
+
+```text
+- the contract's `chain` becomes chainS, a list, and the gate probes each
+- the refusal by name survives the schema change, and is fired again on it
+- 24's finding closed with a measurement rather than with an argument
+```
+
+**Closes when:** `make contrast-check` measures every state in BOTH ancestries,
+the two readings are written down beside each other, and the by-name refusal is
+fired on the new schema with a control green either side.
 
 ## Still open, and unchanged by any of the above
 

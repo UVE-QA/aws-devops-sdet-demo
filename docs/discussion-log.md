@@ -6,6 +6,57 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
+**As of 2026-08-11 (25 — the gate for a cycle in flight).** The page tells the
+truth while a cycle is running, and a gate holds it there.
+`tests/fixtures/page-inflight/` and `make page-inflight-check`, the first gate
+here whose subject is the whole rendered page in a state that is not rest. No
+cycle, no AWS call, nothing applied, $0. **ADR-0059**.
+
+**Main was green when this session started** — `ci #198` and `publish-site #35`
+on `e7f00e1`, checked before anything was touched.
+
+**THE GATE WAS RED BEFORE ANYTHING WAS FIXED**, and that is the strongest entry
+in the log. `[0]` is `make page-inflight-check` against the page as it stood:
+two claims down, three findings named, `exit=1`. A reintroduced defect proves a
+gate reacts to an edit; a defect that was already there, and that 20m had
+watched a live cycle print for twelve measured minutes, proves it reacts to the
+thing.
+
+**Why nothing had seen these.** `nodeTense()` is CORRECT — fourteen cases and
+forty-two calls in `check-page-tense.mjs`, green for three phases — and during a
+run the renderer consults the run layer first and never reaches it. A gate aimed
+at a correct function cannot see the branch that skips it. Third time here,
+after 20a's document-level overflow scope and 20m's two pages converging on the
+same wrong caption.
+
+**Four findings closed, and the fourth was found by the fixture.**
+`result_previous` marked EVERY prod verdict `from the previous run` during a
+stage deploy that never touches prod. It is the exact mirror of 20m's third
+finding — the node half asked neither question, the suite half asked only the
+first — and one predicate, `underWayHere()`, fixes both. One missing question,
+not two bugs.
+
+**The cursor's prediction was wrong, in a useful direction.** It said twice to
+expect the GATE to be the hard part. The gate took an afternoon; the FIXTURE
+found three things, because building it meant asking what the page actually
+reads.
+
+**THE INSTRUMENT HAD NEVER MEASURED A PAGE WITH FIGURES ON IT** (**ADR-0059
+D5**). `measure-page.mjs` guards the requests that LEAVE the origin; the run
+layer is ten origin-relative documents that 404 against its own static server.
+Measured: ten per fixture, on BOTH sets, `unmocked` empty, no banner drawn, and
+every node reading `not run yet`. So every layout figure argued from since 20e —
+ADR-0058 D6's 2039 → 3116px and 1.9 → 2.9 screens, 20j's 18.5rem floor — measured
+the short bodies. How much shorter is NOT MEASURED, and guessing it here would be
+the same species of error. Phase 26.
+
+**Nine break tests plus controls**, tree committed before each one and the built
+page checked to have actually changed. `[7]` is recorded as it happened rather
+than as it was meant: the break written for `controlDiffers()` was caught by the
+fixture audit first and never reached it; `[9]` is the one that does. Taken in
+the chat session's own sandbox on chromium-1194, which the log says in its own
+header; the devbox re-ran the gate green and refusal `[5]` red.
+
 **As of 2026-08-11 (24 — the composition, redrawn for three contours).** The
 model ADR-0054 decided in Phase 21 and Phase 22 deliberately did not draw. The
 page carries three contours now: the ESTATE (the nouns — two environments with

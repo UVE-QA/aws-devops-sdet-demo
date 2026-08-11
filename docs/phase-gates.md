@@ -59,6 +59,7 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 22    | The model in the data: three contours | ✅ done — $0; main was red when it started | sessions/2026-08-10-phase-22-the-model-in-the-data-and-a-red-main-nobody-saw.md |
 | 23    | One list of gates, two readers  | ✅ done — $0, nothing applied | sessions/2026-08-11-phase-23-one-list-two-readers.md |
 | 24    | The composition, three contours | ✅ done — $0, 1.9 → 2.9 screens, accepted with figures | sessions/2026-08-11-phase-24-a-reference-is-a-name.md |
+| 25    | The gate for a cycle in flight  | ✅ done — $0, four findings, nine breaks | sessions/2026-08-11-phase-25-a-figure-names-its-cycle.md |
 
 **Lettered sub-phases end here (ADR-0055).** From Phase 21 the identifier is a
 plain integer and every phase is planned together with the sentence that closes
@@ -3527,13 +3528,60 @@ Break-test output in
 ```
 - Cost: nothing. No AWS call, no cycle, nothing applied. The published page
   changes, so the next push to `main` republishes it.
-- Next allowed step: **Phase 25 — the gate for a cycle in flight**, planned in
-  `docs/next-phases.md`: a fixture holding a cycle mid-flight with an otherwise
-  green history, the gate that reads it, and its break test. The contrast
-  contract's second ancestry travels with it as the smaller of the two, and the
-  cursor's own prediction after 20m — that the gate is the hard part — still
-  stands. $0 until the in-flight fixture needs a real cycle behind it, which is
-  a separate, billable decision.
+- Next allowed step: closed by the section below, on 2026-08-11.
+
+### Phase 25 — The gate for a cycle in flight  ✅ DONE 2026-08-11
+The page tells the truth while a cycle is running, and a gate holds it there.
+`tests/fixtures/page-inflight/` and `make page-inflight-check`. $0, no cycle,
+nothing applied. Summary in
+`docs/sessions/2026-08-11-phase-25-a-figure-names-its-cycle.md`. **ADR-0059**.
+Break-test output in
+`docs/sessions/2026-08-11-phase-25-inflight-break-test.log`.
+- Criteria: a fixture holding a cycle mid-flight with an otherwise-green
+  history; the gate that reads it; green on the page with the control differing;
+  red on each of 20m's findings reintroduced one at a time; exit codes recorded
+  to a file with the tree committed first. **Met** — and exceeded on the last
+  clause, because the gate was red on the page BEFORE anything was fixed.
+- **THE GATE WAS RED FIRST, AND THAT IS THE STRONGEST ENTRY IN THE LOG.** Entry
+  `[0]` is `make page-inflight-check` against the page as it stood: two claims
+  down, three findings named, `exit=1`. A reintroduced defect proves a gate
+  reacts to an edit; a defect that was already there, and that 20m had watched a
+  live cycle print, proves it reacts to the thing.
+- **THE PREDICTION WAS WRONG, AND IN AN INTERESTING DIRECTION.** The cursor said
+  to expect the gate to be the hard part. The gate took an afternoon. The
+  FIXTURE found three things, because building it meant asking what the page
+  actually reads.
+- **A FOURTH FINDING, FOUND BY THE FIXTURE.** `result_previous` marked EVERY
+  prod verdict `from the previous run` during a stage deploy that never touches
+  prod. It is the exact mirror of 20m's third finding — the node half asked
+  neither question, the suite half asked only the first — and the same predicate
+  fixes both. One missing question, not two bugs (**ADR-0059 D2**).
+- **THE INSTRUMENT HAD NEVER MEASURED A PAGE WITH FIGURES ON IT** (**ADR-0059
+  D5**). `measure-page.mjs` guards requests that LEAVE the origin; the run layer
+  is ten origin-relative documents that 404 against its own static server.
+  Measured: ten per fixture, on BOTH sets, `unmocked` empty, no banner. Every
+  node on the measured page reads `not run yet`. So every layout figure argued
+  from since 20e — ADR-0058 D6's 2039 → 3116px included — measured the short
+  bodies. How much shorter is NOT MEASURED; that is Phase 26.
+- **WHERE THE BREAK TESTS WERE TAKEN, and it is not the usual place.** The chat
+  session's own sandbox, on chromium-1194 rather than the pinned build. The
+  devbox re-ran the gate green and refusal `[5]` red, identically; the four
+  defect breaks were not re-run there. The log says so in its own header.
+- Validation:
+```bash
+  make gates                                   # 12/12
+  make page-inflight-check                     # devbox only
+  make page-tense-check live-state-check site-page-check
+  make contrast-check page-freshness-check     # devbox only
+```
+- Cost: nothing. No AWS call, no cycle, nothing applied. The published page
+  changes, so the next push to `main` republishes it.
+- Next allowed step: **Phase 26 — the instrument measures a page that has
+  figures on it**, planned in `docs/next-phases.md`: serve the run layer to
+  `measure-page.mjs` from a fixture, refuse on an origin 404 there too, and
+  remeasure ADR-0050, ADR-0052 and ADR-0058 D6 against the same instrument on
+  the same commits. $0. Phase 27 — the contrast contract's second ancestry — is
+  the smaller item and is still carried.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

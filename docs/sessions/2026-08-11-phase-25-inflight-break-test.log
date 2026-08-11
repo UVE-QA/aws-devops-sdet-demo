@@ -232,3 +232,49 @@ not assumed, in Phase 24 and again here.
     
     page-inflight: every claim held, in both states.
     exit=0
+
+==============================================================================
+ON THE DEVBOX, 2026-08-11, after `git am` of the same commits. The pinned
+chromium, not chromium-1194.
+==============================================================================
+
+    $ make gates
+    12/12 green, page-inflight-check named among the 20 that need more than a
+    checkout, with its reason.
+    exit=0
+
+    $ make page-inflight-check
+    ok    in-flight: the verdict counts only the runs that finished
+    ok    in-flight: a node nothing can ever measure never promises figures
+    ok    in-flight: a figure printed while a cycle is in flight says which cycle it is from
+    ok    at-rest: the verdict counts only the runs that finished
+    ok    at-rest: a node nothing can ever measure never promises figures
+    ok    at-rest: a figure printed while a cycle is in flight says which cycle it is from
+    ok    the two states differ, so the control is a control
+
+    page-inflight: every claim held, in both states.
+    exit=0
+
+    $ mv tests/fixtures/page-inflight/layer /tmp/layer-away && make page-inflight-check
+    page-inflight: the page asked this gate's own server for documents it does
+    not have, and a page missing its run layer renders quietly and prints no
+    figures at all - which is the state every one of these claims would then be
+    measured in:
+      /timeline/stage/nodes-apply.json
+      /timeline/stage/nodes-destroy.json
+      /timeline/stage/latest.json
+      /results/stage/latest.json
+      /cost/stage/latest.json
+      /timeline/prod/nodes-apply.json
+      /timeline/prod/nodes-destroy.json
+      /timeline/prod/latest.json
+      /results/prod/latest.json
+      /cost/prod/latest.json
+    make: *** [Makefile:352: page-inflight-check] Error 2
+    exit=2
+    (layer moved back; `git status --short` printed nothing)
+
+NOT RE-RUN HERE: the four defect breaks [1]-[4] and the four other refusals.
+They need the source edited and the page rebuilt, and the sandbox record above
+is what stands for them. If a later session wants them on the devbox, the
+patches are one line each and they are quoted next to their entries.
