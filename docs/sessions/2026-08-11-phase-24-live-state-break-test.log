@@ -195,3 +195,35 @@ overflow: none
 the apply phases. 7 touch lines: approve touches nothing. 15 touched-by
 lines: every estate node names the steps that reach it. 1 suite with no
 run node, which is tests/unit carrying its own reason.
+
+=== MEASURED ON THE DEVBOX, WITH THE PINNED BROWSER ==================
+`make measure-page`, page height at document.scrollHeight, cuts CLOSED,
+at-rest fixture. The second column is the SAME instrument in the SAME
+session on 6d0ee53 - the page as it was before this phase - taken by
+checking out the old site/ and template, measuring, and restoring. The
+retired ADR-0050/ADR-0052 figures were not translated; they were not
+used at all.
+
+  viewport     before (6d0ee53)   after (238c20a)   delta
+  2560x1440    2039px  1.4 scr    3194px  2.2 scr   +1155
+  1920x1080    2039px  1.9 scr    3194px  3.0 scr   +1155
+  1440x900     2354px  2.6 scr    3373px  3.7 scr   +1019
+  390x844      5507px  6.5 scr    8920px 10.6 scr   +3413
+
+AND THE READING THAT CHANGES WHAT THAT MEANS - cuts OPEN, 1920:
+  before 8682px, after 8057px. The TOTAL content shrank by 625px. So
+  nothing was added; the estate came out from under a cut, which is
+  what ADR-0054 D5 asked for. What grew is the default view.
+
+  the 390px overflow - 169.13px, #history > table - is present in the
+  BEFORE column at the same size. Pre-existing, and now checked rather
+  than assumed.
+
+  two broken words are NEW and are in this phase's own contour:
+    read-only                            #suites .node .asserts  @1920
+    tests/playwright/tests/regression    #suites .node .head .name @1440
+  the second is a path in the field that holds a NAME, which is why
+  `.node .head .name` sets overflow-wrap: break-word and why the gate
+  calls a break there a defect. Fixed below. The first is prose with a
+  hyphen and is left to the next measurement to say whether it survives
+  the reflow - guessing at it would be the thing this file is against.

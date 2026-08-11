@@ -3024,13 +3024,31 @@
            of them answered by observation. `nodeEl` is reused unchanged: an
            estate node reaches its tense branch on its own now, because paint()
            leaves `run` unset for it, and that branch is the gated one. */
-        function estateNodeEl(n) {
-          const el = nodeEl(n);
+        /* MEASURED, THEN COMPACTED. Drawn the obvious way, the estate contour put
+           the page at 3194px on 1920 with the cuts closed - 3.0 screens against
+           the 1.9 that 20e, 20g and 20j fought for. The control run on the
+           previous page in the same session said the total content had in fact
+           SHRUNK by 625px, so none of it was bloat: it was the cut being opened
+           by design. What paid for it was repetition, twice.
+
+           The environment tag is the first. Every node under the `stage` block
+           carried one, seven times, under a header that already says `stage` -
+           ADR-0047 D3 exactly, which the map has refused since 20e.1. It is
+           passed as a SHARED env here for the same reason and through the same
+           parameter, so there is one rule and not two.
+
+           The steps that touch a noun are the second: four phase labels wrap to
+           two lines on every card. The verb is the information and the phase is
+           a pointer - and the map draws a NUMBER on every phase for pointing
+           with. So the line is `creates 2 - provisions 3 - asserts 4 -
+           destroys 8`, and the contour's caption says what the number is. */
+        function estateNodeEl(n, sharedEnv) {
+          const el = nodeEl(n, sharedEnv ? { env: sharedEnv } : undefined);
           const by = TOUCHED_BY[n.id] || [];
           if (by.length) {
             el.insertAdjacentHTML("beforeend",
               `<div class="touchedby">` + by.map((t) =>
-                `${esc(t.phase.label)} <span class="verb">${esc(t.verb)}</span>`
+                `<span class="verb">${esc(t.verb)}</span> ${esc(t.phase.n)}`
               ).join(" &middot; ") + `</div>`);
           }
           return el;
@@ -3047,7 +3065,7 @@
               `<span class="wf">${esc(e.level)}</span></header>`;
             const set = document.createElement("div");
             set.className = "set estate-set";
-            (e.nodes || []).forEach((n) => set.appendChild(estateNodeEl(n)));
+            (e.nodes || []).forEach((n) => set.appendChild(estateNodeEl(n, e.id)));
             sec.appendChild(set);
             host.appendChild(sec);
           });
@@ -3078,7 +3096,8 @@
           if (!cap) return;
           const date = measuredOn();
           cap.innerHTML =
-            `The word on each node is what AWS says now. ` +
+            `The word on each node is what AWS says now, and the number beside a ` +
+            `verb is the step on the map below that carries it. ` +
             (date
               ? `The figures beside it were measured by the cycle that finished ${date}` +
                 (figuresAreOlder(RUNSTATE.observation)
@@ -3108,11 +3127,20 @@
               .map((id) => CYCLE_NODES[id])
               .filter(Boolean)
               .map((c) => `${esc(c.node.env || "")} <span class="note">in ${esc(c.phase.label)}</span>`);
+            // THE NAME FIELD IS FOR A NAME. `tests/playwright/tests/regression`
+            // in there was broken across two lines at 1440 and measure-page said
+            // so on its first run over this contour - `.node .head .name` sets
+            // `overflow-wrap: break-word`, which is what makes a broken service
+            // name a defect rather than a wrap. The suite's own name goes in it
+            // and the DIRECTORY goes to the identifier line below, which is
+            // marked breakable on purpose and is where every other path on this
+            // page already lives.
             el.innerHTML =
               `<div class="head">${iconEl("suite")}` +
-              `<span class="name">${esc(s.dir)}</span></div>` +
+              `<span class="name">${esc(s.suite)}</span></div>` +
               `<div class="nmeta">${esc((inv && inv.collector) || "")}` +
-              `${inv && inv.collector ? " &middot; " : ""}<span class="mono">${esc(s.pattern)}</span></div>` +
+              `${inv && inv.collector ? " &middot; " : ""}` +
+              `<span class="mono">${esc(s.dir)}/${esc(s.pattern)}</span></div>` +
               `<div class="nstate"><span class="word">${count}</span></div>` +
               `<div class="asserts">${esc(s.asserts)}</div>` +
               (where.length

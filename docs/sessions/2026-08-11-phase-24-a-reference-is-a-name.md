@@ -122,6 +122,48 @@ The 404s and the CORS failure in that log are the page offline: no
 `status/*.json`, no timeline objects, no Actions API. That is also why the
 estate caption reads "nothing has measured these resources yet".
 
+## 5b. Measured on the devbox, and the compaction that followed
+
+The figures, `cuts closed`, at-rest, against the SAME instrument run on
+`6d0ee53` in the same session — the old page measured, not the retired numbers
+translated:
+
+```text
+  viewport     before      after       delta
+  2560x1440    2039px      3194px      +1155     1.4 -> 2.2 screens
+  1920x1080    2039px      3194px      +1155     1.9 -> 3.0 screens
+  1440x900     2354px      3373px      +1019     2.6 -> 3.7 screens
+  390x844      5507px      8920px      +3413     6.5 -> 10.6 screens
+```
+
+**And the reading that changes what it means:** `cuts open` at 1920 went 8682 →
+**8057**. The total content SHRANK by 625px. Nothing was added — the estate came
+out from under a cut, which is exactly what ADR-0054 D5 asked for. What grew is
+the default view, and the first screen was fought for across three sessions.
+
+So the growth was attacked where it was repetition, not where it was content:
+
+```text
+- the environment tag, drawn on all seven nodes under a header that says
+  `stage`. ADR-0047 D3, which the map has refused since 20e.1; it is passed as
+  a shared env through the same parameter, so there is one rule and not two
+- the steps touching a noun, four phase labels wrapping to two lines on every
+  card. The verb is the information and the phase is a pointer, and the map
+  draws a number on every phase for pointing with:
+  `creates 2 · provisions 3 · asserts 4 · destroys 8`
+```
+
+The 390px overflow — 169.13px in `#history > table` — is in the BEFORE column at
+the same size. Pre-existing, checked rather than assumed.
+
+Two broken words are this contour's own, and `measure-page` found both on its
+first run over it. `tests/playwright/tests/regression` sat in
+`.node .head .name`, which sets `overflow-wrap: break-word` precisely so that a
+broken name is a defect; the suite's own name goes there now and the path joins
+the collector on the breakable meta line. `read-only` is prose with a hyphen and
+is left for the next measurement to answer — guessing whether a reflow moves it
+is the kind of claim this repository measures instead.
+
 ## 6. Validation
 
 ```bash
