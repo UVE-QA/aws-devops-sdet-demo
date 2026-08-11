@@ -11,7 +11,7 @@
     "modules": 9,
     "suites": 5,
     "workflows": 6,
-    "adrs": 57,
+    "adrs": 58,
     "repeated_blocks": 9
   },
   "measured_cycle": null,

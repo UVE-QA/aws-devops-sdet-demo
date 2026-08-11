@@ -9,6 +9,7 @@
   "_discovery": "WHY THE LIST CANNOT SHRINK IN SILENCE. One list has one failure mode the two did not: delete a line and both readers get weaker at once, with nothing to notice. So the checker DISCOVERS what ought to be here, from the repository rather than from a second list, and refuses when something discovered is missing. Three rules, union: a Makefile target whose name ends in `-check`; a Makefile target whose recipe runs a scripts/check-* program (which is how `action-pins` is caught - it is a gate that does not say so in its name); and any target ci.yml invokes as `make <target>` on a line that is not a comment. An entry the rules do not discover is allowed and left alone - listing something deliberately is not an error - but an entry naming a target the Makefile does not define is refused, because that is a name that has stopped meaning anything.",
 
   "_gates": "`local` answers ONE question: can a plain checkout run this with python3, node and nothing else? Everything that answers no carries the reason it cannot, and the runner prints those reasons rather than omitting the rows - a gate absent from a table looks exactly like a gate that passed (22). CI runs the local ones through `make gates` and the rest as their own steps, where the stack, the browser and the scanners they need are side effects of the steps above them (ADR-0042 D2).",
+  "_browser": "`browser: true` marks the gates that open the built page in chromium. scripts/verify-schema3.sh reads it rather than holding their names, so the two rows it prints as SKIP on a machine without a browser cannot drift from this file - it held its own list of eight gates for one day and was already four short.",
   "gates": [
     { "target": "docs-check",              "local": true },
     { "target": "site-data-check",         "local": true },
@@ -23,9 +24,9 @@
     { "target": "rates-check",             "local": true },
     { "target": "action-pins",             "local": true },
 
-    { "target": "contrast-check",          "local": false,
+    { "target": "contrast-check",          "local": false, "browser": true,
       "needs": "playwright and chromium, which are a side effect of `make test-smoke` in ci.yml's local-ci job" },
-    { "target": "page-freshness-check",    "local": false,
+    { "target": "page-freshness-check",    "local": false, "browser": true,
       "needs": "playwright and chromium, same as contrast-check; it drives the built page in a browser" },
     { "target": "suite-inventory-check",   "local": false,
       "needs": "the unit venv, the api venv and playwright's node_modules, each a side effect of a step above it (ADR-0042 D2)" },

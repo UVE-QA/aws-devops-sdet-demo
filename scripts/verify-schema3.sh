@@ -2,6 +2,9 @@
 #
 # Phase 22's runner: migrate, rebuild, and then ask every gate AND the real file.
 #
+# Since Phase 23 the cheap gates are not listed here: `make gates` reads them
+# from assets/gates.json, and so do ci.yml and scripts/session-close.sh.
+#
 # WHY THE REAL-DATA PROBE IS IN HERE WITH THE GATES
 # -------------------------------------------------
 # Every gate below was GREEN while all four consumers of site/data/topology.json
@@ -43,30 +46,38 @@ set -u
 
 cd "$(dirname "$0")/.." || exit 1
 
-GATES=(
-  docs-check
-  site-data-check
-  site-page-check
-  timeline-check
-  node-states-check
-  results-check
-  live-state-check
-  page-tense-check
-)
+# THE CHEAP GATES ARE NOT LISTED HERE ANY MORE (Phase 23, ADR-0057). This script
+# held eight of them; ci.yml ran twelve and session-close ran three, and the
+# eight were already four short the day after they were written - a third copy of
+# a list is the same defect with one more place to disagree. `make gates` runs
+# the list in assets/gates.json, which is the list both other readers use, and it
+# is one row in the table below.
 
-# The gates that open the built page in chromium. They answer the questions no
-# lifted block can: whether an open tab converges on what a reload shows, and
-# whether what is drawn can be read.
-BROWSER_GATES=(
-  page-freshness-check
-  contrast-check
-)
+# The gates that open the built page in chromium, READ FROM THE SAME FILE rather
+# than named again here. They answer the questions no lifted block can: whether
+# an open tab converges on what a reload shows, and whether what is drawn can be
+# read. The script refuses below if the file names none of them.
+# Read line by line and DROP EMPTY LINES, which is not fussiness: with the flag
+# removed from every entry, the obvious `mapfile` form produced an array holding
+# one empty string, the refusal below saw a count of 1, and the run printed a
+# SKIP row with no name and `Run these where chromium is: make` with nothing
+# after it. The break test written for this refusal is what found it - the
+# refusal itself was blameless and the reading through mapfile was not.
+BROWSER_GATES=()
+while IFS= read -r line; do
+  [ -n "$line" ] && BROWSER_GATES+=("$line")
+done < <(python3 -c '
+import json
+d = json.load(open("assets/gates.json"))
+print("\n".join(e["target"] for e in d["gates"] if e.get("browser")))
+')
+if [ "${#BROWSER_GATES[@]}" -eq 0 ]; then
+  echo "verify-schema3: assets/gates.json marks no gate as needing a browser."
+  echo "That is how 22's stale-figures defect reached another host - on twelve"
+  echo "green rows with the one gate that could see it missing. Refusing."
+  exit 1
+fi
 
-# The same three places check-page-freshness.mjs, check-contrast.mjs and
-# measure-page.mjs look, in the same order. Asked here rather than inferred from
-# a gate's exit status: those scripts exit 2 both when Playwright is missing and
-# when they refuse to measure something, and treating a refusal as "no browser"
-# is how a red gate becomes a skipped one.
 browser_ready() {
   if [ -n "${PLAYWRIGHT_MODULE:-}" ] && [ -f "${PLAYWRIGHT_MODULE}" ]; then return 0; fi
   if [ -f tests/playwright/node_modules/@playwright/test/index.js ]; then return 0; fi
@@ -129,12 +140,11 @@ fi
 
 echo
 echo "== gates =="
-for gate in "${GATES[@]}"; do
-  echo "-- $gate"
-  make "$gate"
-  gate_status=$?
-  record "$gate" "$gate_status" ""
-done
+# One row, one list: `make gates` is what ci.yml runs and what session-close
+# runs. Its own output names every gate it ran and every gate it did not.
+make gates
+gates_status=$?
+record gates "$gates_status" "assets/gates.json, the list ci.yml and session-close also read"
 
 echo
 echo "== browser gates =="

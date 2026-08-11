@@ -1315,48 +1315,70 @@ reference resolves, all five suites are drawn, and the new
 suite-drawn-by-nobody refusal has been broken on purpose once with its output
 kept. The badge fix has a case that fails without it.
 
-**Does not close when** the page renders. The page is Phase 23, and a session
+**Does not close when** the page renders. The page is Phase 24, and a session
 that starts fixing the layout here is how Phase 20 happened.
 
-## Phase 23 — The composition, re-measured, and the gate for a cycle in flight
+## Phase 23 — One list of gates, two readers  [DONE 2026-08-11, $0]
 
-The layout, and the thing the cursor has owed since 20m.
+The item Phase 22 handed forward, taken first because it is the one that keeps
+reddening `main` while a session reports itself closed.
+
+`scripts/session-close.sh` ran three cheap gates and `.github/workflows/ci.yml`
+ran twelve, so `session-close: clean` and a red build were compatible states.
+The list moved to `assets/gates.json`; both readers call `make gates`;
+`make gates-check` discovers what belongs in the list out of the Makefile and
+out of `ci.yml`, so the one thing a single list can do that two cannot — shrink
+in silence — is refused rather than trusted. **ADR-0057**.
+
+**Closed by:** the twelve cheap gates running from one list in both readers, the
+refusals broken on purpose six ways with a control green either side, and the
+20i/21 defect reproduced — an ADR added without regenerating — red in both
+readers from the same list. Met. Break-test output in
+`docs/sessions/2026-08-11-phase-23-one-list-break-test.log`.
+
+## Phase 24 — The composition, redrawn for three contours
+
+The layout, on the model Phase 22 put in the data. **ADR-0054 D1**'s last piece
+with no pixels behind it.
 
 ```text
 - the composition redrawn for three contours; ADR-0047 D1 and ADR-0052 D2/D3 go
   with it
 - re-measured, not translated. Every figure in ADR-0050 and ADR-0052 is a
   measurement of the old object and is retired by ADR-0054
+- the assertions contour DRAWN. Phase 22 closed on "all five suites drawn",
+  read as present in the topology: `assertions.suites` holds all five and
+  `tests/unit` carries its `not_in_cycle` reason, and nothing on the page
+  renders any of it. Rendering it is a composition decision, which is why it
+  waited for this phase rather than being smuggled into that one
 - assets/contrast-contract.json: the probe chain is data, and it is edited
   rather than the script. A seventh node state makes the gate refuse, out loud,
   by design
+```
+
+**Closes when:** the page draws three contours; the assertions contour renders
+all five suites with `tests/unit` visibly outside the cycle in its own words;
+`contrast-check` reads its probe chain from `assets/contrast-contract.json` and
+refuses by name on a state the chain does not cover; every figure quoted from
+ADR-0050 and ADR-0052 has been re-measured on the new page with
+`make measure-page` and written down; and `make gates`, `make page-tense-check`,
+`make live-state-check`, `make site-page-check`, `make contrast-check` and
+`make page-freshness-check` are green on it.
+
+**Does not close when** it looks right. Every figure in this repository's layout
+history came out of a harness thrown away with the session that wrote it, and
+20a's own gate found a phase row 7px wider than its container while four
+document-level measurements read green.
+
+## Phase 25 — The gate for a cycle in flight
+
+The thing the cursor has owed since 20m.
+
+```text
 - a fixture holding a cycle IN MID-FLIGHT with an otherwise-green history -
   which this repository does not have, and the one in-flight fixture that
   exists carries failures, so it never shows the green-while-unknown shape
 - the gate that reads it, and its break test
-```
-
-Two items Phase 22 hands over, recorded here rather than quietly carried:
-
-```text
-the assertions contour   Phase 22 closed on "all five suites drawn", read as
-is not rendered          PRESENT IN THE TOPOLOGY: assertions.suites holds all
-                         five and tests/unit carries its `not_in_cycle` reason.
-                         NOTHING ON THE PAGE DRAWS THEM. Rendering the third
-                         contour is a composition decision and Phase 22 was
-                         forbidden to make one, so this is the last piece of
-                         ADR-0054 D1 with no pixels behind it.
-
-the two-list problem     scripts/session-close.sh checks two generated
-                         artifacts; ci.yml runs five more cheap gates it does
-                         not - timeline, node-states, results, live-state,
-                         page-tense. Phase 22 closed the specific hole that
-                         reddened main twice (topology.json counts the files in
-                         docs/decisions/, so a documents-only session moves a
-                         generated number) and deliberately left the shape. What
-                         fixes it has to be ONE list with two readers; a third
-                         copy of the list is the same defect with more places
-                         to disagree.
 ```
 
 Expect the gate to be the hard part. That was the cursor's own prediction after
@@ -1364,9 +1386,9 @@ Expect the gate to be the hard part. That was the cursor's own prediction after
 
 **Closes when:** the new gate is green on the page, red on each of 20m's three
 findings re-introduced one at a time, with a control green either side, and the
-exit codes recorded to a file with the tree committed first. The assertions
-contour is drawn, and `make session-close` and `ci.yml` no longer keep two
-lists.
+exit codes recorded to a file with the tree committed first. It is $0 until the
+in-flight fixture needs a real cycle behind it, and that is a separate, billable
+decision.
 
 ## Still open, and unchanged by any of the above
 

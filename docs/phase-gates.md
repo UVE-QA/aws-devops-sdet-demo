@@ -57,6 +57,7 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 20m   | The cycle watched through one tab | ✅ done — $0.0529..$0.0584 + $0.0182..$0.0237 | sessions/2026-08-09-phase-20m-what-the-map-says-while-it-runs.md |
 | 21    | Processes and state are two contours | ✅ done — $0, decisions only | sessions/2026-08-10-phase-21-processes-and-state-are-two-contours.md |
 | 22    | The model in the data: three contours | ✅ done — $0; main was red when it started | sessions/2026-08-10-phase-22-the-model-in-the-data-and-a-red-main-nobody-saw.md |
+| 23    | One list of gates, two readers  | ✅ done — $0, nothing applied | sessions/2026-08-11-phase-23-one-list-two-readers.md |
 
 **Lettered sub-phases end here (ADR-0055).** From Phase 21 the identifier is a
 plain integer and every phase is planned together with the sentence that closes
@@ -3388,12 +3389,76 @@ applied. Summary in
   Devbox: 14/14, both browser gates included. Sandbox: 12/12 with 2 SKIP and the
   run reporting itself INCOMPLETE.
 - Cost: nothing. No AWS call, no cycle, nothing applied.
-- Next allowed step: **Phase 23 — the composition, re-measured, and the gate for
-  a cycle in flight.** Planned in `docs/next-phases.md`, with two items this phase
-  added to it: render the assertions contour, and the two-list problem between
-  `scripts/session-close.sh` and `.github/workflows/ci.yml`. It is $0 until the
-  in-flight fixture needs a real cycle behind it, and that is a separate,
-  billable decision.
+- Next allowed step: **the two items this phase added to the plan** — render the
+  assertions contour, and the two-list problem between `scripts/session-close.sh`
+  and `.github/workflows/ci.yml`. The second was taken first and became Phase 23;
+  the composition is Phase 24 and the in-flight gate is Phase 25, renumbered in
+  `docs/next-phases.md` when the work was split. Read the section below rather
+  than this line.
+
+### Phase 23 — One list of gates, two readers  ✅ DONE 2026-08-11
+`assets/gates.json` is the one list of gates; `make gates` runs the ones a plain
+checkout can run and names the rest with their reasons; `scripts/session-close.sh`
+and `.github/workflows/ci.yml` are its two readers. $0, no cycle, nothing
+applied. Summary in
+`docs/sessions/2026-08-11-phase-23-one-list-two-readers.md`. **ADR-0057**.
+Break-test output in
+`docs/sessions/2026-08-11-phase-23-one-list-break-test.log`.
+- Criteria: the cheap gates run from ONE list in both readers, the refusals over
+  the list are broken on purpose with a control green either side, and the defect
+  that reddened main twice is reproduced and caught by both readers. **Met.**
+- **THE EXIT CHECK WAS RUNNING A QUARTER OF THE CHEAP GATES.** Not five missing,
+  as Phase 22 recorded — twelve run in `ci.yml` and three ran here. `action-pins`,
+  `cost-check`, `rates-check` and `publish-prefixes-check` were in the gap too,
+  and none of them appeared in the handover sentence, because that sentence was
+  written from the five gates the session had been looking at.
+- **THE COST OF ONE LIST IS THAT IT CAN SHRINK IN SILENCE**, which two lists
+  cannot: deleting a gate from one of them leaves the other still running it. So
+  `make gates-check` DISCOVERS what belongs in the list — a `-check` name, a
+  recipe running one of the check- programs in `scripts/`, or a `make <target>`
+  line in `ci.yml` — and refuses
+  when something discovered is missing. The middle rule is not decoration:
+  `action-pins` is a gate whose name does not say so, and the other two rules
+  would both have missed it (**ADR-0057** D4).
+- **SIX REFUSALS BROKEN ON PURPOSE, CONTROL GREEN EITHER SIDE**: a gate deleted
+  from the list, an entry naming a target the Makefile does not define, the list
+  emptied, an exclusion with no reason, `ci.yml` moved away, and the 20i/21
+  defect itself — an ADR added without regenerating, red in `make gates` and in
+  `session-close` from the same list. Recorded in the log above.
+- **THERE WAS A THIRD LIST, ONE DAY OLD AND ALREADY FOUR SHORT.**
+  `scripts/verify-schema3.sh`, Phase 22's own runner, held eight cheap gates
+  while `ci.yml` ran twelve and `session-close` ran three. It calls `make gates`
+  now and reads the two browser gates from a `browser: true` flag in the list
+  instead of naming them, refusing if none is marked (**ADR-0057** D7).
+- **THAT REFUSAL'S BREAK TEST FAILED TO BREAK, AND ITS CORRECTION WAS TAKEN
+  THROUGH A PIPE.** `mapfile` over a program printing an empty line yields an
+  array holding one empty string, so a count of 1 kept the guard quiet and the
+  run printed a nameless SKIP row on exit 0; the fix was then measured through
+  `| tail -6` and recorded tail's status. Both traps are in this file's own
+  verification-habits list, both were walked into inside ten minutes, and both
+  were found by writing the break test rather than by review.
+- **THE EXIT NUMBERS IN THAT LOG ARE MAKE'S, NOT THE SCRIPT'S.** `make` reports a
+  failed recipe as 2 whatever the recipe returned; the refusals return 1. Same
+  shape as the 2026-07-28 reading taken through a pipe, and measured directly in
+  the addendum rather than reasoned about. Harmless only because both readers
+  test for non-zero.
+- **WHAT IT COST: TWELVE NAMED CHECKS IN THE ACTIONS UI, DELIBERATELY.** A red
+  build now says which gate failed in the log rather than in the job list. Twelve
+  readable step names were also what made two lists look maintainable for eleven
+  phases.
+- Validation:
+```bash
+  make gates                                   # 12/12, 19 named as not runnable
+  make gates-check
+  make docs-check site-data-check site-page-check
+  make page-freshness-check contrast-check     # devbox only, needs chromium
+```
+- Cost: nothing. No AWS call, no cycle, nothing applied.
+- Next allowed step: **Phase 24 — the composition, redrawn for three contours**,
+  planned in `docs/next-phases.md`, carrying the assertions contour that Phase 22
+  could not draw. Phase 25 is the in-flight gate after it. Both are $0 until the
+  in-flight fixture needs a real cycle behind it, which is a separate, billable
+  decision.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

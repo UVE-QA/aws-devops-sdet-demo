@@ -6,6 +6,73 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
+**As of 2026-08-11 (23 — one list of gates, two readers).** The item Phase 22
+handed forward, taken before the composition. The rest of the old Phase 23 is
+renumbered per **ADR-0055**: the composition is Phase 24, the in-flight gate is
+Phase 25. No cycle, no AWS call, nothing applied, $0. **ADR-0057**.
+
+**Main was green when this session started**, checked before anything was
+touched — run 31363443181 on `19bb1c0`. The control is only worth running when
+it says nothing.
+
+**The gap was four gates wider than the sentence that recorded it.** Phase 22
+wrote "five more cheap gates"; counted from the two files, `session-close.sh`
+ran three and `ci.yml` ran twelve. The four nobody named — `publish-prefixes`,
+`cost`, `rates`, `action-pins` — sit in a different part of the workflow, after
+the Checkov install. The two readers also disagreed about what a gate IS:
+session-close invoked the scripts, ci.yml the make targets, two spellings of the
+same three checks, both green.
+
+**One list can shrink in silence; two lists cannot** — that is what the broken
+shape was accidentally protecting, and it is the argument for the second half of
+the fix rather than against the first. `assets/gates.json` is the list, both
+readers call `make gates`, and `make gates-check` DISCOVERS what belongs in it
+out of the repository rather than out of a second list: a `-check` name, a
+`scripts/check-*` recipe, or a `make <target>` line in `ci.yml`. It refuses on a
+missing gate, an entry naming a target that does not exist, an exclusion with no
+reason, a duplicate, an empty list, and `ci.yml` gone. The refusals run first
+inside `make gates`, so a broken list refuses instead of running a shorter suite
+quietly.
+
+**The middle discovery rule earns its place**: `action-pins` is a gate whose name
+does not say so, and the other two rules would both have missed it — the third
+only because this change removed its own step from `ci.yml`. A rule set that
+passes today and fails after your own edit is worth writing down.
+
+**Six refusals broken on purpose with a control green either side**, then the
+defect itself reproduced: an ADR planted in `docs/decisions/` with nothing
+regenerated is red in `make gates` and in `session-close`, from the same list.
+The exit numbers in the log are make's translation of a failed recipe (2), not
+the script's (1); measured directly in an addendum rather than reasoned about,
+which is the 2026-07-28 pipe reading in a different disguise.
+
+**There was a third list, and it was one day old.** `scripts/verify-schema3.sh`,
+written in Phase 22, held eight cheap gates against `ci.yml`'s twelve — a third
+copy that already disagreed with both others, which is the exact sentence the
+plan used for the problem. It delegates to `make gates` now and reads the two
+browser gates from a `browser: true` flag rather than naming them.
+
+**Its break test failed to break, and the correction was measured through a
+pipe.** `mapfile` over a program that prints an empty line yields an array of one
+empty string, so the refusal saw a count of 1 and stayed quiet while the run
+printed a SKIP row with no name; the re-measurement was then taken through
+`| tail -6` and recorded tail's exit status instead of the script's. Two of this
+project's own documented traps inside ten minutes, both found by writing the
+break test rather than by reading the code.
+
+**What it cost, deliberately:** `terraform-checks` shows one named check instead
+of twelve, so a red build says which gate failed in the log rather than in the
+job list. Twelve readable step names were also what made two lists look
+maintainable for eleven phases. A side effect worth keeping came with it — the
+runner names all 19 gates a plain checkout cannot run, with what each needs,
+which is an honest statement of what a clone can and cannot verify about itself.
+
+Next: **Phase 24 — the composition, redrawn for three contours**, carrying the
+assertions contour Phase 22 was forbidden to draw. Phase 25 is the in-flight
+gate after it.
+
+---
+
 **As of 2026-08-10 (22 — the model in the data, and a red main nobody saw).**
 `site/data/topology.json` is schema 3 — **estate**, **cycle**, **assertions** —
 the generator is rewritten around it and every consumer re-pointed. The page's

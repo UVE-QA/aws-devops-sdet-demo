@@ -1,0 +1,398 @@
+Phase 23 - break test: the one gate list, and its refusals
+date (UTC): 2026-08-11T00:36:08Z
+commit:     4e4199e  (tree committed BEFORE any break)
+host:       chat sandbox; python 3.11.15, node v22.22.2
+
+----------------------------------------------------------------------
+== CONTROL - the list as committed
+   gates-check: 31 entries, 12 runnable here, every discovered gate accounted for
+   -> exit 0
+
+----------------------------------------------------------------------
+== BREAK 1 - timeline-check deleted from the list, target still in the Makefile
+   gates-check: the list does not describe this repository
+     - timeline-check is a gate this repository runs and the list does not carry it - so only one of the two readers would ever run it, which is the shape this file exists to remove
+   make: *** [Makefile:435: gates-check] Error 1
+   -> exit 2
+
+----------------------------------------------------------------------
+== CONTROL
+   gates-check: 31 entries, 12 runnable here, every discovered gate accounted for
+   -> exit 0
+
+----------------------------------------------------------------------
+== BREAK 2 - an entry naming a target the Makefile does not define
+   gates-check: the list does not describe this repository
+     - the list names does-not-exist-check, which the Makefile does not define
+   make: *** [Makefile:435: gates-check] Error 1
+   -> exit 2
+
+----------------------------------------------------------------------
+== CONTROL
+   gates-check: 31 entries, 12 runnable here, every discovered gate accounted for
+   -> exit 0
+
+----------------------------------------------------------------------
+== BREAK 3 - the list emptied
+   gates-check: the list does not describe this repository
+     - the list is empty or missing - a runner with nothing in it is green for the wrong reason
+   make: *** [Makefile:435: gates-check] Error 1
+   -> exit 2
+
+----------------------------------------------------------------------
+== CONTROL
+   gates-check: 31 entries, 12 runnable here, every discovered gate accounted for
+   -> exit 0
+
+----------------------------------------------------------------------
+== BREAK 4 - a gate excluded with no reason given
+   gates-check: the list does not describe this repository
+     - contrast-check is marked as not runnable here and gives no reason. A gate excluded without a reason is a gate nobody will re-examine
+   make: *** [Makefile:435: gates-check] Error 1
+   -> exit 2
+
+----------------------------------------------------------------------
+== CONTROL
+   gates-check: 31 entries, 12 runnable here, every discovered gate accounted for
+   -> exit 0
+
+----------------------------------------------------------------------
+== BREAK 5 - ci.yml moved away: half the discovery is gone
+   gates-check: the list does not describe this repository
+     - .github/workflows/ci.yml is missing, so what CI runs cannot be discovered. Refusing rather than checking half the question.
+   make: *** [Makefile:435: gates-check] Error 1
+   -> exit 2
+
+----------------------------------------------------------------------
+== CONTROL
+   gates-check: 31 entries, 12 runnable here, every discovered gate accounted for
+   -> exit 0
+
+======================================================================
+== THE DEFECT THIS PHASE IS ABOUT, REPRODUCED
+   20i and 21: a documents-only session adds an ADR, topology.json
+   counts the files in docs/decisions/, nothing regenerates it, and
+   session-close printed clean while ci.yml went red.
+
+----------------------------------------------------------------------
+== BREAK 6a - make gates, the reader ci.yml uses
+   == 12 gate(s) from assets/gates.json ==
+   docs-check             ok
+   site-data-check        FAIL (exit 2)
+   site-page-check        ok
+   timeline-check         ok
+   node-states-check      ok
+   results-check          ok
+   live-state-check       ok
+   page-tense-check       ok
+   publish-prefixes-check ok
+   cost-check             ok
+   rates-check            ok
+   action-pins            ok
+   
+   == not run here, and why ==
+   contrast-check           playwright and chromium, which are a side effect of `make test-smoke` in ci.yml's local-ci job
+   page-freshness-check     playwright and chromium, same as contrast-check; it drives the built page in a browser
+   suite-inventory-check    the unit venv, the api venv and playwright's node_modules, each a side effect of a step above it (ADR-0042 D2)
+   self-service-cors-check  a live Function URL: LAUNCH_URL and ALLOWED_ORIGIN, so it belongs to a cycle rather than to a checkout. ci.yml does not run it either
+   test-unit                a virtualenv and pip over the network
+   test-api                 a virtualenv, pip over the network, and a running app
+   test-spec-coverage       playwright's node_modules
+   test-smoke               playwright, chromium and a running app
+   test-regression          playwright, chromium, a running app and a database it is allowed to write to
+   test-db                  docker compose and the seeded database
+   local-up                 docker compose
+   local-down               docker compose
+   migrate                  docker compose and a running database
+   seed                     docker compose and a running database
+   docker-build             docker
+   image-scan               trivy and a built image
+   iac-scan                 checkov
+   secret-scan              gitleaks and a full-history clone
+   tf-validate              terraform, and a provider download per root level
+   
+   --- site-data-check
+       site-data: DRIFT
+       site/data/topology.json disagrees with infra/, tests/, .github/workflows/ or docs/decisions/.
+       Run `make site-data` and commit the result.
+       make[1]: *** [Makefile:200: site-data-check] Error 1
+   
+   gates: 1 of 12 failed. CI runs this same list and will say the same thing.
+   make: *** [Makefile:432: gates] Error 1
+   -> exit 2
+
+----------------------------------------------------------------------
+== BREAK 6b - session-close, the other reader, same list
+   === every cheap gate, from the list ci.yml reads (ADR-0057) ===
+   == 12 gate(s) from assets/gates.json ==
+   docs-check             ok
+   site-data-check        FAIL (exit 2)
+   site-page-check        ok
+   timeline-check         ok
+   node-states-check      ok
+   results-check          ok
+   live-state-check       ok
+   page-tense-check       ok
+   publish-prefixes-check ok
+   cost-check             ok
+   rates-check            ok
+   action-pins            ok
+   
+   == not run here, and why ==
+   contrast-check           playwright and chromium, which are a side effect of `make test-smoke` in ci.yml's local-ci job
+   page-freshness-check     playwright and chromium, same as contrast-check; it drives the built page in a browser
+   suite-inventory-check    the unit venv, the api venv and playwright's node_modules, each a side effect of a step above it (ADR-0042 D2)
+   self-service-cors-check  a live Function URL: LAUNCH_URL and ALLOWED_ORIGIN, so it belongs to a cycle rather than to a checkout. ci.yml does not run it either
+   test-unit                a virtualenv and pip over the network
+   test-api                 a virtualenv, pip over the network, and a running app
+   test-spec-coverage       playwright's node_modules
+   test-smoke               playwright, chromium and a running app
+   test-regression          playwright, chromium, a running app and a database it is allowed to write to
+   test-db                  docker compose and the seeded database
+   local-up                 docker compose
+   local-down               docker compose
+   migrate                  docker compose and a running database
+   seed                     docker compose and a running database
+   docker-build             docker
+   image-scan               trivy and a built image
+   iac-scan                 checkov
+   secret-scan              gitleaks and a full-history clone
+   tf-validate              terraform, and a provider download per root level
+   
+   --- site-data-check
+       site-data: DRIFT
+       site/data/topology.json disagrees with infra/, tests/, .github/workflows/ or docs/decisions/.
+       Run `make site-data` and commit the result.
+       make[1]: *** [Makefile:200: site-data-check] Error 1
+   
+   gates: 1 of 12 failed. CI runs this same list and will say the same thing.
+   make: *** [Makefile:432: gates] Error 1
+   
+   === the record of this session exists and agrees with itself ===
+   summary   docs/sessions/2026-08-10-phase-22-the-model-in-the-data-and-a-red-main-nobody-saw.md
+   narrative 2026-08-10, matching the newest session
+   
+   === nothing is left only on this machine ===
+   session-close: the working tree is not clean:
+   ?? docs/decisions/9999-planted-for-the-break-test.md
+   session-close: HEAD is not origin/main - work is only shared once pushed
+   
+   === Consequences of the ADRs this session added ===
+   Not verified - re-read. A Consequences section is a TO-DO list written
+   before the work, and ADR-0032 declared one for docs/demo-script.md that
+   nothing produced until it was noticed by hand.
+   
+   --- docs/decisions/0056-a-reference-carries-a-verb.md
+   
+   - The page keeps one function where it would otherwise have had four opinions.
+     `phaseNodes(p)` is the only place the two contours are joined, and it is
+     inside the block `scripts/check-live-state.mjs` lifts, so the gate runs the
+     resolver the visitor runs.
+   - `runLayerStates(observation, phases)` keeps its two-argument signature. The
+     estate reaches the resolver through `useEstate()` rather than a third
+     parameter, because the gate lifts that block and calls it with two arguments,
+     and a third would have left the gate running code the browser does not.
+   - A reference that resolves to nothing cannot arrive from the generator — both
+     ends of every id come from one read of `assets/topology-groups.json` — and the
+     build refuses one anyway, by name, exercised on purpose.
+   - The five verbs are a vocabulary that will want extending. `adopts` is the
+     obvious candidate the moment the orphan sweep gets a node. Adding one is a
+     line in the generator and a sentence here; inventing one at a call site is a
+     red build, which is the point.
+   - No AWS cost, no cycle. The published page changes, so the next push
+     republishes it.
+   
+   session-close: NOT clean. The session is not over.
+   -> exit 1
+
+----------------------------------------------------------------------
+== CONTROL - 6a again, the planted ADR removed
+   == 12 gate(s) from assets/gates.json ==
+   docs-check             ok
+   site-data-check        ok
+   site-page-check        ok
+   timeline-check         ok
+   node-states-check      ok
+   results-check          ok
+   live-state-check       ok
+   page-tense-check       ok
+   publish-prefixes-check ok
+   cost-check             ok
+   rates-check            ok
+   action-pins            ok
+   
+   == not run here, and why ==
+   contrast-check           playwright and chromium, which are a side effect of `make test-smoke` in ci.yml's local-ci job
+   page-freshness-check     playwright and chromium, same as contrast-check; it drives the built page in a browser
+   suite-inventory-check    the unit venv, the api venv and playwright's node_modules, each a side effect of a step above it (ADR-0042 D2)
+   self-service-cors-check  a live Function URL: LAUNCH_URL and ALLOWED_ORIGIN, so it belongs to a cycle rather than to a checkout. ci.yml does not run it either
+   test-unit                a virtualenv and pip over the network
+   test-api                 a virtualenv, pip over the network, and a running app
+   test-spec-coverage       playwright's node_modules
+   test-smoke               playwright, chromium and a running app
+   test-regression          playwright, chromium, a running app and a database it is allowed to write to
+   test-db                  docker compose and the seeded database
+   local-up                 docker compose
+   local-down               docker compose
+   migrate                  docker compose and a running database
+   seed                     docker compose and a running database
+   docker-build             docker
+   image-scan               trivy and a built image
+   iac-scan                 checkov
+   secret-scan              gitleaks and a full-history clone
+   tf-validate              terraform, and a provider download per root level
+   
+   gates: 12/12 green. 19 gate(s) need more than a checkout - see above.
+   -> exit 0
+
+======================================================================
+git status at the end (must be empty):
+   [end]
+
+======================================================================
+== ADDENDUM: WHAT THE EXIT NUMBERS ABOVE ARE
+Every break above was measured through `make`, and `make` reports a failed
+recipe as 2 regardless of what the recipe returned. The refusals return 1. The
+number above is therefore make's translation, not the script's - the same shape
+as the 2026-07-28 reading taken through a pipe, and harmless here only because
+both readers test for non-zero. Measured directly, without make in between:
+
+   $ python3 scripts/run-gates.py --check     # with the list emptied
+   gates-check: the list does not describe this repository
+     - the list is empty or missing - a runner with nothing in it is green for the wrong reason
+   -> exit 1
+
+   $ python3 scripts/run-gates.py --check     # restored
+   gates-check: 31 entries, 12 runnable here, every discovered gate accounted for
+   -> exit 0
+
+And BREAK 6b's own exit status is CONFOUNDED, exactly as Phase 22's break test
+recorded: in a chat sandbox HEAD is never origin/main and there is no INDEX row
+dated today, so scripts/session-close.sh exits 1 whatever the gates do. What is
+measured there is the section it prints - `site-data-check FAIL` and `gates: 1
+of 12 failed` - which is what sets fail=1, and which was three checks' worth of
+silence before this phase.
+
+======================================================================
+== BREAK 7 - the same list, read by a THIRD reader
+   scripts/verify-schema3.sh held its own array of eight cheap gates,
+   written 2026-08-10 and already four short of ci.yml's twelve. It now
+   calls `make gates` for those, and reads the browser gates out of
+   assets/gates.json instead of naming them. With the browser flag
+   removed from the file:
+
+   == migrate ==
+   migrate-schema3: already applied — every file is on schema 3, nothing to do.
+     8 files: assets/index.template.html, scripts/check-live-state.mjs, scripts/check-page-tense.mjs, scripts/fold-results.py, scripts/node-states.py, tests/fixtures/live-state/refresh.py, tests/fixtures/node-states/topology.json, tests/fixtures/results/topology.json
+   
+   == rebuild ==
+   python3 scripts/build-site-page.py
+   18 icons, 50,168 bytes of sprite
+   site/index.html: 222,561 bytes
+   python3 scripts/generate-topology.py
+   site-data: wrote site/data/topology.json - 8 levels, 116 resources, 5 suites, 58 ADRs
+   
+   == gates ==
+   python3 scripts/run-gates.py
+   == 12 gate(s) from assets/gates.json ==
+   docs-check             ok
+   site-data-check        ok
+   site-page-check        ok
+   timeline-check         ok
+   node-states-check      ok
+   results-check          ok
+   live-state-check       ok
+   page-tense-check       ok
+   publish-prefixes-check ok
+   cost-check             ok
+   rates-check            ok
+   action-pins            ok
+   
+   == not run here, and why ==
+   contrast-check           playwright and chromium, which are a side effect of `make test-smoke` in ci.yml's local-ci job
+   page-freshness-check     playwright and chromium, same as contrast-check; it drives the built page in a browser
+   suite-inventory-check    the unit venv, the api venv and playwright's node_modules, each a side effect of a step above it (ADR-0042 D2)
+   self-service-cors-check  a live Function URL: LAUNCH_URL and ALLOWED_ORIGIN, so it belongs to a cycle rather than to a checkout. ci.yml does not run it either
+   test-unit                a virtualenv and pip over the network
+   test-api                 a virtualenv, pip over the network, and a running app
+   test-spec-coverage       playwright's node_modules
+   test-smoke               playwright, chromium and a running app
+   test-regression          playwright, chromium, a running app and a database it is allowed to write to
+   test-db                  docker compose and the seeded database
+   local-up                 docker compose
+   local-down               docker compose
+   migrate                  docker compose and a running database
+   seed                     docker compose and a running database
+   docker-build             docker
+   image-scan               trivy and a built image
+   iac-scan                 checkov
+   secret-scan              gitleaks and a full-history clone
+   tf-validate              terraform, and a provider download per root level
+   
+   gates: 12/12 green. 19 gate(s) need more than a checkout - see above.
+   
+   == browser gates ==
+   no Playwright at tests/playwright/node_modules — these are NOT being run:
+      
+   page-freshness-check is the gate that caught 22's stale-figures defect.
+   A run of this script without it has NOT verified that an open tab converges.
+   
+   == the real file ==
+   index_members(topology, "stage") -> 29
+   
+   == verify-schema3 ==
+   step                 status note
+   -------------------- ------ ----
+   migrate              ok     already applied
+   site-page            ok     site/index.html
+   site-data            ok     site/data/topology.json
+   gates                ok     assets/gates.json, the list ci.yml and session-close also read
+                        SKIP   no Playwright here — run: (cd tests/playwright && npm ci)
+   probe                ok     index_members(stage) = 29 addresses
+   
+   verify-schema3: 5/5 green — INCOMPLETE, 1 gate(s) skipped for want of a browser
+   Run these where chromium is: make 
+   -> exit 0
+
+   CONTROL - the flag restored
+   
+   verify-schema3: 5/5 green — INCOMPLETE, 2 gate(s) skipped for want of a browser
+   Run these where chromium is: make contrast-check page-freshness-check
+   -> exit 0
+
+   THE BREAK ABOVE FAILED TO BREAK, AND THE DEFECT WAS IN THE READING.
+   `mapfile` over a python program that printed an empty line produced an
+   array holding ONE EMPTY STRING, so the refusal saw a count of 1 and
+   stayed silent - and the run then printed a SKIP row with no name and
+   `Run these where chromium is: make ` with nothing after it, on exit 0.
+   Sibling of the pipe and the bytecode cache: the instrument was between
+   the defect and the reading. Empty lines are dropped now. Re-run, same
+   break:
+
+   verify-schema3: assets/gates.json marks no gate as needing a browser.
+   That is how 22's stale-figures defect reached another host - on twelve
+   green rows with the one gate that could see it missing. Refusing.
+   -> exit 0
+
+   CONTROL - the flag restored
+   
+   verify-schema3: 5/5 green — INCOMPLETE, 2 gate(s) skipped for want of a browser
+   Run these where chromium is: make contrast-check page-freshness-check
+   -> exit 0
+
+   AND THE TWO `-> exit` LINES DIRECTLY ABOVE ARE TAIL'S, NOT THE SCRIPT'S.
+   Written while documenting an instrument that stood between a defect and
+   its reading, through `| tail -6`, which is the 2026-07-28 pipe finding
+   verbatim. Measured with nothing in between:
+
+   $ bash scripts/verify-schema3.sh          # browser flag removed
+   verify-schema3: assets/gates.json marks no gate as needing a browser.
+   That is how 22's stale-figures defect reached another host - on twelve
+   green rows with the one gate that could see it missing. Refusing.
+   -> exit 1
+
+   $ bash scripts/verify-schema3.sh          # flag restored
+   
+   verify-schema3: 5/5 green — INCOMPLETE, 2 gate(s) skipped for want of a browser
+   Run these where chromium is: make contrast-check page-freshness-check
+   -> exit 0
