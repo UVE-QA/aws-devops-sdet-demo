@@ -227,3 +227,52 @@ AND THE READING THAT CHANGES WHAT THAT MEANS - cuts OPEN, 1920:
   calls a break there a defect. Fixed below. The first is prose with a
   hyphen and is left to the next measurement to say whether it survives
   the reflow - guessing at it would be the thing this file is against.
+
+=== AFTER THE COMPACTION, SAME INSTRUMENT ============================
+  viewport     before(6d0ee53)  drawn     compacted   vs before
+  2560x1440    2039px           3194px    3116px      +1077
+  1920x1080    2039px  1.9scr   3194px    3116px  2.9 +1077
+  1440x900     2354px           3373px    3266px      + 912
+  390x844      5507px           8920px    8579px      +3072
+  cuts OPEN, 1920: 8682 before, 7979 after. Total content is 703px
+  SHORTER than the page this phase started from.
+
+THE COMPACTION BOUGHT 78px, AND THAT IS THE WHOLE STORY OF IT.
+One row of environment tag across four estate rows. The touched-by line
+was two lines only on `rds`, and a grid row is as tall as its tallest
+card, so shortening the others changed nothing. Estate height is rows x
+card height, the rows come from the 18.5rem step, and that step is 20j's
+measured "a name does not wrap" figure - 295.58px, re-measured here and
+unchanged. There are no cheap hundreds of pixels in it.
+
+  the packing, at 1920, at-rest: map 813.75px in 4 columns, air 1304.6px
+    map row 450.30px  Build 201.18 / Apply-stage 123.24 (0 nodes) /
+                      Provision 201.18 / Quality gate 450.30 (4 nodes)
+    map row 353.86px  Approve 170.80 / Apply-prod 123.24 (0 nodes) /
+                      Quality gate 288.24 / Destroy 353.87
+    the floor: every word whole 143.69px ("environment"),
+               every name unwrapped 295.58px
+
+BROKEN WORDS, AFTER: the path is gone from the name field at 1440. One
+new entry survives - `read-only` in #suites .asserts at 1920 - and it is
+a FALSE POSITIVE of a rule with no concept of a hyphen: the rule exempts
+fields marked `overflow-wrap: anywhere`, which are identifiers, and this
+is prose breaking at its own hyphen. measure-page is a report, not a
+gate; it is not in assets/gates.json and this reddens nothing. Recorded
+rather than fixed, because mangling the data with U+2011 to quiet a
+report line is the worse trade.
+
+=== THE TWO BROWSER GATES, AND THE CONTRAST REFUSAL ==================
+make contrast-check      6 states, both themes, none under the floor
+                         control 21.00 in both themes, all four notations
+make page-freshness-check  3 cases, a tab left open shows what a reload
+                         would show; its own control differs in map, sub,
+                         cost and detail
+
+--- BREAK: a seventh state the probe chain cannot resolve ------------
+  contrast-check: the state "seventh" could not be measured in the light
+  theme: cannot read border-image-source as a colour: "none"
+  exit=2 - which is MAKE's number for a failed recipe, not the script's;
+  the script returns 1. Same reading as 2026-07-28, measured rather than
+  reasoned about.
+  control after the restore: 6 states, none under the floor.

@@ -85,6 +85,45 @@ fires both, so the second break also writes the seven resource nodes back into
 an expectation. With the case agreeing with the machine, `compare()` is silent
 and claim 4 is the only thing that speaks.
 
+### D6 — The page is 2.9 screens by default, accepted with its figures
+
+Measured on the devbox against the same instrument run on the previous page in
+the same session — not against ADR-0050 and ADR-0052, whose figures ADR-0054
+retired:
+
+```text
+  1920x1080, cuts closed    2039px (1.9 screens)  ->  3116px (2.9)
+  1920x1080, cuts OPEN      8682px                ->  7979px
+```
+
+The second line is why this is accepted rather than fixed. **The total content
+is 703px shorter.** Nothing was added; the estate came out from under a cut,
+which is what ADR-0054 D5 asked for, and what grew is the view a visitor gets
+without opening anything. The first screen itself is untouched: `p-env`,
+`p-arch` and `p-run` sit where 20e.1 put them, and the map's packing is
+unchanged at 813.75px in 4 columns.
+
+Compaction was tried first and is in the number above: the environment tag
+removed from every node under a header that already says `stage` (ADR-0047 D3),
+and the four phase labels under each noun reduced to verb + phase number. It
+bought **78px** — one row of tag across four estate rows — because estate height
+is rows × card height, the row count comes from the 18.5rem step, and that step
+is 20j's measured floor for a name not wrapping (295.58px, re-measured here and
+unchanged).
+
+Two levers remain and are DECLINED here with their figures, so that a later
+session reverses this against numbers rather than against a feeling:
+
+```text
+  permanent back under a cut     ~ -290px   undoes ADR-0054 D5 in the phase
+                                            that implements it
+  a narrower estate step         ~ -260px   contradicts D4 above and 20j's
+                                            measured floor; names begin to wrap
+```
+
+Neither reaches 1.9 screens, and together they reach about 2.4. 1.9 was a page
+whose nouns were under a cut, which is the arrangement ADR-0054 retired.
+
 ## Consequences
 
 - `layout.columns` falls from 10 to 8 and `layout.wide` is empty. Both are
@@ -100,9 +139,16 @@ and claim 4 is the only thing that speaks.
   colours should be identical. Should is not measured. Supporting two chains is
   a schema change to the contract and a change to the script that reads it, and
   it is written down here rather than smuggled into this phase.
-- Every layout figure in ADR-0050 and ADR-0052 is retired by ADR-0054 and has
-  NOT been replaced by this session: `make measure-page` needs the pinned
-  browser, which is on the devbox.
+- Every layout figure in ADR-0050 and ADR-0052 is retired by ADR-0054 and is
+  replaced by D6 above and by the packing recorded in the session's log: the map
+  at 813.75px in 4 columns with 1304.6px of air, and the floor at 143.69px for
+  every word whole and 295.58px for every name unwrapped.
+- One broken word survives and is a FALSE POSITIVE: `read-only` in
+  `#suites .asserts`. The rule exempts fields marked `overflow-wrap: anywhere` -
+  identifiers - and has no concept of a hyphen, so prose breaking at its own
+  hyphen reads as a defect. `make measure-page` is a report and is not in
+  `assets/gates.json`, so it reddens nothing. Recorded rather than answered with
+  a non-breaking hyphen in the data.
 - Four `live-state` cases lost their inherited resource nodes. Their notes were
   rewritten by hand to say what they now assert, because a case whose data
   changed and whose sentence did not is a document that has gone stale inside a

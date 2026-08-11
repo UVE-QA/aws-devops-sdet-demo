@@ -8,10 +8,12 @@ contours**. The model was decided in 21 (**ADR-0054**) and put in the data in 22
 Break-test output in
 `docs/sessions/2026-08-11-phase-24-live-state-break-test.log`.
 
-**PHASE 24 IS NOT CLOSED.** Its closing sentence requires figures re-measured
-with `make measure-page` on the new page, and the browser gates green on it.
-Both need the pinned browser, which is on the devbox and not in a chat sandbox —
-see section 5.
+**Phase 24 is closed.** Every clause of its closing sentence was exercised on
+the devbox in this session: the three contours are drawn, all five suites are in
+the assertions contour, the retired figures are re-measured and written down,
+the contrast refusal was fired by name, and all three browser targets are green.
+One item is deliberately carried forward rather than done — the contrast
+contract's second ancestry, section 5.
 
 ## 1. Main was green when this session started
 
@@ -83,17 +85,14 @@ did not match, here a red reading credited the new claim with a refusal that
 came from somewhere else. **A break test has to be able to fail for the reason
 you think it is failing.**
 
-## 5. What is NOT done, and why it is a separate step rather than an omission
+## 5. What is carried forward, and why it is a decision rather than an omission
+
+The measurement itself is done — section 5b — because it moved to the devbox,
+where the pinned browser is. What remains is one finding, and it is a finding
+rather than a missing step:
 
 ```text
-- every figure in ADR-0050 and ADR-0052 is retired by ADR-0054 and none has been
-  replaced. `make measure-page` drives the built page in the pinned browser;
-  the sandbox has chromium 1194 and the repository pins the build behind 1234.
-  Measuring on a mismatched instrument and writing the number down is the one
-  thing this repository's own habits list forbids twice over
-- make contrast-check and make page-freshness-check, same reason
-- and a real finding rather than a missing step: THE CONTRAST GATE'S ANCESTRY IS
-  THE MAP'S, AND THERE ARE TWO NOW. assets/contrast-contract.json's `chain` is
+- THE CONTRAST GATE'S ANCESTRY IS THE MAP'S, AND THERE ARE TWO NOW. assets/contrast-contract.json's `chain` is
   main > .cycle > .phase > .set; the estate contour draws the same six states
   under .contour > .estate-env > .set.estate-set. No ancestor in either chain
   paints a background, so the computed colours SHOULD be identical - and
@@ -164,6 +163,59 @@ the collector on the breakable meta line. `read-only` is prose with a hyphen and
 is left for the next measurement to answer — guessing whether a reflow moves it
 is the kind of claim this repository measures instead.
 
+## 5c. The compaction bought 78px, and the height was then decided rather than chased
+
+```text
+  viewport     before(6d0ee53)  drawn     compacted   vs before
+  2560x1440    2039px           3194px    3116px      +1077   1.4 -> 2.2 scr
+  1920x1080    2039px           3194px    3116px      +1077   1.9 -> 2.9 scr
+  1440x900     2354px           3373px    3266px      + 912   2.6 -> 3.6 scr
+  390x844      5507px           8920px    8579px      +3072   6.5 -> 10.2 scr
+  cuts OPEN at 1920: 8682 -> 7979. The total is 703px SHORTER than the page
+  this phase started from.
+```
+
+Seventy-eight pixels, and that is the whole story of it: one row of environment
+tag across four estate rows. The touched-by line was two lines only on `rds`,
+and a grid row is as tall as its tallest card, so shortening the others changed
+nothing. Estate height is rows × card height, the rows come from the 18.5rem
+step, and that step is 20j's measured "a name does not wrap" figure — 295.58px,
+re-measured here and unchanged. There are no cheap hundreds of pixels in it.
+
+Two levers would have moved it, and both were declined **as decisions, with
+their numbers**: the permanent levels back under a cut (≈ −290px) undoes
+ADR-0054 D5 in the phase that implements it, and a narrower estate step
+(≈ −260px) contradicts ADR-0058 D4 and 20j's floor. Neither reaches 1.9 screens,
+because 1.9 screens was a page with its nouns under a cut — which is the thing
+ADR-0054 retired. **ADR-0058 D6** records the acceptance and both figures, so a
+later session can reverse it against numbers rather than against a feeling.
+
+The first screen is untouched: `p-env`, `p-arch` and `p-run` sit exactly where
+20e.1 put them, and the map's packing is unchanged at 813.75px in 4 columns with
+1304.6px of air.
+
+## 5d. One broken word survives, and it is a false positive
+
+`read-only`, in `#suites .asserts` at 1920. The rule exempts fields marked
+`overflow-wrap: anywhere` — identifiers — and this is prose breaking at its own
+hyphen, which the rule has no concept of. `make measure-page` is a REPORT: it is
+not in `assets/gates.json` and this reddens nothing. Recorded rather than fixed,
+because mangling the data with a non-breaking hyphen to quiet a report line is
+the worse trade.
+
+## 5e. The contrast refusal, fired by name
+
+A seventh state was added to `assets/contrast-contract.json` whose probe asks the
+chain for something that is not a colour:
+
+```text
+contrast-check: the state "seventh" could not be measured in the light theme:
+cannot read border-image-source as a colour: "none"
+```
+
+`exit=2` is make's number for a failed recipe, not the script's — measured
+rather than reasoned about, exactly as on 2026-07-28. Control green either side.
+
 ## 6. Validation
 
 ```bash
@@ -175,12 +227,12 @@ make page-tense-check
 make docs-check
 ```
 
-On the devbox, and required before this phase closes:
+On the devbox, all run in this session and all green:
 
 ```bash
 make measure-page
-make contrast-check
-make page-freshness-check
+make contrast-check          # 6 states, both themes, none under the floor
+make page-freshness-check    # 3 cases
 ```
 
 ## 7. Cost

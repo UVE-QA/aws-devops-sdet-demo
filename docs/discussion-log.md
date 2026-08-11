@@ -44,12 +44,25 @@ left to speak. Sibling of the 2026-07-28 break test that failed to break,
 arriving from the other side: there a green reading hid a rule that did not
 match, here a red reading credited a new claim with somebody else's refusal.
 
-**NOT CLOSED, AND THE REASON IS AN INSTRUMENT.** Every layout figure in ADR-0050
-and ADR-0052 is retired by ADR-0054 and none has been replaced:
-`make measure-page`, `make contrast-check` and `make page-freshness-check` need
-the pinned browser, and the chat sandbox has a different chromium build.
-Measuring on a mismatched instrument and writing the number down is what the
-habits list forbids twice over.
+**MEASURED, THEN DECIDED: 1.9 → 2.9 SCREENS, ACCEPTED WITH ITS FIGURES.** 2039px
+→ 3116px at 1920 with the cuts closed, against the same instrument run on
+`6d0ee53` in the same session rather than against the retired numbers. The line
+that decides it is the other one: with the cuts OPEN, 8682 → 7979. The total
+content is 703px SHORTER — nothing was added, the estate came out from under a
+cut, and what grew is the view a visitor gets without opening anything.
+Compaction was tried first and bought 78px, one row of environment tag across
+four estate rows, because estate height is rows × card height and the row count
+comes from 20j's measured 18.5rem floor. Two further levers — permanent back
+under a cut, a narrower estate step — are DECLINED with their figures in
+**ADR-0058 D6**, and neither reaches 1.9, because 1.9 was a page whose nouns
+were under a cut.
+
+**The contrast refusal was fired by name**, on a seventh state whose probe asks
+the chain for something that is not a colour; `exit=2` is make's number for a
+failed recipe and not the script's, measured rather than reasoned about. One
+broken word survives and is a false positive: `read-only` in `#suites .asserts`,
+prose breaking at its own hyphen under a rule that only exempts identifiers —
+and `measure-page` is a report, not a gate.
 
 **A FINDING RATHER THAN A MISSING STEP: THE CONTRAST GATE HAS ONE ANCESTRY AND
 THE PAGE NOW HAS TWO.** The contract's `chain` is
