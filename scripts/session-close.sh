@@ -19,16 +19,10 @@ fail=0
 say() { printf '%s\n' "$*"; }
 bad() { printf 'session-close: %s\n' "$*"; fail=1; }
 
-say "=== the repository describes things that exist ==="
-python3 scripts/check-docs-references.py || fail=1
-
-say ""
-say "=== the generated artifacts still agree with the repository ==="
-# THE GATE THAT CATCHES THIS IS THE ONE THAT WAS NOT ON THIS LIST. Both
-# site/data/topology.json and site/index.html are build outputs that are
-# COMMITTED, and ci.yml regenerates each and refuses if the committed file
-# disagrees. Neither was checked here, so a session could close `clean` and
-# redden main in the same breath - and one did, twice:
+say "=== every cheap gate, from the list ci.yml reads (ADR-0057) ==="
+# THIS USED TO BE THREE CHECKS WHILE CI RAN TWELVE, and the gap was not
+# theoretical: a session could print `session-close: clean` and redden main with
+# the same commit, and one did, twice.
 #
 #   20i   docs/decisions gained ADR-0051, topology.json was generated BEFORE it
 #         and never again. Green in the chat's sandbox, red on the devbox.
@@ -39,17 +33,14 @@ say "=== the generated artifacts still agree with the repository ==="
 # What makes it specific rather than careless: topology.json counts the files in
 # docs/decisions/, so a DOCUMENTS-ONLY session - a session that deliberately
 # touches no code, which is exactly what a decisions phase is - changes a
-# generated number without going anywhere near the generator.
+# generated number without going anywhere near the generator. Phase 22 added the
+# two generated-artifact checks here and wrote down that the shape was still
+# wrong; Phase 23 is that shape. One list, two readers, in assets/gates.json.
 #
-# Only site-data-check has ever fired. site-page-check is here because it is the
-# same species and costs nothing; saying so is cheaper than discovering it.
-#
-# NOT CLOSED BY THIS: ci.yml's cheap gate list is longer than these two -
-# timeline-check, node-states-check, results-check, live-state-check and
-# page-tense-check all run there and none runs here. Two lists that can disagree
-# is the defect one layer up, and it wants its own session.
-python3 scripts/generate-topology.py --check || fail=1
-python3 scripts/build-site-page.py --check >/dev/null || bad "site/index.html is not what the template builds - run \`make site-page\`"
+# `make gates` refuses before it runs anything if the list has lost a gate the
+# repository still has, so the price of one list - that it can shrink in
+# silence - is paid by scripts/run-gates.py rather than by the next session.
+make -s gates || fail=1
 
 say ""
 say "=== the record of this session exists and agrees with itself ==="

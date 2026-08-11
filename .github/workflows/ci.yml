@@ -135,78 +135,32 @@ jobs:
       - name: Terraform validate (every root level, no backend)
         run: make tf-validate
 
-      - name: The living documents describe things that exist
-        # README, architecture and demo-script are the documents a reader is
-        # expected to ACT on. Every make target, repo path, route and workflow
-        # they name is checked against the repository, and the check refuses to
-        # pass if the list of documents itself has gone missing.
-        run: make docs-check
-
-      - name: The map's data still matches infra/
-        # The other half of the same problem, and the half a reference check
-        # cannot reach: docs-check verifies that everything a document NAMES
-        # exists, never that what it CLAIMS is true, and six of the eleven stale
-        # places found on 2026-08-08 were COUNTS - numbers that go stale without
-        # a word changing around them. This regenerates the map's data from
-        # infra/ and tests/ and fails if the committed file disagrees, or if a
-        # resource block has been added that belongs to no display group.
-        run: make site-data-check
-
-      - name: The published page is what its template builds
-        # site/index.html is a build output that is COMMITTED, so that the
-        # published page stays one self-contained file. A committed output
-        # invites being edited in place, and that edit survives only until the
-        # next build silently reverts it. Byte-identical or red.
-        run: make site-page-check
-
-      - name: A killed apply folds into an INCOMPLETE timeline
-        # The gate over the fold that turns Terraform's -json stream into the
-        # timeline the page will draw (ADR-0039 D2). Its fixtures are real
-        # terraform output, one of them from a process killed mid-apply - a
-        # stream that ends in the middle of a resource with no exit code beside
-        # it, which is exactly what a cancelled workflow step leaves behind. A
-        # timeline that read that as complete would be the most confident lie
-        # this dashboard could tell. No AWS and no cost: every resource in the
-        # fixtures is the built-in terraform_data.
-        run: make timeline-check
-
-      - name: Every resource a cycle touches lands on a node, or is named
-        # The gate over the join from that timeline onto the map (ADR-0039 D4).
-        # Coverage, in the same shape as the spec-coverage guard and as
-        # site-data-check one level up: site-data-check asks whether every
-        # resource in the REPOSITORY has been decided about, this asks the same
-        # of every resource a cycle actually touched. A resource created in AWS
-        # and drawn nowhere is reported as UNKNOWN rather than being missing from
-        # a picture that looks complete.
-        run: make node-states-check
-
-      - name: A run's report decides what a suite node says
-        # The fold from pytest's junit, Playwright's JSON reporter and the db
-        # assertion's stdout onto the map's suite nodes. Fixtures only: it reads
-        # files, calls nothing, and costs nothing (ADR-0042 D5).
-        run: make results-check
-
-      - name: A node with no step of its own never claims to be running
-        # The gate over the one piece of map logic that cannot move off the page
-        # (ADR-0043 D3): it reads the Actions API live in the browser, so there
-        # is no run afterwards to fold. Instead of a second copy in Python, the
-        # gate lifts the marked block out of the BUILT page and runs that. Node
-        # is preinstalled on this image and the block is plain ES2015, so there
-        # is no setup step and no version this check is sensitive to.
-        run: make live-state-check
-
-      - name: A figure is never printed without the cycle it belongs to
-        # The page's TENSE (20i), lifted out of the built page exactly as the
-        # step above is. Every number on the map is published when a cycle ends,
-        # so the page is always describing a cycle rather than the present - and
-        # a live cycle on 2026-08-09 caught it saying so in the present tense
-        # three times, none of which any check could see.
-        run: make page-tense-check
-
       - name: Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
+
+      - name: Every cheap gate, from the one list session-close also reads
+        # ONE LIST, TWO READERS (ADR-0057). assets/gates.json is the list; this
+        # step and scripts/session-close.sh are the readers. Twelve gates used
+        # to be twelve steps here and three checks there, so `session-close:
+        # clean` and a red main were compatible states - and they happened, in
+        # 20i and again in 21.
+        #
+        # Why the rationale is not here any more: each gate is documented beside
+        # its own target in the Makefile, which is where it was already
+        # documented twice. What belongs to this step rather than to a gate is
+        # what the step NEEDS - python is set up above, and node is preinstalled
+        # on this image, which is why live-state-check and page-tense-check have
+        # no setup of their own and no version they are sensitive to.
+        #
+        # The gates that are NOT in this step are the ones needing more than a
+        # checkout: the browser gates and the suite inventory run in local-ci
+        # after the steps whose side effects they depend on (ADR-0042 D2), and
+        # the scanners have their own jobs. `make gates` prints every one of
+        # them with its reason rather than omitting the rows, and gates-check
+        # refuses if any of them stops being accounted for.
+        run: make gates
 
       - name: Install Checkov (pinned version)
         # A literal, for the same reason the gitleaks version is one: a scanner
@@ -220,32 +174,6 @@ jobs:
         env:
           CHECKOV_VERSION: "3.3.8"
         run: pip install --quiet "checkov==${CHECKOV_VERSION}"
-
-      - name: Every prefix the lifecycle writes survives the site sync
-        # publish-site.sh syncs site/ with --delete, so anything publish-status.sh
-        # wrote and the repository does not contain is removed unless its prefix
-        # is excluded. On 2026-08-08 results/ was missing from that list and the
-        # first push to main that touched site/ deleted every published test
-        # result, unrecoverably (ADR-0044).
-        run: make publish-prefixes-check
-
-      - name: A cycle's cost is metered from lifetimes, not from creations
-        # The gate over scripts/fold-cost.py (ADR-0045). Fixtures only: no rate
-        # table is fetched, no AWS call is made, and the prices in the fixtures
-        # are synthetic round numbers so the arithmetic can be checked by hand.
-        run: make cost-check
-
-      - name: Nothing billable is priced at zero by silence
-        # Coverage over the cost model, read out of infra/ rather than from a list
-        # maintained beside it: a kind the per-cycle levels declare and the model
-        # does not classify would contribute nothing to an estimate that still
-        # looks like an answer.
-        run: make rates-check
-
-      - name: Every action is pinned to a commit SHA
-        # Lives in this job because it is the repository-wide static check job,
-        # despite the name - `make docs-check` is here for the same reason.
-        run: make action-pins
 
       - name: IaC scan (Checkov)
         # The decisions are in .checkov.yaml, next to the checks they skip.

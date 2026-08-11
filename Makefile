@@ -8,7 +8,7 @@
         site-data site-data-check timeline-check node-states-check \
         suite-inventory suite-inventory-check results-check live-state-check \
         page-tense-check page-freshness-check publish-prefixes-check \
-        contrast-check measure-page
+        contrast-check measure-page gates gates-check
 
 # Bring up postgres + app (build app image if needed), detached.
 local-up:
@@ -155,6 +155,10 @@ test-db:
 # Every make target, repo path, route and workflow named in the LIVING documents
 # must exist. Historical documents are not checked: a session summary records
 # what was true when it was written, and a rename must not turn it red.
+#
+# The living documents are the ones a reader is expected to ACT on, and the
+# check refuses to pass if the list of them has itself gone missing - a list
+# that has lost its contents passes every check written over its contents.
 docs-check:
 	python3 scripts/check-docs-references.py
 
@@ -184,6 +188,11 @@ site-page-check:
 # assignment names a resource that has been deleted, that no group's resources
 # live in a level the map never draws, and that the committed JSON is
 # byte-identical to a fresh generation.
+#
+# The other half of what docs-check cannot reach, and the reason both run:
+# docs-check verifies that everything a document NAMES exists, never that what
+# it CLAIMS is true, and six of the eleven stale places found on 2026-08-08 were
+# COUNTS - numbers that go stale without a word changing around them.
 site-data:
 	python3 scripts/generate-topology.py
 
@@ -396,6 +405,34 @@ rates-check:
 
 cost-check:
 	python3 scripts/check-cost.py
+
+# EVERY CHEAP GATE, FROM ONE LIST, FOR BOTH READERS (ADR-0057).
+#
+# The list is assets/gates.json. `make gates` runs the ones a plain checkout can
+# run - python3 and node, no docker, no browser, no scanner, no AWS - and names
+# the ones it did not run with the reason. scripts/session-close.sh calls it at
+# the end of a session and ci.yml calls it on every push, so the two cannot
+# disagree about what the cheap gates ARE.
+#
+# They disagreed for eleven phases. ci.yml ran twelve and session-close ran
+# three, so `session-close: clean` and a red main were compatible states, and
+# they happened twice - 20i and 21 - both times because topology.json counts the
+# files in docs/decisions/ and a documents-only session moves a generated number
+# without going near the generator. Phase 22 fixed that number and left the
+# shape, which would have waited for the thirteenth gate.
+#
+# gates-check is the price of having one list instead of two: one list can
+# shrink silently and two cannot. It DISCOVERS what belongs in the list, from
+# the Makefile and from ci.yml rather than from a second list, and refuses when
+# something discovered is missing, when an entry names a target that does not
+# exist, when an exclusion carries no reason, and when the list is empty. It
+# runs first inside `make gates`, so a broken list refuses instead of running a
+# shorter suite quietly.
+gates:
+	python3 scripts/run-gates.py
+
+gates-check:
+	python3 scripts/run-gates.py --check
 
 # The two ends of a session, as commands rather than as prose in four documents
 # (ADR-0033). Local only: on a CI checkout the tree is always clean and HEAD
