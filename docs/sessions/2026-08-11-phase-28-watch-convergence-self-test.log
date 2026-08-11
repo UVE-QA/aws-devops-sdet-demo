@@ -1,0 +1,44 @@
+# scripts/watch-convergence.sh --self-test, and the two ways it was made to fail.
+# Taken in the chat session's own sandbox (Ubuntu, python 3.11.15, curl), NOT on the devbox.
+# The instrument has no verdict over the repository, so it is not a gate and owes no break
+# test. It owes trust, which is a different thing: the self-test asks it a question whose
+# answer is known, and these two breaks show the self-test can say no.
+
+## [0] green - the instrument reports a change it did not cause, and its arithmetic is checked
+--- self-test ---
+   2026-08-11T05:01:37.644Z    200   7 Hit_from_cloudfront before                 -           - 9160d4be34c8
+   2026-08-11T05:01:38.787Z    200   7 Hit_from_cloudfront before                 -           - 9160d4be34c8
+   2026-08-11T05:01:39.931Z    200   7 Hit_from_cloudfront before                 -           - 9160d4be34c8
+   2026-08-11T05:01:41.071Z    200   7 Hit_from_cloudfront before                 -           - 9160d4be34c8
+   2026-08-11T05:01:42.209Z    200   7 Hit_from_cloudfront before                 -           - 9160d4be34c8
+** 2026-08-11T05:01:43.347Z    200   7 Hit_from_cloudfront after              23.0s        7.3s 7b9a72466d39
+   2026-08-11T05:01:44.512Z    200   7 Hit_from_cloudfront after                  -           - 7b9a72466d39
+   2026-08-11T05:01:45.647Z    200   7 Hit_from_cloudfront after                  -           - 7b9a72466d39
+   2026-08-11T05:01:46.785Z    200   7 Hit_from_cloudfront after                  -           - 7b9a72466d39
+   2026-08-11T05:01:47.923Z    200   7 Hit_from_cloudfront after                  -           - 7b9a72466d39
+   2026-08-11T05:01:49.066Z    200   7 Hit_from_cloudfront after                  -           - 7b9a72466d39
+   2026-08-11T05:01:50.201Z    200   7 Hit_from_cloudfront after                  -           - 7b9a72466d39
+known change at   2026-08-11T05:01:42.457Z
+reported first at 2026-08-11T05:01:43.347Z
+lag              0.89s   (must be >= 0 and <= the 1s interval plus a request)
+write->edge      23.0s   (server declares Age 7 and Last-Modified 30 s back: must be 23.0s)
+self-test: the instrument reports a change it did not cause, at the second it happened, and its arithmetic answers a question with a known answer.
+exit=0
+
+## [1] break - the server's Last-Modified moved to 40 s behind Date, so 23.0s is now wrong
+   2026-08-11T05:02:06.293Z    200   7 Hit_from_cloudfront after                  -           - 7b9a72466d39
+known change at   2026-08-11T05:01:58.434Z
+reported first at 2026-08-11T05:01:59.395Z
+lag              0.96s   (must be >= 0 and <= the 1s interval plus a request)
+write->edge      33.0s   (server declares Age 7 and Last-Modified 30 s back: must be 23.0s)
+self-test: FAILED - write->edge came out 33.0s, not 23.0s.
+exit=1
+
+## [2] break - the Age header removed, which is the shape the FIRST version of this
+##     self-test shipped in: transitions detected, both computed columns empty, green.
+known change at   2026-08-11T05:02:14.536Z
+reported first at 2026-08-11T05:02:15.405Z
+lag              0.87s   (must be >= 0 and <= the 1s interval plus a request)
+write->edge      -   (server declares Age 7 and Last-Modified 30 s back: must be 23.0s)
+self-test: FAILED - the arithmetic columns were never computed, so nothing checked them.
+exit=1
