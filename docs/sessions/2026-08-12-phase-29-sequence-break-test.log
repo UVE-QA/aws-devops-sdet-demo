@@ -1,0 +1,122 @@
+Phase 29 — break test for the sequence half of page-inflight-check
+==================================================================
+
+Taken in the chat session's own sandbox, 2026-08-12, chromium-1194.
+`bash scripts/break-page-inflight-sequence.sh`, run three times; the third is
+below, and what the first two changed is recorded underneath it.
+
+Each variant reintroduces one defect into the PAGE (or into the instrument),
+rebuilds site/index.html, and requires the gate to say so. Exit status is taken
+from the gate directly, never through a pipe.
+
+[D] IS THE ONE WORTH READING TWICE. It reverts the idle interval to the constant
+and the gate answers `(285s, 300s]`. Phase 28 measured 293 s on `destroy prod
+#46`, live, against the same ceiling. The fixture reproduces the finding to
+within one step of the walk, which is the closest this project has come to
+holding one of its live findings still.
+
+--- THIRD RUN --------------------------------------------------------------
+
+=== [A] control: the tree as committed ===
+ok    both sequence claims hold
+        ok    sequence: a figure the run in flight published is not called the previous cycle's
+        ok    sequence: the page's first word about a run does not arrive on its slowest clock
+              first news in (45s, 60s], 2 GitHub requests spent getting it
+        page-inflight: every claim held, in both states.
+        
+=== [B] D1 reverted in nodeTense: the qualifier goes back on everything ===
+ok    the page calls the run's own figures the previous cycle's
+        FAIL  sequence: a figure the run in flight published is not called the previous cycle's
+                stage.vpc was measured by deploy-stage #64, the run the page is watching, and the page calls it "the cycle before this one": "measured · these figures are from the cycle before this one · 20s"
+                stage.secrets was measured by deploy-stage #64, the run the page is watching, and the page calls it "the cycle before this one": "measured · these figures are from the cycle before this one · 6s"
+                stage.rds was measured by deploy-stage #64, the run the page is watching, and the page calls it "the cycle before this one": "measured · these figures are from the cycle before this one · 4m 11s"
+                stage.alb was measured by deploy-stage #64, the run the page is watching, and the page calls it "the cycle before this one": "measured · these figures are from the cycle before this one · 1m 55s"
+                stage.ecs was measured by deploy-stage #64, the run the page is watching, and the page calls it "the cycle before this one": "measured · these figures are from the cycle before this one · 1m 23s"
+                stage.cloudwatch was measured by deploy-stage #64, the run the page is watching, and the page calls it "the cycle before this one": "measured · these figures are from the cycle before this one · 9s"
+                stage.budgets was measured by deploy-stage #64, the run the page is watching, and the page calls it "the cycle before this one": "measured · these figures are from the cycle before this one · 5s"
+        
+=== [C] the fold stops carrying published_by ===
+ok    a record that cannot say who wrote it is caught too
+        FAIL  sequence: a figure the run in flight published is not called the previous cycle's
+                stage.vpc was measured by deploy-stage #64, the run the page is watching, and the page calls it "the cycle before this one": "measured · these figures are from the cycle before this one · 20s"
+                stage.secrets was measured by deploy-stage #64, the run the page is watching, and the page calls it "the cycle before this one": "measured · these figures are from the cycle before this one · 6s"
+                stage.rds was measured by deploy-stage #64, the run the page is watching, and the page calls it "the cycle before this one": "measured · these figures are from the cycle before this one · 4m 11s"
+                stage.alb was measured by deploy-stage #64, the run the page is watching, and the page calls it "the cycle before this one": "measured · these figures are from the cycle before this one · 1m 55s"
+                stage.ecs was measured by deploy-stage #64, the run the page is watching, and the page calls it "the cycle before this one": "measured · these figures are from the cycle before this one · 1m 23s"
+                stage.cloudwatch was measured by deploy-stage #64, the run the page is watching, and the page calls it "the cycle before this one": "measured · these figures are from the cycle before this one · 9s"
+                stage.budgets was measured by deploy-stage #64, the run the page is watching, and the page calls it "the cycle before this one": "measured · these figures are from the cycle before this one · 5s"
+        
+=== [D] D2 reverted: the idle interval is a constant again ===
+ok    the first news arrives on the five-minute clock and is refused
+        ok    sequence: a figure the run in flight published is not called the previous cycle's
+        FAIL  sequence: the page's first word about a run does not arrive on its slowest clock
+                the page's first word about the run arrives in (285s, 300s], and the ceiling is 120s. The interval is derived from whether a run is ALREADY known to be live, which is the news it does not have
+              first news in (285s, 300s], 2 GitHub requests spent getting it
+        page-inflight: 1 claim did not hold.
+        
+=== [E] the mock stops exposing the rate budget across the origin ===
+ok    a page that could not read the budget is refused, not measured
+        page-inflight: the page could not read the rate budget out of the mocked GitHub response, so its interval comes from a fallback constant and this would not be measuring the arithmetic production runs. The mock must expose the two ratelimit headers across the origin, the way api.github.com does. Read: {"rem":null,"reset":null}
+        
+=== [F] the publish stops changing anything the page draws ===
+ok    a publish that moves nothing is refused before any sentence is judged
+        page-inflight: layer-published says it was written by run 31459000063 and the run in flight is 31461000064. The whole point of this pass is a document belonging to the run being watched; with those two different it would test nothing.
+        
+=== [G] control again, after every mutation was restored ===
+ok    the control is green on both sides of the breaks
+        ok    sequence: a figure the run in flight published is not called the previous cycle's
+        ok    sequence: the page's first word about a run does not arrive on its slowest clock
+              first news in (45s, 60s], 2 GitHub requests spent getting it
+        page-inflight: every claim held, in both states.
+        
+break-page-inflight-sequence: 7 of 7 variants behaved as written.
+
+--- WHAT THE FIRST TWO RUNS CHANGED ----------------------------------------
+
+FIRST RUN, 6 of 7. [D] went red and the harness scored it a miss, because the
+walk stopped at 150 s - one step past the 120 s ceiling - and a page on the
+five-minute clock says nothing at all inside that. The gate reported
+
+        the page still says nothing about the run 150s after it started
+
+which is true, and is the empty result that looks like a measurement: it does
+not say WHICH clock the page is on, and that is the entire content of ADR-0062
+D2. The walk now runs to 330 s, far enough to catch the old constant, and the
+red variant names the delay instead of reporting a silence. Virtual time makes
+the extra steps free, so nothing was traded for it.
+
+SECOND RUN, 7 of 7, and the log was worth less than the run. `check` printed
+only the verdict lines, so the file recorded THAT [D] went red and not that it
+went red at (285s, 300s]. The numbers are the evidence; the filter now keeps
+them.
+
+Both corrections are the same shape as the phase's subject, arriving in the
+harness rather than in the page: an instrument that reads part of what it is
+looking at.
+
+--- WHAT EACH VARIANT IS FOR -----------------------------------------------
+
+[A] control     the tree as committed, both claims green
+[B] page        nodeTense()'s comparison disabled - the qualifier back on
+                everything, which is the defect ADR-0062 D1 watched live
+[C] page        readRunLayer() stops carrying `published_by`. A DIFFERENT
+                mechanism with the same symptom, and the one the real defect
+                actually had: the id was in the document and thrown away in the
+                fold. A gate that only caught [B] would be watching the wrong
+                half
+[D] page        the idle interval back to `if (!live) return 300000`
+[E] instrument  the mock stops exposing the ratelimit headers across the origin.
+                Not a page defect - the defect this gate SHIPPED with, and
+                without the refusal it measures the page's fallback branch and
+                reports a number production never produces. Must refuse (2),
+                not answer
+[F] instrument  the overlay pointed at the unpublished document, so the publish
+                moves nothing. The subject that never became one - the mirror of
+                a control that reproduces its defect. Must refuse (2) before any
+                sentence is judged
+[G] control     green again, after every mutation was restored
+
+NOT COVERED, deliberately: the sentinel that proves the page was never reloaded.
+Breaking it means editing the gate's own navigation rather than the page, and a
+variant that rewrites the measurement to fail is not evidence about the
+measurement. It fires on a real reload; nothing here has made it do so.

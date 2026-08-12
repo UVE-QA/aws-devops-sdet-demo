@@ -432,6 +432,12 @@ async function sequence(browser, origin, box, notFound) {
  */
 const FIRST_NEWS_CEILING_MS = 120_000;
 const FIRST_NEWS_STEP_MS = 15_000;
+// THE WALK GOES PAST THE CEILING ON PURPOSE, far enough to catch the old
+// five-minute clock. A walk that stops at the ceiling can only ever report `not
+// within 120s`, which is the empty result that looks like a measurement; the
+// break test asked for the number and got a silence, and the number is what
+// says WHICH clock the page is on. Virtual time makes the extra steps free.
+const FIRST_NEWS_WALK_MS = 330_000;
 
 async function sequenceFirstNews(browser, origin, box, notFound) {
   const rest = readState("at-rest");
@@ -487,9 +493,7 @@ async function sequenceFirstNews(browser, origin, box, notFound) {
   const walked = [];
   let seenAt = null;
   let elapsed = 0;
-  // One step past the ceiling, so a page that answers at exactly the ceiling is
-  // distinguishable from one that never answers at all.
-  while (elapsed < FIRST_NEWS_CEILING_MS + FIRST_NEWS_STEP_MS * 2) {
+  while (elapsed < FIRST_NEWS_WALK_MS) {
     await page.clock.fastForward(FIRST_NEWS_STEP_MS);
     elapsed += FIRST_NEWS_STEP_MS;
     await page.waitForLoadState("networkidle");
@@ -516,8 +520,8 @@ function claimFirstNews({ seenAt, walked, step }) {
   const out = [];
   if (seenAt === null) {
     const last = walked[walked.length - 1];
-    out.push(`the page still says nothing about the run ${last.at / 1000}s after it started: ` +
-      `"${last.verdict}"`);
+    out.push(`the page still says nothing about the run ${last.at / 1000}s after it started, ` +
+      `which is past every interval it can return: "${last.verdict}"`);
     return out;
   }
   if (seenAt > FIRST_NEWS_CEILING_MS) {
