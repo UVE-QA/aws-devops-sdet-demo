@@ -101,3 +101,52 @@ The other seven behaved identically in both runs.
                    pattern that demanded the whole shape stopped matching when
                    the shape grew; this reads only the token after `(`.
 [H] control        green again, after every mutation was restored
+
+--- THE DEVBOX RUN, AND WHAT IT FOUND: 2 OF 8 -------------------------------
+
+Run on the devbox after `git am`, with Phase 29's own Current state block now at
+the top of the file:
+
+    === [A] control: the tree as committed ===
+    FAIL  the narrative names the newest phase and the check says which
+          expected to match: narrative 2026-08-11 \(28\), matching the newest session
+            narrative 2026-08-12 (29), matching the newest session
+    ...
+    break-narrative-phase: 2 of 8 variants behaved as written.
+
+THE SCRIPT WAS FROZEN TO THE PHASE THAT WROTE IT. `28` and `2026-08-11` were
+literals. In the sandbox that was invisible, because Phase 29's block did not
+exist yet and the newest block WAS 28's. The moment the closing patch landed,
+every mutation went into a block BELOW the one the check reads, the check
+answered `phase 29` each time, and the harness scored six working refusals as
+failures. [D] and [F] survived, being the only two variants that never name a
+phase.
+
+It failed loudly, which is the good outcome, and it is the wrong failure to be
+satisfied with: the entire reason a break script is committed rather than typed
+into a session is that a LATER session can re-run it. This one could not have
+been. Third time in one phase that an instrument was pointed at the wrong part of
+the right thing - after the log filter that read one line of two, and the walk
+that stopped at its own ceiling.
+
+Fixed by deriving: the newest date and phase come from the last INDEX row, the
+phase of the block underneath comes from the file's second `**As of` line, and
+[B] now FORCES the previous block's date to the newest session's rather than
+assuming two consecutive phases closed on the same day - which is exactly the
+condition the defect needs and is not always true. Two refusals were added for
+the anchors themselves: unreadable, and the two newest blocks naming the same
+phase (which would mutate one and judge the other).
+
+    anchors: newest session 2026-08-12 phase 29; the block under it is phase 28
+    break-narrative-phase: 8 of 8 variants behaved as written.
+
+AND THE FIX WAS PROVED THE ONLY WAY THAT MEANS ANYTHING - by running it in the
+future. A synthetic `phase 30` block and INDEX row were COMMITTED (uncommitted
+would prove nothing: `restore` is `git checkout`, and the first variant would
+have reverted the plant - which is how the first attempt at this probe scored
+5 of 8 and blamed the script):
+
+    anchors: newest session 2026-08-13 phase 30; the block under it is phase 29
+    break-narrative-phase: 8 of 8 variants behaved as written.
+
+The synthetic commit was discarded.

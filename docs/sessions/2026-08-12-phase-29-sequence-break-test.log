@@ -120,3 +120,19 @@ NOT COVERED, deliberately: the sentinel that proves the page was never reloaded.
 Breaking it means editing the gate's own navigation rather than the page, and a
 variant that rewrites the measurement to fail is not evidence about the
 measurement. It fires on a real reload; nothing here has made it do so.
+
+--- THE DEVBOX RUN ----------------------------------------------------------
+
+Re-run on the devbox after `git am`, on its own chromium rather than the
+sandbox's 1194:
+
+    break-page-inflight-sequence: 7 of 7 variants behaved as written.
+
+Every number identical to the sandbox, including the two that matter:
+
+    [A] and [G] control   first news in (45s, 60s], 2 GitHub requests
+    [D] D2 reverted       first news in (285s, 300s]
+
+`make page-inflight-check` green there in its own right beforehand, with the same
+window. Two hosts, two chromium builds, one arithmetic - the comparison Phase 26
+established as the thing that turns a figure into evidence.

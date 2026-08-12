@@ -58,6 +58,17 @@ across two committed scripts; the two that found something both found it in the
 harness, and both were the phase's own shape — an instrument reading part of what
 it is looking at.
 
+**AND THE DEVBOX FOUND A THIRD.** `break-narrative-phase.sh` scored 8 of 8 in the
+sandbox and 2 of 8 there, an hour later, because this phase's own Current state
+block went on top of the file and the script named `28` and `2026-08-11` as
+literals — so every mutation landed in a block BELOW the one the check reads. A
+break script is committed rather than typed so that a LATER session can re-run
+it, and this one could not have been. Anchors derived now, with two refusals of
+their own, proved by running it against a synthetic phase 30 that was COMMITTED —
+an uncommitted plant is reverted by the first variant's `git checkout`, which
+scored 5 of 8 and blamed the script (**ADR-0063 D7**). Three instrument defects
+in one phase and not one of them in the page.
+
 **As of 2026-08-11 (28 — the cycle on a different day).** A full cycle — stage
 up, promoted to prod through the approval gate, both torn down — watched through
 a single tab opened before the first dispatch and never reloaded. The three items carried since 20m are answered.

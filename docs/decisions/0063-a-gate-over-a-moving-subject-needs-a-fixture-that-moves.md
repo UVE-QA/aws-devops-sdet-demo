@@ -126,7 +126,7 @@ Phase 28 closed without touching `docs/discussion-log.md` or
 `docs/next-phases.md`, and `make session-close` printed
 `narrative 2026-08-11, matching the newest session`. Phase 27 had closed the same
 day, so the dates agreed while the block described the wrong phase. Nothing else
-in the repository reads that file — `docs/docs-check` does not — and the next
+in the repository reads that file — `make docs-check` does not — and the next
 session reads the top of it for context.
 
 Several sessions a day is normal here, so a date is a weak identifier, and it is
@@ -134,6 +134,26 @@ weakest on exactly the days when the most is happening. The check now reads the
 phase from the INDEX row's second column and from the block's own parenthesis,
 and only the token after `(` — so a long title may wrap without the check going
 quiet, which is how its predecessor failed in 2026-08-08.
+
+### D7 — A committed break script derives its anchors, because it is for a later session
+
+`scripts/break-narrative-phase.sh` named `28` and `2026-08-11` as literals and
+scored 8 of 8 in the sandbox. It scored **2 of 8 on the devbox an hour later**,
+for the one reason that could not appear before the closing patch: this phase's
+own Current state block went on top, so every mutation landed in a block BELOW
+the one the check reads, and six working refusals were scored as failures.
+
+Phase 27's argument for committing a break script is that *the next change to
+this schema owes the same proof*. A script that only runs in the session that
+wrote it cannot supply it. So the anchors are read — the newest date and phase
+from the last INDEX row, the phase below from the file's second `**As of` line —
+and the script refuses when it cannot read them, or when the two newest blocks
+name the same phase and a mutation would be judged on the wrong one.
+
+**It is proved by running it in the future**, with a synthetic later phase
+COMMITTED rather than merely written: `restore` is `git checkout`, so an
+uncommitted plant is reverted by the first variant, which is how the first
+attempt at that probe scored 5 of 8 and blamed the script rather than the probe.
 
 ## Consequences
 

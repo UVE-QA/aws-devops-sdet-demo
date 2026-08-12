@@ -3897,6 +3897,16 @@ reported a silence rather than a delay; it runs to 330 s now and answers
 **CHECKED THAT THE STEPPING WAS NOT SETTING THE ANSWER** before believing any of
 it: 120, 400 and 900 ms of settle per step, same window at all three.
 
+**THE DEVBOX FOUND A THIRD INSTRUMENT DEFECT.** `break-narrative-phase.sh`
+scored 8 of 8 in the sandbox and 2 of 8 there, because this phase's own Current
+state block went on top of the file and the script named `28` and `2026-08-11`
+as literals — so every mutation landed in a block below the one the check reads.
+A break script is committed so a LATER session can re-run it, and this one could
+not have been. Anchors derived now, with two refusals of their own, proved by
+running it against a synthetic phase 30 that was COMMITTED — an uncommitted plant
+is reverted by the first variant's `git checkout`, which scored 5 of 8 and
+blamed the script (**ADR-0063 D7**).
+
 - Validation, all in the chat's sandbox on chromium-1194 and re-run on the devbox
   at close:
 ```bash

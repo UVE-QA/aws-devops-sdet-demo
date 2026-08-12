@@ -128,6 +128,26 @@ Not covered, deliberately: the reload sentinel. Breaking it means editing the
 gate's own navigation, and a variant that rewrites the measurement to fail is not
 evidence about the measurement.
 
+## The devbox found a third one
+
+`break-narrative-phase.sh` scored 8 of 8 in the sandbox and **2 of 8 on the
+devbox**, an hour later, for the one reason that could not exist earlier: this
+phase's own Current state block went on top of the file. The script named `28`
+and `2026-08-11` as literals, so every mutation landed in a block BELOW the one
+the check reads and six working refusals were scored as failures.
+
+It failed loudly, which is the good outcome, and it is the wrong failure to
+settle for. A break script is committed rather than typed so a LATER session can
+re-run it; this one could not have been. The anchors are derived now, with two
+refusals of their own, and the fix was proved by running it in the future — a
+synthetic phase 30, COMMITTED, because `restore` is `git checkout` and an
+uncommitted plant is reverted by the first variant. That mistake was made first
+and scored 5 of 8 before the probe itself was fixed (ADR-0063 D7).
+
+Third instrument defect in one phase, all three the same shape: the log filter
+that read one line of two, the walk that stopped at its own ceiling, and a
+mutation aimed at the wrong block. Not one of them was in the page.
+
 ## Validation
 
 ```text
@@ -136,8 +156,9 @@ contrast-check                7 states, 3 ancestries, both themes
 page-freshness-check          3 cases
 page-tense-check              16 cases, 49 calls
 page-inflight-check           every claim held, in both states, plus both sequences
-break-narrative-phase.sh      8 of 8
-break-page-inflight-sequence  7 of 7
+break-narrative-phase.sh      8 of 8 (2 of 8 on the devbox first; see above)
+break-page-inflight-sequence  7 of 7, on BOTH hosts, every number identical
+                              including (45s, 60s] and [D]'s (285s, 300s]
 ```
 
 ## What this phase did not close
