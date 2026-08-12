@@ -72,6 +72,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SITE = path.join(ROOT, "site");
 const FIXTURE = path.join(ROOT, "tests/fixtures/page-inflight");
 const LAYER = path.join(FIXTURE, "layer");
+const PUBLISHED = path.join(FIXTURE, "layer-published");
 const TOPOLOGY = path.join(SITE, "data/topology.json");
 const VIEWPORT = { width: 1440, height: 900 };
 const SETTLE_MS = 700;
@@ -167,17 +168,28 @@ const MIME = {
 /* THE SITE, WITH THE RUN LAYER OVER THE TOP. The layer is what a cycle
    publishes into the bucket beside the page; site/ in the repository does not
    contain it and never will. Serving the fixture's copy at the same paths is
-   what makes the map draw figures at all. */
-function serve(notFound) {
+   what makes the map draw figures at all.
+
+   THE OVERLAY IS WHY THIS TAKES A BOX RATHER THAN A CONSTANT. Phase 29's
+   subject is a document arriving while the page is open, so the directory this
+   serves from has to be changeable between two reads of the SAME page. `box`
+   holds it, the lookup is overlay-then-layer-then-site, and nothing else about
+   the server moves. */
+function serve(notFound, box) {
   const server = http.createServer((req, res) => {
     const url = new URL(req.url, "http://127.0.0.1");
     const rel = decodeURIComponent(url.pathname).replace(/^\/+/, "");
-    let file = path.join(LAYER, rel);
-    if (!file.startsWith(LAYER) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) {
-      file = path.join(SITE, rel);
+    let file = null;
+    for (const dir of [box.overlay, LAYER].filter(Boolean)) {
+      const candidate = path.join(dir, rel);
+      if (candidate.startsWith(dir) && fs.existsSync(candidate) && !fs.statSync(candidate).isDirectory()) {
+        file = candidate;
+        break;
+      }
     }
+    if (!file) file = path.join(SITE, rel);
     if (rel === "" || rel.endsWith("/")) file = path.join(SITE, rel, "index.html");
-    if (!file.startsWith(SITE) && !file.startsWith(LAYER)) {
+    if (!file.startsWith(SITE) && !file.startsWith(LAYER) && !file.startsWith(PUBLISHED)) {
       notFound.push("/" + rel);
       res.writeHead(403, { "content-type": "text/plain" });
       res.end("refused");
@@ -224,26 +236,31 @@ const OBSERVE = () => {
   };
 };
 
-async function render(browser, origin, state, notFound) {
+function readState(state) {
   const dir = path.join(FIXTURE, state);
   if (!fs.existsSync(dir)) refuse(`no state called "${state}" in ${path.relative(ROOT, FIXTURE)}.`);
   const meta = readJSON(path.join(dir, "meta.json"), "the fixture's clock and its declared cycle");
   if (!meta.now) refuse(`${state}/meta.json declares no \`now\`; every age string would drift.`);
   if (!meta.cycle) refuse(`${state}/meta.json declares no \`cycle\`; this gate would have to re-derive which environments the run is about, which is the page's WRITERS table in a second place.`);
-  const runs = readJSON(path.join(dir, "runs.json"), "the run history");
-  const jobs = readJSON(path.join(dir, "jobs.json"), "the current run's steps");
-  const status = {
-    stage: readJSON(path.join(dir, "status-stage.json"), "what the bucket last observed of stage"),
-    prod: readJSON(path.join(dir, "status-prod.json"), "what the bucket last observed of prod")
+  return {
+    meta,
+    runs: readJSON(path.join(dir, "runs.json"), "the run history"),
+    jobs: readJSON(path.join(dir, "jobs.json"), "the current run's steps"),
+    status: {
+      stage: readJSON(path.join(dir, "status-stage.json"), "what the bucket last observed of stage"),
+      prod: readJSON(path.join(dir, "status-prod.json"), "what the bucket last observed of prod")
+    }
   };
+}
 
-  const context = await browser.newContext({ viewport: VIEWPORT });
-  const page = await context.newPage();
-  await page.clock.setFixedTime(new Date(meta.now));
-
-  const unmocked = [];
+/* THE THREE REMOTE SOURCES, MOCKED FROM A BOX RATHER THAN FROM A CLOSURE. The
+   sequence pass changes what the GitHub API answers while the page is open -
+   that is ADR-0062 D2's whole subject - so the handler reads `src.current`
+   every time rather than capturing one answer when it is installed. */
+async function installRoutes(page, origin, src, unmocked) {
   await page.route("**/*", async (route) => {
     const url = route.request().url();
+    const { runs, jobs, status, meta } = src.current;
     if (url.startsWith(origin)) {
       if (/\/status\/(stage|prod)\.json/.test(url)) {
         const env = url.includes("stage") ? "stage" : "prod";
@@ -264,6 +281,18 @@ async function render(browser, origin, state, notFound) {
     unmocked.push(url);
     return route.abort();
   });
+}
+
+async function render(browser, origin, state, notFound) {
+  const src = { current: readState(state) };
+  const { meta, runs } = src.current;
+
+  const context = await browser.newContext({ viewport: VIEWPORT });
+  const page = await context.newPage();
+  await page.clock.setFixedTime(new Date(meta.now));
+
+  const unmocked = [];
+  await installRoutes(page, origin, src, unmocked);
 
   await page.goto(origin + "/index.html", { waitUntil: "load" });
   await page.waitForLoadState("networkidle");
@@ -285,6 +314,120 @@ async function render(browser, origin, state, notFound) {
     refuse(`the page drew a source-failure banner - "${seen.banner}".`);
   }
   return { state, meta, runs, seen };
+}
+
+/* THE FIXTURE THAT PUBLISHES UNDERNEATH A RUNNING PAGE (Phase 29).
+ *
+ * Everything above holds one moment still and reads it. ADR-0062's two findings
+ * cannot be seen that way, and this gate was green through the whole of Phase 28
+ * while a live page was demonstrating one of them: both live in the layer or the
+ * clock CHANGING while the tab stays open.
+ *
+ * WORSE THAN BLIND - CLAIM 3 ENCODES THE PREMISE THAT WAS FALSE. Its own comment
+ * said `nothing publishes until a cycle ends, so every figure drawn during one
+ * belongs to the cycle before it`, and required the disclaimer on every numeric
+ * figure in an environment being touched. A job that publishes from a step
+ * inside itself - promote-prod does, deploy-stage does - breaks that premise for
+ * as long as it takes the rest of the job to finish, five measured minutes in
+ * the real case.
+ *
+ * So the sequence is: load once, swap the layer underneath, let the page's own
+ * 30-second tick pick it up, read again. No reload, no navigation, no Refresh -
+ * asserted rather than assumed, by leaving a sentinel on `window` and requiring
+ * it to survive. The clock is INSTALLED rather than fixed, because a tick that
+ * has to happen in real time is a gate nobody will run.
+ */
+async function sequence(browser, origin, box, notFound) {
+  const src = { current: readState("in-flight") };
+  const { meta, runs } = src.current;
+
+  const flying = (runs.workflow_runs || []).filter((r) => r.status !== "completed");
+  if (flying.length !== 1) {
+    refuse(`the sequence needs exactly one run in flight and the fixture has ${flying.length}.`);
+  }
+  const flight = flying[0];
+
+  const doc = readJSON(path.join(PUBLISHED, "timeline/stage/nodes-apply.json"),
+    "the document the run in flight publishes from inside its own job");
+  const publishedBy = doc.cycle && doc.cycle.run && String(doc.cycle.run.id);
+  if (publishedBy !== String(flight.id)) {
+    refuse(`layer-published says it was written by run ${publishedBy} and the run in flight is ` +
+      `${flight.id}. The whole point of this pass is a document belonging to the run being ` +
+      `watched; with those two different it would test nothing.`);
+  }
+  const mine = Object.keys(doc.nodes || {});
+  if (!mine.length) refuse("the published document carries no nodes at all.");
+
+  const context = await browser.newContext({ viewport: VIEWPORT });
+  const page = await context.newPage();
+  await page.clock.install({ time: new Date(meta.now) });
+  const unmocked = [];
+  await installRoutes(page, origin, src, unmocked);
+
+  box.overlay = null;
+  await page.goto(origin + "/index.html", { waitUntil: "load" });
+  await page.waitForLoadState("networkidle");
+  await page.waitForTimeout(SETTLE_MS);
+  const before = await page.evaluate(OBSERVE);
+  await page.evaluate(() => { window.__phase29 = "the tab that was never reloaded"; });
+
+  // THE PUBLISH. Nothing else changes: the run history still has #64 in flight,
+  // the job still has steps to go, the bucket's status files are untouched.
+  box.overlay = PUBLISHED;
+  await page.clock.fastForward(35_000);
+  await page.waitForLoadState("networkidle");
+  await page.waitForTimeout(SETTLE_MS);
+  const after = await page.evaluate(OBSERVE);
+  const survived = await page.evaluate(() => window.__phase29 || null);
+  await context.close();
+
+  if (unmocked.length) {
+    refuse("the page asked for a source nobody mocked during the sequence:\n  " +
+      [...new Set(unmocked)].join("\n  "));
+  }
+  if (notFound.length) {
+    refuse("the page asked this gate's own server for documents it does not have during the " +
+      "sequence:\n  " + [...new Set(notFound)].join("\n  "));
+  }
+  if (survived !== "the tab that was never reloaded") {
+    refuse("the sentinel left on `window` did not survive to the second reading, so the page " +
+      "reloaded and this measured two page loads rather than one page learning something.");
+  }
+  return { flight, mine, before, after, publishedBy };
+}
+
+/* CLAIM 4 - A FIGURE THE RUN IN FLIGHT PUBLISHED IS NOT CALLED THE PREVIOUS
+   CYCLE'S. ADR-0062 D1. The right predicate is `does this record belong to the
+   run in flight?`, and the record has answered it since ADR-0039 - the page has
+   never asked. */
+function claimPublishedFigureOwnsItself({ flight, mine, before, after }) {
+  const out = [];
+  const byId = (seen) => Object.fromEntries(seen.nodes.map((n) => [n.id, n.state || ""]));
+  const was = byId(before);
+  const now = byId(after);
+
+  // THE PUBLISH HAS TO HAVE BEEN SEEN, or every sentence below is a sentence
+  // about a page that learned nothing, and the claim passes for free. This is
+  // the sequence's version of "a control that reproduces the defect is not a
+  // control": here the risk is the opposite, a subject that never became one.
+  const moved = mine.filter((id) => was[id] !== undefined && now[id] !== was[id]);
+  if (!moved.length) {
+    out.push("not one of the published nodes says anything different after the swap, so the " +
+      "page never read the document and nothing below was measured:\n        " +
+      mine.map((id) => `${id}: ${JSON.stringify(was[id])}`).join("\n        "));
+    return out;
+  }
+
+  for (const id of mine) {
+    const state = now[id];
+    if (state === undefined) continue;
+    const stale = QUALIFIERS.filter((q) => state.includes(q));
+    if (stale.length) {
+      out.push(`${id} was measured by ${flight.name} #${flight.run_number}, the run the page is ` +
+        `watching, and the page calls it "${stale[0]}": "${state}"`);
+    }
+  }
+  return out;
 }
 
 /* THE FIXTURE HAS TO BE THE THING IT CLAIMS TO BE, checked before any verdict is
@@ -426,19 +569,26 @@ async function main() {
   const states = wanted ? [wanted] : ["in-flight", "at-rest"];
   const chromium = await loadChromium();
   const notFound = [];
-  const { server, port } = await serve(notFound);
+  const box = { overlay: null };
+  const { server, port } = await serve(notFound, box);
   const origin = `http://127.0.0.1:${port}`;
   const launch = { args: ["--no-sandbox"] };
   if (process.env.CHROMIUM_PATH) launch.executablePath = process.env.CHROMIUM_PATH;
   const browser = await chromium.launch(launch);
 
   const readings = [];
+  let sequenced = null;
   try {
     for (const state of states) {
       notFound.length = 0;
+      box.overlay = null;
       const reading = await render(browser, origin, state, notFound);
       reading.audit = auditFixture(reading);
       readings.push(reading);
+    }
+    if (!wanted) {
+      notFound.length = 0;
+      sequenced = await sequence(browser, origin, box, notFound);
     }
   } finally {
     await browser.close();
@@ -470,6 +620,27 @@ async function main() {
       } else {
         console.log(`ok    ${r.state}: ${name}`);
       }
+    }
+  }
+
+  if (sequenced) {
+    if (process.argv.includes("--dump")) {
+      console.log(`\n--- the publish underneath a running page: ${sequenced.mine.length} nodes ---`);
+      const was = Object.fromEntries(sequenced.before.nodes.map((n) => [n.id, n.state]));
+      for (const id of sequenced.mine) {
+        const now = sequenced.after.nodes.find((n) => n.id === id);
+        console.log(`  ${id.padEnd(20)}${was[id] || ""}\n  ${"".padEnd(20)}${now ? now.state : "(gone)"}`);
+      }
+      console.log("");
+    }
+    const name = "a figure the run in flight published is not called the previous cycle's";
+    const findings = claimPublishedFigureOwnsItself(sequenced);
+    if (findings.length) {
+      failed += 1;
+      console.log(`FAIL  sequence: ${name}`);
+      findings.forEach((f) => console.log(`        ${f}`));
+    } else {
+      console.log(`ok    sequence: ${name}`);
     }
   }
 

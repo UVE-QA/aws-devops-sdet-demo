@@ -1,0 +1,8 @@
+{
+  "label": "layer-published",
+  "description": "THE PUBLISH THAT HAPPENS UNDERNEATH A RUNNING PAGE. An OVERLAY on layer/, not a replacement: it holds the one document deploy-stage #64 writes from a step inside its own job, and everything else is served from layer/ unchanged. Applied while #64 is still in_progress in runs.json, which is the state ADR-0062 D1 measured for about five minutes of a real cycle - the job publishes, then goes on to run the quality gate and push the tag.",
+  "provenance": {
+    "timeline/stage/nodes-apply.json": "SYNTHETIC, derived from layer/timeline/stage/nodes-apply.json. cycle.run is #64 - the run in flight - rather than #63, cycle.date moves to the day of the run, and EVERY node figure moves BY AT LEAST A SECOND AS THE PAGE ROUNDS IT. All eight of ADR-0062's real figures differed from the previous cycle's in all eight positions; a fixture where some coincided would let a claim pass on the ones that did not move. The first version of this guarded the difference in the DOCUMENT and 5 -> 5.3 printed `5s` both times, which is the wrong-scope reading this phase is about, arriving in the fixture generator."
+  },
+  "what_it_is_for": "The page must stop calling these figures `the cycle before this one`. They were written by the run it is watching, and `cycle.run.id` has been in the document since ADR-0039 - the page simply never asked."
+}
