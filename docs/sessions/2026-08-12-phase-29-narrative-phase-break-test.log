@@ -1,0 +1,103 @@
+Phase 29 — break test for session-close's narrative check
+=========================================================
+
+Taken in the chat session's own sandbox, 2026-08-12, on the commit that adds the
+check (dfc9a5d + this script). `bash scripts/break-narrative-phase.sh`, run
+twice: the first run is below the second, because it found a defect in the
+HARNESS and that is worth keeping.
+
+WHAT IS BEING MEASURED. session-close.sh sets one global `fail`, and two of its
+checks - a clean working tree and HEAD == origin/main - cannot pass in a sandbox
+that is mid-session by construction. The script's exit status is therefore
+confounded here and is NOT the reading; the reading is the narrative section's
+own lines. `make -s gates` is stubbed by a shim on PATH: different section of
+the script, slow, and several of its gates need a browser. The unconfounded run
+is `make session-close` on the devbox at the end of this session, and it can
+only ever show the control - which is exactly why this file exists.
+
+THE DEFECT IS REPRODUCED, NOT SIMULATED. Variant [B] puts the repository back
+into the state main was actually in on 2026-08-11: Phase 27's block on top,
+Phase 28 closed, both dated the same day.
+
+--- SECOND RUN, after the harness was fixed ------------------------------------
+
+=== [A] control: the tree as committed ===
+ok    the narrative names the newest phase and the check says which
+        narrative 2026-08-11 (28), matching the newest session
+
+=== [B] THE DEFECT ITSELF: the Phase 28 block deleted, 27 back on top ===
+ok    a block about the previous phase, on the same date, is refused
+        session-close: the narrative's newest block is about phase 27 and the newest
+         M docs/discussion-log.md
+
+=== [C] the block is present, dated right, and names no phase ===
+ok    a block with no parenthesis is refused, not silently accepted
+        session-close: the newest Current state block names no phase: "**As of 2026-08-11.** A full cycle — stage"
+        session-close: the convention since 2026-08-08 is '**As of <date> (<phase> — <title>).**'
+         M docs/discussion-log.md
+
+=== [D] the INDEX row's phase column emptied ===
+ok    an INDEX row with no phase is refused rather than compared to nothing
+        session-close: the last row of docs/sessions/INDEX.md carries no phase in its second column, so the
+        session-close: narrative cannot be checked against anything but a date
+
+=== [E] the date check survived the change ===
+ok    a stale date is still refused, and refused as a date
+        session-close: docs/discussion-log.md says 2026-08-04, the newest session is 2026-08-11 -
+        session-close: the narrative is behind the cursor, which is how Phase 16b closed
+         M docs/discussion-log.md
+
+=== [F] no Current state block at all ===
+ok    a file with no As-of line at all is refused
+        session-close: docs/discussion-log.md has no '**As of YYYY-MM-DD.**' in Current state
+         M docs/discussion-log.md
+
+=== [G] the title wraps onto the next line: STILL GREEN ===
+ok    a wrapped title still reads as phase 28
+        narrative 2026-08-11 (28), matching the newest session
+         M docs/discussion-log.md
+
+=== [H] control again, after every mutation was restored ===
+ok    the control is green on both sides of the breaks
+        narrative 2026-08-11 (28), matching the newest session
+
+break-narrative-phase: 8 of 8 variants behaved as written.
+
+exit 0
+
+--- FIRST RUN: the harness read part of the right line -------------------------
+
+[E] scored FAIL while the gate under it was working. The refusal fired and
+printed both of its lines; the harness's own filter -
+
+    NARRATIVE='narrative|Current state|As of|newest block|second column'
+
+- matched the second line and not the first, because
+`docs/discussion-log.md says <date>, the newest session is <date>` contains none
+of those words. So the variant showed only
+
+        session-close: the narrative is behind the cursor, which is how Phase 16b closed
+
+and scored it as a miss. Nothing was wrong with the check; the instrument read
+part of the right line. That is the same shape as the thing this whole phase is
+about, one layer further out, and it is why the filter now carries a paragraph
+instead of a wider regex typed in silence.
+
+    break-narrative-phase: 7 of 8 variants behaved as written.
+    EXIT=1
+
+The other seven behaved identically in both runs.
+
+--- WHAT EACH VARIANT IS FOR ---------------------------------------------------
+
+[A] control        the tree as committed
+[B] the defect     Phase 28's block missing, Phase 27's on top, same date
+[C] no phase       the block is present and dated right, parenthesis removed
+[D] no column      the newest INDEX row's phase column emptied
+[E] regression     the date check must still fire, and fire as a date
+[F] no block       no `**As of` line anywhere in the file
+[G] positive       a title long enough to wrap must NOT make the check go quiet.
+                   The 2026-08-08 fix in session-close.sh exists because a
+                   pattern that demanded the whole shape stopped matching when
+                   the shape grew; this reads only the token after `(`.
+[H] control        green again, after every mutation was restored
