@@ -139,39 +139,63 @@ function qualifier(text) {
    first because it reads better, and for no other reason. A rationale nobody
    ever tries is indistinguishable from a true one.
 
-   THERE IS NO WORD BOUNDARY IN FRONT OF A FIGURE HERE, and that part is real. The second version
-   of this line opened with `\b` and read `10s` out of `8m 10s`, which is that
-   very mistake, committed while fixing its sibling. textContent concatenates
-   adjacent elements with nothing between them - the same frame shows it in the
-   map line, `...anything is running.180 tests...` - so a node reads
-   `destroy stage8m 10s`, and between `e` and `8` there is no boundary to find.
-   The end anchor is safe: a figure ends at `s`, and what follows is a space or
-   the end of the node. */
-const FIGURE = /\d+m \d+s\b|\d+(?:\.\d+)?s\b/;
+   NEITHER END OF A FIGURE HAS A WORD BOUNDARY, and the sentence that used to
+   stand here got the second half exactly wrong while explaining the first.
+   textContent concatenates adjacent elements with nothing between them, so a
+   node reads
+
+     VPC terraform · 6 blocksdestroyed · ... · 24screates 2 · destroys 8
+
+   `24s` is followed by `c`: both word characters, no boundary, no match. The
+   leading `\b` was removed on the evidence of the glue at the START of the
+   state line, and the trailing one was kept - and defended in writing - by a
+   sentence that never looked at the glue at the END of it. Fifteen environment
+   nodes printed an empty figure column through four versions of this file
+   because of that. Only `destroy.stage`, `destroy.prod` and the suites ever
+   matched, and only because their figure happens to be the last thing in the
+   node.
+
+   MEASURED, NOT REASONED. The string above came out of the live page as JSON
+   with escapes. The formatted log had made it look like `... · 24s` for two
+   passes, and the self-test cases were typed FROM that log while claiming to be
+   real node text - so the cases and the defect agreed with each other and both
+   were wrong. */
+const FIGURE = /\d+m \d+s|\d+(?:\.\d+)?s/;
 
 /* THE SELF-TEST, for the same reason watch-convergence.sh carries one: this
    prints observations and has no verdict, so nothing else will ever catch it
    being wrong. Both of the columns it checks have already been wrong once each,
    and each time the reading looked entirely plausible.
 
-   The strings are REAL node text, glued exactly as textContent returns it -
-   which is the property both regex mistakes turned on - and the last three are
-   the shapes this instrument exists to see, taken from Phase 29's own output.
+   THE FIRST FOUR CAME OUT OF THE LIVE PAGE AS JSON WITH ESCAPES, and that is
+   the only reason they are worth anything. The twelve they replace were typed
+   off the FORMATTED LOG while this comment called them real node text: the log
+   had already trimmed the trailing glue, so the cases agreed with the defect
+   and neither could see it. A fixture copied from the instrument's own output
+   tests the output.
+
+   The three in-flight shapes cannot be measured at rest - nothing is in flight -
+   so they are the measured `stage.rds` string with its state line swapped for
+   the wording nodeTense() would put there. Constructed, and said to be.
 
      node scripts/watch-page.mjs --self-test        */
+const MEASURED = "2026-08-12, https://demo.uveapp.net, at rest";
 const SELF_TEST = [
-  ["destroy stage8m 10s", "8m 10s", ""],
-  ["destroy prod7m 49s", "7m 49s", ""],
-  ["stage.vpcdestroyed · these figures are from the cycle that ended · 24s", "24s", "ended"],
-  ["stage.rdsdestroyed · these figures are from the cycle that ended · 8m 36s", "8m 36s", "ended"],
-  ["suite.api.stage52 of 52 · 5.8s", "5.8s", ""],
-  ["suite.smoke.stage2 of 2 · 0.8s", "0.8s", ""],
-  ["suite.db.stage2 of 2", null, ""],
-  ["gate.humannot measured here · its step is in Actions, not in a timeline", null, ""],
-  ["prod.cloudwatchdestroyed · these figures are from the cycle that ended · 0s", "0s", "ended"],
-  ["measured · these figures are from the cycle under way · 4m 11s", "4m 11s", "under-way"],
-  ["measured · these figures are from the cycle before this one · 4m 47s", "4m 47s", "PREVIOUS"],
-  ["prod.rdsnot reached yet · a cycle is under way and has not got here", null, "not-reached"]
+  // measured
+  ["VPC terraform · 6 blocksdestroyed · these figures are from the cycle that ended · 24screates 2 · destroys 8", "24s", "ended"],
+  ["RDS PostgreSQL terraform · 4 blocksdestroyed · these figures are from the cycle that ended · 8m 36screates 2 · provisions 3 · asserts 4 · destroys 8", "8m 36s", "ended"],
+  ["TEST API contract pytest52 of 52 · 5.8s", "5.8s", ""],
+  ["DEL stage — everything above stage terraform · 30 blocks8m 10s", "8m 10s", ""],
+  // constructed from the second measured string, by swapping its state line
+  ["RDS PostgreSQL terraform · 4 blocksmeasured · these figures are from the cycle under way · 4m 11screates 2 · destroys 8", "4m 11s", "under-way"],
+  ["RDS PostgreSQL terraform · 4 blocksmeasured · these figures are from the cycle before this one · 4m 47screates 2 · destroys 8", "4m 47s", "PREVIOUS"],
+  ["RDS PostgreSQL terraform · 4 blocksnot reached yet · a cycle is under way and has not got herecreates 2 · destroys 8", null, "not-reached"],
+  // must NOT match: a figure is digits then a unit, not any digit near an `s`
+  ["VPC terraform · 6 blockscreates 2 · destroys 8", null, ""],
+  ["TEST db seed assertion pytest2 of 2", null, ""],
+  ["ECR push not measured here · its step is in Actions, not in a timeline", null, ""],
+  ["STATE tfstate S3 · permanent", null, ""],
+  ["180 tests are collected from the suites themselves", null, ""]
 ];
 
 /* A LIST THAT CAN SHRINK REPORTS SUCCESS. Breaking QUALIFIERS on purpose deleted
@@ -205,6 +229,7 @@ if (process.argv.includes("--self-test")) {
     console.log(`${ok ? "ok  " : "BAD "}${String(fig).padEnd(8)}${(qual || "—").padEnd(12)}` +
       `${ok ? "" : `got ${JSON.stringify(gotFig)} / ${JSON.stringify(gotQual)}  `}${text.slice(0, 52)}`);
   }
+  console.log(`\nmeasured: ${MEASURED}`);
   console.log(bad === 0
     ? `\nwatch-page self-test: ${SELF_TEST.length} of ${SELF_TEST.length}`
     : `\nwatch-page self-test: ${bad} WRONG - do not trust a reading from this build.`);
