@@ -2030,7 +2030,7 @@
             // back to the word already on the node beats a thrown exception,
             // which blanks the whole map.
             const t = nodeTense(n, rec, envTense(RUNSTATE.observation, n.env),
-                                underWayHere(RUNSTATE.observation, n.env)) ||
+                                flightHere(RUNSTATE.observation, n.env)) ||
               { word: st, note: "", cls: "", gone: false };
             if (t.gone) el.classList.add("gone");
             // The figures are assembled HERE, never in the block above: a node
@@ -2484,7 +2484,18 @@
               if (!doc) return;
               const kind = wanted[i][0];
               if (kind === "nodes") {
-                Object.keys(doc.nodes || {}).forEach((id) => { next.nodes[id] = doc.nodes[id]; });
+                // WHICH RUN WROTE THIS FIGURE (ADR-0062 D1). The document has
+                // carried `cycle.run.id` since ADR-0039 and this fold threw it
+                // away, so a node record could not answer the one question that
+                // separates a figure THIS cycle measured from one the previous
+                // cycle left behind. Attached here, the same way the phase span
+                // below already takes `date` off the same object, rather than
+                // making nodeTense() reach for a document it is never handed.
+                const wroteIt = doc.cycle && doc.cycle.run && doc.cycle.run.id;
+                Object.keys(doc.nodes || {}).forEach((id) => {
+                  next.nodes[id] = { ...doc.nodes[id],
+                                     published_by: wroteIt ? String(wroteIt) : null };
+                });
                 // The phase span, measured. Not the sum of its nodes: they
                 // overlap, so adding them up overstates it - which is why this
                 // arrives computed rather than being worked out here.
@@ -2833,11 +2844,25 @@
            built: `observation.envs` is the environment list the dashboard parsed
            out of the run, handed over rather than re-derived (announceCycle()
            says why). Without it every node on the map would claim to be waiting
-           for a run that will never touch it. */
-        function underWayHere(observation, env) {
-          if (!figuresAreOlder(observation)) return false;
+           for a run that will never touch it.
+
+           IT RETURNS THE RUN, NOT A YES (ADR-0062 D1). It used to answer a
+           boolean, and a boolean is exactly as much as the caller then knew: it
+           could ask whether SOMETHING is running here and not whether the figure
+           in front of it came from that something. Phase 28 watched five minutes
+           of a page drawing a run's own figures under `these figures are from
+           the cycle before this one` because that was the only question being
+           asked. The id costs nothing to carry and it is the whole difference. */
+        function flightHere(observation, env) {
+          if (!figuresAreOlder(observation)) return null;
           const envs = (observation && observation.envs) || [];
-          return envs.indexOf(env) !== -1;
+          if (envs.indexOf(env) === -1) return null;
+          const id = observation.run && observation.run.id;
+          // A run in flight with no id is still a run in flight: the mirror
+          // clause and the disclaimer must both keep working, and only the
+          // COMPARISON degrades. `true` is the honest answer to "yes, and I
+          // cannot tell you which" - it can never equal a `published_by`.
+          return id === undefined || id === null ? true : String(id);
         }
 
         /* THE FIFTH TENSE DECISION IS NOT IN THIS BLOCK, and that is the
@@ -2861,9 +2886,10 @@
                        already (assets/topology-groups.json)
               record   the published node state, or null
               envs     the word from envTense() for this node's environment
-              underWay underWayHere() for this node's environment: a cycle is
-                       running now and it is about this one */
-        function nodeTense(node, record, envs, underWay) {
+              flight   flightHere() for this node's environment: the id of the
+                       run in flight about it, `true` when one is in flight and
+                       unidentifiable, and null when none is */
+        function nodeTense(node, record, envs, flight) {
           // NOTHING WILL EVER MEASURE THIS ONE. Terraform reports resources;
           // the image push, the migrate/seed task and the human approval are
           // not resources, so no timeline can carry them and `not run yet` about
@@ -2883,7 +2909,7 @@
           // run this is the state of every phase ahead of the front, which is
           // most of the map for most of a cycle.
           if (!record) {
-            return underWay
+            return flight
               ? { word: "not reached yet", note: "a cycle is under way and has not got here",
                   cls: "unobserved", gone: false }
               : { word: "not run yet", note: "", cls: "", gone: false };
@@ -2898,17 +2924,32 @@
             return { word: "destroyed", note: "these figures are from the cycle that ended",
                      cls: "unobserved", gone: true };
           }
-          // NOTHING PUBLISHES UNTIL A CYCLE ENDS, so every figure drawn while
-          // one is running is the cycle before it - and the mirror clause above
-          // already says so for a phase the run has not REACHED. This is the
-          // same sentence for a node that has a record: 20m measured twelve
-          // minutes of prod.rds at full colour with the previous cycle's numbers
-          // while prod was being deleted, and the disclaimer that would have
-          // said so was attached to `destroyed` and to nothing else. `underWay`
-          // is the panel's own judgement handed in, not re-derived: it is true
-          // only when a run is in flight AND it is about this environment, which
-          // is what keeps prod quiet while stage is being built.
-          if (underWay) {
+          // A FIGURE DRAWN DURING A RUN BELONGS TO ONE OF TWO CYCLES, AND THE
+          // RECORD SAYS WHICH. 20m measured twelve minutes of prod.rds at full
+          // colour with the PREVIOUS cycle's numbers while prod was being
+          // deleted, and the disclaimer that would have said so was attached to
+          // `destroyed` and to nothing else. Phase 25 added it here.
+          //
+          // Then Phase 28 watched the mirror of that, for about five minutes:
+          // `promote-prod` publishes its node figures from a step INSIDE its own
+          // job and then goes on to run the quality gate and push the tag, so
+          // the page held figures written by the run in flight and called them
+          // the cycle before it. All eight differed from the previous cycle's in
+          // all eight positions. The premise this branch used to state out loud -
+          // nothing publishes until a cycle ends - is false of every job that
+          // publishes before its last step, which is all of them.
+          //
+          // One predicate was wrong in both directions: `is a run in flight about
+          // this environment?` instead of `does this record belong to the run in
+          // flight?`. `flight` is the panel's own judgement handed in, not
+          // re-derived - which is what keeps prod quiet while stage is being
+          // built - and `published_by` comes off the document readRunLayer()
+          // folded it out of. ADR-0062 D1.
+          if (flight) {
+            if (record.published_by && record.published_by === flight) {
+              return { word: "measured", note: "these figures are from the cycle under way",
+                       cls: "", gone: false };
+            }
             return { word: "measured", note: "these figures are from the cycle before this one",
                      cls: "unobserved", gone: false };
           }
@@ -3152,7 +3193,7 @@
                 // predicate that fixes both.
                 const obsRun = RUNSTATE.observation && RUNSTATE.observation.run;
                 n.result_previous = !!(obsRun && obsRun.status !== "completed" &&
-                  underWayHere(RUNSTATE.observation, n.env) &&
+                  flightHere(RUNSTATE.observation, n.env) &&
                   env && env.run && String(env.run.id) !== String(obsRun.id));
               }
               n.state = observed ? observed.state : undefined;

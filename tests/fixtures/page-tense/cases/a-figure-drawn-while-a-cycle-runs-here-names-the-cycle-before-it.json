@@ -1,13 +1,23 @@
 {
-  "description": "FINDING, 20m. Nothing publishes until a cycle ENDS, so a record on disk while a run is in flight is the cycle before it - and the disclaimer that says so was attached to `destroyed` and to nothing else. Twelve minutes of prod.rds at full colour with the previous cycle's figures were measured while prod was being deleted, and the same shape repeated on stage. The predicate is `underWay`, which is true only when a run is in flight AND it is about this environment: that second half is what keeps prod's own figures unqualified while stage is being built, and getting it wrong in the other direction is what put `from the previous run` on every prod verdict during a stage deploy.",
+  "description": "FINDING, 20m. A record on disk while a run is in flight is USUALLY the cycle before it - and ADR-0062 D1 is the case where it is not, which has its own file beside this one - and the disclaimer that says so was attached to `destroyed` and to nothing else. Twelve minutes of prod.rds at full colour with the previous cycle's figures were measured while prod was being deleted, and the same shape repeated on stage. The predicate is `flight`, the id of the run in flight about this environment and null when there is none: that second half is what keeps prod's own figures unqualified while stage is being built, and getting it wrong in the other direction is what put `from the previous run` on every prod verdict during a stage deploy.",
   "checks": [
     {
       "fn": "nodeTense",
       "args": [
-        { "id": "stage.rds", "kind": "service", "service": "rds", "observer": "terraform", "env": "stage" },
-        { "state": "measured", "duration_s": 287 },
+        {
+          "id": "stage.rds",
+          "kind": "service",
+          "service": "rds",
+          "observer": "terraform",
+          "env": "stage"
+        },
+        {
+          "state": "measured",
+          "duration_s": 287,
+          "published_by": "31459000063"
+        },
         "unknown",
-        true
+        "31461000064"
       ],
       "expect": {
         "word": "measured",
@@ -19,20 +29,43 @@
     {
       "fn": "nodeTense",
       "args": [
-        { "id": "prod.rds", "kind": "service", "service": "rds", "observer": "terraform", "env": "prod" },
-        { "state": "measured", "duration_s": 301 },
+        {
+          "id": "prod.rds",
+          "kind": "service",
+          "service": "rds",
+          "observer": "terraform",
+          "env": "prod"
+        },
+        {
+          "state": "measured",
+          "duration_s": 301
+        },
         "up",
-        false
+        null
       ],
-      "expect": { "word": "measured", "note": "", "cls": "", "gone": false }
+      "expect": {
+        "word": "measured",
+        "note": "",
+        "cls": "",
+        "gone": false
+      }
     },
     {
       "fn": "nodeTense",
       "args": [
-        { "id": "stage.alb", "kind": "service", "service": "elb", "observer": "terraform", "env": "stage" },
-        { "state": "measured", "duration_s": 131 },
+        {
+          "id": "stage.alb",
+          "kind": "service",
+          "service": "elb",
+          "observer": "terraform",
+          "env": "stage"
+        },
+        {
+          "state": "measured",
+          "duration_s": 131
+        },
         "destroyed",
-        false
+        null
       ],
       "expect": {
         "word": "destroyed",
@@ -44,10 +77,16 @@
     {
       "fn": "nodeTense",
       "args": [
-        { "id": "stage.ecs", "kind": "service", "service": "ecs", "observer": "terraform", "env": "stage" },
+        {
+          "id": "stage.ecs",
+          "kind": "service",
+          "service": "ecs",
+          "observer": "terraform",
+          "env": "stage"
+        },
         null,
         "unknown",
-        true
+        "31461000064"
       ],
       "expect": {
         "word": "not reached yet",

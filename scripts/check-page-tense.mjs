@@ -34,8 +34,8 @@
  *       ==== PAGE TENSE - begin ====             the map's script
  *         figuresAreOlder(observation)
  *         envTense(observation, env)
- *         underWayHere(observation, env)
- *         nodeTense(node, record, envs, underWay)
+ *         flightHere(observation, env)
+ *         nodeTense(node, record, envs, flight)
  *       ==== PAGE TENSE - end ====
  *
  * TWO BLOCKS AND ONE SET, because the page is two scripts and the map's is
@@ -79,7 +79,7 @@ const BLOCKS = [
   { begin: "==== PAGE TENSE - begin", end: "==== PAGE TENSE - end" },
   { begin: "==== RUN HISTORY TENSE - begin", end: "==== RUN HISTORY TENSE - end" },
 ];
-const API = ["figuresAreOlder", "envTense", "underWayHere", "nodeTense", "historyTally"];
+const API = ["figuresAreOlder", "envTense", "flightHere", "nodeTense", "historyTally"];
 
 function refuse(why) {
   console.log(`page-tense-check: REFUSED\n${why}`);

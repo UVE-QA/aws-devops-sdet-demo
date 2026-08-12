@@ -4,10 +4,16 @@
     {
       "fn": "nodeTense",
       "args": [
-        { "id": "prod.rds", "kind": "service", "service": "rds", "observer": "terraform", "env": "prod" },
+        {
+          "id": "prod.rds",
+          "kind": "service",
+          "service": "rds",
+          "observer": "terraform",
+          "env": "prod"
+        },
         null,
         "unknown",
-        true
+        "31461000064"
       ],
       "expect": {
         "word": "not reached yet",
@@ -19,20 +25,37 @@
     {
       "fn": "nodeTense",
       "args": [
-        { "id": "prod.rds", "kind": "service", "service": "rds", "observer": "terraform", "env": "prod" },
+        {
+          "id": "prod.rds",
+          "kind": "service",
+          "service": "rds",
+          "observer": "terraform",
+          "env": "prod"
+        },
         null,
         "unknown",
-        false
+        null
       ],
-      "expect": { "word": "not run yet", "note": "", "cls": "", "gone": false }
+      "expect": {
+        "word": "not run yet",
+        "note": "",
+        "cls": "",
+        "gone": false
+      }
     },
     {
       "fn": "nodeTense",
       "args": [
-        { "id": "build.ecr", "kind": "service", "service": "ecr", "observer": "actions", "env": "stage" },
+        {
+          "id": "build.ecr",
+          "kind": "service",
+          "service": "ecr",
+          "observer": "actions",
+          "env": "stage"
+        },
         null,
         "unknown",
-        true
+        "31461000064"
       ],
       "expect": {
         "word": "not measured here",

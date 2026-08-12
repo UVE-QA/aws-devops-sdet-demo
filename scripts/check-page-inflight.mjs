@@ -513,9 +513,17 @@ function claimNeverMeasured({ seen }, index) {
 }
 
 /* CLAIM 3 - A FIGURE PRINTED WHILE A CYCLE IS IN FLIGHT SAYS WHICH CYCLE IT IS
-   FROM. Nothing publishes until a cycle ends, so every figure drawn during one
-   belongs to the cycle before it. 20m measured twelve minutes of prod.rds at
-   full colour with the previous cycle's numbers while prod was being deleted. */
+   FROM. 20m measured twelve minutes of prod.rds at full colour with the previous
+   cycle's numbers while prod was being deleted.
+
+   THIS COMMENT USED TO SAY `nothing publishes until a cycle ends, so every
+   figure drawn during one belongs to the cycle before it`, and that premise was
+   false - a job publishes from a step inside itself and then keeps running.
+   Stating it here made the gate REQUIRE the disclaimer on figures the run in
+   flight had just written, so it did not merely miss ADR-0062 D1, it asserted
+   it. Both fixture states below hold records written by the run BEFORE the one
+   in flight, which is the case this claim is about and is still worth checking;
+   the other case cannot be held still at all, and is claim 4. */
 function claimFiguresDated({ meta, seen }, index) {
   const out = [];
   const under = new Set(meta.cycle.in_flight ? meta.cycle.environments : []);

@@ -1,0 +1,90 @@
+{
+  "description": "FINDING, 28 (ADR-0062 D1). The mirror of 20m, and the sibling of the file next to this one. `promote-prod` publishes its node figures from a step INSIDE its own job and then goes on to run the prod quality gate and push the release tag, so for about five measured minutes the page held figures written by the run it was watching and called them `the cycle before this one`. All eight differed from the previous cycle's in all eight positions; the document said so in `cycle.run.id`, which has been there since ADR-0039, and nothing asked. The premise the old branch stated out loud - nothing publishes until a cycle ends - is false of every job that publishes before its last step, which is all of them. One predicate was wrong in both directions: `is a run in flight about this environment?` where the question is `does this record belong to the run in flight?`.",
+  "checks": [
+    {
+      "fn": "nodeTense",
+      "args": [
+        { "id": "prod.vpc", "kind": "service", "service": "vpc", "observer": "terraform", "env": "prod" },
+        { "state": "measured", "duration_s": 23, "published_by": "31461000064" },
+        "unknown",
+        "31461000064"
+      ],
+      "expect": {
+        "word": "measured",
+        "note": "these figures are from the cycle under way",
+        "cls": "",
+        "gone": false
+      }
+    },
+    {
+      "fn": "nodeTense",
+      "args": [
+        { "id": "prod.rds", "kind": "service", "service": "rds", "observer": "terraform", "env": "prod" },
+        { "state": "measured", "duration_s": 496, "published_by": "31459000063" },
+        "unknown",
+        "31461000064"
+      ],
+      "expect": {
+        "word": "measured",
+        "note": "these figures are from the cycle before this one",
+        "cls": "unobserved",
+        "gone": false
+      }
+    },
+    {
+      "fn": "nodeTense",
+      "args": [
+        { "id": "prod.alb", "kind": "service", "service": "elb", "observer": "terraform", "env": "prod" },
+        { "state": "measured", "duration_s": 131 },
+        "unknown",
+        "31461000064"
+      ],
+      "expect": {
+        "word": "measured",
+        "note": "these figures are from the cycle before this one",
+        "cls": "unobserved",
+        "gone": false
+      }
+    },
+    {
+      "fn": "nodeTense",
+      "args": [
+        { "id": "prod.ecs", "kind": "service", "service": "ecs", "observer": "terraform", "env": "prod" },
+        { "state": "measured", "duration_s": 94, "published_by": "31461000064" },
+        "unknown",
+        true
+      ],
+      "expect": {
+        "word": "measured",
+        "note": "these figures are from the cycle before this one",
+        "cls": "unobserved",
+        "gone": false
+      }
+    },
+    {
+      "fn": "nodeTense",
+      "args": [
+        { "id": "prod.budgets", "kind": "service", "service": "budgets", "observer": "terraform", "env": "prod" },
+        { "state": "measured", "duration_s": 7, "published_by": "31461000064" },
+        "up",
+        null
+      ],
+      "expect": { "word": "measured", "note": "", "cls": "", "gone": false }
+    },
+    {
+      "fn": "nodeTense",
+      "args": [
+        { "id": "prod.rds", "kind": "service", "service": "rds", "observer": "terraform", "env": "prod" },
+        { "state": "measured", "duration_s": 23, "published_by": "31461000064" },
+        "destroyed",
+        "31461000064"
+      ],
+      "expect": {
+        "word": "destroyed",
+        "note": "these figures are from the cycle that ended",
+        "cls": "unobserved",
+        "gone": true
+      }
+    }
+  ]
+}
