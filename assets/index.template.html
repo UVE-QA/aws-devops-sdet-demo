@@ -1154,13 +1154,25 @@
           state.lastGithubOk = state.githubReadAt;
           var current = currentRun();
           if (!current) { state.jobs = null; return; }
+          // THE STEPS OF A FINISHED RUN DO NOT CHANGE, and re-reading them on
+          // every poll was half of this page's budget spent on a document that
+          // cannot move. The status AT THE TIME OF THE READ is stored beside the
+          // steps rather than re-derived, so the read just after a run completes
+          // - the one carrying the final step states - is still taken and only
+          // the ones after it are skipped. This is what funds ADR-0062 D2: an
+          // idle poll goes from one every five minutes to one every minute
+          // without asking GitHub for anything more per hour.
+          if (state.jobs && state.jobs.runId === current.id &&
+              state.jobs.status === "completed") return;
           return fetch(API + "/actions/runs/" + current.id + "/jobs", {
             headers: { Accept: "application/vnd.github+json" }
           }).then(function (r) {
             readBudget(r);
             if (!r.ok) throw new Error("HTTP " + r.status);
             return r.json();
-          }).then(function (d) { state.jobs = { runId: current.id, jobs: d.jobs || [] }; });
+          }).then(function (d) {
+            state.jobs = { runId: current.id, status: current.status, jobs: d.jobs || [] };
+          });
         }).catch(function (err) {
           // An empty history is NOT rendered. The banner says the source is
           // unavailable and names when it was last read successfully, because a
@@ -1774,14 +1786,33 @@
       // left in the window, two requests per poll. It goes as fast as it can afford
       // and slows down by itself as the budget runs out, instead of being told a
       // number that is wrong in one direction or the other.
+      //
+      // AND THE IDLE INTERVAL WAS THE WRONG STATE TO DERIVE FROM (ADR-0062 D2).
+      // `if (!live) return 300000` reads as "there is nothing to poll for", and
+      // what `live` actually means is "I already know about an unfinished run" -
+      // which the page can only learn BY POLLING. So it sat on a five-minute
+      // clock precisely while the news it lacked was that a run had started, and
+      // sped up only once it no longer needed to. Measured on `destroy prod #46`
+      // during Phase 28: 293 s against the 300 s ceiling. It lands on `Approve ·
+      // a human, in the prod environment`, the one node the map addresses to a
+      // person, and the person is needed at the START of a run.
+      //
+      // Nothing here polls harder per hour. The idle poll now costs ONE request
+      // instead of two - the jobs read for a finished run is skipped above - so
+      // a sixty-second floor is exactly the sustainable rate at 60 requests an
+      // hour, and the same budget arithmetic that paces the live case slows this
+      // one down by itself when the budget is short. With eight requests left it
+      // returns to 300000 on its own.
       function githubIntervalMs() {
         var run = currentRun();
         var live = !state.githubError && run && run.status !== "completed";
-        if (!live) return 300000;
-        if (!state.rateRemaining || !state.rateReset) return 90000;
+        if (!state.rateRemaining || !state.rateReset) return live ? 90000 : 120000;
         var msLeft = Math.max(1000, state.rateReset - Date.now());
-        var polls = Math.max(1, (state.rateRemaining - 6) / 2);
-        return Math.min(180000, Math.max(30000, msLeft / polls));
+        var polls = Math.max(1, (state.rateRemaining - 6) / (live ? 2 : 1));
+        var spread = msLeft / polls;
+        return live
+          ? Math.min(180000, Math.max(30000, spread))
+          : Math.min(300000, Math.max(60000, spread));
       }
 
       // THE SENTENCE A READER TRUSTS ABOUT THIS PAGE'S CADENCE, and 20k caught

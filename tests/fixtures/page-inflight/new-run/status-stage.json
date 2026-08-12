@@ -1,0 +1,25 @@
+{
+  "schema": 1,
+  "environment": "stage",
+  "state": "up",
+  "observed_at": "2026-08-11T04:18:11Z",
+  "account": "993912191738",
+  "region": "us-west-2",
+  "app_url": "http://demo-stage-alb-1043827516.us-west-2.elb.amazonaws.com",
+  "image": "sha256:4c7e1a90b6d38f2e5710c94ab2d7f0836e519c4d0a7b3e6f8129d5c0a4b7e312",
+  "resources": {
+    "load_balancer": "demo-stage-alb",
+    "ecs_service": "demo-stage",
+    "db_instance": "aws-devops-sdet-demo-stage"
+  },
+  "report_url": "https://demo.uveapp.net/reports/stage/63/index.html",
+  "written_at": "2026-08-11T04:18:36Z",
+  "run": {
+    "id": "31461000064",
+    "number": "64",
+    "attempt": "1",
+    "workflow": "deploy-stage",
+    "status": "success",
+    "url": "https://github.com/UVE-QA/aws-devops-sdet-demo/actions/runs/31461000064"
+  }
+}

@@ -219,6 +219,7 @@ const OBSERVE = () => {
     history: t(document.querySelector("#history-summary")),
     verdict: t(document.querySelector("#history-summary .verdict")),
     mapSub: t(document.querySelector("#map-sub")),
+    autorefresh: t(document.querySelector("#autorefresh")),
     banner: (() => {
       const b = document.querySelector(".banner.bad");
       return b ? t(b).slice(0, 200) : null;
@@ -258,9 +259,11 @@ function readState(state) {
    that is ADR-0062 D2's whole subject - so the handler reads `src.current`
    every time rather than capturing one answer when it is installed. */
 async function installRoutes(page, origin, src, unmocked) {
+  src.githubReads = 0;
   await page.route("**/*", async (route) => {
     const url = route.request().url();
     const { runs, jobs, status, meta } = src.current;
+    if (url.startsWith("https://api.github.com/")) src.githubReads += 1;
     if (url.startsWith(origin)) {
       if (/\/status\/(stage|prod)\.json/.test(url)) {
         const env = url.includes("stage") ? "stage" : "prod";
@@ -273,8 +276,23 @@ async function installRoutes(page, origin, src, unmocked) {
       const body = /\/jobs(\?|$)/.test(url) ? jobs : runs;
       return route.fulfill({
         status: 200, contentType: "application/json",
-        headers: { "x-ratelimit-remaining": "57",
-                   "x-ratelimit-reset": String(Math.floor(Date.parse(meta.now) / 1000) + 1800) },
+        headers: {
+          "x-ratelimit-remaining": "57",
+          "x-ratelimit-reset": String(Math.floor(Date.parse(meta.now) / 1000) + 1800),
+          // THE MOCK HAD TO LEARN CORS BEFORE IT COULD MODEL GITHUB. These two
+          // headers were here from the start and the page could not read either
+          // of them: api.github.com is a different origin, and a cross-origin
+          // response's non-simple headers are invisible to `r.headers.get()`
+          // unless the response says otherwise. So readBudget() saw null twice,
+          // `state.rateRemaining` stayed undefined, and every reading this gate
+          // has ever taken was of the page's fallback branch rather than of the
+          // budget arithmetic it actually runs in production. It did not matter
+          // while the idle interval was a constant; ADR-0062 D2 makes it the
+          // whole subject. GitHub sends this header, and the real page's
+          // measured ~123 s live interval - which is neither of the fallback
+          // constants - is the evidence that it does.
+          "access-control-expose-headers": "x-ratelimit-remaining, x-ratelimit-reset"
+        },
         body: JSON.stringify(body)
       });
     }
@@ -394,6 +412,120 @@ async function sequence(browser, origin, box, notFound) {
       "reloaded and this measured two page loads rather than one page learning something.");
   }
   return { flight, mine, before, after, publishedBy };
+}
+
+/* HOW LONG THE PAGE TAKES TO NOTICE A RUN THAT HAS STARTED (ADR-0062 D2).
+ *
+ * The other half of "the fixture changes underneath a running page": here it is
+ * the API rather than the bucket. An at-rest page is opened, `new-run` starts
+ * being answered twenty seconds later, and the clock is walked forward in steps
+ * until the page says so out loud.
+ *
+ * THE ANSWER IS A WINDOW, NOT A POINT, and it is printed as one - the same
+ * discipline scripts/watch-convergence.sh had to be corrected into (ADR-0062
+ * D3): a poller can only ever say "not yet at T-step, and yes by T".
+ *
+ * WHY 120 SECONDS. It is twice the sustainable anonymous floor: 60 requests an
+ * hour is one a minute, and an idle poll now costs one request rather than two.
+ * So the bound holds even with half the budget gone, and it is a number chosen
+ * for a page somebody is watching - which 300 s never was.
+ */
+const FIRST_NEWS_CEILING_MS = 120_000;
+const FIRST_NEWS_STEP_MS = 15_000;
+
+async function sequenceFirstNews(browser, origin, box, notFound) {
+  const rest = readState("at-rest");
+  const news = readState("new-run");
+  const src = { current: rest };
+
+  const flying = (news.runs.workflow_runs || []).filter((r) => r.status !== "completed");
+  if (flying.length !== 1) {
+    refuse(`new-run must hold exactly one unfinished run and it holds ${flying.length}.`);
+  }
+  if ((rest.runs.workflow_runs || []).some((r) => r.status !== "completed")) {
+    refuse("at-rest holds an unfinished run, so the page would already have the news this " +
+      "measures the arrival of.");
+  }
+
+  const context = await browser.newContext({ viewport: VIEWPORT });
+  const page = await context.newPage();
+  await page.clock.install({ time: new Date(rest.meta.now) });
+  const unmocked = [];
+  await installRoutes(page, origin, src, unmocked);
+  box.overlay = null;
+
+  await page.goto(origin + "/index.html", { waitUntil: "load" });
+  await page.waitForLoadState("networkidle");
+  await page.waitForTimeout(SETTLE_MS);
+  const before = await page.evaluate(OBSERVE);
+
+  // THE PAGE HAS TO BE IN THE BRANCH PRODUCTION IS IN. Both intervals are
+  // derived from the rate budget and both have a constant fallback for when it
+  // could not be read; measuring the fallback and calling it the interval is the
+  // wrong-scope reading this repository keeps finding. It was the reading here
+  // for one commit, silently, and only a probe of the page's own advertised
+  // cadence - 120 s, which is a fallback constant and nothing else - said so.
+  const budget = await page.evaluate(() =>
+    (typeof state === "undefined" ? null : { rem: state.rateRemaining, reset: state.rateReset }));
+  if (!budget || !budget.rem || !budget.reset) {
+    refuse("the page could not read the rate budget out of the mocked GitHub response, so its " +
+      "interval comes from a fallback constant and this would not be measuring the arithmetic " +
+      "production runs. The mock must expose the two ratelimit headers across the origin, the " +
+      `way api.github.com does. Read: ${JSON.stringify(budget)}`);
+  }
+  const advertised = (before.autorefresh || "").match(/GitHub every (\d+) s/);
+
+  const knows = (seen) => /still going/.test(seen.verdict || "");
+  if (knows(before)) {
+    refuse("the page already says a run is going before one has started, so nothing below " +
+      `would be measuring an arrival: "${before.verdict}"`);
+  }
+
+  // THE RUN STARTS. Only the API's answer changes; the page is not touched.
+  const readsBefore = src.githubReads;
+  src.current = news;
+  const walked = [];
+  let seenAt = null;
+  let elapsed = 0;
+  // One step past the ceiling, so a page that answers at exactly the ceiling is
+  // distinguishable from one that never answers at all.
+  while (elapsed < FIRST_NEWS_CEILING_MS + FIRST_NEWS_STEP_MS * 2) {
+    await page.clock.fastForward(FIRST_NEWS_STEP_MS);
+    elapsed += FIRST_NEWS_STEP_MS;
+    await page.waitForLoadState("networkidle");
+    await page.waitForTimeout(200);
+    const seen = await page.evaluate(OBSERVE);
+    walked.push({ at: elapsed, verdict: seen.verdict, reads: src.githubReads - readsBefore });
+    if (knows(seen)) { seenAt = elapsed; break; }
+  }
+  const reads = src.githubReads - readsBefore;
+  await context.close();
+
+  if (unmocked.length) {
+    refuse("the page asked for a source nobody mocked while the news was arriving:\n  " +
+      [...new Set(unmocked)].join("\n  "));
+  }
+  return { before, walked, seenAt, reads, step: FIRST_NEWS_STEP_MS,
+           advertised: advertised ? Number(advertised[1]) : null };
+}
+
+/* CLAIM 5 - THE PAGE'S FIRST WORD ABOUT A RUN DOES NOT ARRIVE ON ITS SLOWEST
+   CLOCK. ADR-0062 D2, measured at 293 s against a 300 s ceiling on a real
+   cycle. */
+function claimFirstNews({ seenAt, walked, step }) {
+  const out = [];
+  if (seenAt === null) {
+    const last = walked[walked.length - 1];
+    out.push(`the page still says nothing about the run ${last.at / 1000}s after it started: ` +
+      `"${last.verdict}"`);
+    return out;
+  }
+  if (seenAt > FIRST_NEWS_CEILING_MS) {
+    out.push(`the page's first word about the run arrives in (${(seenAt - step) / 1000}s, ` +
+      `${seenAt / 1000}s], and the ceiling is ${FIRST_NEWS_CEILING_MS / 1000}s. The interval is ` +
+      "derived from whether a run is ALREADY known to be live, which is the news it does not have");
+  }
+  return out;
 }
 
 /* CLAIM 4 - A FIGURE THE RUN IN FLIGHT PUBLISHED IS NOT CALLED THE PREVIOUS
@@ -586,6 +718,7 @@ async function main() {
 
   const readings = [];
   let sequenced = null;
+  let firstNews = null;
   try {
     for (const state of states) {
       notFound.length = 0;
@@ -597,6 +730,8 @@ async function main() {
     if (!wanted) {
       notFound.length = 0;
       sequenced = await sequence(browser, origin, box, notFound);
+      notFound.length = 0;
+      firstNews = await sequenceFirstNews(browser, origin, box, notFound);
     }
   } finally {
     await browser.close();
@@ -649,6 +784,27 @@ async function main() {
       findings.forEach((f) => console.log(`        ${f}`));
     } else {
       console.log(`ok    sequence: ${name}`);
+    }
+  }
+
+  if (firstNews) {
+    const window = firstNews.seenAt === null
+      ? `never, inside ${firstNews.walked[firstNews.walked.length - 1].at / 1000}s`
+      : `(${(firstNews.seenAt - firstNews.step) / 1000}s, ${firstNews.seenAt / 1000}s]`;
+    const name = "the page's first word about a run does not arrive on its slowest clock";
+    const findings = claimFirstNews(firstNews);
+    if (findings.length) {
+      failed += 1;
+      console.log(`FAIL  sequence: ${name}`);
+      findings.forEach((f) => console.log(`        ${f}`));
+    } else {
+      console.log(`ok    sequence: ${name}`);
+    }
+    console.log(`      first news in ${window}, ` +
+      `${firstNews.reads} GitHub request${firstNews.reads === 1 ? "" : "s"} spent getting it`);
+    if (process.argv.includes("--dump")) {
+      firstNews.walked.forEach((w) =>
+        console.log(`        +${String(w.at / 1000).padStart(3)}s  reads ${w.reads}  ${w.verdict}`));
     }
   }
 

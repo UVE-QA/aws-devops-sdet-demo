@@ -1,0 +1,18 @@
+{
+  "label": "new-run",
+  "description": "THE NEWS THE PAGE DOES NOT HAVE YET. Byte-for-byte at-rest, plus one run: promote-prod #23, queued at 04:25:20Z, twenty seconds after at-rest's clock. Nothing else moves - the bucket files are copies, the finished history is the same. It is never LOADED; it is what the GitHub API starts answering while an at-rest page is already open, which is the only way to ask how long the page takes to notice.",
+  "now": "2026-08-11T04:25:20Z",
+  "provenance": {
+    "runs.json": "SYNTHETIC. at-rest's history with #23 prepended, queued. promote-prod deliberately: its first node is `Approve \u00b7 a human, in the prod environment`, the one node the map addresses to a person, and ADR-0062 D2 is that the person is needed at the START of a run.",
+    "jobs.json": "SYNTHETIC. One job, queued, no steps yet - which is what the API answers for a run waiting on an environment approval.",
+    "status-stage.json": "COPIED from at-rest, unchanged.",
+    "status-prod.json": "COPIED from at-rest, unchanged."
+  },
+  "cycle": {
+    "_": "DECLARED, not re-derived - see at-rest.",
+    "in_flight": true,
+    "environments": [
+      "prod"
+    ]
+  }
+}
