@@ -105,44 +105,90 @@ async function loadChromium() {
   process.exit(2);
 }
 
-/* The one sentence per node that this whole instrument exists to catch, and the
-   figure it is attached to. Substrings rather than a parse: the page's wording
-   is the subject, so reading it loosely would hide the thing being watched. */
-function tense(text) {
-  if (text === null) return "ERR";
-  if (text.includes("the cycle under way")) return "under-way";
-  if (text.includes("the cycle before this one")) return "previous";
-  if (text.includes("not reached yet")) return "not-reached";
-  if (text.includes("not run yet")) return "not-run";
-  return "-";
+/* WHAT A NODE CAN SAY ABOUT WHOSE CYCLE ITS FIGURES ARE, taken from nodeTense()
+   in site/index.html rather than from memory. The first at-rest frame this
+   instrument ever took printed "-" for all thirty-six nodes: it had been written
+   knowing only the two wordings Phase 29's FIXTURE uses, and the live page at
+   rest says a third. A column that cannot name what it is looking at does not
+   read as broken, it reads as "nothing to report".
+
+   `under-way` and `PREVIOUS` are the two branches ADR-0062 D1 is about, and
+   telling them apart on a live node is the whole point of watching. PREVIOUS is
+   shouted because on a node whose figures the run in flight has just published,
+   it is the defect. */
+const QUALIFIERS = [
+  ["these figures are from the cycle under way", "under-way"],
+  ["these figures are from the cycle before this one", "PREVIOUS"],
+  ["these figures are from the cycle that ended", "ended"],
+  ["a cycle is under way and has not got here", "not-reached"]
+];
+
+function qualifier(text) {
+  if (typeof text !== "string") return "";
+  for (const [needle, name] of QUALIFIERS) if (text.includes(needle)) return name;
+  return "";
 }
 
-const FIGURE = /(\d+m \d+s|\d+s)\b/;
+/* `5.8s` is a figure; `8s` is the tail of one. The first version of this read
+   the second out of the first and printed it in the figure column beside a state
+   that plainly said 5.8s. Minutes come first in the alternation, or `8m 36s` is
+   read as `36s` - the same mistake one unit up. */
+const FIGURE = /\b\d+m \d+s\b|\b\d+(?:\.\d+)?s\b/;
+
+/* MISSING IS NOT FAILED. The first frame printed ERR for six permanent levels
+   and both outputs, and none of them had failed: nodeEl() returns no `.nstate`
+   child at all for that branch, so there is nothing to read. The header of this
+   file demands that a failed read never print blank; this is the other half of
+   the same rule, and it was got wrong in the first version. ERR is reserved for
+   the one thing that IS a failure - page.evaluate() throwing, which loses the
+   whole frame and says so on its own line. */
+const dash = (s) => (s === null || s === undefined || s === "" ? "—" : s);
+
+const rows = (o) =>
+  o.nodes.map((n) => ({
+    id: n.id,
+    word: n.word || "",
+    qual: qualifier(n.text),
+    fig: (typeof n.text === "string" && n.text.match(FIGURE)?.[0]) || ""
+  }));
 
 function digest(o) {
   if (!o || o.error) return "ERR";
-  return JSON.stringify([
-    o.mapSub, o.verdict, o.banner,
-    o.nodes.map((n) => [n.id, n.state, tense(n.text), (n.text || "").match(FIGURE)?.[0] || ""])
-  ]);
+  return JSON.stringify([o.mapSub, o.verdict, o.banner,
+    rows(o).map((r) => [r.id, r.word, r.qual, r.fig])]);
 }
 
-function human(ts, o, note) {
+const fmtRow = (r) =>
+  `    ${r.id.padEnd(24)}${dash(r.word).padEnd(18)}${dash(r.qual).padEnd(14)}${dash(r.fig)}`;
+
+function human(ts, o, note, prev) {
   if (!o || o.error) return `${ts}  ERR  ${(o && o.error) || "no observation"}`;
   const sentinel = o.sentinel ? "tab-held" : "SENTINEL-LOST";
   const lines = [
     `${ts}  ${sentinel}  ${note}`,
-    `    clocks    github ${o.clockGitHub ?? "ERR"} · bucket ${o.clockBucket ?? "ERR"}`,
+    `    clocks    github ${dash(o.clockGitHub)} · bucket ${dash(o.clockBucket)}`,
     `    budget    ${o.ratelimit || "(none read — the page is on its fallback branch)"}`,
-    `    cadence   ${o.autorefresh ?? "ERR"}`,
-    `    map       ${o.mapSub ?? "ERR"}`,
-    `    verdict   ${o.verdict ?? "ERR"}`
+    `    cadence   ${dash(o.autorefresh)}`,
+    `    map       ${dash(o.mapSub).slice(0, 200)}`,
+    `    verdict   ${dash(o.verdict)}`
   ];
   if (o.banner) lines.push(`    BANNER    ${o.banner}`);
-  for (const n of o.nodes) {
-    const fig = (n.text || "").match(FIGURE)?.[0] || "";
-    lines.push(`    ${n.id.padEnd(26)}${(n.state ?? "ERR").padEnd(14)}${tense(n.text).padEnd(12)}${fig}`);
+
+  /* A changed frame prints WHAT MOVED, and says how much did not. Thirty-six
+     unchanged rows under a one-node change is how a log stops being read - and
+     the node that moved is the observation. */
+  const now = rows(o);
+  const show = prev
+    ? now.filter((r) => {
+        const p = prev.get(r.id);
+        return !p || p.word !== r.word || p.qual !== r.qual || p.fig !== r.fig;
+      })
+    : now;
+  for (const r of show) {
+    const p = prev && prev.get(r.id);
+    lines.push(p ? `${fmtRow(r)}   was: ${dash(p.word)} · ${dash(p.qual)} · ${dash(p.fig)}` : fmtRow(r));
   }
+  if (prev) lines.push(`    (${now.length - show.length} of ${now.length} nodes unchanged)`);
   return lines.join("\n");
 }
 
@@ -174,6 +220,7 @@ await page.goto(URL_, { waitUntil: "load", timeout: 60000 });
 const deadline = Date.now() + MINUTES * 60000;
 let last = null;
 let lastPrint = 0;
+let prevRows = null;
 
 while (Date.now() < deadline) {
   const ts = new Date().toISOString().replace("T", " ").slice(0, 19) + "Z";
@@ -190,9 +237,14 @@ while (Date.now() < deadline) {
   const due = Date.now() - lastPrint >= HEARTBEAT_MS;
 
   if (last === null || changed || due) {
-    say(human(ts, o, last === null ? "first frame" : changed ? "CHANGED" : "heartbeat"));
+    const label = last === null ? "first frame" : changed ? "CHANGED" : "heartbeat";
+    /* A heartbeat prints in full: a reader arriving at one should not have to
+       reconstruct the state from every change above it. Only a CHANGED frame
+       is a diff, and only it has something to diff against. */
+    say(human(ts, o, label, changed ? prevRows : null));
     say("");
     lastPrint = Date.now();
+    if (!o.error) prevRows = new Map(rows(o).map((r) => [r.id, r]));
   }
   last = d;
   await page.waitForTimeout(EVERY_MS);
