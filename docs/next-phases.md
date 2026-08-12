@@ -1512,7 +1512,12 @@ prediction built from a previous cycle imports that cycle's tempo.
 **Two findings nobody was looking for**, both visible only while something is
 running, which is the only time anybody watches. They are Phase 29's subject.
 
-## Phase 29 — The fixture that publishes underneath a running page
+## Phase 29 — The fixture that publishes underneath a running page  [DONE 2026-08-12, $0]
+
+Closed with **ADR-0063**. Both findings red before the fix and green after, from
+the same instrument. The plan below is kept as written; what it did not predict
+is that the instrument would be wrong twice, both times in the harness, and that
+the fixture would reproduce Phase 28's live 293 s to within one step of the walk.
 
 ADR-0062's own Consequences say it: both findings live in the layer or the clock
 CHANGING mid-run, and `tests/fixtures/page-inflight/` holds both still. That is

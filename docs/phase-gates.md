@@ -63,6 +63,7 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 26    | The instrument measures a page with figures on it | ✅ done — $0, every figure since 20e remeasured | sessions/2026-08-11-phase-26-every-figure-measured-the-short-page.md |
 | 27    | The contrast contract has three ancestries | ✅ done — $0, green answer, false premise | sessions/2026-08-11-phase-27-the-third-ancestry-and-a-false-premise.md |
 | 28    | The cycle on a different day    | ✅ done — $0.0846..$0.0958, two findings | sessions/2026-08-11-phase-28-the-qualifier-that-outlived-its-premise.md |
+| 29    | The fixture that publishes underneath a running page | ✅ done — $0, both ADR-0062 findings closed | sessions/2026-08-12-phase-29-the-fixture-that-publishes-underneath-a-running-page.md |
 
 **Lettered sub-phases end here (ADR-0055).** From Phase 21 the identifier is a
 plain integer and every phase is planned together with the sentence that closes
@@ -3822,12 +3823,97 @@ qualifies, and ends on the same UTC day - no split-date confound either.
   the first `not reached yet` arrangement — on stage — was published over before
   anyone looked at it. Recovered by repeating it on prod. A blocking command is a
   choice about who gets to observe.
-- Next allowed step: **the fixture that publishes underneath a running page.**
-  Both of ADR-0062's findings live in the layer or the clock CHANGING mid-run,
-  and `tests/fixtures/page-inflight/` holds both still — which is why
-  `page-inflight-check` was green through all of this. Also open: the bucket
-  versioning above, and Phase 26's broken-word rule and hyphens, which can still
-  be taken cold.
+- Next allowed step: closed by the section below, on 2026-08-12.
+
+### Phase 29 — The fixture that publishes underneath a running page  ✅ DONE 2026-08-12
+Opened 2026-08-12, $0, nothing applied, no cycle. **ADR-0063.** Summary in
+`docs/sessions/2026-08-12-phase-29-the-fixture-that-publishes-underneath-a-running-page.md`.
+
+- Closes when: the gate carries the page through at least two published states
+  without a reload, both ADR-0062 findings are red before the fix and green
+  after, and the break tests are recorded with a control green either side.
+  **All three met.**
+- `main` was green when this started: `ci #31467525289` on `cc2b304`, checked
+  first.
+
+**FOUND WHILE LOADING STATE, AND FIXED FIRST.** Phase 28 closed without touching
+`docs/discussion-log.md` or `docs/next-phases.md`. `make session-close` printed
+`narrative 2026-08-11, matching the newest session` — it compares the DATE, and
+Phase 27 closed the same day, so it was green over a block describing the wrong
+phase. Several sessions a day is normal here; a date is a weak identifier, and
+weakest on the busiest days. The check reads the phase now, from the INDEX row's
+second column and the block's own parenthesis, and only the token after `(` so a
+wrapped title cannot make it go quiet. Eight variants in
+`scripts/break-narrative-phase.sh`, log in
+`docs/sessions/2026-08-12-phase-29-narrative-phase-break-test.log`.
+
+**THE GATE DID NOT MERELY MISS ADR-0062 D1 — IT ASSERTED IT.** Claim 3's comment
+stated `nothing publishes until a cycle ends`, so it REQUIRED the disclaimer on
+figures the run in flight had just written, and fixing the page would have
+reddened it. A gate that encodes a premise is a gate that defends it.
+
+**THE FIXTURE IS A SEQUENCE.** `layer-published/` is an overlay holding the one
+document `deploy-stage #64` writes from a step inside its own job;
+`new-run/` is at-rest plus one queued run. Neither is ever loaded as a state:
+the page is loaded ONCE and the source changes underneath it. A sentinel on
+`window` must survive to the second reading, so a reload cannot be mistaken for
+a re-read, and the clock is installed rather than fixed — a tick that has to
+happen in real time is a gate nobody will run. Two guards keep the pass honest:
+the publish must have MOVED something the page draws, and the document must be
+published by the run actually in flight.
+
+**RED BEFORE A LINE OF THE PAGE WAS CHANGED**, seven of seven stage nodes, the
+figures moving underneath a sentence that did not — then green from the same
+instrument:
+
+```text
+stage.rds   measured · these figures are from the cycle before this one · 4m 47s
+            measured · these figures are from the cycle before this one · 4m 11s
+                                                    ... and after the fix:
+            measured · these figures are from the cycle under way · 4m 11s
+```
+
+**THE SUITE HALF ALREADY HAD THE RIGHT PREDICATE.** Phase 25 wrote
+`String(env.run.id) !== String(obsRun.id)` for `result_previous`, two functions
+below the node half that kept the boolean. One of the two mirrors was fixed a
+phase earlier and nobody looked at the other.
+
+**D2 IS PAID FOR, NOT BORROWED.** The idle interval is derived from the rate
+budget, floor 60 s — and `readGitHub()` stops re-reading the steps of a finished
+run, which cannot change, so an idle poll costs one request instead of two and
+60 an hour is one a minute. ADR-0062 called this cost unpriced; it is zero.
+`sequence: first news in (45s, 60s], 2 GitHub requests spent getting it`.
+
+**THE INSTRUMENT WAS WRONG TWICE.** The first D2 reading was `(105s, 120s]`,
+which is neither the old constant nor the new floor but the fallback for *the
+budget could not be read*: `api.github.com` is a different origin and the mock
+never sent `access-control-expose-headers`, so every reading this gate had ever
+taken was of the page's fallback branch. Settled by two independent things — the
+page's own advertised cadence read off the DOM, and Phase 28's live ~123 s, which
+is neither fallback. And the walk stopped at its ceiling, so the red variant
+reported a silence rather than a delay; it runs to 330 s now and answers
+`(285s, 300s]` against Phase 28's live 293 s.
+
+**CHECKED THAT THE STEPPING WAS NOT SETTING THE ANSWER** before believing any of
+it: 120, 400 and 900 ms of settle per step, same window at all three.
+
+- Validation, all in the chat's sandbox on chromium-1194 and re-run on the devbox
+  at close:
+```bash
+  make gates
+  make page-inflight-check && make page-tense-check
+  make contrast-check && make page-freshness-check
+  bash scripts/break-narrative-phase.sh
+  bash scripts/break-page-inflight-sequence.sh
+```
+- Break tests: 8 of 8 and 7 of 7, controls green either side, tree committed
+  before each. Two of the fifteen found something, both in the harness, both the
+  phase's own shape.
+- Cost: **$0.** No cycle, no AWS call, nothing applied.
+- Next allowed step: **nothing is queued.** Two items are open and neither is
+  about a moving page, so either can be taken cold: the dashboard bucket's
+  declared-and-not-applied versioning (Phase 28), and Phase 26's broken-word rule
+  with its two desktop false positives.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

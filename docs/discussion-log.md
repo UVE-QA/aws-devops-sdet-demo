@@ -6,6 +6,58 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
+**As of 2026-08-12 (29 — the fixture that publishes underneath a running page).**
+ADR-0062's two findings live in the layer or the clock CHANGING mid-run, and
+every page gate here holds one moment still — which is why
+`make page-inflight-check` was green through the whole of Phase 28 while a live
+page demonstrated one of them. $0, no cycle, nothing applied. **ADR-0063**.
+
+**WORSE THAN BLIND.** Claim 3 stated the false premise in its own comment —
+`nothing publishes until a cycle ends` — so it REQUIRED the disclaimer on figures
+the run in flight had just written. Fixing the page would have reddened it. A
+gate that encodes a premise defends it.
+
+**THE FIXTURE IS A SEQUENCE.** The page is loaded ONCE and a source changes
+underneath it: the bucket in one pass (`layer-published/`, the document
+`deploy-stage #64` writes from a step inside its own job), the GitHub API in the
+other (`new-run/`, at-rest plus one queued run). A sentinel on `window` must
+survive to the second reading, so a reload cannot be mistaken for a re-read, and
+the clock is installed rather than fixed. Red before a line of the page was
+changed, seven of seven nodes, the figures moving underneath a sentence that did
+not — `4m 47s → 4m 11s` under `these figures are from the cycle before this one`,
+and `the cycle under way` after the fix.
+
+**THE SUITE HALF ALREADY HAD THE RIGHT PREDICATE.** Phase 25 wrote
+`String(env.run.id) !== String(obsRun.id)` two functions below the node half that
+kept the boolean. One mirror was fixed a phase earlier and nobody looked at the
+other.
+
+**D2 IS PAID FOR RATHER THAN BORROWED.** The idle interval is derived from the
+rate budget, floor 60 s, and `readGitHub()` stops re-reading the steps of a
+finished run — which cannot change — so an idle poll costs one request instead of
+two and 60 an hour is one a minute. ADR-0062 called the cost unpriced; it is
+zero. `first news in (45s, 60s], 2 GitHub requests spent getting it`.
+
+**THE INSTRUMENT WAS WRONG TWICE AND BOTH ARE IN THE LOG.** The first D2 reading
+was `(105s, 120s]`, a fallback constant: `api.github.com` is a different origin
+and the mock never sent `access-control-expose-headers`, so every reading this
+gate had ever taken was of the page's fallback branch. Settled by two independent
+things — the page's own advertised cadence, and Phase 28's live ~123 s, which is
+neither fallback. And the walk stopped at its ceiling, so the red variant
+reported a silence instead of a delay; at 330 s it answers `(285s, 300s]` against
+Phase 28's live 293 s, reproducing the finding to within one step. Checked that
+the stepping was not setting the answer: 120, 400 and 900 ms of settle, same
+window.
+
+**FOUND WHILE LOADING STATE.** Phase 28 closed without touching this file or
+`docs/next-phases.md`, and `make session-close` printed `narrative 2026-08-11,
+matching the newest session` — it compares the DATE, and Phase 27 closed the same
+day. Green over a block describing the wrong phase. Both documents repaired and
+the check now reads the phase as well (ADR-0063 D6). Fifteen break variants
+across two committed scripts; the two that found something both found it in the
+harness, and both were the phase's own shape — an instrument reading part of what
+it is looking at.
+
 **As of 2026-08-11 (28 — the cycle on a different day).** A full cycle — stage
 up, promoted to prod through the approval gate, both torn down — watched through
 a single tab opened before the first dispatch and never reloaded. The three items carried since 20m are answered.
