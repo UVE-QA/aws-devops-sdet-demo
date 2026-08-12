@@ -82,6 +82,9 @@ row_file() {  # row_file <n from the end> -> the first sessions/*.md in that row
 row_date() {
   grep '^| 20' "$index" | tail -"$1" | head -1 | awk -F'|' '{gsub(/ /,"",$2); print $2}'
 }
+row_phase() {
+  grep '^| 20' "$index" | tail -"$1" | head -1 | awk -F'|' '{gsub(/ /,"",$3); print $3}'
+}
 
 newest="$(row_date 1)"
 summary="$(row_file 1)"
@@ -108,14 +111,44 @@ fi
 # 2026-08-09 and that is the only reason it spoke. A gate reading the wrong
 # line is indistinguishable from a gate reading the right one until the two
 # answers differ.
-stated="$(grep -o '\*\*As of [0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}' docs/discussion-log.md | grep -o '[0-9-]\{10\}' | head -1)"
+#
+# AND THE DATE ALONE WAS NOT ENOUGH. Phase 28 closed on 2026-08-11 without
+# touching this file at all: the newest block was still Phase 27's, and 27 had
+# closed the SAME DAY, so the dates matched and this printed `narrative
+# 2026-08-11, matching the newest session`. Green on a block describing the
+# wrong phase, and nothing else in the repository would ever have said so -
+# docs-check does not read this file, and the next session reads the top of it
+# for context. The recurring shape here, one layer up from the 2026-08-08 fix
+# above: not a gate reading the wrong LINE, a gate reading too little of the
+# right one. Several sessions a day is normal in this project, so the date can
+# only ever be a weak identifier, and it happens to be strongest on exactly the
+# days when the most is going on.
+#
+# The phase is the second column of the INDEX row and the parenthesis in the
+# block's own first line, a convention every block since 2026-08-08 follows.
+# Only the token immediately after `(` is read, so a long title may wrap onto
+# the next line without this going quiet.
+asof="$(grep -m1 '\*\*As of [0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}' docs/discussion-log.md)"
+stated="$(printf '%s\n' "$asof" | grep -o '[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}' | head -1)"
+stated_phase="$(printf '%s\n' "$asof" | sed -n 's/.*\*\*As of [0-9-]\{10\} (\([0-9][0-9a-z.]*\) .*/\1/p')"
+newest_phase="$(row_phase 1)"
 if [ -z "$stated" ]; then
   bad "docs/discussion-log.md has no '**As of YYYY-MM-DD.**' in Current state"
 elif [ "$stated" != "$newest" ]; then
   bad "docs/discussion-log.md says $stated, the newest session is $newest -"
   bad "the narrative is behind the cursor, which is how Phase 16b closed"
+elif [ -z "$newest_phase" ]; then
+  bad "the last row of $index carries no phase in its second column, so the"
+  bad "narrative cannot be checked against anything but a date"
+elif [ -z "$stated_phase" ]; then
+  bad "the newest Current state block names no phase: \"$asof\""
+  bad "the convention since 2026-08-08 is '**As of <date> (<phase> — <title>).**'"
+elif [ "$stated_phase" != "$newest_phase" ]; then
+  bad "the narrative's newest block is about phase $stated_phase and the newest"
+  bad "session is phase $newest_phase - both dated $stated, which is why the date"
+  bad "alone said nothing. This is how Phase 28 closed with no block at all"
 else
-  say "narrative $stated, matching the newest session"
+  say "narrative $stated ($stated_phase), matching the newest session"
 fi
 
 say ""

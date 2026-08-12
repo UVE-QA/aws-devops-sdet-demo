@@ -6,6 +6,64 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
+**As of 2026-08-11 (28 — the cycle on a different day).** A full cycle — stage
+up, promoted to prod through the approval gate, both torn down — watched through
+a single tab opened before the first dispatch and never reloaded. The three items carried since 20m are answered.
+Cost **$0.0846 .. $0.0958** against a predicted `$0.07 .. $0.08`: outside the
+band, which this phase declared in advance would be a finding, and it is one —
+not the rates, the calendar, because two approval pauses and an observer make a
+cycle longer. **ADR-0062**.
+
+**THE THREE CARRIED ITEMS, ALL THREE MET.** `not reached yet` had to be
+ARRANGED: the branch is `!record && underWay` and every node has carried a
+record since 2026-08-09, so `timeline/<env>/nodes-apply.json` was backed up and
+deleted from the live bucket before a dispatch, and the cycle's own publish
+restored it. The evidence is a PAIR — `not run yet` on eight prod nodes at
+05:55:21Z with nothing in flight, `not reached yet · a cycle is under way and
+has not got here` at 06:01:14Z with `promote-prod` running, held over three
+samples. Production answers **403** for an absent key, not the 404 the probe
+modelled, and the page's predicate is `r.ok`, so both reach the same branch: the
+probe was right for a slightly wrong reason. The dating sentence is settled by
+two dates AT ONCE, in one frame — `stage … the cycle of 2026-08-09` beside
+`prod … the cycle of 2026-08-11` — which two consecutive readings could not have
+done. And the convergence delay is five measurements instead of 20m's two-minute
+bound: `1.1s 1.6s 8.6s` where the edge held nothing, `57.6s 61.1s` where it held
+a copy with TTL still to run, roughly uniform in `[0, 60]`.
+
+**THE TWO HIGH DRAWS ARE THE INSTRUMENT'S OWN DOING**, because polling every two
+seconds keeps the edge warm, and that paragraph is in the script rather than only
+in the record — a log of those numbers without it says the opposite of what
+happened. The page's own `up to a minute behind the write` is now measured
+rather than believed.
+
+**A QUALIFIER OUTLIVED ITS PREMISE** (ADR-0062 D1). For about five minutes the
+page drew `promote-prod #12`'s OWN figures under `these figures are from the
+cycle before this one`, because `nothing publishes until a cycle ends` is false
+of a job that publishes before its last step. All eight figures differ from the
+previous cycle's in all eight positions. The exact mirror of 20m's third
+finding — there the disclaimer was missing where it was needed, here it is
+present where it is wrong — and one wrong predicate on both sides: *is a run in
+flight about this environment?* instead of *does this record belong to the run in
+flight?*. `cycle.run.id` has been in the document since ADR-0039.
+
+**THE FIRST NEWS ARRIVES ON THE SLOWEST CLOCK** (ADR-0062 D2). 293 s against a
+300 s ceiling, on `destroy prod #46`, because `githubIntervalMs()` returns
+300000 unless the page ALREADY knows a run is unfinished. It lands on `Approve ·
+a human, in the prod environment` — the one node addressed to a person, and the
+person is needed at the start.
+
+**Versioning declared and not applied on the dashboard bucket**, found because
+the plan required deleting an object: Terraform says `Enabled`, the account
+returns empty where the tfstate bucket returns `{"Status": "Enabled"}`, both
+`rc=0`. NOT diagnosed — reading the state under `demo-admin` returns 403 — and
+deliberately not chased at 22:40 with a billable cycle running. The one open
+item this phase created.
+
+**METHOD FAILURE, RECORDED.** `gh run watch` blocked the terminal for sixteen
+minutes and took with it the only turn in which the page could be sampled, so
+the first `not reached yet` arrangement was published over unobserved and had to
+be repeated on prod. A blocking command is a choice about who gets to observe.
+
 **As of 2026-08-11 (27 — the third ancestry, and a premise that was not true).**
 `assets/contrast-contract.json`'s `chain` became `chains` and the gate probes
 each. No cycle, no AWS call, nothing applied, $0. **ADR-0061**.

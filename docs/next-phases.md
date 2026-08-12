@@ -1489,21 +1489,71 @@ what "an instrument aimed at the wrong scope reads green" is made of.
 the two readings are written down beside each other, and the by-name refusal is
 fired on the new schema with a control green either side.
 
+## Phase 28 — The cycle on a different day  [DONE 2026-08-11, $0.0846 .. $0.0958]
+
+Closed with **ADR-0062**. The three items below — carried since 20m and each
+needing a live cycle around it, which is why they were one phase and not three —
+were taken in ONE cycle, watched through a single tab opened before the first
+dispatch and never reloaded.
+
+**All three met.** The convergence delay is five measurements instead of a
+two-minute bound: `1.1s 1.6s 8.6s` where the edge held nothing, `57.6s 61.1s`
+where it held a copy with TTL still to run, roughly uniform in `[0, 60]` — and
+the two high draws are the instrument's own doing, because polling every two
+seconds keeps the edge warm. The dating sentence is answered by two dates in ONE
+frame. `not reached yet` was ARRANGED rather than waited for, by deleting a
+published record before a dispatch, and seen as a pair against a control.
+
+**Cost outside the predicted band, and that was declared in advance to be a
+finding:** `$0.0846 .. $0.0958` against `$0.07 .. $0.08`. Not the rates — the
+calendar. Two approval pauses and an observer make a cycle longer, and a
+prediction built from a previous cycle imports that cycle's tempo.
+
+**Two findings nobody was looking for**, both visible only while something is
+running, which is the only time anybody watches. They are Phase 29's subject.
+
+## Phase 29 — The fixture that publishes underneath a running page
+
+ADR-0062's own Consequences say it: both findings live in the layer or the clock
+CHANGING mid-run, and `tests/fixtures/page-inflight/` holds both still. That is
+why `make page-inflight-check` was green through the whole of Phase 28.
+
+Worse than blind. Claim 3 of that gate ENCODES the false premise as its own
+comment — *nothing publishes until a cycle ends, so every figure drawn during one
+belongs to the cycle before it* — so it currently requires the qualifier on
+figures that belong to the run in flight. Fixing the page makes the gate red. A
+gate that asserts the defect is a stronger entry than one that merely misses it.
+
+```text
+- the fixture becomes a SEQUENCE: the page is loaded once and the layer is
+  swapped underneath it, with no reload, no navigation and no Refresh
+- a controllable clock, because D2 is about an interval and not about content
+- both findings RED on today's page before anything is fixed
+- D1: the qualifier compares the record's `cycle.run.id` with the run in
+  flight, per ADR-0062's Consequences - a predicate, not a wording
+- D2: the interval stops being conditioned on already knowing a run is live,
+  and what it costs in anonymous GitHub budget is priced rather than assumed
+```
+
+**Closes when:** the gate carries the page through at least two published states
+without a reload, both ADR-0062 findings are red before the fix and green after,
+and the break tests are recorded with a control green either side.
+
 ## Still open, and unchanged by any of the above
 
 ```text
-the convergence delay      20m watched a run go green between two observations,
-                           so the max-age=60 ceiling is bounded above by about
-                           two minutes and has never been measured. Wants one
-                           sample every few seconds across the moment a run
-                           goes green - not a cycle of its own.
-the map's dating sentence  cannot be settled until a cycle runs on a different
-                           DAY from the one before it. As of 2026-08-10 the
-                           newest cycle is 20m's, on 2026-08-09, so the next
-                           cycle finally qualifies.
-`not reached yet`          never appeared in 20m: it needs a node with no
-                           record at all, and every node carried one from the
-                           previous cycle.
+the broken-word rule       has no concept of a hyphen, and since Phase 26
+                           produces two false positives on the desktop rather
+                           than one (`read-only` and `promote-prod`). The one
+                           item here that can be taken cold, with no cycle and
+                           no page in flight around it.
+bucket versioning          `infra/public-site/main.tf` declares Enabled on the
+                           dashboard bucket; the account returns empty where
+                           the tfstate bucket returns {"Status": "Enabled"},
+                           both rc=0. NOT diagnosed - reading the state under
+                           demo-admin returns 403, itself unexplained. Phase
+                           28 declined to chase it with a billable cycle
+                           running, which was right and does not close it.
 ```
 
 ## Deliberately out of scope
