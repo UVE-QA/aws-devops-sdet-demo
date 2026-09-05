@@ -1790,7 +1790,22 @@
                                "Launch a full cycle";
         }
 
-        el("launch-why").textContent = busy
+        // WHOSE LIMIT THIS IS. The cap, the nonce and the lock all live in the
+        // Lambda behind this button, and the Lambda is reached from here and
+        // nowhere else. Anyone with write access to the repository dispatches
+        // the same workflow directly and meets none of them.
+        //
+        // Said out loud because the page shows `0 of 3` to everybody, and a
+        // reader who knows the repository is public could reasonably conclude
+        // the project itself is rationed to three cycles a day. It is not: the
+        // rationing is on the anonymous path, which is the only one a stranger
+        // has. Naming that is also the honest half of ADR-0068 - what stands
+        // between a stranger and prod is a quota and a lock, not a person.
+        var whose = " The cap is on THIS BUTTON, not on the pipeline: it lives in " +
+          "the endpoint the button calls, and anyone with write access to the " +
+          "repository dispatches the same workflow from Actions and is not counted here.";
+
+        el("launch-why").textContent = (busy
           ? "A cycle started from this button is running now: stage, then prod, then a " +
             "five-minute hold, then both destroyed. One at a time, so the button is " +
             "closed until it finishes. Everything below is reported by the Actions API " +
@@ -1799,7 +1814,8 @@
             "for five minutes, then destroys both - and destroys them after " +
             SELF_SERVICE.ttlMinutes + " minutes whatever happens. " +
             SELF_SERVICE.dailyCap + " a day, one at a time. Everything below is " +
-            "reported by the Actions API and by the environment itself, not by the button.";
+            "reported by the Actions API and by the environment itself, not by the button."
+          ) + whose;
       }
 
       function launchResult(text) { el("launch-result").textContent = text; }
