@@ -24,6 +24,21 @@ on:
         description: "Image tag pushed by a GREEN deploy-stage run (that run's commit SHA)"
         required: true
 
+  # CALLABLE, so the unattended cycle runs THIS file rather than a copy of it
+  # (ADR-0068). The promotion is ~200 lines of digest resolution, rollback
+  # pointer, stability waits and a smoke; a second copy inside
+  # self-service.yml would be two definitions of what "promoted" means, and
+  # this project has paid for a definition on two hosts twice already.
+  #
+  # The inputs are the same shape as the dispatch's, so the two entry points
+  # cannot drift. What differs is only WHO calls it.
+  workflow_call:
+    inputs:
+      image_tag:
+        description: "Image tag pushed by a GREEN deploy-stage run (that run's commit SHA)"
+        required: true
+        type: string
+
 permissions:
   id-token: write
   # write, not read: a green prod smoke pushes an annotated release tag

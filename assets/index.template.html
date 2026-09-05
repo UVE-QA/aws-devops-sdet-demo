@@ -255,6 +255,36 @@
       }
       .banner.bad { border-left-color: var(--bad); background: var(--bad-bg); }
       .banner p { margin: 0.35rem 0 0; color: var(--muted); }
+
+      /* THE COUNTDOWN (ADR-0068). The one tile on this page that is allowed to
+         shout, because it is the only thing here with a deadline a reader can
+         miss: prod is UP, and in a few minutes it will not be.
+         The figure is computed in the page from a published INSTANT, so it is
+         as of now rather than as of the last bucket read - the same argument
+         ADR-0067 makes about the open cost.
+         `prefers-reduced-motion` turns the pulse off and nothing else changes:
+         the tile is already red, already the largest text on the page, and the
+         animation is emphasis rather than information (WCAG 2.3.3). */
+      .countdown {
+        border: 1px solid var(--bad); border-left: 4px solid var(--bad);
+        background: var(--bad-bg); border-radius: 8px;
+        padding: 0.9rem 1.1rem; margin: 1rem 0 0;
+        display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.3rem 0.9rem;
+        animation: countdown-pulse 2s ease-in-out infinite;
+      }
+      .countdown .clock {
+        font-size: 1.75rem; font-weight: 700; color: var(--bad);
+        font-variant-numeric: tabular-nums; letter-spacing: 0.01em;
+      }
+      .countdown .what { font-size: 0.95rem; font-weight: 600; }
+      .countdown .why { flex-basis: 100%; margin: 0.15rem 0 0; font-size: 0.78rem; color: var(--muted); }
+      @keyframes countdown-pulse {
+        0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--bad) 38%, transparent); }
+        50%      { box-shadow: 0 0 0 0.5rem color-mix(in srgb, var(--bad) 0%, transparent); }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .countdown { animation: none; }
+      }
       .grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr)); }
       .card {
         border: 1px solid var(--line); border-radius: 10px;
@@ -868,6 +898,13 @@
       </div>
 
       <div id="banners"></div>
+      <!-- THE HOLD'S CLOCK (ADR-0068). Its OWN slot rather than a line inside
+           #banners, and that is not a layout preference: #banners is rendered by
+           the first script and the countdown document lives in RUNSTATE, which
+           belongs to the second. Writing it into #banners cost a ReferenceError
+           on every render and two red gates - the same cross-script coupling
+           Phase 22 paid for, in the same file, four phases later. -->
+      <div id="countdown-slot"></div>
 
       <!-- THE FIRST SCREEN IS THE DASHBOARD (ADR-0047 D1): what is observed in
            AWS, where a request goes, and the run in flight - side by side, in
@@ -2447,6 +2484,11 @@
           // teardown (ADR-0045, wired in 20f). Absent until a teardown has
           // priced one, which is a fourth publishing rule and not the others'.
           cost: {},
+          // The unattended cycle's hold (ADR-0068). null is the NORMAL state:
+          // this document exists only in the few minutes between prod coming up
+          // and its teardown starting, so an absent one is not a failed read and
+          // the page draws nothing rather than a sentence about waiting.
+          countdown: null,
         };
 
         function readJSON(path) {
@@ -2520,6 +2562,12 @@
             wanted.push([`results:${env}`, readJSON(`results/${env}/latest.json`)]);
             wanted.push([`cost:${env}`, readJSON(`cost/${env}/latest.json`)]);
           });
+          // status/countdown.json - the unattended cycle's hold (ADR-0068).
+          // Present ONLY while prod is up and waiting to be torn down; absent is
+          // the normal state and is not an error. Under status/ rather than a
+          // prefix of its own, so publish-site.sh's existing --delete exclusion
+          // already covers it.
+          wanted.push(["countdown", readJSON("status/countdown.json")]);
           return Promise.all(wanted.map((w) => w[1])).then((results) => {
             // The whole layer, assembled beside the live one. Nothing below
             // writes into RUNSTATE until every document has been folded in, so
@@ -2527,7 +2575,7 @@
             // cycle and half of another.
             const next = {
               nodes: {}, cycles: [], unfinished: [], unknown: [], hidden: [],
-              phases: {}, results: {}, cost: {}
+              phases: {}, results: {}, cost: {}, countdown: null
             };
             results.forEach((doc, i) => {
               if (!doc) return;
@@ -2569,6 +2617,8 @@
                 next.results[kind.slice(8)] = doc;
               } else if (kind.indexOf("cost:") === 0) {
                 next.cost[kind.slice(5)] = doc;
+              } else if (kind === "countdown") {
+                next.countdown = doc;
               } else if (doc.status && doc.status !== "complete") {
                 next.unfinished.push({ environment: doc.environment, status: doc.status, at: doc.written_at });
               }
@@ -2581,6 +2631,7 @@
             RUNSTATE.phases = next.phases;
             RUNSTATE.results = next.results;
             RUNSTATE.cost = next.cost;
+            RUNSTATE.countdown = next.countdown;
             let longest = 1;
             Object.keys(RUNSTATE.nodes).forEach((id) => {
               const n = RUNSTATE.nodes[id];
@@ -2588,6 +2639,7 @@
             });
             MAXDUR = longest;
             renderCostLine();
+            renderCountdown();
             renderMapSub();
           });
         }
@@ -2646,6 +2698,51 @@
             high += rate * (nowMs - highFrom) / 1000;
           }
           return { low, high, since: c.cycle.started_at || "" };
+        }
+
+        /* THE HOLD, AS A SENTENCE WITH A CLOCK IN IT (ADR-0068).
+           `status/countdown.json` exists only while the unattended cycle is
+           holding prod up before tearing it down. Its ABSENCE is the normal
+           state of this page, not a failed read, so nothing is drawn.
+           The remaining time is computed here from the published INSTANT and
+           reticked once a second beside the elapsed clocks - the same argument
+           ADR-0067 makes about the open cost. A deadline published as "300
+           seconds" would have been wrong the moment it was written; an instant
+           is true whenever it is read.
+           A deadline already PAST draws nothing rather than a zero or a negative.
+           The hold job removes the document when it wakes, but this page can be
+           holding a copy up to one bucket-read old, and "-00:07 to go" is the
+           kind of sentence a state nobody designed produces. */
+        function countdownRemaining(doc, nowMs) {
+          if (!doc || !doc.starts_at) return null;
+          const at = Date.parse(doc.starts_at);
+          if (!at) return null;
+          const left = Math.round((at - nowMs) / 1000);
+          return left > 0 ? left : null;
+        }
+
+        function countdownText(seconds) {
+          return `${Math.floor(seconds / 60)} min ${String(seconds % 60).padStart(2, "0")} sec`;
+        }
+
+        function renderCountdown() {
+          const slot = $("#countdown-slot");
+          if (!slot) return;
+          const doc = RUNSTATE.countdown;
+          const left = countdownRemaining(doc, Date.now());
+          if (left === null) { slot.innerHTML = ""; return; }
+          const env = esc(doc.environment || "prod");
+          const url = doc.run && doc.run.url;
+          slot.innerHTML =
+            '<div class="countdown" role="status" aria-live="polite">' +
+            `<span class="clock" id="countdown-clock" data-at="${esc(doc.starts_at)}">` +
+            `${countdownText(left)}</span>` +
+            `<span class="what">to start the ${env} teardown</span>` +
+            '<p class="why">This cycle was started from the button on this page and runs ' +
+            `unattended. <b>${env}</b> is up now; when this reaches zero the teardown runs ` +
+            'on its own, and what it removed is then verified against the AWS CLI' +
+            (url ? ` &mdash; <a href="${esc(url)}">watch the run &rarr;</a>` : "") +
+            '.</p></div>';
         }
 
         function renderCostLine() {
@@ -3108,6 +3205,19 @@
             const live = openCost(RUNSTATE.cost[el.dataset.env], nowMs);
             if (live) el.textContent = `$${live.low.toFixed(4)} .. $${live.high.toFixed(4)}`;
           });
+          // The hold's clock, on the same tick and for the same reason. It reads
+          // its own deadline off the element rather than RUNSTATE, so the digits
+          // keep moving between bucket reads; when the deadline passes it hands
+          // back to renderBanners(), which draws nothing.
+          const clock = document.getElementById("countdown-clock");
+          if (clock) {
+            const left = countdownRemaining({ starts_at: clock.dataset.at }, nowMs);
+            // Past its deadline, renderCountdown() takes the tile down. It reads
+            // the same RUNSTATE document and returns "" for exactly this case,
+            // so the removal is not a second rule about when a countdown ends.
+            if (left === null) renderCountdown();
+            else clock.textContent = countdownText(left);
+          }
         }
         setInterval(tickElapsed, 1000);
 

@@ -175,6 +175,8 @@ const MIME = {
    serves from has to be changeable between two reads of the SAME page. `box`
    holds it, the lookup is overlay-then-layer-then-site, and nothing else about
    the server moves. */
+const OPTIONAL_ABSENT = new Set(["/status/countdown.json"]);
+
 function serve(notFound, box) {
   const server = http.createServer((req, res) => {
     const url = new URL(req.url, "http://127.0.0.1");
@@ -196,7 +198,21 @@ function serve(notFound, box) {
       return;
     }
     if (!fs.existsSync(file) || fs.statSync(file).isDirectory()) {
-      notFound.push("/" + rel);
+      // ABSENT ON PURPOSE, and the only path that is (ADR-0068). Every other
+      // document the page fetches must exist, because ADR-0059 D5 was written
+      // after ten run-layer documents 404ed in silence and every figure since
+      // 20e turned out to have measured a shorter page.
+      //
+      // status/countdown.json is a different category: it exists only in the few
+      // minutes an unattended cycle holds prod up, so its ABSENCE is the state
+      // this page is in almost always, and a fixture carrying one would make
+      // every claim below measure the rare case. It still 404s here - the page
+      // is required to handle that - it just does not refuse the run.
+      //
+      // Narrow deliberately. A set, not a prefix: `status/` as a pattern would
+      // have swallowed stage.json and prod.json, which are exactly the
+      // documents whose silent absence this gate exists to catch.
+      if (!OPTIONAL_ABSENT.has("/" + rel)) notFound.push("/" + rel);
       res.writeHead(404, { "content-type": "text/plain" });
       res.end("not found");
       return;

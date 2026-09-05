@@ -33,6 +33,26 @@ on:
         description: "Type DESTROY to confirm"
         required: true
 
+  # CALLABLE, for the same reason promote-prod is (ADR-0068): the teardown owns
+  # the SG revoke, the orphan adoption, the ALB-before-IGW ordering, the
+  # verification against the CLI and the cost fold. None of that gets a second
+  # copy inside the unattended cycle.
+  #
+  # `confirm` is kept in the callable signature rather than defaulted away. It
+  # is the gate a human types, and a caller that omits it would be a caller
+  # that never had to mean it - the point of the string is that something has
+  # to say DESTROY out loud, whether that something is a person or a workflow.
+  workflow_call:
+    inputs:
+      environment:
+        description: "Environment to destroy"
+        required: true
+        type: string
+      confirm:
+        description: "Must be DESTROY"
+        required: true
+        type: string
+
 permissions:
   id-token: write
   contents: read

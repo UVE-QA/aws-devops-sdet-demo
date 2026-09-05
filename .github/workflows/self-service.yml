@@ -301,10 +301,139 @@ jobs:
           RESULTS_JSON: /tmp/results-stage.json
         run: scripts/publish-status.sh stage /tmp/observation.json
 
+  # ---------------------------------------------------------------------------
+  # THE PROMOTION. Calls .github/workflows/promote-prod.yml rather than copying
+  # it (ADR-0068): the digest resolution, the rollback pointer, the stability
+  # and HTTPS waits, the prod smoke and the release record are defined once.
+  #
+  # THIS IS THE STEP THAT CHANGED WHAT THIS WORKFLOW IS. Until ADR-0068 this
+  # file declared no prod environment, and ADR-0034 rested on exactly that:
+  # "there is no value of any input that produces a prod credential". That is
+  # no longer true, and it is not untrue by accident - the decision is recorded,
+  # the reviewer gate on the prod environment is gone, and every document that
+  # claimed otherwise has been rewritten rather than left standing.
+  #
+  # The digest is `github.sha`, the tag the launch job pushed and the suites
+  # just proved. Not a rebuild: the same bytes.
+  promote:
+    needs: launch
+    # Only on a GREEN stage. Promoting a digest whose suites failed is the one
+    # thing the deploy -> test -> promote shape exists to prevent, and it stays
+    # prevented here even though the human approval no longer does.
+    if: needs.launch.result == 'success'
+    uses: ./.github/workflows/promote-prod.yml
+    with:
+      image_tag: ${{ github.sha }}
+    secrets: inherit
+
+  # ---------------------------------------------------------------------------
+  # THE HOLD. prod is up, stage is gone, and this is the only part of the cycle
+  # that exists to be WATCHED rather than to do anything.
+  #
+  # The deadline is PUBLISHED and the page counts down against its own clock -
+  # the same shape as ADR-0067's open cost. What goes in the bucket is an
+  # INSTANT, not a number of seconds, so a page rendering it is never showing a
+  # figure that was true when it was written and is not now.
+  #
+  # It lives under `status/`, which publish-site.sh already excludes from its
+  # `--delete` sync. A new prefix would have needed a line there too and
+  # `make publish-prefixes-check` would have said so - ADR-0044 exists because
+  # that line was once forgotten and a cycle's folded results were deleted.
+  hold:
+    needs: [launch, promote, destroy]
+    if: always() && needs.promote.result == 'success'
+    runs-on: ubuntu-latest
+    environment: self-service
+    timeout-minutes: 15
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      HOLD_MINUTES: "5"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Configure AWS credentials (OIDC, publish role)
+        uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
+        with:
+          role-to-assume: ${{ vars.SITE_PUBLISH_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Publish the deadline, then hold prod up until it passes
+        env:
+          SITE_BUCKET: ${{ vars.SITE_BUCKET }}
+          LAUNCH_ID: ${{ inputs.launch_id }}
+        run: |
+          set -euo pipefail
+          seconds=$(( HOLD_MINUTES * 60 ))
+          starts_at="$(date -u -d "+${seconds} seconds" +%Y-%m-%dT%H:%M:%SZ)"
+
+          # Written BEFORE the wait, not after: a countdown published when it
+          # expires is a countdown nobody could have watched.
+          STARTS_AT="$starts_at" python3 -c '
+          import json, os
+          print(json.dumps({
+              "schema": "countdown/1",
+              "environment": "prod",
+              "action": "destroy",
+              "starts_at": os.environ["STARTS_AT"],
+              "hold_minutes": int(os.environ["HOLD_MINUTES"]),
+              "launch_id": os.environ.get("LAUNCH_ID", ""),
+              "run": {
+                  "id": os.environ["GITHUB_RUN_ID"],
+                  "url": os.environ["GITHUB_SERVER_URL"] + "/" + os.environ["GITHUB_REPOSITORY"]
+                         + "/actions/runs/" + os.environ["GITHUB_RUN_ID"],
+              },
+          }, indent=1))' > /tmp/countdown.json
+
+          # no-cache, like every other document a CYCLE writes: the page reads
+          # this on its 30 s timer, and a cached copy would start the clock from
+          # a deadline that has already moved.
+          aws s3 cp /tmp/countdown.json "s3://${SITE_BUCKET}/status/countdown.json" \
+            --content-type application/json \
+            --cache-control "no-cache, max-age=0" \
+            --only-show-errors
+          echo "prod teardown begins at ${starts_at} (${HOLD_MINUTES} min)"
+
+          sleep "${seconds}"
+
+      - name: Take the countdown down
+        if: always()
+        env:
+          SITE_BUCKET: ${{ vars.SITE_BUCKET }}
+        run: |
+          set -uo pipefail
+          # The deadline has passed, so the document is a lie in the making.
+          # Removed rather than left to expire: a page reading a countdown whose
+          # instant is behind it has to invent a sentence for a state nobody
+          # designed, and this project has been caught by exactly that before.
+          aws s3 rm "s3://${SITE_BUCKET}/status/countdown.json" --only-show-errors || true
+
+  # ---------------------------------------------------------------------------
+  # THE PROD TEARDOWN. Calls destroy.yml - the same file the owner dispatches by
+  # hand - so the verification against the AWS CLI and the cost fold are the
+  # ones already in evidence, not a second implementation of them.
+  #
+  # `if: always()` and NOT conditioned on the hold succeeding. The hold is a
+  # sleep and a bucket write; neither is a reason to leave prod running. If the
+  # hold job dies, this still fires and the visitor simply never saw the clock.
+  destroy-prod:
+    needs: [promote, hold]
+    if: always() && needs.promote.result == 'success'
+    uses: ./.github/workflows/destroy.yml
+    with:
+      environment: prod
+      confirm: DESTROY
+    secrets: inherit
+
   # The in-band half of guardrail 3. `if: always()` so a failed deploy, a failed
   # smoke and a cancelled test step all still tear the environment down.
   destroy:
-    needs: launch
+    # NOW WAITS FOR THE PROMOTION TOO (ADR-0068). The order a visitor watches is
+    # stage up -> prod up -> stage gone -> a countdown -> prod gone, so stage
+    # cannot come down until the digest it proved has been promoted.
+    # `if: always()` is unchanged and still the point: a failed promotion must
+    # not leave stage standing.
+    needs: [launch, promote]
     if: always()
     runs-on: ubuntu-latest
     environment: stage
@@ -492,7 +621,10 @@ jobs:
   # If this job never runs, nothing is stuck forever: the lock's expiry IS the
   # TTL, and an expired lock can be taken over.
   release-lock:
-    needs: [launch, destroy]
+    # AFTER PROD IS GONE TOO. The lock is what stops a second launch, and
+    # releasing it while prod was still up would let the next visitor start a
+    # cycle on top of a live one.
+    needs: [launch, promote, destroy, hold, destroy-prod]
     if: always()
     runs-on: ubuntu-latest
     environment: self-service
