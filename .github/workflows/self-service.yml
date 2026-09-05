@@ -51,7 +51,19 @@ concurrency:
 
 permissions:
   id-token: write
-  contents: read
+  # `write`, and it was `read` until ADR-0068. NOT a preference: a reusable
+  # workflow's permissions must be a SUBSET of its caller's, promote-prod.yml
+  # declares `contents: write` to push the release tag (ADR-0029), and a caller
+  # granting less is rejected before any job starts. The first unattended launch
+  # died exactly there - `startup_failure`, no jobs, nothing in the log.
+  #
+  # So this is a widening of the PUBLIC path, and it is the second one this ADR
+  # makes: the token a stranger's button runs under can now write to the
+  # repository. What it does with that is one annotated tag per promotion,
+  # created through the Git Data API on a commit the server already holds
+  # (ADR-0066). It cannot alter a workflow - that needs `workflows: write`,
+  # which ADR-0066 refused and this does not grant.
+  contents: write
   # Added in 19d for one thing only: `scripts/break-stale-state-lock.sh` refuses
   # to break a state lock while any other run of this repository is in progress,
   # and it has to be able to ask (ADR-0036 D3).
