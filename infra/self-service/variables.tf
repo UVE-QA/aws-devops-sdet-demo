@@ -54,6 +54,18 @@ variable "ttl_minutes" {
     150 minutes of a $0.051/h prod plus a $0.043/h stage is under $0.15 in the
     worst case, against three launches a day. The bound that matters is still
     the daily cap, not this.
+
+    IT IS LOAD-BEARING IN A SECOND DIRECTION, and ADR-0068 moved it knowing only
+    the first. This is also the CEILING ON HOW LONG A STRANDED LOCK KEEPS THE
+    BUTTON SHUT: a run that dies before producing any job cannot release the
+    lock, and `lock_is_expired()` only lets the next press take over once this
+    deadline passes. Raising 90 -> 150 therefore lengthened that window by an
+    hour, for a reason that had nothing to do with it (ADR-0069).
+
+    So the number is squeezed from both sides: it must EXCEED the sum of the job
+    timeouts or the watchdog tears down a cycle still working, and every minute
+    above that sum is a minute the public path can be shut for nothing. 150 is
+    the sum exactly, which is the smallest value the first constraint allows.
   EOT
   type        = number
   default     = 150

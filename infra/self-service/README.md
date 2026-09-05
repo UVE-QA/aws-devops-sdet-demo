@@ -37,6 +37,40 @@ refuses any reservation while the account's Lambda `Concurrent executions`
 quota is 10, since the unreserved pool may not fall below 10. Found by applying
 in 19b; amended in ADR-0034. The account ceiling is the bound meanwhile.
 
+## Releasing a lock nothing is holding
+
+A `startup_failure` strands the lock (ADR-0069). GitHub rejects an invalid
+workflow file before any job exists, so `release-lock` — which is a job, running
+`if: always()` — never runs. The Lambda did nothing wrong: the dispatch was
+accepted and a run was created, so from the endpoint's side the launch happened.
+The watchdog sees nothing to sweep, because it reclaims environments and that
+run created none.
+
+The lock then keeps the button shut until its own deadline, which is
+`var.ttl_minutes` — **150 minutes** since ADR-0068 raised it, so this window got
+an hour longer as a side effect of a change about something else.
+
+Check first that nothing is actually running:
+
+```bash
+aws dynamodb get-item \
+  --table-name aws-devops-sdet-demo-self-service-control \
+  --key '{"pk":{"S":"lock"}}'
+gh run list --workflow self-service.yml --limit 3
+```
+
+If the run named in `launch_id` has finished, the lock is stale:
+
+```bash
+aws dynamodb delete-item \
+  --table-name aws-devops-sdet-demo-self-service-control \
+  --key '{"pk":{"S":"lock"}}'
+```
+
+**The daily counter is NOT refunded and should not be.** `decide_launch()` says
+why in its own docstring: a launch that got far enough to hold the lock has had
+its turn, and a refund path is a second place for the cap to leak.
+
 ## Turning the kill switch OFF
 
 There is no target, no handler and no other command: the way back is one
