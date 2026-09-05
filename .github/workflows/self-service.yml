@@ -462,7 +462,23 @@ jobs:
   # hold job dies, this still fires and the visitor simply never saw the clock.
   destroy-prod:
     needs: [promote, hold]
-    if: always() && needs.promote.result == 'success'
+    # UNCONDITIONAL. This read `needs.promote.result == 'success'` and the
+    # reasoning was "do not tear down a prod that was never created" - which is
+    # true of a promote that fails EARLY and false of one that fails LATE.
+    #
+    # Observed 2026-09-05: promote applied prod, waited for the service, waited
+    # for the public HTTPS name, migrated, seeded and smoked green, then failed
+    # on its LAST step - the release tag - with HTTP 403. destroy-prod was
+    # skipped, and prod was left up and serving 200 with nothing left to remove
+    # it. That is the half-created environment with nothing to destroy it, which
+    # is the failure this whole workflow is arranged to prevent.
+    #
+    # A teardown of an environment that does not exist is a no-op: terraform
+    # destroy over empty state removes nothing and exits 0. So the asymmetry is
+    # total - running it when it was not needed costs a few minutes of runner,
+    # and skipping it when it WAS needed costs a live public prod until somebody
+    # notices. There is no version of this condition worth the second outcome.
+    if: always()
     uses: ./.github/workflows/destroy.yml
     with:
       environment: prod

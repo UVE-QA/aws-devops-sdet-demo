@@ -264,6 +264,23 @@ jobs:
 
       - name: Tag the release in the registry and in git
         id: release
+        # A RECORD, NOT A GATE, and now it fails like one. ADR-0029 already put
+        # the rollback pointer FIRST of the three records so that a tagging
+        # failure would be "loud without being dangerous" - and it was loud, and
+        # it was dangerous anyway, because a red promote job propagates.
+        #
+        # 2026-09-05, twice: first `git push` refused (ADR-0066), then the Git
+        # Data API returned 403. Both times prod was applied, stable, answering
+        # on its public name and green on the smoke, and both times the run went
+        # red on a line that writes a traceability record. The second time it
+        # skipped the prod teardown and left prod serving.
+        #
+        # The failure stays visible - the step goes red in the UI and the log
+        # says why - it just stops deciding whether prod gets destroyed. What is
+        # lost when this fails is the git half of the release record, and
+        # ADR-0066 already says that asymmetry is on the record rather than
+        # tidied away.
+        continue-on-error: true
         env:
           ECR_REPOSITORY: aws-devops-sdet-demo-app
           IMAGE_REF: ${{ steps.image.outputs.ref }}
