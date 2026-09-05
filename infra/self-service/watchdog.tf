@@ -94,7 +94,12 @@ data "aws_iam_policy_document" "watchdog" {
   # NO Launch tag at all, a StringNotEquals condition evaluates TRUE, which is
   # the sort of quiet default that turns a policy into decoration.
   statement {
-    sid = "BluntTeardownOfPublicLaunchesInStageOnly"
+    # The name said InStageOnly until ADR-0068 widened the list under it, and a
+    # policy statement whose Sid contradicts its own condition is worse than an
+    # unnamed one: it is the sentence a reader checks INSTEAD of the condition.
+    # Renamed in the same phase, not left for someone to trip over in the
+    # console.
+    sid = "BluntTeardownOfPublicLaunchesInWatchedEnvironments"
     actions = [
       "ecs:UpdateService",
       "ecs:DeleteService",
