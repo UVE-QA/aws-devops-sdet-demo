@@ -21,13 +21,21 @@ by one Lambda role.*
 
 ```text
 build image → apply stage → migrate + seed → API, smoke and regression suites →
-a human approves → the tested DIGEST is promoted to prod at
-https://app.demo.uveapp.net → destroy both, verified against the AWS CLI
+the tested DIGEST is promoted to prod at https://app.demo.uveapp.net →
+destroy both, verified against the AWS CLI
 ```
 
 Every step of that sentence runs through Actions with **no manual AWS
 operation**. That is the claim the project exists to make, and it has been
 observed end to end rather than assembled from parts that each worked once.
+
+**`a human approves` used to stand between the suites and the promotion, and it
+is gone (ADR-0068).** The button on the dashboard now runs that whole sentence
+unattended — three times a day, one environment at a time, holding prod up for
+five visible minutes before destroying it. What survives is the gate that
+matters most: a digest is promoted only if its stage suites went green. What
+does not survive is the person, on the owner's own promotions as well as on a
+stranger's. The trade is argued in ADR-0068 rather than glossed here.
 
 ## What it is meant to show
 

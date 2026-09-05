@@ -67,7 +67,21 @@ repo:UVE-QA/aws-devops-sdet-demo:environment:<env>
 A token minted for a fork carries that fork's `repo:` prefix and matches
 nothing. See `infra/modules/iam_github_deploy_role/main.tf`. prod goes further:
 `trust_branch_ref = false`, so it trusts **no branch at all** and its only path
-is the reviewer-gated GitHub Environment (ADR-0021).
+is the GitHub Environment named `prod` (ADR-0021).
+
+**That environment is no longer reviewer-gated (ADR-0068, 2026-09-05.)** The IAM
+half is unchanged and still the stronger half: prod trusts no branch, and only a
+job declaring `environment: prod` can assume the role. What is gone is the human
+in front of it. Any run reaching that job proceeds, including one an anonymous
+visitor started from the dashboard button — which is the point of the change and
+also the whole of its cost. The public path is bounded by three launches a day,
+one environment at a time, a promotion conditioned on a green stage, and a
+teardown five minutes later; it is not bounded by a person any more.
+
+Environment protection rules are UI state and git cannot assert them, so this
+paragraph is the record and there is nothing in the repository that enforces it
+— the same category as the fork-PR approval setting below and the NS delegation
+in the parent zone.
 
 ## Backstops
 

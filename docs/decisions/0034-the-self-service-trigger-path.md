@@ -172,6 +172,13 @@ tell a visitor that the run they are watching is the run they started.
 
 ### The public path targets stage. It cannot reach prod.
 
+> **NO LONGER TRUE. REVERSED BY ADR-0068 (2026-09-05).** The section is kept as
+> written because it was the reasoning this level was built on for six phases,
+> and striking it out would hide what was traded away. `self-service.yml` now
+> declares a prod environment and calls `promote-prod.yml`; the reviewer rule on
+> the `prod` GitHub Environment is removed. Read ADR-0068 before trusting any
+> sentence below this line.
+
 prod has the approval gate in both halves (`trust_branch_ref = false` in IAM and
 the environment's protection rules in GitHub), the release pointer, the rollback
 and the public name. A stranger's button must not reach it.
@@ -214,7 +221,9 @@ else.
 
 ```text
 - it does not authenticate the visitor, and does not pretend to
-- it does not let the public path reach prod
+- ~~it does not let the public path reach prod~~ — **withdrawn by ADR-0068.**
+  The public path now runs the whole lifecycle, prod included, still capped at
+  three a day and still only promoting a digest whose stage suites went green
 - it does not let the Lambda touch infrastructure. It dispatches a workflow;
   every AWS mutation still happens under the existing stage deploy role,
   through OIDC, exactly as it does today

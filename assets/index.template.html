@@ -1551,11 +1551,23 @@
         // run, where GitHub asks who you are. A real in-page approval needs a
         // browser sign-in and a backend to complete it, which is a phase with an ADR,
         // not a button (docs/next-phases.md).
+        // STILL TRUE ABOUT THE CREDENTIAL, NO LONGER TRUE ABOUT THE GATE
+        // (ADR-0068). Until this phase the sentence below ended "which is the
+        // property that lets it be public at all", and the reviewer rule on the
+        // prod environment is what made that the whole story. That rule is gone:
+        // the unattended cycle promotes and destroys prod without anyone.
+        //
+        // The half that survives is the half about THIS page - it holds no
+        // credential and still cannot approve anything - and a run can still be
+        // waiting when a required reviewer is configured somewhere. Rewritten
+        // rather than deleted, because a `waiting` run is exactly when a reader
+        // most needs to know who is being asked.
         if (run.status === "waiting") {
           h += '<a class="review" href="' + esc(run.html_url) + '">Review deployment on GitHub &rarr;</a>' +
             '<p class="why">This link opens the run; GitHub authenticates the reviewer and records the ' +
-            'approval as theirs. The page holds no credential and cannot approve anything itself &mdash; ' +
-            'which is the property that lets it be public at all.</p>';
+            'approval as theirs. This page holds no credential and cannot approve anything itself. It ' +
+            'is not what stands between a stranger and prod, though &mdash; the unattended cycle ' +
+            'promotes and destroys prod with nobody asked, three times a day (ADR-0068).</p>';
         }
 
         // "could not be read" and "has not happened yet" are different facts, and the
