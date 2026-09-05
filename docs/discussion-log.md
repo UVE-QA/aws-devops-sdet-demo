@@ -6,6 +6,33 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
+**As of 2026-09-05 (32 — an open cycle publishes a rate, not a figure).** Taken
+in the same session as 31, because leaving prod UP made the gap impossible to
+look away from: the cost box read *What the last cycle cost* over the closed
+figure of 2026-08-12 while prod was demonstrably running. **ADR-0067**.
+
+**THE REFUSAL BEING REVERSED WAS RIGHT ABOUT WHAT IT REFUSED.**
+`publish-status.sh` declined to publish an open cost because *it goes stale by
+the second, and a figure that ages silently on a public page is the claim this
+project keeps retracting.* Every word survives. What changed is what an open
+document CARRIES: `component_cost()` is linear in seconds, so an open row now
+publishes `usd_per_second` and the document becomes the INPUTS rather than a
+figure that ages. The page multiplies against its own clock — $0.0409 → $0.0418
+over 60 s, exactly rate × 60, with no `render()`.
+
+**TWO GATES, ONE VACUOUS AND ONE LOAD-BEARING.** `check-cost.py` was green over
+the new field before it checked it, because `diff()` iterates `for key in
+expected` and a key no fixture names is invisible; it is named now, derived from
+the fixture's own arithmetic, with a break test that bites. And
+`page-inflight-check` caught a real crash: `resources` is a LIST from the fold
+and an OBJECT keyed by address in one fixture, `.filter()` on the object threw,
+and `render()` never ran — an empty map with no visible error, while `make
+gates` stayed 12/12 green over it. Third renderer here to die half way down the
+page, and the cheap gates cannot see any of them.
+
+**NOT VISIBLE ON THE LIVE PAGE YET.** The wiring runs at apply time and the prod
+that is up was applied before it existed.
+
 **As of 2026-09-05 (31 — the page a stranger gets, and two documents with no
 policy about their own freshness).** A different subject from every page phase
 since 20e: not *is this true and does the page say when it is true*, but *does a

@@ -224,3 +224,58 @@ page-inflight-check       every claim held, both states
 image-scan (local)        0 fixable, 54 with no fix available
 live                      cache-control: no-cache on / and /data/topology.json
 ```
+
+---
+
+# Phase 32 — An open cycle publishes a rate, not a figure
+
+Same session, same day. Taken because leaving prod up made the gap impossible to
+look away from: the cost box read *What the last cycle cost* over the CLOSED
+figure of 2026-08-12 while prod was demonstrably running. **ADR-0067.**
+
+`fold-cost.py` could already price an open cycle — `--destroy` has always been
+optional — and `publish-status.sh` refused to publish the result. **That refusal
+was right about what it refused**, and every word of it survives. What changed is
+what an open document CARRIES: `usd_per_second` per open row, so the document is
+the INPUTS rather than a figure that ages, and the page multiplies against its
+own clock. Measured $0.0409 → $0.0418 over 60 s, exactly rate × 60, no `render()`.
+
+## Two things went wrong, and both are the phase
+
+**The gate was green over the new field before it checked it.** `check-cost.py`'s
+`diff()` iterates `for key in expected`, so a key the fold emits and no fixture
+names is invisible — the first 11/11 was vacuous. Now named in the open case's
+`expected.json`, derived from that fixture's own `usd / seconds` rather than from
+the new code, and a break test bites: a per-minute rate gives `expected 0.001,
+folded 0.06`, control green either side.
+
+**The page crashed on a document shape this repository already contains.**
+`resources` is a LIST from the fold and an OBJECT keyed by address in
+`tests/fixtures/page-inflight/`. `.filter()` on the object is undefined,
+`renderCostLine()` threw, `render()` never ran: an empty map, no visible error,
+the panel above it rendering happily. Third renderer here to die half way down
+the page. `page-inflight-check` caught it; **`make gates` was 12/12 green over
+the crash**, because every gate in the cheap list reads a file rather than a
+rendered page.
+
+The bisect was **three wrong guesses long** — the tick, the heading, then a
+suspicion of flake. What settled it was making the branch unreachable while
+leaving the code in place: the only variant that separates *this code is wrong*
+from *this code runs at all*.
+
+## What this phase did not do
+
+It is **not visible on the live page**. The wiring runs at apply time and the
+prod that is up was applied before it existed, so the open figure appears at the
+next `deploy-stage` or `promote-prod`. Nothing hand-published to the bucket.
+
+## Validation
+
+```text
+make gates                12/12 green
+check-cost.py             11/11 fixtures, incl. the rate under gate
+break test                per-minute rate caught by name, control both sides
+page-inflight-check       every claim held, in both states
+page-tense/freshness/contrast/live-state   all pass
+ci on main                green, all four jobs
+```
