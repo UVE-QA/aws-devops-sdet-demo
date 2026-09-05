@@ -756,6 +756,18 @@
       }
       .launch button:hover { filter: brightness(1.1); color: var(--bg); }
       .launch button:disabled { filter: none; opacity: 0.55; cursor: default; }
+      /* The control and its quota on one line, so the number is read as a
+         property OF the button rather than as another fact about the panel. */
+      .launchrow { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+      .quota {
+        font-size: 1.05rem; font-weight: 700; font-variant-numeric: tabular-nums;
+        color: var(--accent); border: 1px solid var(--accent); border-radius: 6px;
+        padding: 0.2rem 0.55rem; white-space: nowrap;
+      }
+      /* Spent reads as a refusal, not as a smaller number. --bad carries that
+         everywhere else on this page and is the one colour a reader already
+         associates with "this will not happen". */
+      .quota.spent { color: var(--bad); border-color: var(--bad); }
 
       /* Environments, one line each. What each one IS stays on the line; what it
          is made of goes behind the panel's own disclosure - which is not hidden
@@ -1044,7 +1056,13 @@
                tell it apart from one that is broken. -->
           <div id="launch" class="launch" hidden>
             <p class="why" id="launch-why"></p>
-            <button id="launch-button" type="button">Launch a stage environment</button>
+            <div class="launchrow">
+              <button id="launch-button" type="button">Launch a full cycle</button>
+              <!-- The remaining quota, beside the control it limits. Counted from
+                   the runs, and the title says so; the endpoint keeps the
+                   authoritative count and is what actually refuses. -->
+              <span class="quota" id="launch-quota" aria-label="launches left today"></span>
+            </div>
             <p class="why" id="launch-result"></p>
           </div>
           <div class="clocks">
@@ -1215,7 +1233,14 @@
         // A public launch deploys AND destroys stage, so it writes stage's
         // status file exactly as deploy-stage does. Leaving it out would make a
         // visitor's own launch unable to keep the panel it is updating fresh.
-        ".github/workflows/self-service.yml": ["stage"],
+        //
+        // BOTH environments since ADR-0068. This said ["stage"] alone, which was
+        // right for six phases and became wrong the moment the cycle promoted to
+        // prod: the prod panel went on showing a confident DESTROYED while an
+        // unattended run was bringing prod up underneath it. The map is written
+        // from what a workflow WRITES, so a workflow that started writing a
+        // second status file has to say so here.
+        ".github/workflows/self-service.yml": ["stage", "prod"],
         ".github/workflows/destroy.yml": null // resolved from the run name, see below
       };
 
@@ -1810,14 +1835,82 @@
       }
 
       // ---- the launch control ------------------------------------------------
+      /* WHAT THE PUBLIC PATH HAS SPENT TODAY, AND WHETHER IT IS BUSY.
+         Counted from the RUNS this page already reads, not from the endpoint:
+         the endpoint's counter is authoritative and this is not it, so both
+         numbers below say where they came from. A GET to the endpoint would be
+         authoritative and would also mint a nonce and a DynamoDB write on every
+         page load, which is a worse trade for a figure that only has to be
+         roughly right to stop a visitor pressing a button that will refuse.
+         The endpoint still has the last word: it is what actually refuses, and
+         its refusal is what the page prints when one comes back. */
+      function selfServiceRunsToday() {
+        var today = new Date().toISOString().slice(0, 10);
+        return (state.runs || []).filter(function (r) {
+          return r.path === ".github/workflows/self-service.yml" &&
+                 String(r.created_at || "").slice(0, 10) === today;
+        });
+      }
+
+      function selfServiceInFlight() {
+        return selfServiceRunsToday().filter(function (r) {
+          return r.status === "queued" || r.status === "in_progress" || r.status === "waiting";
+        })[0] || null;
+      }
+
+      // Set when THIS browser starts a launch, and honoured for as long as it
+      // takes the run to appear in a GitHub read. Not a second source of truth:
+      // it only ever CLOSES the button, never opens one the runs say is busy.
+      var LAUNCHED_AT = 0;
+      var LAUNCH_BLIND_MS = 180000;
+      function launchedButNotYetSeen() {
+        return LAUNCHED_AT > 0 && (Date.now() - LAUNCHED_AT) < LAUNCH_BLIND_MS;
+      }
+
       function renderLaunch() {
         if (!SELF_SERVICE.enabled || !SELF_SERVICE.endpoint) return;
         el("launch").hidden = false;
-        el("launch-why").textContent =
-          "Starts one stage environment, destroys it after " + SELF_SERVICE.ttlMinutes +
-          " minutes whatever happens, and allows " + SELF_SERVICE.dailyCap +
-          " launches a day. One at a time. Everything below is reported by the " +
-          "Actions API and by the environment itself, not by the button.";
+
+        var used = selfServiceRunsToday().length;
+        var left = Math.max(0, SELF_SERVICE.dailyCap - used);
+        var busy = selfServiceInFlight() || launchedButNotYetSeen();
+
+        // THE QUOTA, BESIDE THE CONTROL IT LIMITS. A visitor could not tell a
+        // button that will work from one that will be refused until they pressed
+        // it and read the refusal - and one of the three launches was spent
+        // finding that out.
+        var quota = el("launch-quota");
+        if (quota) {
+          quota.textContent = left + " of " + SELF_SERVICE.dailyCap;
+          quota.className = "quota" + (left === 0 ? " spent" : "");
+          quota.title = used + " started today (UTC), counted from the runs this " +
+            "page can see. The endpoint keeps the authoritative count.";
+        }
+
+        // DISABLED WHILE ONE IS RUNNING, and while the day is spent. Phase 19's
+        // rule was that a visible inert control cannot be told from a broken one,
+        // so the button is hidden ENTIRELY when the endpoint is off - that is
+        // unchanged. This is the different case: the control is real, the reason
+        // it will not act is knowable in advance, and saying so is better than a
+        // press that spends nothing and explains itself afterwards.
+        var button = el("launch-button");
+        if (button) {
+          button.disabled = !!busy || left === 0;
+          button.textContent = busy ? "A cycle is running" :
+                               left === 0 ? "No launches left today" :
+                               "Launch a full cycle";
+        }
+
+        el("launch-why").textContent = busy
+          ? "A cycle started from this button is running now: stage, then prod, then a " +
+            "five-minute hold, then both destroyed. One at a time, so the button is " +
+            "closed until it finishes. Everything below is reported by the Actions API " +
+            "and by the environment itself, not by the button."
+          : "Starts one stage environment, promotes the tested image to prod, holds prod " +
+            "for five minutes, then destroys both - and destroys them after " +
+            SELF_SERVICE.ttlMinutes + " minutes whatever happens. " +
+            SELF_SERVICE.dailyCap + " a day, one at a time. Everything below is " +
+            "reported by the Actions API and by the environment itself, not by the button.";
       }
 
       function launchResult(text) { el("launch-result").textContent = text; }
@@ -1879,6 +1972,13 @@
               "started. Look for the run named \u201c" + esc(result.body.run_name) +
               "\u201d below \u2014 that name is how this page knows it is yours."
             );
+            // THE GAP BETWEEN STARTING AND BEING SEEN. renderLaunch() closes the
+            // button from the RUNS, and this page learns about a run on the
+            // GitHub cadence - up to a couple of minutes. Without this the button
+            // would come back enabled in the meantime and the endpoint would
+            // refuse a press it had every reason to expect, which is the shape
+            // of confusion the quota beside it exists to remove.
+            LAUNCHED_AT = Date.now();
             load();
           })
           .catch(function (err) {
@@ -1889,7 +1989,11 @@
               ". Check the runs below before pressing again."
             );
           })
-          .then(function () { button.disabled = false; });
+          // NOT `button.disabled = false`. That was right when the button's only
+          // state was "mid-request"; it is wrong now that renderLaunch() decides
+          // from the runs and the quota, and would have re-opened a button the
+          // endpoint was about to refuse.
+          .then(function () { renderLaunch(); });
       }
 
       function renderAll() {
