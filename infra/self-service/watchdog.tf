@@ -69,12 +69,26 @@ data "aws_iam_policy_document" "watchdog" {
   # condition block here is an AND:
   #
   #   Project=aws-devops-sdet-demo   nothing else in the account
-  #   Environment=stage              prod is unreachable. No bug in the handler
-  #                                  and no value of any workflow input produces
-  #                                  a call that deletes a prod resource.
-  #   Launch present and non-empty   the OWNER's own stage cycle is unreachable
-  #                                  too. It carries Launch="", because guardrails
-  #                                  are on the public path, not on the project.
+  #   Environment in var.watched_environments
+  #                                  WAS `stage` alone, and that sentence -- "prod
+  #                                  is unreachable, no bug in the handler and no
+  #                                  value of any workflow input produces a call
+  #                                  that deletes a prod resource" -- was true
+  #                                  until ADR-0068. The public path now brings
+  #                                  prod up, so the net has to cover what the
+  #                                  path can create. A watchdog scoped to stage
+  #                                  while the cycle deploys prod is not a
+  #                                  narrower guarantee, it is an ABSENT one:
+  #                                  a run that dies after the promotion leaves
+  #                                  prod up with nothing able to remove it.
+  #   Launch present and non-empty   the OWNER's own cycles are unreachable too.
+  #                                  They carry Launch="", because guardrails are
+  #                                  on the public path, not on the project. This
+  #                                  is now the ONLY thing separating a public
+  #                                  prod from the owner's, so it carries more
+  #                                  weight than it did, and the Null test below
+  #                                  is what stops an untagged resource from
+  #                                  satisfying it by default.
   #
   # The Null test is not redundant with the StringNotEquals: for a resource with
   # NO Launch tag at all, a StringNotEquals condition evaluates TRUE, which is
@@ -98,7 +112,7 @@ data "aws_iam_policy_document" "watchdog" {
     condition {
       test     = "StringEquals"
       variable = "aws:ResourceTag/Environment"
-      values   = [var.stage_environment]
+      values   = var.watched_environments
     }
 
     condition {

@@ -34,9 +34,38 @@ variable "github_app_id" {
 }
 
 variable "ttl_minutes" {
-  description = "Hard TTL for a self-service environment, in minutes (ADR-0035 guardrail 3). 90 is the decided number, not a placeholder: it bounds exposure to duration x rate, against the $0.09 and $0.17 cycles already measured. The launch workflow's own timeout MUST stay strictly below it."
+  description = <<-EOT
+    Hard TTL for a self-service environment, in minutes (ADR-0035 guardrail 3).
+    It bounds exposure to duration x rate, and the launch workflow's own job
+    timeouts MUST stay strictly below it: a hung run has to reach its own
+    teardown before the deadline it is being held to.
+
+    90 -> 150 for ADR-0068. The cycle stopped being one deploy and became five
+    phases, and the two numbers are coupled or the guarantee is not one:
+
+      launch        45   stage apply, migrate, seed, four suites
+      promote       ~30  prod apply, ECS stability, public HTTPS, prod smoke
+      destroy        30  stage teardown
+      hold           15  the five-minute countdown, with room to publish it
+      destroy-prod   30  prod teardown, adoption and CLI verification
+                    ---
+                    150  and the TTL may not be under the sum
+
+    150 minutes of a $0.051/h prod plus a $0.043/h stage is under $0.15 in the
+    worst case, against three launches a day. The bound that matters is still
+    the daily cap, not this.
+  EOT
   type        = number
-  default     = 90
+  default     = 150
+
+  validation {
+    # The in-band half of guardrail 3 is that the workflow finishes before the
+    # deadline it is held to. If this drops below the sum of the job timeouts,
+    # the watchdog starts tearing down environments while their own cycle is
+    # still working on them - which is the race the ordering exists to avoid.
+    condition     = var.ttl_minutes >= 150
+    error_message = "ttl_minutes must be at least the sum of self-service.yml's job timeouts (150). Lower it only by lowering those first."
+  }
 }
 
 variable "daily_cap" {
@@ -82,9 +111,37 @@ variable "allowed_origin" {
 }
 
 variable "stage_environment" {
-  description = "The ONLY environment the public path may create. Not an input to the workflow: the launch workflow resolves the stage deploy role and declares no prod environment, so no value produces a prod credential (ADR-0034)."
+  description = "The environment the public path creates FIRST, and the one the watchdog names in its dispatched teardown. No longer the only one it may create: ADR-0068 added the promotion, so the sentence that used to be here - 'no value produces a prod credential' - is false and is corrected in that ADR rather than repeated here."
   type        = string
   default     = "stage"
+}
+
+variable "watched_environments" {
+  description = <<-EOT
+    Every environment the watchdog's blunt path may delete from, matched on the
+    `Environment` tag AND a non-empty `Launch` tag.
+
+    This was `stage` alone, hardcoded, and ADR-0035 could say prod was
+    "unreachable from this function by policy". ADR-0068 made the public path
+    deploy prod, and a net scoped to stage while the cycle creates prod is not a
+    narrower guarantee - it is an absent one. A run that dies after the promotion
+    would leave prod up with nothing able to remove it.
+
+    It is a LIST rather than a second string so that adding an environment is one
+    edit in one place. It is not `["*"]` and must not become one: the whole force
+    of this policy is that it names what it may touch.
+  EOT
+  type        = list(string)
+  default     = ["stage", "prod"]
+
+  validation {
+    # A watchdog that may delete anything tagged with this project, in any
+    # environment, is a blunt instrument with no edge left. The Launch tag still
+    # protects the owner's own cycles, but that is one condition holding the
+    # whole line, and a wildcard here would make it the only one.
+    condition     = !contains(var.watched_environments, "*")
+    error_message = "watched_environments names environments; a wildcard would leave the Launch tag as the only condition."
+  }
 }
 
 variable "launch_workflow_file" {
