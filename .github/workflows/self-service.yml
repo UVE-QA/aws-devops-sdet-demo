@@ -355,7 +355,18 @@ jobs:
     needs: [launch, promote, destroy]
     if: always() && needs.promote.result == 'success'
     runs-on: ubuntu-latest
-    environment: self-service
+    # `stage`, and NOT `self-service`, for the reason publish-site.yml states in
+    # its own header: the site publish role trusts
+    # `repo:<repo>:environment:stage` and the same for prod, with no branch
+    # subject at all, so the environment is what makes authentication possible
+    # rather than a statement about what this job is.
+    #
+    # This job declared `self-service` on its first run and spent twelve retries
+    # on `Not authorized to perform sts:AssumeRoleWithWebIdentity` before giving
+    # up. The self-service environment exists for the narrow CALLBACK role that
+    # deletes the lock item; it is not a publishing identity and nothing had ever
+    # asked it to be one.
+    environment: stage
     timeout-minutes: 15
     env:
       AWS_REGION: ${{ vars.AWS_REGION }}
