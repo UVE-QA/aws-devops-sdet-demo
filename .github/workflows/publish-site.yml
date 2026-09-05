@@ -23,6 +23,12 @@ on:
     paths:
       - 'site/**'
       - '.github/workflows/publish-site.yml'
+      # The script that DOES the publishing (ADR-0065). Without this line a
+      # change to what gets uploaded, or to the metadata it is uploaded with,
+      # sits unpublished until something else happens to touch site/ - which is
+      # the same shape as the missing --exclude line documented in that script:
+      # a publish path that does not fire on a change to the publish path.
+      - 'scripts/publish-site.sh'
 
 concurrency:
   group: publish-site

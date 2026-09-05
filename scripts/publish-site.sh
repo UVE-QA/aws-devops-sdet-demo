@@ -39,8 +39,28 @@ src="${1:-site}"
 : "${SITE_DISTRIBUTION_ID:?SITE_DISTRIBUTION_ID is not set}"
 [ -d "$src" ] || { echo "::error::source directory '$src' does not exist"; exit 1; }
 
+# --cache-control IS THE SECOND LOAD-BEARING FLAG (ADR-0065). Without it these
+# objects go to S3 with no freshness policy at all, and a browser holding an old
+# copy then applies HEURISTIC caching - roughly a tenth of the document's age -
+# so a page last published three weeks ago can be served from a visitor's cache
+# for days after a new one is live. The CloudFront invalidation below does not
+# reach that copy; it only fixes the edge.
+#
+# Observed, not reasoned about: on 2026-09-05 a fresh tab rendered the previous
+# page while `curl` on the same URL at the same moment returned the new one.
+#
+# `no-cache` does NOT mean "do not cache". It means revalidate before use, which
+# with the ETag S3 already sends is a conditional request and a 304 - the same
+# policy scripts/publish-status.sh has always set on the documents the CYCLE
+# writes. The page's own HTML was the one document making the "observed, not
+# assumed" claim while having no policy about its own freshness.
+#
+# It covers index.html AND data/, deliberately. The page renders counts out of
+# data/topology.json, so an index.html that revalidates beside a topology.json
+# that does not is two documents free to disagree about the same page.
 aws s3 sync "$src" "s3://${SITE_BUCKET}/" \
   --delete \
+  --cache-control "no-cache" \
   --exclude "status/*" \
   --exclude "reports/*" \
   --exclude "timeline/*" \
