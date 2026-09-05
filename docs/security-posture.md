@@ -83,6 +83,26 @@ paragraph is the record and there is nothing in the repository that enforces it
 — the same category as the fork-PR approval setting below and the NS delegation
 in the parent zone.
 
+**Putting the reviewer back.** Removed 2026-09-05 with one API call, and the way
+back is one more. It is written here for the reason the kill switch's
+`delete-item` is written in `infra/self-service/README.md`: engaging a control
+was automated and disengaging it is a decision, so it stays manual — but manual
+and *undocumented* are different things, and that distinction has already cost
+this project once.
+
+```bash
+gh api -X PUT repos/UVE-QA/aws-devops-sdet-demo/environments/prod --input - <<'JSON'
+{"wait_timer":0,
+ "reviewers":[{"type":"User","id":142263604}],
+ "deployment_branch_policy":{"protected_branches":false,"custom_branch_policies":true}}
+JSON
+```
+
+Restoring it does **not** disable the unattended cycle. The promotion would
+simply stop and wait, the hold would never publish a countdown, and the run
+would sit until someone approved or it hit its timeout — so if the reviewer goes
+back, the button should be turned off with it (the kill switch, same README).
+
 ## Backstops
 
 - AWS Budgets, with both ACTUAL and FORECASTED notifications, is applied with
