@@ -250,6 +250,27 @@ def build(environment, apply_timeline, destroy_timeline, rates, model, shape, as
         row["seconds"] = {"low": round(low, 1), "high": round(high, 1)}
         row["usd"] = {"low": round(usd_low, 6), "high": round(usd_high, 6)}
         row["minimum_seconds_applied"] = bool(minimum and low <= minimum)
+
+        # THE RATE, so an OPEN row can be re-priced by a reader without owning
+        # the model (ADR-0067). component_cost() is linear in `seconds` - every
+        # component is quantity x unit price x hours - so one number per second
+        # is the whole of this resource's pricing, and a page multiplying it by
+        # its own clock reproduces this function exactly.
+        #
+        # It is published for OPEN rows only. A closed row has both ends and a
+        # figure that is finished; handing a rate to a reader who does not need
+        # one invites re-deriving a number that is already correct.
+        #
+        # `minimum_seconds` is where the linearity stops: below it the fold
+        # charges the floor, so a rate multiplied by a smaller elapsed would
+        # UNDERSTATE. The flag beside it says when that is in play, and the
+        # per-second figure is omitted entirely in that case rather than
+        # published with a caveat nobody downstream is obliged to read.
+        if row["state"] == "open" and not row["minimum_seconds_applied"]:
+            per_second = sum(
+                component_cost(c, unit_prices, shape, 1.0) for c in priced["components"]
+            )
+            row["usd_per_second"] = round(per_second, 12)
         if priced.get("note"):
             row["note"] = priced["note"]
         total_low += usd_low

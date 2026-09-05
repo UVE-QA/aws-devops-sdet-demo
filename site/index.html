@@ -1099,7 +1099,7 @@
            over it, so this one is too - the same `.panel` the environments and
            the current cycle are drawn in, and no new vocabulary. -->
       <section class="panel costbox" id="cost-box" hidden>
-        <h2>What the last cycle cost <span class="note">&mdash; computed from resource lifetimes, not from a bill</span></h2>
+        <h2><span id="cost-head">What the last cycle cost</span> <span class="note">&mdash; computed from resource lifetimes, not from a bill</span></h2>
         <p class="approx" id="cost-line"></p>
       </section>
 
@@ -2708,13 +2708,78 @@
            cycle it came from, or call itself anything but an estimate. All three
            are ADR-0045, and the third is ADR-0026's rule about sources applied to
            money - no billing API is consulted anywhere in this project. */
+        /* AN OPEN CYCLE IS PRICED HERE, NOT AT PUBLISH TIME (ADR-0067).
+           publish-status.sh used to refuse to publish an open cost at all, and
+           its reason was right: a figure priced to an instant "goes stale by the
+           second, and a figure that ages silently on a public page is the claim
+           this project keeps retracting."
+           What answers that is not a tolerance for staleness. It is that the
+           document now carries `usd_per_second` on every open row, so what is
+           published are the INPUTS and not the figure - and the multiplication
+           happens here, against this page's own clock. The number on screen is
+           as of now. Nothing ages silently because nothing is held.
+           The rate comes from the fold and is never recomputed here: the model
+           deciding which unit price applies to which resource lives in
+           assets/cost-model.json and is read by scripts/fold-cost.py. A second
+           copy of it in this file is the definition-on-two-hosts trap this
+           project has already paid for twice.
+           A row whose fold hit a billing minimum carries no rate and is refused
+           rather than understated, so a partial sum is never drawn as a whole. */
+        function openCost(c, nowMs) {
+          if (!c || !c.cycle || c.cycle.status !== "open") return null;
+          // `resources` IS NOT ALWAYS AN ARRAY, and assuming it was threw a
+          // TypeError that took render() down with it - an empty map, no error
+          // on the page, and the environments panel above it rendering happily.
+          // scripts/fold-cost.py publishes a LIST; tests/fixtures/page-inflight
+          // carries the same document keyed BY ADDRESS, which is the shape
+          // check-cost.py's summarise() produces. Both are real and this reads
+          // either. Found by page-inflight-check, which is the third time a gate
+          // here has caught a renderer that died half way down the page.
+          const all = Array.isArray(c.resources) ? c.resources
+                    : (c.resources && typeof c.resources === "object")
+                      ? Object.values(c.resources) : null;
+          if (!all) return null;
+          const rows = all.filter((r) => r && r.bucket === "priced");
+          if (!rows.length) return null;
+          let low = 0, high = 0;
+          for (const r of rows) {
+            const rate = r.usd_per_second;
+            const made = r.created || {};
+            const lowFrom = Date.parse(made.finished_at || "");
+            const highFrom = Date.parse(made.started_at || "");
+            if (typeof rate !== "number" || !lowFrom || !highFrom) return null;
+            // A resource created in this page's FUTURE is not one that has cost
+            // nothing yet - it is a document and a clock that disagree, and a
+            // clamp would print a confident $0.0000 for an environment that is
+            // demonstrably up. Same rule this project applies to an empty read.
+            if (nowMs < highFrom) return null;
+            low += rate * Math.max(0, (nowMs - lowFrom) / 1000);
+            high += rate * (nowMs - highFrom) / 1000;
+          }
+          return { low, high, since: c.cycle.started_at || "" };
+        }
+
         function renderCostLine() {
           const el = $("#cost-line");
           const box = $("#cost-box");
           if (!el || !box) return;
+          const now = Date.now();
+          let anyOpen = false;
           const parts = ENVS.map((env) => {
             const c = RUNSTATE.cost[env];
-            if (!c || !c.cycle || c.cycle.status !== "closed") return null;
+            if (!c || !c.cycle) return null;
+            if (c.cycle.status === "open") {
+              const live = openCost(c, now);
+              if (!live) return null;
+              anyOpen = true;
+              // data-env drives the once-a-second retick below, so the figure is
+              // recomputed without render() rebuilding the map underneath it.
+              return `<b>${env}</b> <span class="sofar" data-env="${env}">` +
+                     `$${live.low.toFixed(4)} .. $${live.high.toFixed(4)}</span>` +
+                     ` &mdash; still up, and still spending, since ` +
+                     `${live.since.slice(0, 16).replace("T", " ")}Z`;
+            }
+            if (c.cycle.status !== "closed") return null;
             const usd = c.cycle.usd || {};
             if (typeof usd.low !== "number" || typeof usd.high !== "number") return null;
             const when = (c.cycle.finished_at || "").slice(0, 10);
@@ -2725,9 +2790,20 @@
           // inside it: a labelled empty box is a heading over nothing.
           box.hidden = !parts.length;
           if (!parts.length) return;
+          // The HEADING moves with the tense: "What the last cycle cost" over a
+          // figure that is still climbing is the page saying something untrue in
+          // the largest text on the box (ADR-0067 D3).
+          const head = $("#cost-head");
+          if (head) {
+            head.textContent = anyOpen ? "What this cycle has cost so far"
+                                       : "What the last cycle cost";
+          }
           el.innerHTML = `${parts.join("; ")}. A <b>computed estimate</b>, not a
             bill: resource lifetimes multiplied by a dated rate table, expressed as a band
-            because nothing in Terraform's stream can see the instant AWS starts charging.`;
+            because nothing in Terraform's stream can see the instant AWS starts charging.` +
+            (anyOpen ? ` An open figure is computed in this page against its own clock,
+            from a per-second rate the fold published: it is as of now, not as of the
+            last write.` : ``);
         }
 
         /* ==== RUN-LAYER STATE MACHINE - begin =================================
@@ -3133,6 +3209,15 @@
         function tickElapsed() {
           document.querySelectorAll("#rows .phase > header .elapsed").forEach((el) => {
             el.textContent = elapsedText(el.dataset.since);
+          });
+          // The open cost, for the same reason and at the same price: a few
+          // characters, no render(). An environment that is up is spending money
+          // while you read this, and a figure that moved only when the bucket was
+          // re-read would be a still picture of a moving thing.
+          const nowMs = Date.now();
+          document.querySelectorAll("#cost-line .sofar").forEach((el) => {
+            const live = openCost(RUNSTATE.cost[el.dataset.env], nowMs);
+            if (live) el.textContent = `$${live.low.toFixed(4)} .. $${live.high.toFixed(4)}`;
           });
         }
         setInterval(tickElapsed, 1000);

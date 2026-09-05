@@ -201,19 +201,38 @@ fi
 # for the same reason: the run-id object is immutable evidence and latest.json is
 # what the page reads at rest.
 #
-# Only a CLOSED cycle is published. An open one is a real thing fold-cost.py can
-# produce - priced to an instant - but it goes stale by the second, and a figure
-# that ages silently on a public page is the claim this project keeps retracting.
-# The teardown is the only place this runs, so closed is also the normal case.
+# BOTH a closed and an open cycle are published now (ADR-0067), and until that
+# ADR only the closed one was. The refusal it replaces was right about what it
+# refused: "it goes stale by the second, and a figure that ages silently on a
+# public page is the claim this project keeps retracting."
+#
+# What changed is not the tolerance for staleness. It is WHAT AN OPEN DOCUMENT
+# CARRIES. Every open priced row now has `usd_per_second`, so the document is no
+# longer a figure that ages - it is the INPUTS a reader re-prices against its own
+# clock, and the page does exactly that on the timer it already runs. The number
+# on screen is as of now, not as of this upload, so nothing ages silently.
+#
+# THE KEYING DIFFERS, and that is the whole of the difference in evidence:
+#
+#   closed   <run id>-<job>.json AND latest.json. The run-id object is immutable
+#            evidence of a cycle that is over and cannot change again.
+#   open     latest.json ONLY. An open cycle is superseded by its own next
+#            observation and by the closed figure the teardown writes; keying it
+#            by run id would litter the bucket with snapshots of one lifetime,
+#            each of them true for a second and none of them the record.
 #
 # EVERY FIGURE HERE IS A BAND. Anything downstream that renders one end alone is
 # making a claim the fold declined to make.
 cost_json="${COST_JSON:-}"
 if [ -n "$cost_json" ] && [ -s "$cost_json" ]; then
   cost_status="$(jq -r '.cycle.status // "unknown"' "$cost_json")"
-  if [ "$cost_status" = "closed" ]; then
-    cost_key="${run_id}${GITHUB_JOB:+-${GITHUB_JOB}}"
-    for key in "$cost_key" latest; do
+  case "$cost_status" in
+    closed) cost_key="${run_id}${GITHUB_JOB:+-${GITHUB_JOB}}"; cost_keys="$cost_key latest" ;;
+    open)   cost_key="latest";                                  cost_keys="latest" ;;
+    *)      cost_key=""; cost_keys="" ;;
+  esac
+  if [ -n "$cost_keys" ]; then
+    for key in $cost_keys; do
       aws s3 cp "$cost_json" "s3://${SITE_BUCKET}/cost/${env_name}/${key}.json" \
         --content-type application/json \
         --cache-control "max-age=60" \
@@ -221,9 +240,9 @@ if [ -n "$cost_json" ] && [ -s "$cost_json" ]; then
     done
     cost_low="$(jq -r '.cycle.usd.low' "$cost_json")"
     cost_high="$(jq -r '.cycle.usd.high' "$cost_json")"
-    echo "published cost (COMPUTED ESTIMATE, \$${cost_low} .. \$${cost_high}): ${base_url}/cost/${env_name}/${cost_key}.json"
+    echo "published ${cost_status} cost (COMPUTED ESTIMATE, \$${cost_low} .. \$${cost_high}): ${base_url}/cost/${env_name}/${cost_key}.json"
   else
-    echo "cost NOT published: this cycle is ${cost_status}, and only a closed one has a lifetime to price"
+    echo "cost NOT published: this cycle reports status '${cost_status}', which is neither open nor closed"
   fi
 else
   echo "no cost to publish (looked at: '${cost_json:-<none>}')"

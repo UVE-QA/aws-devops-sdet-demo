@@ -117,6 +117,16 @@ def summarise(cost: dict) -> dict:
                 "state": row["state"],
                 "seconds": row["seconds"],
                 "usd": row["usd"],
+                # The per-second rate an OPEN row carries so a reader can price
+                # it against its own clock (ADR-0067). In the summary because it
+                # is now load-bearing OUTSIDE this script: the dashboard
+                # multiplies it every second, so a wrong rate is a wrong figure
+                # on a public page, and `usd` alone would not catch it - the two
+                # are computed from the same components and would move together
+                # only if the model changed, not if this field stopped being
+                # written. Absent on closed rows, and the key is absent with it.
+                **({"usd_per_second": row["usd_per_second"]}
+                   if "usd_per_second" in row else {}),
             }
             for row in cost["resources"]
         },

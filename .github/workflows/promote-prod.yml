@@ -478,6 +478,31 @@ jobs:
           --timeline /tmp/timeline-prod.json
           --out /tmp/nodes-prod.json
 
+      # WHAT IT HAS COST SO FAR (ADR-0067). The same fold the teardown runs, with
+      # the destroy half absent rather than empty: fold-cost.py already prices an
+      # OPEN cycle - every lifetime running to now, every priced row carrying its
+      # own usd_per_second - and until this phase nothing called it here, so an
+      # environment that was UP had no price at all and the page showed the last
+      # CLOSED cycle's figure beside a live one.
+      #
+      # The apply timeline is the one this job just folded. No anchor is fetched
+      # and no `--destroy` is passed; that argument being optional is what makes
+      # the open document a first-class output rather than a special case.
+      #
+      # continue-on-error, for the reason the teardown's has it: an estimate on a
+      # dashboard is not worth reddening a promotion over - and this workflow has
+      # just been reminded what a last step that reddens a green release costs
+      # (ADR-0066).
+      - name: Price the cycle so far, from the apply alone
+        if: always()
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          python3 scripts/fold-cost.py \
+            --environment prod \
+            --apply /tmp/timeline-prod.json \
+            --out /tmp/cost-prod.json
+
       # The test reports, folded onto the map's suite nodes (ADR-0042 D5). Reads
       # files only - the junit pytest wrote, the JSON the Playwright reporter
       # left inside the report directory, and the db task's own log, which
@@ -539,4 +564,5 @@ jobs:
           TIMELINE_JSON: /tmp/timeline-prod.json
           NODE_STATES_JSON: /tmp/nodes-prod.json
           RESULTS_JSON: /tmp/results-prod.json
+          COST_JSON: /tmp/cost-prod.json
         run: scripts/publish-status.sh prod /tmp/observation.json tests/playwright/playwright-report
