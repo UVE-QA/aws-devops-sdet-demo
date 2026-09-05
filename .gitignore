@@ -22,6 +22,14 @@ crash.log
 *.tfvars
 !*.tfvars.example
 
+# scripts/watch-page.mjs writes TWO files: <out> is the readable narrative and
+# <out>.jsonl is every observation it ever made. The narrative is the record and
+# is committed like every other watch log under docs/sessions/. The jsonl is the
+# raw material behind it - Phase 30's cycle run alone is 11 MB, larger than the
+# whole of docs/ - and CLAUDE.md says large logs do not go in a public repo.
+# Nothing reads the jsonl but the person who just ran the instrument.
+*.log.jsonl
+
 # Python
 __pycache__/
 *.py[cod]
