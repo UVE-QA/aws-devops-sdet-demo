@@ -67,6 +67,7 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 30    | An instrument that holds one tab while the sources move | ✅ done — $0; committed 2026-08-12, unpushed until 2026-09-05 | sessions/2026-09-05-phase-31-the-page-a-stranger-gets.md |
 | 31    | The page a stranger gets; two documents with no policy | ✅ done — full cycle, one finding, PROD LEFT UP by decision | sessions/2026-09-05-phase-31-the-page-a-stranger-gets.md |
 | 32    | An open cycle publishes a rate, not a figure | ✅ done — $0; not visible until the next apply | sessions/2026-09-05-phase-31-the-page-a-stranger-gets.md |
+| 33    | The public path reaches prod, and that sentence used to be the guarantee | ⚠️ done in the repository, NOT APPLIED — infra/self-service is unapplied, so the unattended path has no watchdog for prod | sessions/2026-09-05-phase-31-the-page-a-stranger-gets.md |
 
 **Lettered sub-phases end here (ADR-0055).** From Phase 21 the identifier is a
 plain integer and every phase is planned together with the sentence that closes

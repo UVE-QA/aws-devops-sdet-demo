@@ -6,6 +6,45 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
+**As of 2026-09-05 (33 — the public path reaches prod, and that sentence used to
+be the guarantee).** The button now runs the whole lifecycle unattended: stage
+up, the tested digest promoted to prod, stage down, a five-minute hold with a
+visible clock, prod down. Three a day, unchanged. **ADR-0068**.
+
+**WHAT WAS TRADED, BEFORE WHAT WAS BUILT.** ADR-0034 had a section headed *The
+public path targets stage. It cannot reach prod*, and it was not a check but a
+structural fact: the workflow declared no prod environment, so no input resolved
+a prod credential. That is false now. The concern was raised twice before any
+code was written and the trade was taken deliberately. Three documents claimed
+it — the ADR, `docs/security-posture.md`, the README — and a fourth said it on
+the page itself: *the page holds no credential and cannot approve anything
+itself, which is the property that lets it be public at all.* All four are
+rewritten, and ADR-0034's section is KEPT and marked reversed rather than struck
+out, because deleting the reasoning would hide what was given up.
+
+**THE REVIEWER IS GONE FROM prod**, and that removes the gate from the owner's
+own promotions too, not only from a stranger's. The IAM half is untouched and
+still the stronger half. The way back is one API call, written down in
+`docs/security-posture.md` for the reason the kill switch's `delete-item` is
+written down: manual and undocumented are different things.
+
+**THE COUNTDOWN PUBLISHES AN INSTANT**, and the page counts down against its own
+clock — ADR-0067's argument one phase later, applied to a deadline instead of a
+rate. A duration would have been wrong the moment it was written.
+
+**TWO GATE CATCHES, BOTH SELF-INFLICTED.** The tile was first rendered from the
+first script while its data lives in the second — a ReferenceError every render,
+the same cross-script coupling Phase 22 paid for in this same file. And
+`page-inflight-check` refuses on any origin 404, so a document whose absence is
+its normal state needed naming in an explicit one-item set; a `status/` prefix
+would have swallowed the two documents that rule exists to protect.
+
+**NOT APPLIED, AND THIS IS THE OPEN RISK.** `infra/self-service` carries the
+watchdog's widened policy and the TTL that fits the longer cycle, and neither is
+applied. Until it is, a run that dies after the promotion leaves prod up with
+nothing able to remove it. `terraform validate` and `fmt` are clean; that is all
+a checkout can say, and it is not the same as a net.
+
 **As of 2026-09-05 (32 — an open cycle publishes a rate, not a figure).** Taken
 in the same session as 31, because leaving prod UP made the gap impossible to
 look away from: the cost box read *What the last cycle cost* over the closed

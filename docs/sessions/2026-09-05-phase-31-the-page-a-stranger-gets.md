@@ -279,3 +279,87 @@ page-inflight-check       every claim held, in both states
 page-tense/freshness/contrast/live-state   all pass
 ci on main                green, all four jobs
 ```
+
+---
+
+# Phase 33 — The public path reaches prod, and that sentence used to be the guarantee
+
+Same session. The dashboard button ran stage and only stage; it now runs the
+whole lifecycle unattended. **ADR-0068.**
+
+```text
+launch        stage up, migrate, seed, four suites
+promote       the tested digest -> prod        needs: launch, GREEN only
+destroy       stage down                       needs: launch, promote
+hold          publish the deadline, 5 min      needs: launch, promote, destroy
+destroy-prod  prod down                        needs: promote, hold
+release-lock  last of all                      needs: everything
+```
+
+Three a day, one environment at a time, same lock, nonce and kill switch. **The
+Lambda needed no change at all** — it dispatches `self-service.yml` by filename
+and that file simply does more.
+
+## What was traded, said before what was built
+
+ADR-0034 had a section headed *The public path targets stage. It cannot reach
+prod*, and it was not a check but a structural fact. That is false now. The
+concern was raised **twice** before any code was written and the trade was taken
+deliberately.
+
+Four documents claimed it — the ADR, `docs/security-posture.md`, the README, and
+the page's own strongest sentence. All four are rewritten. ADR-0034's section is
+**kept and marked reversed** rather than struck out: deleting the reasoning would
+hide what was given up.
+
+The reviewer rule is removed from the `prod` environment, which takes the gate
+off the **owner's** promotions too. The IAM half is untouched and still the
+stronger half. The way back is one API call, written down for the reason the
+kill switch's `delete-item` is written down.
+
+## The cycle calls; it does not copy
+
+`promote-prod.yml` and `destroy.yml` gain `workflow_call`. Two copies would be
+two definitions of what *promoted* and *destroyed* mean, and this project has
+paid for a definition on two hosts twice. `confirm: DESTROY` stays in the
+callable signature: a caller exempt from saying it is a caller that never had to
+mean it.
+
+## Two gate catches, both self-inflicted
+
+- The tile was first rendered from `renderBanners()` in the **first** script
+  while `RUNSTATE` lives in the second — a `ReferenceError` on every render and
+  two red gates. Same cross-script coupling Phase 22 paid for, same file, four
+  phases later.
+- `page-inflight-check` refuses on **any** origin 404 (ADR-0059 D5). A document
+  whose absence is its normal state is named in an explicit **one-item** set; a
+  `status/` prefix would have swallowed `stage.json` and `prod.json`, which are
+  exactly what that rule protects.
+
+## Not applied, and that is the open risk
+
+`infra/self-service` carries `watched_environments = ["stage", "prod"]` and
+`ttl_minutes` 90 -> 150, and **neither is applied**. Until that apply, a run that
+dies after the promotion leaves prod up with nothing able to remove it —
+`if: always()` is, in ADR-0035's phrase, a promise made by the thing that might
+not be there. `terraform validate` and `fmt` are clean, which is all a checkout
+can say and is not the same as a net.
+
+## And session-close was green over this phase being unrecorded
+
+It compares the narrative's phase against the newest session file. With no
+Phase 33 file, both said 32 and agreed — about a picture that had simply
+stopped. **A record that contradicts itself is caught; a record that ends is
+not.** Tenth time in this project that a gate has been green over its own
+subject, and the first where the subject was the record itself.
+
+## Validation
+
+```text
+make gates                    12/12 green
+page-inflight/tense/freshness/contrast/live-state   all pass
+terraform validate            infra/self-service valid; fmt clean
+countdown                     4 min 11 sec -> 3 min 08 sec over 63 s; removed past zero
+prod environment              protection rules now [branch_policy] only, verified
+ci on main                    green
+```
