@@ -1916,11 +1916,18 @@
           "the endpoint the button calls, and anyone with write access to the " +
           "repository dispatches the same workflow from Actions and is not counted here.";
 
+        // NOT "a cycle started from this button". This page cannot know who
+        // dispatched a run - the Actions API does not tell it, and the very
+        // sentence below the quota says a repository writer dispatches the same
+        // workflow without touching the button. Caught by reading the live page
+        // during a run the OWNER had dispatched, under a sentence claiming the
+        // button had started it. The page asserting a provenance it cannot
+        // observe is the defect this project keeps finding in itself.
         el("launch-why").textContent = (busy
-          ? "A cycle started from this button is running now: stage, then prod, then a " +
-            "five-minute hold, then both destroyed. One at a time, so the button is " +
-            "closed until it finishes. Everything below is reported by the Actions API " +
-            "and by the environment itself, not by the button."
+          ? "A cycle is running now: stage, then prod, then a five-minute hold, then " +
+            "both destroyed. One at a time, so this button is closed until it " +
+            "finishes - whoever started it. Everything below is reported by the " +
+            "Actions API and by the environment itself, not by the button."
           : "Starts one stage environment, promotes the tested image to prod, holds prod " +
             "for five minutes, then destroys both - and destroys them after " +
             SELF_SERVICE.ttlMinutes + " minutes whatever happens. " +
