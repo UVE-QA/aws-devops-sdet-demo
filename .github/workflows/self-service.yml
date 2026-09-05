@@ -31,14 +31,24 @@ run-name: self-service launch ${{ inputs.launch_id }}
 on:
   workflow_dispatch:
     inputs:
+      # DEFAULTS, so the owner's path is one click in the Actions UI rather than
+      # two fields typed from memory. The LAMBDA always sends both explicitly and
+      # never relies on these; they exist for the dispatch the endpoint is not
+      # part of, which is the only path not bounded by the daily cap.
+      #
+      # `owner-manual` is deliberately not in the `ss-` shape the endpoint issues.
+      # The run name is how the dashboard and the watchdog talk about a launch, so
+      # a hand-dispatched cycle should be legible AS one in both.
       launch_id:
-        description: "Id issued by the launch endpoint. Appears in the run name."
+        description: "Appears in the run name. The endpoint issues its own; anything identifying will do here."
         required: true
         type: string
+        default: owner-manual
       ttl_minutes:
-        description: "Hard deadline for this environment, in minutes. Written into the ExpiresAt tag the watchdog reads."
+        description: "Hard deadline for this environment, in minutes. Written into the ExpiresAt tag the watchdog reads. Must not be under the sum of this workflow's job timeouts (ADR-0068)."
         required: true
         type: string
+        default: "150"
 
 # A SECOND layer, not the guardrail. GitHub's concurrency does not refuse: it
 # queues, or it cancels. `cancel-in-progress: true` would cancel a run
