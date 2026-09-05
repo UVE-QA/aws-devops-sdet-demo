@@ -6,6 +6,46 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
+**As of 2026-09-05 (31 — the page a stranger gets, and two documents with no
+policy about their own freshness).** A different subject from every page phase
+since 20e: not *is this true and does the page say when it is true*, but *does a
+reader who arrives from outside and leaves in ninety seconds reach the conclusion
+the page is evidence for*. A full cycle ordered and watched. **ADR-0064**,
+**ADR-0065**, **ADR-0066**.
+
+**MAIN WAS FOUR COMMITS BEHIND THE DEVBOX.** Phase 30's entire instrument —
+`scripts/watch-page.mjs` — was committed on 2026-08-12 and never pushed, so
+nothing on GitHub knew Phase 30 existed. Its 11 MB of jsonl is gitignored now and
+the readable narrative committed, as every watch log since 19e has been. Phase 30
+has a cursor row at last.
+
+**THE DEPENDABOT BACKLOG WAS NOT WHAT IT LOOKED LIKE.** Four PRs, all red, and
+not one red because of its own bump: every one failed `image-scan` on the same 36
+fixable HIGH findings in the base image's OS packages, on a base nobody had
+rebuilt since 2026-08-12 — which is also the last time `main` ran CI at all. The
+four PRs were the only thing still asking the question. Proved by pulling a fresh
+base and scanning locally BEFORE touching anything, then re-running the four on
+their existing SHAs rather than rebasing them.
+
+**THE PAGE THAT SAYS "OBSERVED" HAD NO POLICY ABOUT ITS OWN FRESHNESS.** Found by
+opening it, not by reading it: a fresh tab rendered the previous page minutes
+after a completed publish and invalidation, while `curl` returned the new one.
+`publish-status.sh` has always set `no-cache` on what a CYCLE writes;
+`publish-site.sh` set nothing on the page itself. The finding is which document
+had none.
+
+**THE PROMOTION FAILED ON ITS LAST LINE AND PROD WAS FINE.** promote-prod #14
+deployed, waited, migrated, seeded, asserted the UI write reached RDS, smoked
+green — then went red on a `git push` of the release tag, refused because this
+session's own ADR-0065 commit changed a workflow file between the tested digest
+and the promotion. The rollback correctly did NOT fire: the last-good pointer is
+written first of the three records for exactly this reason. Self-inflicted, and
+that is the useful part — a cycle run from a quiet tree would not have found it.
+
+**PROD IS DELIBERATELY STILL UP**, decided rather than forgotten: ~$1.22/day by
+the repository's own rates, and the cost fold prices by LIFETIME, so this cycle's
+prod figure stays open until it is destroyed.
+
 **As of 2026-08-12 (29 — the fixture that publishes underneath a running page).**
 ADR-0062's two findings live in the layer or the clock CHANGING mid-run, and
 every page gate here holds one moment still — which is why

@@ -64,6 +64,8 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 27    | The contrast contract has three ancestries | ✅ done — $0, green answer, false premise | sessions/2026-08-11-phase-27-the-third-ancestry-and-a-false-premise.md |
 | 28    | The cycle on a different day    | ✅ done — $0.0846..$0.0958, two findings | sessions/2026-08-11-phase-28-the-qualifier-that-outlived-its-premise.md |
 | 29    | The fixture that publishes underneath a running page | ✅ done — $0, both ADR-0062 findings closed | sessions/2026-08-12-phase-29-the-fixture-that-publishes-underneath-a-running-page.md |
+| 30    | An instrument that holds one tab while the sources move | ✅ done — $0; committed 2026-08-12, unpushed until 2026-09-05 | sessions/2026-09-05-phase-31-the-page-a-stranger-gets.md |
+| 31    | The page a stranger gets; two documents with no policy | ✅ done — full cycle, one finding, PROD LEFT UP by decision | sessions/2026-09-05-phase-31-the-page-a-stranger-gets.md |
 
 **Lettered sub-phases end here (ADR-0055).** From Phase 21 the identifier is a
 plain integer and every phase is planned together with the sentence that closes

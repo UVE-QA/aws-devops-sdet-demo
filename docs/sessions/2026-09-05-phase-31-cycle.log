@@ -1,0 +1,1009 @@
+# watch-page 2026-09-05T15:30:54.976Z
+# url https://demo.uveapp.net · every 5s · heartbeat 120s · 75m
+# the page is loaded ONCE. Every line below is a re-read of that same tab,
+# and "tab-held" is the sentinel saying so. This instrument makes no network
+# request of its own, so it cannot warm the edge or spend the page's budget.
+
+2026-09-05 15:30:55Z  tab-held  first frame
+    clocks    github … · bucket …
+    budget    (none read — the page is on its fallback branch)
+    cadence   —
+    map       Reading the topology…
+    verdict   —
+
+2026-09-05 15:31:00Z  tab-held  CHANGED
+    clocks    github 03:30:56 PM · bucket 03:30:55 PM
+    budget    GitHub budget: 58 of 60 requests left this hour
+    cadence   auto: bucket every 30 s — status and figures, the figures up to a minute behind the write; GitHub every 138 s (paced by the remaining budget)
+    map       Generated from infra/ and tests/. At rest it shows the last cycle that finished, dated 2026-08-12; the map is on the page whether or not anything is running.180 tests are collected from the suites the
+    verdict   all 4 succeeded · 1 still going
+    stage.vpc               measured          PREVIOUS     26s      measured · these figures are from the cycle before this one 
+    stage.secrets           measured          PREVIOUS     8m 36s   measured · these figures are from the cycle before this one 
+    stage.rds               measured          PREVIOUS     8m 36s   measured · these figures are from the cycle before this one 
+    stage.alb               measured          PREVIOUS     3m 16s   measured · these figures are from the cycle before this one 
+    stage.ecs               measured          PREVIOUS     12s      measured · these figures are from the cycle before this one 
+    stage.cloudwatch        measured          PREVIOUS     0s       measured · these figures are from the cycle before this one 
+    stage.budgets           measured          PREVIOUS     7s       measured · these figures are from the cycle before this one 
+    prod.vpc                destroyed         ended        26s      destroyed · these figures are from the cycle that ended · 26
+    prod.secrets            destroyed         ended        8m 39s   destroyed · these figures are from the cycle that ended · 8m
+    prod.rds                destroyed         ended        8m 38s   destroyed · these figures are from the cycle that ended · 8m
+    prod.alb                destroyed         ended        3m 16s   destroyed · these figures are from the cycle that ended · 3m
+    prod.ecs                destroyed         ended        11s      destroyed · these figures are from the cycle that ended · 11
+    prod.cloudwatch         destroyed         ended        1s       destroyed · these figures are from the cycle that ended · 1s
+    prod.dnsrec             destroyed         ended        31s      destroyed · these figures are from the cycle that ended · 31
+    prod.budgets            destroyed         ended        8s       destroyed · these figures are from the cycle that ended · 8s
+    perm.tfstate            —                 —            —        —
+    perm.oidc               —                 —            —        —
+    perm.ecr                —                 —            —        —
+    perm.dns                —                 —            —        —
+    perm.site               —                 —            —        —
+    perm.selfservice        —                 —            —        —
+    build.ecr               its phase is running—            —        its phase is running · its step is in Actions, not in a time
+    stage.migrate           not measured here —            —        not measured here · its step is in Actions, not in a timelin
+    suite.db.stage          passed            —            —        2 of 2 · from the previous run
+    suite.api.stage         passed            —            5.1s     52 of 52 · 5.1s · from the previous run
+    suite.regression.stage  passed            —            8.0s     12 of 12 · 8.0s · from the previous run
+    suite.smoke.stage       passed            —            0.6s     2 of 2 · 0.6s · from the previous run
+    gate.human              not measured here —            —        not measured here · its step is in Actions, not in a timelin
+    suite.db.prod           passed            —            —        2 of 2
+    suite.smoke.prod        passed            —            1.1s     2 of 2 · 1.1s
+    destroy.stage           measured          PREVIOUS     7m 53s   these figures are from the cycle before this one · 7m 53s
+    destroy.prod            measured          —            8m 20s   8m 20s
+    out.devbox              —                 —            —        —
+    out.github              —                 —            —        —
+    (0 of 34 nodes unchanged)
+
+2026-09-05 15:33:00Z  tab-held  heartbeat
+    clocks    github 03:30:56 PM · bucket 03:32:56 PM
+    budget    GitHub budget: 58 of 60 requests left this hour
+    cadence   auto: bucket every 30 s — status and figures, the figures up to a minute behind the write; GitHub every 134 s (paced by the remaining budget)
+    map       Generated from infra/ and tests/. At rest it shows the last cycle that finished, dated 2026-08-12; the map is on the page whether or not anything is running.180 tests are collected from the suites the
+    verdict   all 4 succeeded · 1 still going
+    stage.vpc               measured          PREVIOUS     26s      measured · these figures are from the cycle before this one 
+    stage.secrets           measured          PREVIOUS     8m 36s   measured · these figures are from the cycle before this one 
+    stage.rds               measured          PREVIOUS     8m 36s   measured · these figures are from the cycle before this one 
+    stage.alb               measured          PREVIOUS     3m 16s   measured · these figures are from the cycle before this one 
+    stage.ecs               measured          PREVIOUS     12s      measured · these figures are from the cycle before this one 
+    stage.cloudwatch        measured          PREVIOUS     0s       measured · these figures are from the cycle before this one 
+    stage.budgets           measured          PREVIOUS     7s       measured · these figures are from the cycle before this one 
+    prod.vpc                destroyed         ended        26s      destroyed · these figures are from the cycle that ended · 26
+    prod.secrets            destroyed         ended        8m 39s   destroyed · these figures are from the cycle that ended · 8m
+    prod.rds                destroyed         ended        8m 38s   destroyed · these figures are from the cycle that ended · 8m
+    prod.alb                destroyed         ended        3m 16s   destroyed · these figures are from the cycle that ended · 3m
+    prod.ecs                destroyed         ended        11s      destroyed · these figures are from the cycle that ended · 11
+    prod.cloudwatch         destroyed         ended        1s       destroyed · these figures are from the cycle that ended · 1s
+    prod.dnsrec             destroyed         ended        31s      destroyed · these figures are from the cycle that ended · 31
+    prod.budgets            destroyed         ended        8s       destroyed · these figures are from the cycle that ended · 8s
+    perm.tfstate            —                 —            —        —
+    perm.oidc               —                 —            —        —
+    perm.ecr                —                 —            —        —
+    perm.dns                —                 —            —        —
+    perm.site               —                 —            —        —
+    perm.selfservice        —                 —            —        —
+    build.ecr               its phase is running—            —        its phase is running · its step is in Actions, not in a time
+    stage.migrate           not measured here —            —        not measured here · its step is in Actions, not in a timelin
+    suite.db.stage          passed            —            —        2 of 2 · from the previous run
+    suite.api.stage         passed            —            5.1s     52 of 52 · 5.1s · from the previous run
+    suite.regression.stage  passed            —            8.0s     12 of 12 · 8.0s · from the previous run
+    suite.smoke.stage       passed            —            0.6s     2 of 2 · 0.6s · from the previous run
+    gate.human              not measured here —            —        not measured here · its step is in Actions, not in a timelin
+    suite.db.prod           passed            —            —        2 of 2
+    suite.smoke.prod        passed            —            1.1s     2 of 2 · 1.1s
+    destroy.stage           measured          PREVIOUS     7m 53s   these figures are from the cycle before this one · 7m 53s
+    destroy.prod            measured          —            8m 20s   8m 20s
+    out.devbox              —                 —            —        —
+    out.github              —                 —            —        —
+
+2026-09-05 15:33:30Z  tab-held  CHANGED
+    clocks    github 03:33:27 PM · bucket 03:33:26 PM
+    budget    GitHub budget: 58 of 60 requests left this hour
+    cadence   auto: bucket every 30 s — status and figures, the figures up to a minute behind the write; GitHub every 138 s (paced by the remaining budget)
+    map       Generated from infra/ and tests/. At rest it shows the last cycle that finished, dated 2026-08-12; the map is on the page whether or not anything is running.180 tests are collected from the suites the
+    verdict   all 4 succeeded · 1 still going
+    build.ecr               finished in this run—            —        finished in this run · its step is in Actions, not in a time
+        was: its phase is running · — · — · its phase is running · its step is in Actions, not in a time
+    (33 of 34 nodes unchanged)
+
+2026-09-05 15:35:31Z  tab-held  heartbeat
+    clocks    github 03:33:27 PM · bucket 03:35:28 PM
+    budget    GitHub budget: 58 of 60 requests left this hour
+    cadence   auto: bucket every 30 s — status and figures, the figures up to a minute behind the write; GitHub every 134 s (paced by the remaining budget)
+    map       Generated from infra/ and tests/. At rest it shows the last cycle that finished, dated 2026-08-12; the map is on the page whether or not anything is running.180 tests are collected from the suites the
+    verdict   all 4 succeeded · 1 still going
+    stage.vpc               measured          PREVIOUS     26s      measured · these figures are from the cycle before this one 
+    stage.secrets           measured          PREVIOUS     8m 36s   measured · these figures are from the cycle before this one 
+    stage.rds               measured          PREVIOUS     8m 36s   measured · these figures are from the cycle before this one 
+    stage.alb               measured          PREVIOUS     3m 16s   measured · these figures are from the cycle before this one 
+    stage.ecs               measured          PREVIOUS     12s      measured · these figures are from the cycle before this one 
+    stage.cloudwatch        measured          PREVIOUS     0s       measured · these figures are from the cycle before this one 
+    stage.budgets           measured          PREVIOUS     7s       measured · these figures are from the cycle before this one 
+    prod.vpc                destroyed         ended        26s      destroyed · these figures are from the cycle that ended · 26
+    prod.secrets            destroyed         ended        8m 39s   destroyed · these figures are from the cycle that ended · 8m
+    prod.rds                destroyed         ended        8m 38s   destroyed · these figures are from the cycle that ended · 8m
+    prod.alb                destroyed         ended        3m 16s   destroyed · these figures are from the cycle that ended · 3m
+    prod.ecs                destroyed         ended        11s      destroyed · these figures are from the cycle that ended · 11
+    prod.cloudwatch         destroyed         ended        1s       destroyed · these figures are from the cycle that ended · 1s
+    prod.dnsrec             destroyed         ended        31s      destroyed · these figures are from the cycle that ended · 31
+    prod.budgets            destroyed         ended        8s       destroyed · these figures are from the cycle that ended · 8s
+    perm.tfstate            —                 —            —        —
+    perm.oidc               —                 —            —        —
+    perm.ecr                —                 —            —        —
+    perm.dns                —                 —            —        —
+    perm.site               —                 —            —        —
+    perm.selfservice        —                 —            —        —
+    build.ecr               finished in this run—            —        finished in this run · its step is in Actions, not in a time
+    stage.migrate           not measured here —            —        not measured here · its step is in Actions, not in a timelin
+    suite.db.stage          passed            —            —        2 of 2 · from the previous run
+    suite.api.stage         passed            —            5.1s     52 of 52 · 5.1s · from the previous run
+    suite.regression.stage  passed            —            8.0s     12 of 12 · 8.0s · from the previous run
+    suite.smoke.stage       passed            —            0.6s     2 of 2 · 0.6s · from the previous run
+    gate.human              not measured here —            —        not measured here · its step is in Actions, not in a timelin
+    suite.db.prod           passed            —            —        2 of 2
+    suite.smoke.prod        passed            —            1.1s     2 of 2 · 1.1s
+    destroy.stage           measured          PREVIOUS     7m 53s   these figures are from the cycle before this one · 7m 53s
+    destroy.prod            measured          —            8m 20s   8m 20s
+    out.devbox              —                 —            —        —
+    out.github              —                 —            —        —
+
+2026-09-05 15:37:31Z  tab-held  heartbeat
+    clocks    github 03:35:59 PM · bucket 03:37:29 PM
+    budget    GitHub budget: 56 of 60 requests left this hour
+    cadence   auto: bucket every 30 s — status and figures, the figures up to a minute behind the write; GitHub every 134 s (paced by the remaining budget)
+    map       Generated from infra/ and tests/. At rest it shows the last cycle that finished, dated 2026-08-12; the map is on the page whether or not anything is running.180 tests are collected from the suites the
+    verdict   all 4 succeeded · 1 still going
+    stage.vpc               measured          PREVIOUS     26s      measured · these figures are from the cycle before this one 
+    stage.secrets           measured          PREVIOUS     8m 36s   measured · these figures are from the cycle before this one 
+    stage.rds               measured          PREVIOUS     8m 36s   measured · these figures are from the cycle before this one 
+    stage.alb               measured          PREVIOUS     3m 16s   measured · these figures are from the cycle before this one 
+    stage.ecs               measured          PREVIOUS     12s      measured · these figures are from the cycle before this one 
+    stage.cloudwatch        measured          PREVIOUS     0s       measured · these figures are from the cycle before this one 
+    stage.budgets           measured          PREVIOUS     7s       measured · these figures are from the cycle before this one 
+    prod.vpc                destroyed         ended        26s      destroyed · these figures are from the cycle that ended · 26
+    prod.secrets            destroyed         ended        8m 39s   destroyed · these figures are from the cycle that ended · 8m
+    prod.rds                destroyed         ended        8m 38s   destroyed · these figures are from the cycle that ended · 8m
+    prod.alb                destroyed         ended        3m 16s   destroyed · these figures are from the cycle that ended · 3m
+    prod.ecs                destroyed         ended        11s      destroyed · these figures are from the cycle that ended · 11
+    prod.cloudwatch         destroyed         ended        1s       destroyed · these figures are from the cycle that ended · 1s
+    prod.dnsrec             destroyed         ended        31s      destroyed · these figures are from the cycle that ended · 31
+    prod.budgets            destroyed         ended        8s       destroyed · these figures are from the cycle that ended · 8s
+    perm.tfstate            —                 —            —        —
+    perm.oidc               —                 —            —        —
+    perm.ecr                —                 —            —        —
+    perm.dns                —                 —            —        —
+    perm.site               —                 —            —        —
+    perm.selfservice        —                 —            —        —
+    build.ecr               finished in this run—            —        finished in this run · its step is in Actions, not in a time
+    stage.migrate           not measured here —            —        not measured here · its step is in Actions, not in a timelin
+    suite.db.stage          passed            —            —        2 of 2 · from the previous run
+    suite.api.stage         passed            —            5.1s     52 of 52 · 5.1s · from the previous run
+    suite.regression.stage  passed            —            8.0s     12 of 12 · 8.0s · from the previous run
+    suite.smoke.stage       passed            —            0.6s     2 of 2 · 0.6s · from the previous run
+    gate.human              not measured here —            —        not measured here · its step is in Actions, not in a timelin
+    suite.db.prod           passed            —            —        2 of 2
+    suite.smoke.prod        passed            —            1.1s     2 of 2 · 1.1s
+    destroy.stage           measured          PREVIOUS     7m 53s   these figures are from the cycle before this one · 7m 53s
+    destroy.prod            measured          —            8m 20s   8m 20s
+    out.devbox              —                 —            —        —
+    out.github              —                 —            —        —
+
+2026-09-05 15:38:32Z  tab-held  CHANGED
+    clocks    github 03:38:30 PM · bucket 03:38:29 PM
+    budget    GitHub budget: 56 of 60 requests left this hour
+    cadence   auto: bucket every 30 s — status and figures, the figures up to a minute behind the write; GitHub every 126 s (paced by the remaining budget)
+    map       Generated from infra/ and tests/. At rest it shows the last cycle that finished, dated 2026-08-12; the map is on the page whether or not anything is running.180 tests are collected from the suites the
+    verdict   all 3 succeeded · 1 still going
+    (34 of 34 nodes unchanged)
+
+2026-09-05 15:40:32Z  tab-held  heartbeat
+    clocks    github 03:38:30 PM · bucket 03:40:30 PM
+    budget    GitHub budget: 56 of 60 requests left this hour
+    cadence   auto: bucket every 30 s — status and figures, the figures up to a minute behind the write; GitHub every 121 s (paced by the remaining budget)
+    map       Generated from infra/ and tests/. At rest it shows the last cycle that finished, dated 2026-08-12; the map is on the page whether or not anything is running.180 tests are collected from the suites the
+    verdict   all 3 succeeded · 1 still going
+    stage.vpc               measured          PREVIOUS     26s      measured · these figures are from the cycle before this one 
+    stage.secrets           measured          PREVIOUS     8m 36s   measured · these figures are from the cycle before this one 
+    stage.rds               measured          PREVIOUS     8m 36s   measured · these figures are from the cycle before this one 
+    stage.alb               measured          PREVIOUS     3m 16s   measured · these figures are from the cycle before this one 
+    stage.ecs               measured          PREVIOUS     12s      measured · these figures are from the cycle before this one 
+    stage.cloudwatch        measured          PREVIOUS     0s       measured · these figures are from the cycle before this one 
+    stage.budgets           measured          PREVIOUS     7s       measured · these figures are from the cycle before this one 
+    prod.vpc                destroyed         ended        26s      destroyed · these figures are from the cycle that ended · 26
+    prod.secrets            destroyed         ended        8m 39s   destroyed · these figures are from the cycle that ended · 8m
+    prod.rds                destroyed         ended        8m 38s   destroyed · these figures are from the cycle that ended · 8m
+    prod.alb                destroyed         ended        3m 16s   destroyed · these figures are from the cycle that ended · 3m
+    prod.ecs                destroyed         ended        11s      destroyed · these figures are from the cycle that ended · 11
+    prod.cloudwatch         destroyed         ended        1s       destroyed · these figures are from the cycle that ended · 1s
+    prod.dnsrec             destroyed         ended        31s      destroyed · these figures are from the cycle that ended · 31
+    prod.budgets            destroyed         ended        8s       destroyed · these figures are from the cycle that ended · 8s
+    perm.tfstate            —                 —            —        —
+    perm.oidc               —                 —            —        —
+    perm.ecr                —                 —            —        —
+    perm.dns                —                 —            —        —
+    perm.site               —                 —            —        —
+    perm.selfservice        —                 —            —        —
+    build.ecr               finished in this run—            —        finished in this run · its step is in Actions, not in a time
+    stage.migrate           not measured here —            —        not measured here · its step is in Actions, not in a timelin
+    suite.db.stage          passed            —            —        2 of 2 · from the previous run
+    suite.api.stage         passed            —            5.1s     52 of 52 · 5.1s · from the previous run
+    suite.regression.stage  passed            —            8.0s     12 of 12 · 8.0s · from the previous run
+    suite.smoke.stage       passed            —            0.6s     2 of 2 · 0.6s · from the previous run
+    gate.human              not measured here —            —        not measured here · its step is in Actions, not in a timelin
+    suite.db.prod           passed            —            —        2 of 2
+    suite.smoke.prod        passed            —            1.1s     2 of 2 · 1.1s
+    destroy.stage           measured          PREVIOUS     7m 53s   these figures are from the cycle before this one · 7m 53s
+    destroy.prod            measured          —            8m 20s   8m 20s
+    out.devbox              —                 —            —        —
+    out.github              —                 —            —        —
+
+2026-09-05 15:41:02Z  tab-held  CHANGED
+    clocks    github 03:41:01 PM · bucket 03:41:01 PM
+    budget    GitHub budget: 54 of 60 requests left this hour
+    cadence   auto: bucket every 30 s — status and figures, the figures up to a minute behind the write; GitHub every 125 s (paced by the remaining budget)
+    map       Generated from infra/ and tests/. At rest it shows the last cycle that finished, dated 2026-08-12; the map is on the page whether or not anything is running.180 tests are collected from the suites the
+    verdict   all 3 succeeded · 1 still going
+    stage.migrate           its phase is running—            —        its phase is running · its step is in Actions, not in a time
+        was: not measured here · — · — · not measured here · its step is in Actions, not in a timelin
+    suite.db.stage          running now       —            —        running now · its report arrives when the step ends
+        was: passed · — · — · 2 of 2 · from the previous run
+    suite.api.stage         passed            —            5.1s     passed · 52 of 52 · 5.1s · from the previous run
+        was: passed · — · 5.1s · 52 of 52 · 5.1s · from the previous run
+    suite.regression.stage  passed            —            8.0s     passed · 12 of 12 · 8.0s · from the previous run
+        was: passed · — · 8.0s · 12 of 12 · 8.0s · from the previous run
+    suite.smoke.stage       passed            —            0.6s     passed · 2 of 2 · 0.6s · from the previous run
+        was: passed · — · 0.6s · 2 of 2 · 0.6s · from the previous run
+    (29 of 34 nodes unchanged)
+
+2026-09-05 15:43:02Z  tab-held  heartbeat
+    clocks    github 03:41:01 PM · bucket 03:43:02 PM
+    budget    GitHub budget: 54 of 60 requests left this hour
+    cadence   auto: bucket every 30 s — status and figures, the figures up to a minute behind the write; GitHub every 120 s (paced by the remaining budget)
+    map       Generated from infra/ and tests/. At rest it shows the last cycle that finished, dated 2026-08-12; the map is on the page whether or not anything is running.180 tests are collected from the suites the
+    verdict   all 3 succeeded · 1 still going
+    stage.vpc               measured          PREVIOUS     26s      measured · these figures are from the cycle before this one 
+    stage.secrets           measured          PREVIOUS     8m 36s   measured · these figures are from the cycle before this one 
+    stage.rds               measured          PREVIOUS     8m 36s   measured · these figures are from the cycle before this one 
+    stage.alb               measured          PREVIOUS     3m 16s   measured · these figures are from the cycle before this one 
+    stage.ecs               measured          PREVIOUS     12s      measured · these figures are from the cycle before this one 
+    stage.cloudwatch        measured          PREVIOUS     0s       measured · these figures are from the cycle before this one 
+    stage.budgets           measured          PREVIOUS     7s       measured · these figures are from the cycle before this one 
+    prod.vpc                destroyed         ended        26s      destroyed · these figures are from the cycle that ended · 26
+    prod.secrets            destroyed         ended        8m 39s   destroyed · these figures are from the cycle that ended · 8m
+    prod.rds                destroyed         ended        8m 38s   destroyed · these figures are from the cycle that ended · 8m
+    prod.alb                destroyed         ended        3m 16s   destroyed · these figures are from the cycle that ended · 3m
+    prod.ecs                destroyed         ended        11s      destroyed · these figures are from the cycle that ended · 11
+    prod.cloudwatch         destroyed         ended        1s       destroyed · these figures are from the cycle that ended · 1s
+    prod.dnsrec             destroyed         ended        31s      destroyed · these figures are from the cycle that ended · 31
+    prod.budgets            destroyed         ended        8s       destroyed · these figures are from the cycle that ended · 8s
+    perm.tfstate            —                 —            —        —
+    perm.oidc               —                 —            —        —
+    perm.ecr                —                 —            —        —
+    perm.dns                —                 —            —        —
+    perm.site               —                 —            —        —
+    perm.selfservice        —                 —            —        —
+    build.ecr               finished in this run—            —        finished in this run · its step is in Actions, not in a time
+    stage.migrate           its phase is running—            —        its phase is running · its step is in Actions, not in a time
+    suite.db.stage          running now       —            —        running now · its report arrives when the step ends
+    suite.api.stage         passed            —            5.1s     passed · 52 of 52 · 5.1s · from the previous run
+    suite.regression.stage  passed            —            8.0s     passed · 12 of 12 · 8.0s · from the previous run
+    suite.smoke.stage       passed            —            0.6s     passed · 2 of 2 · 0.6s · from the previous run
+    gate.human              not measured here —            —        not measured here · its step is in Actions, not in a timelin
+    suite.db.prod           passed            —            —        2 of 2
+    suite.smoke.prod        passed            —            1.1s     2 of 2 · 1.1s
+    destroy.stage           measured          PREVIOUS     7m 53s   these figures are from the cycle before this one · 7m 53s
+    destroy.prod            measured          —            8m 20s   8m 20s
+    out.devbox              —                 —            —        —
+    out.github              —                 —            —        —
+
+2026-09-05 15:43:38Z  tab-held  CHANGED
+    clocks    github 03:43:33 PM · bucket 03:43:32 PM
+    budget    GitHub budget: 54 of 60 requests left this hour
+    cadence   auto: bucket every 30 s — status and figures, the figures up to a minute behind the write; GitHub every 125 s (paced by the remaining budget)
+    map       Generated from infra/ and tests/. At rest it shows the last cycle that finished, dated 2026-08-12; the map is on the page whether or not anything is running.180 tests are collected from the suites the
+    verdict   all 3 succeeded · 1 still going
+    stage.migrate           finished in this run—            —        finished in this run · its step is in Actions, not in a time
+        was: its phase is running · — · — · its phase is running · its step is in Actions, not in a time
+    suite.db.stage          passed            —            —        passed · 2 of 2 · from the previous run
+        was: running now · — · — · running now · its report arrives when the step ends
+    suite.regression.stage  running now       —            —        running now · its report arrives when the step ends
+        was: passed · — · 8.0s · passed · 12 of 12 · 8.0s · from the previous run
+    suite.smoke.stage       running now       —            —        running now · its report arrives when the step ends
+        was: passed · — · 0.6s · passed · 2 of 2 · 0.6s · from the previous run
+    (30 of 34 nodes unchanged)
+
+2026-09-05 15:45:38Z  tab-held  heartbeat
+    clocks    github 03:43:33 PM · bucket 03:45:33 PM
+    budget    GitHub budget: 54 of 60 requests left this hour
+    cadence   auto: bucket every 30 s — status and figures, the figures up to a minute behind the write; GitHub every 120 s (paced by the remaining budget)
+    map       Generated from infra/ and tests/. At rest it shows the last cycle that finished, dated 2026-08-12; the map is on the page whether or not anything is running.180 tests are collected from the suites the
+    verdict   all 3 succeeded · 1 still going
+    stage.vpc               measured          PREVIOUS     26s      measured · these figures are from the cycle before this one 
+    stage.secrets           measured          PREVIOUS     8m 36s   measured · these figures are from the cycle before this one 
+    stage.rds               measured          PREVIOUS     8m 36s   measured · these figures are from the cycle before this one 
+    stage.alb               measured          PREVIOUS     3m 16s   measured · these figures are from the cycle before this one 
+    stage.ecs               measured          PREVIOUS     12s      measured · these figures are from the cycle before this one 
+    stage.cloudwatch        measured          PREVIOUS     0s       measured · these figures are from the cycle before this one 
+    stage.budgets           measured          PREVIOUS     7s       measured · these figures are from the cycle before this one 
+    prod.vpc                destroyed         ended        26s      destroyed · these figures are from the cycle that ended · 26
+    prod.secrets            destroyed         ended        8m 39s   destroyed · these figures are from the cycle that ended · 8m
+    prod.rds                destroyed         ended        8m 38s   destroyed · these figures are from the cycle that ended · 8m
+    prod.alb                destroyed         ended        3m 16s   destroyed · these figures are from the cycle that ended · 3m
+    prod.ecs                destroyed         ended        11s      destroyed · these figures are from the cycle that ended · 11
+    prod.cloudwatch         destroyed         ended        1s       destroyed · these figures are from the cycle that ended · 1s
+    prod.dnsrec             destroyed         ended        31s      destroyed · these figures are from the cycle that ended · 31
+    prod.budgets            destroyed         ended        8s       destroyed · these figures are from the cycle that ended · 8s
+    perm.tfstate            —                 —            —        —
+    perm.oidc               —                 —            —        —
+    perm.ecr                —                 —            —        —
+    perm.dns                —                 —            —        —
+    perm.site               —                 —            —        —
+    perm.selfservice        —                 —            —        —
+    build.ecr               finished in this run—            —        finished in this run · its step is in Actions, not in a time
+    stage.migrate           finished in this run—            —        finished in this run · its step is in Actions, not in a time
+    suite.db.stage          passed            —            —        passed · 2 of 2 · from the previous run
+    suite.api.stage         passed            —            5.1s     passed · 52 of 52 · 5.1s · from the previous run
+    suite.regression.stage  running now       —            —        running now · its report arrives when the step ends
+    suite.smoke.stage       running now       —            —        running now · its report arrives when the step ends
+    gate.human              not measured here —            —        not measured here · its step is in Actions, not in a timelin
+    suite.db.prod           passed            —            —        2 of 2
+    suite.smoke.prod        passed            —            1.1s     2 of 2 · 1.1s
+    destroy.stage           measured          PREVIOUS     7m 53s   these figures are from the cycle before this one · 7m 53s
+    destroy.prod            measured          —            8m 20s   8m 20s
+    out.devbox              —                 —            —        —
+    out.github              —                 —            —        —
+
+2026-09-05 15:46:08Z  tab-held  CHANGED
+    clocks    github 03:46:04 PM · bucket 03:46:03 PM
+    budget    GitHub budget: 52 of 60 requests left this hour
+    cadence   auto: bucket every 30 s — status and figures, the figures up to a minute behind the write; GitHub every 60 s
+    map       Generated from infra/ and tests/. At rest it shows the last cycle that finished, dated 2026-09-05; the map is on the page whether or not anything is running.180 tests are collected from the suites the
+    verdict   all 4 succeeded
+    stage.vpc               measured          —            27s      measured · 27s
+        was: measured · PREVIOUS · 26s · measured · these figures are from the cycle before this one 
+    stage.secrets           measured          —            7m 41s   measured · 7m 41s
+        was: measured · PREVIOUS · 8m 36s · measured · these figures are from the cycle before this one 
+    stage.rds               measured          —            7m 40s   measured · 7m 40s
+        was: measured · PREVIOUS · 8m 36s · measured · these figures are from the cycle before this one 
+    stage.alb               measured          —            2m 17s   measured · 2m 17s
+        was: measured · PREVIOUS · 3m 16s · measured · these figures are from the cycle before this one 
+    stage.ecs               measured          —            11s      measured · 11s
+        was: measured · PREVIOUS · 12s · measured · these figures are from the cycle before this one 
+    stage.cloudwatch        measured          —            1s       measured · 1s
+        was: measured · PREVIOUS · 0s · measured · these figures are from the cycle before this one 
+    stage.budgets           measured          —            7s       measured · 7s
+        was: measured · PREVIOUS · 7s · measured · these figures are from the cycle before this one 
+    build.ecr               not measured here —            —        not measured here · its step is in Actions, not in a timelin
+        was: finished in this run · — · — · finished in this run · its step is in Actions, not in a time
+    stage.migrate           not measured here —            —        not measured here · its step is in Actions, not in a timelin
+        was: finished in this run · — · — · finished in this run · its step is in Actions, not in a time
+    suite.db.stage          passed            —            —        2 of 2
+        was: passed · — · — · passed · 2 of 2 · from the previous run
+    suite.api.stage         passed            —            11s      52 of 52 · 11s
+        was: passed · — · 5.1s · passed · 52 of 52 · 5.1s · from the previous run
+    suite.regression.stage  passed            —            13s      12 of 12 · 13s
+        was: running now · — · — · running now · its report arrives when the step ends
+    suite.smoke.stage       passed            —            1.1s     2 of 2 · 1.1s
+        was: running now · — · — · running now · its report arrives when the step ends
+    destroy.stage           measured          —            7m 53s   7m 53s
+        was: measured · PREVIOUS · 7m 53s · these figures are from the cycle before this one · 7m 53s
+    (20 of 34 nodes unchanged)
+
+2026-09-05 15:47:08Z  tab-held  CHANGED
+    clocks    github 03:47:05 PM · bucket 03:47:05 PM
+    budget    GitHub budget: 52 of 60 requests left this hour
+    cadence   auto: bucket every 30 s — status and figures, the figures up to a minute behind the write; GitHub every 121 s (paced by the remaining budget)
+    map       Generated from infra/ and tests/. At rest it shows the last cycle that finished, dated 2026-09-05; the map is on the page whether or not anything is running.180 tests are collected from the suites the
+    verdict   all 3 succeeded · 1 still going
+    prod.vpc                measured          PREVIOUS     26s      measured · these figures are from the cycle before this one 
+        was: destroyed · ended · 26s · destroyed · these figures are from the cycle that ended · 26
+    prod.secrets            measured          PREVIOUS     8m 39s   measured · these figures are from the cycle before this one 
+        was: destroyed · ended · 8m 39s · destroyed · these figures are from the cycle that ended · 8m
+    prod.rds                measured          PREVIOUS     8m 38s   measured · these figures are from the cycle before this one 
+        was: destroyed · ended · 8m 38s · destroyed · these figures are from the cycle that ended · 8m
+    prod.alb                measured          PREVIOUS     3m 16s   measured · these figures are from the cycle before this one 
+        was: destroyed · ended · 3m 16s · destroyed · these figures are from the cycle that ended · 3m
+    prod.ecs                measured          PREVIOUS     11s      measured · these figures are from the cycle before this one 
+        was: destroyed · ended · 11s · destroyed · these figures are from the cycle that ended · 11
+    prod.cloudwatch         measured          PREVIOUS     1s       measured · these figures are from the cycle before this one 
+        was: destroyed · ended · 1s · destroyed · these figures are from the cycle that ended · 1s
+    prod.dnsrec             measured          PREVIOUS     31s      measured · these figures are from the cycle before this one 
+        was: destroyed · ended · 31s · destroyed · these figures are from the cycle that ended · 31
+    prod.budgets            measured          PREVIOUS     8s       measured · these figures are from the cycle before this one 
+        was: destroyed · ended · 8s · destroyed · these figures are from the cycle that ended · 8s
+    gate.human              its phase is running—            —        its phase is running · its step is in Actions, not in a time
+        was: not measured here · — · — · not measured here · its step is in Actions, not in a timelin
+    suite.db.prod           passed            —            —        2 of 2 · from the previous run
+        was: passed · — · — · 2 of 2
+    suite.smoke.prod        passed            —            1.1s     2 of 2 · 1.1s · from the previous run
+        was: passed · — · 1.1s · 2 of 2 · 1.1s
+    destroy.prod            measured          PREVIOUS     8m 20s   these figures are from the cycle before this one · 8m 20s
+        was: measured · — · 8m 20s · 8m 20s
+    (22 of 34 nodes unchanged)
+
+2026-09-05 15:49:09Z  tab-held  heartbeat
+    clocks    github 03:47:05 PM · bucket 03:49:06 PM
+    budget    GitHub budget: 52 of 60 requests left this hour
+    cadence   auto: bucket every 30 s — status and figures, the figures up to a minute behind the write; GitHub every 116 s (paced by the remaining budget)
+    map       Generated from infra/ and tests/. At rest it shows the last cycle that finished, dated 2026-09-05; the map is on the page whether or not anything is running.180 tests are collected from the suites the
+    verdict   all 3 succeeded · 1 still going
+    stage.vpc               measured          —            27s      measured · 27s
+    stage.secrets           measured          —            7m 41s   measured · 7m 41s
+    stage.rds               measured          —            7m 40s   measured · 7m 40s
+    stage.alb               measured          —            2m 17s   measured · 2m 17s
+    stage.ecs               measured          —            11s      measured · 11s
+    stage.cloudwatch        measured          —            1s       measured · 1s
+    stage.budgets           measured          —            7s       measured · 7s
+    prod.vpc                measured          PREVIOUS     26s      measured · these figures are from the cycle before this one 
+    prod.secrets            measured          PREVIOUS     8m 39s   measured · these figures are from the cycle before this one 
+    prod.rds                measured          PREVIOUS     8m 38s   measured · these figures are from the cycle before this one 
+    prod.alb                measured          PREVIOUS     3m 16s   measured · these figures are from the cycle before this one 
+    prod.ecs                measured          PREVIOUS     11s      measured · these figures are from the cycle before this one 
+    prod.cloudwatch         measured          PREVIOUS     1s       measured · these figures are from the cycle before this one 
+    prod.dnsrec             measured          PREVIOUS     31s      measured · these figures are from the cycle before this one 
+    prod.budgets            measured          PREVIOUS     8s       measured · these figures are from the cycle before this one 
+    perm.tfstate            —                 —            —        —
+    perm.oidc               —                 —            —        —
+    perm.ecr                —                 —            —        —
+    perm.dns                —                 —            —        —
+    perm.site               —                 —            —        —
+    perm.selfservice        —                 —            —        —
+    build.ecr               not measured here —            —        not measured here · its step is in Actions, not in a timelin
+    stage.migrate           not measured here —            —        not measured here · its step is in Actions, not in a timelin
+    suite.db.stage          passed            —            —        2 of 2
+    suite.api.stage         passed            —            11s      52 of 52 · 11s
+    suite.regression.stage  passed            —            13s      12 of 12 · 13s
+    suite.smoke.stage       passed            —            1.1s     2 of 2 · 1.1s
+    gate.human              its phase is running—            —        its phase is running · its step is in Actions, not in a time
+    suite.db.prod           passed            —            —        2 of 2 · from the previous run
+    suite.smoke.prod        passed            —            1.1s     2 of 2 · 1.1s · from the previous run
+    destroy.stage           measured          —            7m 53s   7m 53s
+    destroy.prod            measured          PREVIOUS     8m 20s   these figures are from the cycle before this one · 8m 20s
+    out.devbox              —                 —            —        —
+    out.github              —                 —            —        —
+
+2026-09-05 15:51:09Z  tab-held  heartbeat
+    clocks    github 03:49:37 PM · bucket 03:51:07 PM
+    budget    GitHub budget: 50 of 60 requests left this hour
+    cadence   auto: bucket every 30 s — status and figures, the figures up to a minute behind the write; GitHub every 109 s (paced by the remaining budget)
+    map       Generated from infra/ and tests/. At rest it shows the last cycle that finished, dated 2026-09-05; the map is on the page whether or not anything is running.180 tests are collected from the suites the
+    verdict   all 3 succeeded · 1 still going
+    stage.vpc               measured          —            27s      measured · 27s
+    stage.secrets           measured          —            7m 41s   measured · 7m 41s
+    stage.rds               measured          —            7m 40s   measured · 7m 40s
+    stage.alb               measured          —            2m 17s   measured · 2m 17s
+    stage.ecs               measured          —            11s      measured · 11s
+    stage.cloudwatch        measured          —            1s       measured · 1s
+    stage.budgets           measured          —            7s       measured · 7s
+    prod.vpc                measured          PREVIOUS     26s      measured · these figures are from the cycle before this one 
+    prod.secrets            measured          PREVIOUS     8m 39s   measured · these figures are from the cycle before this one 
+    prod.rds                measured          PREVIOUS     8m 38s   measured · these figures are from the cycle before this one 
+    prod.alb                measured          PREVIOUS     3m 16s   measured · these figures are from the cycle before this one 
+    prod.ecs                measured          PREVIOUS     11s      measured · these figures are from the cycle before this one 
+    prod.cloudwatch         measured          PREVIOUS     1s       measured · these figures are from the cycle before this one 
+    prod.dnsrec             measured          PREVIOUS     31s      measured · these figures are from the cycle before this one 
+    prod.budgets            measured          PREVIOUS     8s       measured · these figures are from the cycle before this one 
+    perm.tfstate            —                 —            —        —
+    perm.oidc               —                 —            —        —
+    perm.ecr                —                 —            —        —
+    perm.dns                —                 —            —        —
+    perm.site               —                 —            —        —
+    perm.selfservice        —                 —            —        —
+    build.ecr               not measured here —            —        not measured here · its step is in Actions, not in a timelin
+    stage.migrate           not measured here —            —        not measured here · its step is in Actions, not in a timelin
+    suite.db.stage          passed            —            —        2 of 2
+    suite.api.stage         passed            —            11s      52 of 52 · 11s
+    suite.regression.stage  passed            —            13s      12 of 12 · 13s
+    suite.smoke.stage       passed            —            1.1s     2 of 2 · 1.1s
+    gate.human              its phase is running—            —        its phase is running · its step is in Actions, not in a time
+    suite.db.prod           passed            —            —        2 of 2 · from the previous run
+    suite.smoke.prod        passed            —            1.1s     2 of 2 · 1.1s · from the previous run
+    destroy.stage           measured          —            7m 53s   7m 53s
+    destroy.prod            measured          PREVIOUS     8m 20s   these figures are from the cycle before this one · 8m 20s
+    out.devbox              —                 —            —        —
+    out.github              —                 —            —        —
+
+2026-09-05 15:51:39Z  tab-held  CHANGED
+    clocks    github 03:51:38 PM · bucket 03:51:37 PM
+    budget    GitHub budget: 50 of 60 requests left this hour
+    cadence   auto: bucket every 30 s — status and figures, the figures up to a minute behind the write; GitHub every 114 s (paced by the remaining budget)
+    map       Generated from infra/ and tests/. At rest it shows the last cycle that finished, dated 2026-09-05; the map is on the page whether or not anything is running.180 tests are collected from the suites the
+    verdict   all 3 succeeded · 1 still going
+    gate.human              finished in this run—            —        finished in this run · its step is in Actions, not in a time
+        was: its phase is running · — · — · its phase is running · its step is in Actions, not in a time
+    (33 of 34 nodes unchanged)
+
+2026-09-05 15:53:39Z  tab-held  heartbeat
+    clocks    github 03:51:38 PM · bucket 03:53:08 PM
+    budget    GitHub budget: 50 of 60 requests left this hour
+    cadence   auto: bucket every 30 s — status and figures, the figures up to a minute behind the write; GitHub every 110 s (paced by the remaining budget)
+    map       Generated from infra/ and tests/. At rest it shows the last cycle that finished, dated 2026-09-05; the map is on the page whether or not anything is running.180 tests are collected from the suites the
+    verdict   all 3 succeeded · 1 still going
+    stage.vpc               measured          —            27s      measured · 27s
+    stage.secrets           measured          —            7m 41s   measured · 7m 41s
+    stage.rds               measured          —            7m 40s   measured · 7m 40s
+    stage.alb               measured          —            2m 17s   measured · 2m 17s
+    stage.ecs               measured          —            11s      measured · 11s
+    stage.cloudwatch        measured          —            1s       measured · 1s
+    stage.budgets           measured          —            7s       measured · 7s
+    prod.vpc                measured          PREVIOUS     26s      measured · these figures are from the cycle before this one 
+    prod.secrets            measured          PREVIOUS     8m 39s   measured · these figures are from the cycle before this one 
+    prod.rds                measured          PREVIOUS     8m 38s   measured · these figures are from the cycle before this one 
+    prod.alb                measured          PREVIOUS     3m 16s   measured · these figures are from the cycle before this one 
+    prod.ecs                measured          PREVIOUS     11s      measured · these figures are from the cycle before this one 
+    prod.cloudwatch         measured          PREVIOUS     1s       measured · these figures are from the cycle before this one 
+    prod.dnsrec             measured          PREVIOUS     31s      measured · these figures are from the cycle before this one 
+    prod.budgets            measured          PREVIOUS     8s       measured · these figures are from the cycle before this one 
+    perm.tfstate            —                 —            —        —
+    perm.oidc               —                 —            —        —
+    perm.ecr                —                 —            —        —
+    perm.dns                —                 —            —        —
+    perm.site               —                 —            —        —
+    perm.selfservice        —                 —            —        —
+    build.ecr               not measured here —            —        not measured here · its step is in Actions, not in a timelin
+    stage.migrate           not measured here —            —        not measured here · its step is in Actions, not in a timelin
+    suite.db.stage          passed            —            —        2 of 2
+    suite.api.stage         passed            —            11s      52 of 52 · 11s
+    suite.regression.stage  passed            —            13s      12 of 12 · 13s
+    suite.smoke.stage       passed            —            1.1s     2 of 2 · 1.1s
+    gate.human              finished in this run—            —        finished in this run · its step is in Actions, not in a time
+    suite.db.prod           passed            —            —        2 of 2 · from the previous run
+    suite.smoke.prod        passed            —            1.1s     2 of 2 · 1.1s · from the previous run
+    destroy.stage           measured          —            7m 53s   7m 53s
+    destroy.prod            measured          PREVIOUS     8m 20s   these figures are from the cycle before this one · 8m 20s
+    out.devbox              —                 —            —        —
+    out.github              —                 —            —        —
+
+2026-09-05 15:55:40Z  tab-held  heartbeat
+    clocks    github 03:53:39 PM · bucket 03:55:10 PM
+    budget    GitHub budget: 48 of 60 requests left this hour
+    cadence   auto: bucket every 30 s — status and figures, the figures up to a minute behind the write; GitHub every 109 s (paced by the remaining budget)
+    map       Generated from infra/ and tests/. At rest it shows the last cycle that finished, dated 2026-09-05; the map is on the page whether or not anything is running.180 tests are collected from the suites the
+    verdict   all 3 succeeded · 1 still going
+    stage.vpc               measured          —            27s      measured · 27s
+    stage.secrets           measured          —            7m 41s   measured · 7m 41s
+    stage.rds               measured          —            7m 40s   measured · 7m 40s
+    stage.alb               measured          —            2m 17s   measured · 2m 17s
+    stage.ecs               measured          —            11s      measured · 11s
+    stage.cloudwatch        measured          —            1s       measured · 1s
+    stage.budgets           measured          —            7s       measured · 7s
+    prod.vpc                measured          PREVIOUS     26s      measured · these figures are from the cycle before this one 
+    prod.secrets            measured          PREVIOUS     8m 39s   measured · these figures are from the cycle before this one 
+    prod.rds                measured          PREVIOUS     8m 38s   measured · these figures are from the cycle before this one 
+    prod.alb                measured          PREVIOUS     3m 16s   measured · these figures are from the cycle before this one 
+    prod.ecs                measured          PREVIOUS     11s      measured · these figures are from the cycle before this one 
+    prod.cloudwatch         measured          PREVIOUS     1s       measured · these figures are from the cycle before this one 
+    prod.dnsrec             measured          PREVIOUS     31s      measured · these figures are from the cycle before this one 
+    prod.budgets            measured          PREVIOUS     8s       measured · these figures are from the cycle before this one 
+    perm.tfstate            —                 —            —        —
+    perm.oidc               —                 —            —        —
+    perm.ecr                —                 —            —        —
+    perm.dns                —                 —            —        —
+    perm.site               —                 —            —        —
+    perm.selfservice        —                 —            —        —
+    build.ecr               not measured here —            —        not measured here · its step is in Actions, not in a timelin
+    stage.migrate           not measured here —            —        not measured here · its step is in Actions, not in a timelin
+    suite.db.stage          passed            —            —        2 of 2
+    suite.api.stage         passed            —            11s      52 of 52 · 11s
+    suite.regression.stage  passed            —            13s      12 of 12 · 13s
+    suite.smoke.stage       passed            —            1.1s     2 of 2 · 1.1s
+    gate.human              finished in this run—            —        finished in this run · its step is in Actions, not in a time
+    suite.db.prod           passed            —            —        2 of 2 · from the previous run
+    suite.smoke.prod        passed            —            1.1s     2 of 2 · 1.1s · from the previous run
+    destroy.stage           measured          —            7m 53s   7m 53s
+    destroy.prod            measured          PREVIOUS     8m 20s   these figures are from the cycle before this one · 8m 20s
+    out.devbox              —                 —            —        —
+    out.github              —                 —            —        —
+
+2026-09-05 15:57:40Z  tab-held  heartbeat
+    clocks    github 03:55:41 PM · bucket 03:57:11 PM
+    budget    GitHub budget: 46 of 60 requests left this hour
+    cadence   auto: bucket every 30 s — status and figures, the figures up to a minute behind the write; GitHub every 109 s (paced by the remaining budget)
+    map       Generated from infra/ and tests/. At rest it shows the last cycle that finished, dated 2026-09-05; the map is on the page whether or not anything is running.180 tests are collected from the suites the
+    verdict   all 3 succeeded · 1 still going
+    stage.vpc               measured          —            27s      measured · 27s
+    stage.secrets           measured          —            7m 41s   measured · 7m 41s
+    stage.rds               measured          —            7m 40s   measured · 7m 40s
+    stage.alb               measured          —            2m 17s   measured · 2m 17s
+    stage.ecs               measured          —            11s      measured · 11s
+    stage.cloudwatch        measured          —            1s       measured · 1s
+    stage.budgets           measured          —            7s       measured · 7s
+    prod.vpc                measured          PREVIOUS     26s      measured · these figures are from the cycle before this one 
+    prod.secrets            measured          PREVIOUS     8m 39s   measured · these figures are from the cycle before this one 
+    prod.rds                measured          PREVIOUS     8m 38s   measured · these figures are from the cycle before this one 
+    prod.alb                measured          PREVIOUS     3m 16s   measured · these figures are from the cycle before this one 
+    prod.ecs                measured          PREVIOUS     11s      measured · these figures are from the cycle before this one 
+    prod.cloudwatch         measured          PREVIOUS     1s       measured · these figures are from the cycle before this one 
+    prod.dnsrec             measured          PREVIOUS     31s      measured · these figures are from the cycle before this one 
+    prod.budgets            measured          PREVIOUS     8s       measured · these figures are from the cycle before this one 
+    perm.tfstate            —                 —            —        —
+    perm.oidc               —                 —            —        —
+    perm.ecr                —                 —            —        —
+    perm.dns                —                 —            —        —
+    perm.site               —                 —            —        —
+    perm.selfservice        —                 —            —        —
+    build.ecr               not measured here —            —        not measured here · its step is in Actions, not in a timelin
+    stage.migrate           not measured here —            —        not measured here · its step is in Actions, not in a timelin
+    suite.db.stage          passed            —            —        2 of 2
+    suite.api.stage         passed            —            11s      52 of 52 · 11s
+    suite.regression.stage  passed            —            13s      12 of 12 · 13s
+    suite.smoke.stage       passed            —            1.1s     2 of 2 · 1.1s
+    gate.human              finished in this run—            —        finished in this run · its step is in Actions, not in a time
+    suite.db.prod           passed            —            —        2 of 2 · from the previous run
+    suite.smoke.prod        passed            —            1.1s     2 of 2 · 1.1s · from the previous run
+    destroy.stage           measured          —            7m 53s   7m 53s
+    destroy.prod            measured          PREVIOUS     8m 20s   these figures are from the cycle before this one · 8m 20s
+    out.devbox              —                 —            —        —
+    out.github              —                 —            —        —
+
+2026-09-05 15:59:40Z  tab-held  heartbeat
+    clocks    github 03:57:42 PM · bucket 03:59:13 PM
+    budget    GitHub budget: 44 of 60 requests left this hour
+    cadence   auto: bucket every 30 s — status and figures, the figures up to a minute behind the write; GitHub every 108 s (paced by the remaining budget)
+    map       Generated from infra/ and tests/. At rest it shows the last cycle that finished, dated 2026-09-05; the map is on the page whether or not anything is running.180 tests are collected from the suites the
+    verdict   all 3 succeeded · 1 still going
+    stage.vpc               measured          —            27s      measured · 27s
+    stage.secrets           measured          —            7m 41s   measured · 7m 41s
+    stage.rds               measured          —            7m 40s   measured · 7m 40s
+    stage.alb               measured          —            2m 17s   measured · 2m 17s
+    stage.ecs               measured          —            11s      measured · 11s
+    stage.cloudwatch        measured          —            1s       measured · 1s
+    stage.budgets           measured          —            7s       measured · 7s
+    prod.vpc                measured          PREVIOUS     26s      measured · these figures are from the cycle before this one 
+    prod.secrets            measured          PREVIOUS     8m 39s   measured · these figures are from the cycle before this one 
+    prod.rds                measured          PREVIOUS     8m 38s   measured · these figures are from the cycle before this one 
+    prod.alb                measured          PREVIOUS     3m 16s   measured · these figures are from the cycle before this one 
+    prod.ecs                measured          PREVIOUS     11s      measured · these figures are from the cycle before this one 
+    prod.cloudwatch         measured          PREVIOUS     1s       measured · these figures are from the cycle before this one 
+    prod.dnsrec             measured          PREVIOUS     31s      measured · these figures are from the cycle before this one 
+    prod.budgets            measured          PREVIOUS     8s       measured · these figures are from the cycle before this one 
+    perm.tfstate            —                 —            —        —
+    perm.oidc               —                 —            —        —
+    perm.ecr                —                 —            —        —
+    perm.dns                —                 —            —        —
+    perm.site               —                 —            —        —
+    perm.selfservice        —                 —            —        —
+    build.ecr               not measured here —            —        not measured here · its step is in Actions, not in a timelin
+    stage.migrate           not measured here —            —        not measured here · its step is in Actions, not in a timelin
+    suite.db.stage          passed            —            —        2 of 2
+    suite.api.stage         passed            —            11s      52 of 52 · 11s
+    suite.regression.stage  passed            —            13s      12 of 12 · 13s
+    suite.smoke.stage       passed            —            1.1s     2 of 2 · 1.1s
+    gate.human              finished in this run—            —        finished in this run · its step is in Actions, not in a time
+    suite.db.prod           passed            —            —        2 of 2 · from the previous run
+    suite.smoke.prod        passed            —            1.1s     2 of 2 · 1.1s · from the previous run
+    destroy.stage           measured          —            7m 53s   7m 53s
+    destroy.prod            measured          PREVIOUS     8m 20s   these figures are from the cycle before this one · 8m 20s
+    out.devbox              —                 —            —        —
+    out.github              —                 —            —        —
+
+2026-09-05 15:59:45Z  tab-held  CHANGED
+    clocks    github 03:59:43 PM · bucket 03:59:43 PM
+    budget    GitHub budget: 48 of 60 requests left this hour
+    cadence   auto: bucket every 30 s — status and figures, the figures up to a minute behind the write; GitHub every 89 s (paced by the remaining budget)
+    map       Generated from infra/ and tests/. At rest it shows the last cycle that finished, dated 2026-09-05; the map is on the page whether or not anything is running.180 tests are collected from the suites the
+    verdict   all 3 succeeded · 1 still going
+    suite.db.prod           running now       —            —        running now · its report arrives when the step ends
+        was: passed · — · — · 2 of 2 · from the previous run
+    suite.smoke.prod        passed            —            1.1s     passed · 2 of 2 · 1.1s · from the previous run
+        was: passed · — · 1.1s · 2 of 2 · 1.1s · from the previous run
+    (32 of 34 nodes unchanged)
+
+2026-09-05 16:01:46Z  tab-held  heartbeat
+    clocks    github 04:01:15 PM · bucket 04:01:45 PM
+    budget    GitHub budget: 42 of 60 requests left this hour
+    cadence   auto: bucket every 30 s — status and figures, the figures up to a minute behind the write; GitHub every 106 s (paced by the remaining budget)
+    map       Generated from infra/ and tests/. At rest it shows the last cycle that finished, dated 2026-09-05; the map is on the page whether or not anything is running.180 tests are collected from the suites the
+    verdict   all 3 succeeded · 1 still going
+    stage.vpc               measured          —            27s      measured · 27s
+    stage.secrets           measured          —            7m 41s   measured · 7m 41s
+    stage.rds               measured          —            7m 40s   measured · 7m 40s
+    stage.alb               measured          —            2m 17s   measured · 2m 17s
+    stage.ecs               measured          —            11s      measured · 11s
+    stage.cloudwatch        measured          —            1s       measured · 1s
+    stage.budgets           measured          —            7s       measured · 7s
+    prod.vpc                measured          PREVIOUS     26s      measured · these figures are from the cycle before this one 
+    prod.secrets            measured          PREVIOUS     8m 39s   measured · these figures are from the cycle before this one 
+    prod.rds                measured          PREVIOUS     8m 38s   measured · these figures are from the cycle before this one 
+    prod.alb                measured          PREVIOUS     3m 16s   measured · these figures are from the cycle before this one 
+    prod.ecs                measured          PREVIOUS     11s      measured · these figures are from the cycle before this one 
+    prod.cloudwatch         measured          PREVIOUS     1s       measured · these figures are from the cycle before this one 
+    prod.dnsrec             measured          PREVIOUS     31s      measured · these figures are from the cycle before this one 
+    prod.budgets            measured          PREVIOUS     8s       measured · these figures are from the cycle before this one 
+    perm.tfstate            —                 —            —        —
+    perm.oidc               —                 —            —        —
+    perm.ecr                —                 —            —        —
+    perm.dns                —                 —            —        —
+    perm.site               —                 —            —        —
+    perm.selfservice        —                 —            —        —
+    build.ecr               not measured here —            —        not measured here · its step is in Actions, not in a timelin
+    stage.migrate           not measured here —            —        not measured here · its step is in Actions, not in a timelin
+    suite.db.stage          passed            —            —        2 of 2
+    suite.api.stage         passed            —            11s      52 of 52 · 11s
+    suite.regression.stage  passed            —            13s      12 of 12 · 13s
+    suite.smoke.stage       passed            —            1.1s     2 of 2 · 1.1s
+    gate.human              finished in this run—            —        finished in this run · its step is in Actions, not in a time
+    suite.db.prod           running now       —            —        running now · its report arrives when the step ends
+    suite.smoke.prod        passed            —            1.1s     passed · 2 of 2 · 1.1s · from the previous run
+    destroy.stage           measured          —            7m 53s   7m 53s
+    destroy.prod            measured          PREVIOUS     8m 20s   these figures are from the cycle before this one · 8m 20s
+    out.devbox              —                 —            —        —
+    out.github              —                 —            —        —
+
+2026-09-05 16:03:21Z  tab-held  CHANGED
+    clocks    github 04:03:16 PM · bucket 04:03:15 PM
+    budget    GitHub budget: 40 of 60 requests left this hour
+    cadence   auto: bucket every 30 s — status and figures, the figures up to a minute behind the write; GitHub every 106 s (paced by the remaining budget)
+    map       Generated from infra/ and tests/. At rest it shows the last cycle that finished, dated 2026-09-05; the map is on the page whether or not anything is running.180 tests are collected from the suites the
+    verdict   all 3 succeeded · 1 still going
+    suite.db.prod           passed            —            —        passed · 2 of 2 · from the previous run
+        was: running now · — · — · running now · its report arrives when the step ends
+    suite.smoke.prod        running now       —            —        running now · its report arrives when the step ends
+        was: passed · — · 1.1s · passed · 2 of 2 · 1.1s · from the previous run
+    (32 of 34 nodes unchanged)
+
+2026-09-05 16:04:21Z  tab-held  CHANGED
+    clocks    github 04:03:16 PM · bucket 04:04:17 PM
+    budget    GitHub budget: 40 of 60 requests left this hour
+    cadence   auto: bucket every 30 s — status and figures, the figures up to a minute behind the write; GitHub every 103 s (paced by the remaining budget)
+    map       Generated from infra/ and tests/. At rest it shows the last cycle that finished, dated 2026-09-05; the map is on the page whether or not anything is running.180 tests are collected from the suites the
+    verdict   all 3 succeeded · 1 still going
+    prod.vpc                measured          under-way    25s      measured · these figures are from the cycle under way · 25s
+        was: measured · PREVIOUS · 26s · measured · these figures are from the cycle before this one 
+    prod.secrets            measured          under-way    8m 1s    measured · these figures are from the cycle under way · 8m 1
+        was: measured · PREVIOUS · 8m 39s · measured · these figures are from the cycle before this one 
+    prod.rds                measured          under-way    8m 0s    measured · these figures are from the cycle under way · 8m 0
+        was: measured · PREVIOUS · 8m 38s · measured · these figures are from the cycle before this one 
+    prod.alb                measured          under-way    2m 25s   measured · these figures are from the cycle under way · 2m 2
+        was: measured · PREVIOUS · 3m 16s · measured · these figures are from the cycle before this one 
+    prod.ecs                measured          under-way    11s      measured · these figures are from the cycle under way · 11s
+        was: measured · PREVIOUS · 11s · measured · these figures are from the cycle before this one 
+    prod.cloudwatch         measured          under-way    1s       measured · these figures are from the cycle under way · 1s
+        was: measured · PREVIOUS · 1s · measured · these figures are from the cycle before this one 
+    prod.dnsrec             measured          under-way    31s      measured · these figures are from the cycle under way · 31s
+        was: measured · PREVIOUS · 31s · measured · these figures are from the cycle before this one 
+    prod.budgets            measured          under-way    7s       measured · these figures are from the cycle under way · 7s
+        was: measured · PREVIOUS · 8s · measured · these figures are from the cycle before this one 
+    suite.db.prod           passed            —            —        passed · 2 of 2
+        was: passed · — · — · passed · 2 of 2 · from the previous run
+    (25 of 34 nodes unchanged)
+
+2026-09-05 16:05:21Z  tab-held  CHANGED
+    clocks    github 04:05:18 PM · bucket 04:05:17 PM
+    budget    GitHub budget: 46 of 60 requests left this hour
+    cadence   auto: bucket every 30 s — status and figures, the figures up to a minute behind the write; GitHub every 60 s
+    map       Generated from infra/ and tests/. At rest it shows the last cycle that finished, dated 2026-09-05; the map is on the page whether or not anything is running.180 tests are collected from the suites the
+    verdict   1 of 4 failed
+    prod.vpc                measured          —            25s      measured · 25s
+        was: measured · under-way · 25s · measured · these figures are from the cycle under way · 25s
+    prod.secrets            measured          —            8m 1s    measured · 8m 1s
+        was: measured · under-way · 8m 1s · measured · these figures are from the cycle under way · 8m 1
+    prod.rds                measured          —            8m 0s    measured · 8m 0s
+        was: measured · under-way · 8m 0s · measured · these figures are from the cycle under way · 8m 0
+    prod.alb                measured          —            2m 25s   measured · 2m 25s
+        was: measured · under-way · 2m 25s · measured · these figures are from the cycle under way · 2m 2
+    prod.ecs                measured          —            11s      measured · 11s
+        was: measured · under-way · 11s · measured · these figures are from the cycle under way · 11s
+    prod.cloudwatch         measured          —            1s       measured · 1s
+        was: measured · under-way · 1s · measured · these figures are from the cycle under way · 1s
+    prod.dnsrec             measured          —            31s      measured · 31s
+        was: measured · under-way · 31s · measured · these figures are from the cycle under way · 31s
+    prod.budgets            measured          —            7s       measured · 7s
+        was: measured · under-way · 7s · measured · these figures are from the cycle under way · 7s
+    gate.human              not measured here —            —        not measured here · its step is in Actions, not in a timelin
+        was: finished in this run · — · — · finished in this run · its step is in Actions, not in a time
+    suite.db.prod           passed            —            —        2 of 2
+        was: passed · — · — · passed · 2 of 2
+    suite.smoke.prod        passed            —            2.3s     2 of 2 · 2.3s
+        was: running now · — · — · running now · its report arrives when the step ends
+    destroy.prod            measured          —            8m 20s   8m 20s
+        was: measured · PREVIOUS · 8m 20s · these figures are from the cycle before this one · 8m 20s
+    (22 of 34 nodes unchanged)
+
+2026-09-05 16:07:22Z  tab-held  CHANGED
+    clocks    github 04:07:20 PM · bucket 04:07:19 PM
+    budget    GitHub budget: 37 of 60 requests left this hour
+    cadence   auto: bucket every 30 s — status and figures, the figures up to a minute behind the write; GitHub every 101 s (paced by the remaining budget)
+    map       Generated from infra/ and tests/. At rest it shows the last cycle that finished, dated 2026-09-05; the map is on the page whether or not anything is running.180 tests are collected from the suites the
+    verdict   1 of 3 failed · 1 still going
+    stage.vpc               measured          PREVIOUS     27s      measured · these figures are from the cycle before this one 
+        was: measured · — · 27s · measured · 27s
+    stage.secrets           measured          PREVIOUS     7m 41s   measured · these figures are from the cycle before this one 
+        was: measured · — · 7m 41s · measured · 7m 41s
+    stage.rds               measured          PREVIOUS     7m 40s   measured · these figures are from the cycle before this one 
+        was: measured · — · 7m 40s · measured · 7m 40s
+    stage.alb               measured          PREVIOUS     2m 17s   measured · these figures are from the cycle before this one 
+        was: measured · — · 2m 17s · measured · 2m 17s
+    stage.ecs               measured          PREVIOUS     11s      measured · these figures are from the cycle before this one 
+        was: measured · — · 11s · measured · 11s
+    stage.cloudwatch        measured          PREVIOUS     1s       measured · these figures are from the cycle before this one 
+        was: measured · — · 1s · measured · 1s
+    stage.budgets           measured          PREVIOUS     7s       measured · these figures are from the cycle before this one 
+        was: measured · — · 7s · measured · 7s
+    suite.db.stage          passed            —            —        2 of 2 · from the previous run
+        was: passed · — · — · 2 of 2
+    suite.api.stage         passed            —            11s      52 of 52 · 11s · from the previous run
+        was: passed · — · 11s · 52 of 52 · 11s
+    suite.regression.stage  passed            —            13s      12 of 12 · 13s · from the previous run
+        was: passed · — · 13s · 12 of 12 · 13s
+    suite.smoke.stage       passed            —            1.1s     2 of 2 · 1.1s · from the previous run
+        was: passed · — · 1.1s · 2 of 2 · 1.1s
+    destroy.stage           measured          PREVIOUS     7m 53s   these figures are from the cycle before this one · 7m 53s
+        was: measured · — · 7m 53s · 7m 53s
+    (22 of 34 nodes unchanged)
+
+2026-09-05 16:09:22Z  tab-held  CHANGED
+    clocks    github 04:09:21 PM · bucket 04:09:20 PM
+    budget    GitHub budget: 44 of 60 requests left this hour
+    cadence   auto: bucket every 30 s — status and figures, the figures up to a minute behind the write; GitHub every 68 s (paced by the remaining budget)
+    map       Generated from infra/ and tests/. At rest it shows the last cycle that finished, dated 2026-09-05; the map is on the page whether or not anything is running.180 tests are collected from the suites the
+    verdict   1 of 3 failed · 1 still going
+    destroy.stage           its phase is running—            —        its phase is running · which node is unknown
+        was: measured · PREVIOUS · 7m 53s · these figures are from the cycle before this one · 7m 53s
+    destroy.prod            measured          —            8m 20s   measured · 8m 20s
+        was: measured · — · 8m 20s · 8m 20s
+    (32 of 34 nodes unchanged)
+
+2026-09-05 16:11:23Z  tab-held  heartbeat
+    clocks    github 04:10:52 PM · bucket 04:10:52 PM
+    budget    GitHub budget: 35 of 60 requests left this hour
+    cadence   auto: bucket every 30 s — status and figures, the figures up to a minute behind the write; GitHub every 93 s (paced by the remaining budget)
+    map       Generated from infra/ and tests/. At rest it shows the last cycle that finished, dated 2026-09-05; the map is on the page whether or not anything is running.180 tests are collected from the suites the
+    verdict   1 of 3 failed · 1 still going
+    stage.vpc               measured          PREVIOUS     27s      measured · these figures are from the cycle before this one 
+    stage.secrets           measured          PREVIOUS     7m 41s   measured · these figures are from the cycle before this one 
+    stage.rds               measured          PREVIOUS     7m 40s   measured · these figures are from the cycle before this one 
+    stage.alb               measured          PREVIOUS     2m 17s   measured · these figures are from the cycle before this one 
+    stage.ecs               measured          PREVIOUS     11s      measured · these figures are from the cycle before this one 
+    stage.cloudwatch        measured          PREVIOUS     1s       measured · these figures are from the cycle before this one 
+    stage.budgets           measured          PREVIOUS     7s       measured · these figures are from the cycle before this one 
+    prod.vpc                measured          —            25s      measured · 25s
+    prod.secrets            measured          —            8m 1s    measured · 8m 1s
+    prod.rds                measured          —            8m 0s    measured · 8m 0s
+    prod.alb                measured          —            2m 25s   measured · 2m 25s
+    prod.ecs                measured          —            11s      measured · 11s
+    prod.cloudwatch         measured          —            1s       measured · 1s
+    prod.dnsrec             measured          —            31s      measured · 31s
+    prod.budgets            measured          —            7s       measured · 7s
+    perm.tfstate            —                 —            —        —
+    perm.oidc               —                 —            —        —
+    perm.ecr                —                 —            —        —
+    perm.dns                —                 —            —        —
+    perm.site               —                 —            —        —
+    perm.selfservice        —                 —            —        —
+    build.ecr               not measured here —            —        not measured here · its step is in Actions, not in a timelin
+    stage.migrate           not measured here —            —        not measured here · its step is in Actions, not in a timelin
+    suite.db.stage          passed            —            —        2 of 2 · from the previous run
+    suite.api.stage         passed            —            11s      52 of 52 · 11s · from the previous run
+    suite.regression.stage  passed            —            13s      12 of 12 · 13s · from the previous run
+    suite.smoke.stage       passed            —            1.1s     2 of 2 · 1.1s · from the previous run
+    gate.human              not measured here —            —        not measured here · its step is in Actions, not in a timelin
+    suite.db.prod           passed            —            —        2 of 2
+    suite.smoke.prod        passed            —            2.3s     2 of 2 · 2.3s
+    destroy.stage           its phase is running—            —        its phase is running · which node is unknown
+    destroy.prod            measured          —            8m 20s   measured · 8m 20s
+    out.devbox              —                 —            —        —
+    out.github              —                 —            —        —
+
+2026-09-05 16:13:23Z  tab-held  heartbeat
+    clocks    github 04:12:54 PM · bucket 04:12:53 PM
+    budget    GitHub budget: 33 of 60 requests left this hour
+    cadence   auto: bucket every 30 s — status and figures, the figures up to a minute behind the write; GitHub every 91 s (paced by the remaining budget)
+    map       Generated from infra/ and tests/. At rest it shows the last cycle that finished, dated 2026-09-05; the map is on the page whether or not anything is running.180 tests are collected from the suites the
+    verdict   1 of 3 failed · 1 still going
+    stage.vpc               measured          PREVIOUS     27s      measured · these figures are from the cycle before this one 
+    stage.secrets           measured          PREVIOUS     7m 41s   measured · these figures are from the cycle before this one 
+    stage.rds               measured          PREVIOUS     7m 40s   measured · these figures are from the cycle before this one 
+    stage.alb               measured          PREVIOUS     2m 17s   measured · these figures are from the cycle before this one 
+    stage.ecs               measured          PREVIOUS     11s      measured · these figures are from the cycle before this one 
+    stage.cloudwatch        measured          PREVIOUS     1s       measured · these figures are from the cycle before this one 
+    stage.budgets           measured          PREVIOUS     7s       measured · these figures are from the cycle before this one 
+    prod.vpc                measured          —            25s      measured · 25s
+    prod.secrets            measured          —            8m 1s    measured · 8m 1s
+    prod.rds                measured          —            8m 0s    measured · 8m 0s
+    prod.alb                measured          —            2m 25s   measured · 2m 25s
+    prod.ecs                measured          —            11s      measured · 11s
+    prod.cloudwatch         measured          —            1s       measured · 1s
+    prod.dnsrec             measured          —            31s      measured · 31s
+    prod.budgets            measured          —            7s       measured · 7s
+    perm.tfstate            —                 —            —        —
+    perm.oidc               —                 —            —        —
+    perm.ecr                —                 —            —        —
+    perm.dns                —                 —            —        —
+    perm.site               —                 —            —        —
+    perm.selfservice        —                 —            —        —
+    build.ecr               not measured here —            —        not measured here · its step is in Actions, not in a timelin
+    stage.migrate           not measured here —            —        not measured here · its step is in Actions, not in a timelin
+    suite.db.stage          passed            —            —        2 of 2 · from the previous run
+    suite.api.stage         passed            —            11s      52 of 52 · 11s · from the previous run
+    suite.regression.stage  passed            —            13s      12 of 12 · 13s · from the previous run
+    suite.smoke.stage       passed            —            1.1s     2 of 2 · 1.1s · from the previous run
+    gate.human              not measured here —            —        not measured here · its step is in Actions, not in a timelin
+    suite.db.prod           passed            —            —        2 of 2
+    suite.smoke.prod        passed            —            2.3s     2 of 2 · 2.3s
+    destroy.stage           its phase is running—            —        its phase is running · which node is unknown
+    destroy.prod            measured          —            8m 20s   measured · 8m 20s
+    out.devbox              —                 —            —        —
+    out.github              —                 —            —        —
+
+2026-09-05 16:15:23Z  tab-held  heartbeat
+    clocks    github 04:14:55 PM · bucket 04:14:54 PM
+    budget    GitHub budget: 31 of 60 requests left this hour
+    cadence   auto: bucket every 30 s — status and figures, the figures up to a minute behind the write; GitHub every 89 s (paced by the remaining budget)
+    map       Generated from infra/ and tests/. At rest it shows the last cycle that finished, dated 2026-09-05; the map is on the page whether or not anything is running.180 tests are collected from the suites the
+    verdict   1 of 3 failed · 1 still going
+    stage.vpc               measured          PREVIOUS     27s      measured · these figures are from the cycle before this one 
+    stage.secrets           measured          PREVIOUS     7m 41s   measured · these figures are from the cycle before this one 
+    stage.rds               measured          PREVIOUS     7m 40s   measured · these figures are from the cycle before this one 
+    stage.alb               measured          PREVIOUS     2m 17s   measured · these figures are from the cycle before this one 
+    stage.ecs               measured          PREVIOUS     11s      measured · these figures are from the cycle before this one 
+    stage.cloudwatch        measured          PREVIOUS     1s       measured · these figures are from the cycle before this one 
+    stage.budgets           measured          PREVIOUS     7s       measured · these figures are from the cycle before this one 
+    prod.vpc                measured          —            25s      measured · 25s
+    prod.secrets            measured          —            8m 1s    measured · 8m 1s
+    prod.rds                measured          —            8m 0s    measured · 8m 0s
+    prod.alb                measured          —            2m 25s   measured · 2m 25s
+    prod.ecs                measured          —            11s      measured · 11s
+    prod.cloudwatch         measured          —            1s       measured · 1s
+    prod.dnsrec             measured          —            31s      measured · 31s
+    prod.budgets            measured          —            7s       measured · 7s
+    perm.tfstate            —                 —            —        —
+    perm.oidc               —                 —            —        —
+    perm.ecr                —                 —            —        —
+    perm.dns                —                 —            —        —
+    perm.site               —                 —            —        —
+    perm.selfservice        —                 —            —        —
+    build.ecr               not measured here —            —        not measured here · its step is in Actions, not in a timelin
+    stage.migrate           not measured here —            —        not measured here · its step is in Actions, not in a timelin
+    suite.db.stage          passed            —            —        2 of 2 · from the previous run
+    suite.api.stage         passed            —            11s      52 of 52 · 11s · from the previous run
+    suite.regression.stage  passed            —            13s      12 of 12 · 13s · from the previous run
+    suite.smoke.stage       passed            —            1.1s     2 of 2 · 1.1s · from the previous run
+    gate.human              not measured here —            —        not measured here · its step is in Actions, not in a timelin
+    suite.db.prod           passed            —            —        2 of 2
+    suite.smoke.prod        passed            —            2.3s     2 of 2 · 2.3s
+    destroy.stage           its phase is running—            —        its phase is running · which node is unknown
+    destroy.prod            measured          —            8m 20s   measured · 8m 20s
+    out.devbox              —                 —            —        —
+    out.github              —                 —            —        —
+
+2026-09-05 16:15:58Z  tab-held  CHANGED
+    clocks    github 04:14:55 PM · bucket 04:15:56 PM
+    budget    GitHub budget: 31 of 60 requests left this hour
+    cadence   auto: bucket every 30 s — status and figures, the figures up to a minute behind the write; GitHub every 84 s (paced by the remaining budget)
+    map       Generated from infra/ and tests/. At rest it shows the last cycle that finished, dated 2026-09-05; the map is on the page whether or not anything is running.180 tests are collected from the suites the
+    verdict   1 of 3 failed · 1 still going
+    stage.vpc               destroyed         ended        27s      destroyed · these figures are from the cycle that ended · 27
+        was: measured · PREVIOUS · 27s · measured · these figures are from the cycle before this one 
+    stage.secrets           destroyed         ended        7m 41s   destroyed · these figures are from the cycle that ended · 7m
+        was: measured · PREVIOUS · 7m 41s · measured · these figures are from the cycle before this one 
+    stage.rds               destroyed         ended        7m 40s   destroyed · these figures are from the cycle that ended · 7m
+        was: measured · PREVIOUS · 7m 40s · measured · these figures are from the cycle before this one 
+    stage.alb               destroyed         ended        2m 17s   destroyed · these figures are from the cycle that ended · 2m
+        was: measured · PREVIOUS · 2m 17s · measured · these figures are from the cycle before this one 
+    stage.ecs               destroyed         ended        11s      destroyed · these figures are from the cycle that ended · 11
+        was: measured · PREVIOUS · 11s · measured · these figures are from the cycle before this one 
+    stage.cloudwatch        destroyed         ended        1s       destroyed · these figures are from the cycle that ended · 1s
+        was: measured · PREVIOUS · 1s · measured · these figures are from the cycle before this one 
+    stage.budgets           destroyed         ended        7s       destroyed · these figures are from the cycle that ended · 7s
+        was: measured · PREVIOUS · 7s · measured · these figures are from the cycle before this one 
+    (27 of 34 nodes unchanged)
+
+2026-09-05 16:16:29Z  tab-held  CHANGED
+    clocks    github 04:16:27 PM · bucket 04:16:26 PM
+    budget    GitHub budget: 42 of 60 requests left this hour
+    cadence   auto: bucket every 30 s — status and figures, the figures up to a minute behind the write; GitHub every 60 s
+    map       Generated from infra/ and tests/. At rest it shows the last cycle that finished, dated 2026-09-05; the map is on the page whether or not anything is running.180 tests are collected from the suites the
+    verdict   1 of 4 failed
+    suite.db.stage          passed            —            —        2 of 2
+        was: passed · — · — · 2 of 2 · from the previous run
+    suite.api.stage         passed            —            11s      52 of 52 · 11s
+        was: passed · — · 11s · 52 of 52 · 11s · from the previous run
+    suite.regression.stage  passed            —            13s      12 of 12 · 13s
+        was: passed · — · 13s · 12 of 12 · 13s · from the previous run
+    suite.smoke.stage       passed            —            1.1s     2 of 2 · 1.1s
+        was: passed · — · 1.1s · 2 of 2 · 1.1s · from the previous run
+    destroy.stage           measured          —            7m 42s   7m 42s
+        was: its phase is running · — · — · its phase is running · which node is unknown
+    destroy.prod            measured          —            8m 20s   8m 20s
+        was: measured · — · 8m 20s · measured · 8m 20s
+    (28 of 34 nodes unchanged)
+
