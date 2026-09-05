@@ -710,11 +710,22 @@
       }
       .panel .clocks button { font-size: 0.72rem; padding: 0.1rem 0.45rem; }
       #ratelimit { flex-basis: 100%; }
-      .launch { border-top: 1px solid var(--line); margin-top: 0.5rem; padding-top: 0.5rem; }
+      .launch { border-top: 1px solid var(--line); margin-top: 0.5rem; padding-top: 0.6rem; }
       .launch .why { margin: 0 0 0.45rem; font-size: 0.72rem; }
       #autorefresh, #ratelimit { font-size: 0.7rem; }
       .launch #launch-result:empty { display: none; }
-      .launch button { font-size: 0.8rem; font-weight: 600; border-color: var(--accent); color: var(--accent); }
+      /* FILLED, not outlined (ADR-0064). Every other control on this page is an
+         outline on the panel background, because every other control re-reads
+         something. This one provisions AWS, and it was drawn in the same weight
+         as Refresh. The text colour is var(--bg) rather than a literal white so
+         it follows the theme: 4.6:1 on the light accent, 8.2:1 on the dark one,
+         both above the 4.5:1 floor for text this size. */
+      .launch button {
+        font-size: 0.88rem; font-weight: 600; padding: 0.35rem 0.85rem;
+        background: var(--accent); border-color: var(--accent); color: var(--bg);
+      }
+      .launch button:hover { filter: brightness(1.1); color: var(--bg); }
+      .launch button:disabled { filter: none; opacity: 0.55; cursor: default; }
 
       /* Environments, one line each. What each one IS stays on the line; what it
          is made of goes behind the panel's own disclosure - which is not hidden
@@ -954,9 +965,11 @@
         <span class="live-badge">dashboard live</span>
         <p class="claim">
           A deploy &rarr; test &rarr; approve &rarr; promote &rarr; destroy pipeline on AWS,
-          reporting on itself. This page is a permanent state level of its own, so it stays
-          online when every workload environment is gone &mdash; which is most of the time,
-          and is the point of it.
+          reporting on itself. There is no manual AWS operation anywhere in that sentence,
+          teardown included, and every state it leaves is read back out of AWS afterwards
+          rather than taken from the run that claimed it. This page is a permanent state
+          level of its own, so it stays online when every workload environment is gone
+          &mdash; which is most of the time, and is the point of it.
         </p>
         <nav class="links">
           <a href="https://github.com/UVE-QA/aws-devops-sdet-demo">repository &rarr;</a>
@@ -977,19 +990,17 @@
           <div id="environments">
             <p class="why">Reading <code>status/stage.json</code> and <code>status/prod.json</code>&hellip;</p>
           </div>
-          <div class="clocks">
-            <span>GitHub read <b id="clock-github">&hellip;</b></span>
-            <span>bucket read <b id="clock-bucket">&hellip;</b></span>
-            <button id="refresh" type="button">Refresh</button>
-            <span id="autorefresh"></span>
-            <span id="ratelimit"></span>
-          </div>
-          <!-- THE BUTTON IS THIS PANEL'S FOOTER (ADR-0048 D1). It acts on what
+          <!-- THE BUTTON BELONGS TO THIS PANEL (ADR-0048 D1). It acts on what
                this panel observes, and its refusals - one environment at a time,
                a daily cap - are statements about that state, so the refusal and
-               the thing it is about are finally in the same box. Not the
-               identity bar, which is navigation and no place for a control that
-               spends money.
+               the thing it is about are in the same box. Not the identity bar,
+               which is navigation and no place for a control that spends money.
+
+               It sits ABOVE the clocks rather than under them (ADR-0064). D1 put
+               it in this panel and called it the panel's footer; the clocks are
+               the panel's footnote by their own comment, and a control was
+               reading as less important than the two timestamps that date it.
+               Same box, same panel, one row up.
 
                Hidden entirely while disabled: a control that is visible and
                inert is worse than one that is absent, because a visitor cannot
@@ -998,6 +1009,13 @@
             <p class="why" id="launch-why"></p>
             <button id="launch-button" type="button">Launch a stage environment</button>
             <p class="why" id="launch-result"></p>
+          </div>
+          <div class="clocks">
+            <span>GitHub read <b id="clock-github">&hellip;</b></span>
+            <span>bucket read <b id="clock-bucket">&hellip;</b></span>
+            <button id="refresh" type="button">Refresh</button>
+            <span id="autorefresh"></span>
+            <span id="ratelimit"></span>
           </div>
         </section>
 
