@@ -253,16 +253,18 @@ jobs:
           ECR_REPOSITORY: aws-devops-sdet-demo-app
           IMAGE_REF: ${{ steps.image.outputs.ref }}
           PROMOTED_SHA: ${{ inputs.image_tag }}
+          # For the two `gh api` calls below. The same token `git push` was
+          # using; what changes is the call, not the credential.
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           digest="${IMAGE_REF##*@}"
           name="release-$(date -u +%Y%m%d-%H%M)-${PROMOTED_SHA:0:7}"
 
-          # An annotated tag needs a committer, and a runner has none: without
-          # this git exits 128 with "empty ident name", three seconds into a
-          # step that has already published the ECR half of the release.
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # The `git config` that used to stand here is gone with the `git tag`
+          # it existed for (ADR-0066): an annotated tag needed a committer and a
+          # runner has none, which cost a step that had already published the ECR
+          # half of the release. The API supplies the tagger itself.
 
           # Adding a NEW tag to an existing manifest is permitted under an
           # immutable registry; repointing an existing tag is what is not.
@@ -286,8 +288,40 @@ jobs:
           # On the commit the IMAGE was built from - the dispatched tag - not on
           # this workflow's own head. They are usually the same commit, and the
           # day they are not is the day an untagged release becomes untraceable.
-          git tag -a "$name" -m "prod release $name, image $digest" "$PROMOTED_SHA"
-          git push origin "$name"
+          #
+          # THROUGH THE API, NOT `git push` (ADR-0066). `git push` of this tag is
+          # refused whenever a WORKFLOW FILE changed between PROMOTED_SHA and the
+          # default branch:
+          #
+          #   ! [remote rejected] release-20260905-1603-3e41e80
+          #     (refusing to allow a GitHub App to create or update workflow
+          #      `.github/workflows/publish-site.yml` without `workflows` permission)
+          #
+          # That protection is about an App INTRODUCING workflow content. This ref
+          # introduces none - it points at a commit the repository already has.
+          # The API is the honest way to say that: it takes a SHA and refuses one
+          # the server does not already hold, so it cannot carry a tree with it.
+          #
+          # Nothing here checks that PROMOTED_SHA is on the default branch, and
+          # this does not add such a check - the input is validated against ECR,
+          # not against git (see "Resolve the image digest"). The API call simply
+          # does not need it: an object the server does not have is a 422.
+          #
+          # The alternative was `workflows: write`, and it is refused on purpose.
+          # This is the most privileged workflow here and the comment above its
+          # `contents: write` already calls that a widening; a token that can
+          # rewrite CI definitions is a bigger hole than an untagged release.
+          #
+          # Observed on promote-prod #14, 2026-09-05, where prod deployed and
+          # smoked green and the run was still marked failed by this line alone.
+          obj="$(gh api "repos/$GITHUB_REPOSITORY/git/tags" \
+                   -f tag="$name" \
+                   -f message="prod release $name, image $digest" \
+                   -f object="$PROMOTED_SHA" \
+                   -f type=commit \
+                   --jq .sha)"
+          gh api "repos/$GITHUB_REPOSITORY/git/refs" \
+            -f ref="refs/tags/$name" -f sha="$obj" >/dev/null
           echo "released $name -> $digest"
           echo "name=$name" >> "$GITHUB_OUTPUT"
 
