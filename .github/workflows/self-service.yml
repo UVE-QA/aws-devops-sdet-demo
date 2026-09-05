@@ -4,7 +4,7 @@ name: self-service
 # ANONYMOUSLY, and the anonymous API does not expose workflow_dispatch inputs -
 # so without the launch id in the run's NAME, a visitor cannot be told that the
 # run they are watching is the run they started (ADR-0026, ADR-0034).
-run-name: self-service launch ${{ inputs.launch_id }}
+run-name: self-service launch ${{ inputs.launch_id || 'by the owner' }}
 
 # A public launch. Dispatched by the Lambda behind the dashboard button, never
 # by a push. Everything that decides WHETHER this may run has already happened
@@ -31,19 +31,30 @@ run-name: self-service launch ${{ inputs.launch_id }}
 on:
   workflow_dispatch:
     inputs:
-      # DEFAULTS, so the owner's path is one click in the Actions UI rather than
-      # two fields typed from memory. The LAMBDA always sends both explicitly and
-      # never relies on these; they exist for the dispatch the endpoint is not
-      # part of, which is the only path not bounded by the daily cap.
+      # EMPTY BY DEFAULT, AND THAT IS THE WHOLE POINT. `launch_id` becomes the
+      # `Launch` TAG on every resource this cycle creates, and the watchdog's
+      # blunt teardown fires on resources whose Launch tag is PRESENT AND
+      # NON-EMPTY. ADR-0035 says it plainly: an owner-run cycle carries
+      # `Launch=""` and is invisible to the watchdog, because the guardrails are
+      # on the public path and not on the project.
       #
-      # `owner-manual` is deliberately not in the `ss-` shape the endpoint issues.
-      # The run name is how the dashboard and the watchdog talk about a launch, so
-      # a hand-dispatched cycle should be legible AS one in both.
+      # A previous version of this file defaulted it to `owner-manual`, which is
+      # non-empty, so a hand-dispatched cycle looked exactly like a public launch
+      # - except that no lock exists for it, the endpoint never having been
+      # involved. The watchdog concluded the resources were orphaned and tore
+      # down a LIVE stage four minutes into the run:
+      #
+      #   23:26:14  dispatched_destroy   (aws-devops-sdet-demo-stage-*)
+      #   23:41:12  blunt_teardown       ecs + alb + rds deleted
+      #
+      # The Lambda always sends its own `ss-` id explicitly and never relies on
+      # this default, so making it empty costs the public path nothing and makes
+      # the owner's path behave the way ADR-0035 already said it did.
       launch_id:
-        description: "Appears in the run name. The endpoint issues its own; anything identifying will do here."
-        required: true
+        description: "Leave EMPTY for an owner-run cycle - it becomes the Launch tag, and a non-empty one makes the watchdog treat this as a public launch it may tear down. The endpoint sends its own."
+        required: false
         type: string
-        default: owner-manual
+        default: ""
       ttl_minutes:
         description: "Hard deadline for this environment, in minutes. Written into the ExpiresAt tag the watchdog reads. Must not be under the sum of this workflow's job timeouts (ADR-0068)."
         required: true
