@@ -23,7 +23,8 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 
 KILL_SWITCH_KEY = "killswitch"
 LOCK_KEY = "lock"
@@ -107,15 +108,55 @@ class Decision:
     detail: dict | None = None
 
 
-def utc_day(now: int) -> str:
-    """The counter is keyed by UTC date, so the reset time is the same everywhere."""
-    return datetime.fromtimestamp(now, tz=timezone.utc).strftime("%Y-%m-%d")
+DEFAULT_QUOTA_TZ = "America/Los_Angeles"
 
 
-def seconds_until_utc_midnight(now: int) -> int:
-    moment = datetime.fromtimestamp(now, tz=timezone.utc)
-    end_of_day = moment.replace(hour=23, minute=59, second=59, microsecond=0)
-    return int(end_of_day.timestamp()) - now + 1
+def quota_zone(name: str | None = None):
+    """The one timezone the daily cap is counted in.
+
+    ONE NAMED ZONE, NOT THE VISITOR'S. The counter is a single shared item, so a
+    reset that followed whoever happened to be looking would empty at a different
+    moment for each of them - which is not less confusing than UTC, it is the same
+    confusion multiplied by the number of readers. This is the project's own zone,
+    named, and every reader gets the same answer about when it resets even though
+    for most of them that answer is not midnight.
+
+    NAMED AND NOT AN OFFSET, because the offset moves: America/Los_Angeles is
+    UTC-7 in September and UTC-8 in December, so `reset at 07:00 UTC` would be an
+    hour wrong for half the year and wrong in the direction nobody checks.
+
+    A MISSING TZ DATABASE IS A REFUSAL, not a silent fall back to UTC. Python's
+    zoneinfo needs the IANA data present, and a fallback would move the reset by
+    seven hours while every message went on naming the zone - a counter that lies
+    about its own window is worse than one that stops.
+    """
+    try:
+        return ZoneInfo(name or DEFAULT_QUOTA_TZ)
+    except Exception as exc:  # noqa: BLE001 - any failure here means the same thing
+        raise StoreUnavailable(
+            f"the quota timezone {name or DEFAULT_QUOTA_TZ!r} could not be loaded "
+            f"({exc}). Refusing rather than counting in a different day than the "
+            "one every message names."
+        ) from exc
+
+
+def quota_day(now: int, tz_name: str | None = None) -> str:
+    """The counter's key: the calendar date in the quota's own zone."""
+    return datetime.fromtimestamp(now, tz=quota_zone(tz_name)).strftime("%Y-%m-%d")
+
+
+def seconds_until_quota_reset(now: int, tz_name: str | None = None) -> int:
+    """Until the NEXT midnight in the quota's zone.
+
+    Computed by adding a day and truncating in local time rather than by adding
+    86400 seconds: on a DST boundary the local day is 23 or 25 hours long, and
+    the arithmetic that ignores that is right for 363 days a year.
+    """
+    zone = quota_zone(tz_name)
+    moment = datetime.fromtimestamp(now, tz=zone)
+    tomorrow = (moment + timedelta(days=1)).date()
+    reset = datetime(tomorrow.year, tomorrow.month, tomorrow.day, tzinfo=zone)
+    return int(reset.timestamp()) - now
 
 
 def decide_launch(
@@ -127,6 +168,7 @@ def decide_launch(
     ttl_minutes: int,
     daily_cap: int,
     configured: bool,
+    quota_timezone: str | None = None,
 ) -> Decision:
     """Evaluate every guardrail, in order, and take the lock if all of them pass.
 
@@ -206,16 +248,21 @@ def decide_launch(
 
     # 5. The per-day cap, by conditional increment rather than read-then-write.
     try:
-        count = store.increment_day(utc_day(now), daily_cap)
+        count = store.increment_day(quota_day(now, quota_timezone), daily_cap)
     except CapReached:
         _release_quietly(store)
+        reset_at = datetime.fromtimestamp(
+            now + seconds_until_quota_reset(now, quota_timezone),
+            tz=quota_zone(quota_timezone),
+        )
         return Decision(
             False,
             "daily_cap",
             f"today's limit of {daily_cap} public launches is used up. "
-            f"It resets at 00:00 UTC.",
+            f"It resets at midnight {reset_at.tzname()} "
+            f"({reset_at:%Y-%m-%d %H:%M} {quota_timezone or DEFAULT_QUOTA_TZ}).",
             status=429,
-            detail={"resets_in_seconds": seconds_until_utc_midnight(now)},
+            detail={"resets_in_seconds": seconds_until_quota_reset(now, quota_timezone)},
         )
     except StoreUnavailable as exc:
         _release_quietly(store)

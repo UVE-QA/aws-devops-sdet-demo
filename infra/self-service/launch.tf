@@ -89,6 +89,7 @@ resource "aws_lambda_function" "launch" {
       WORKFLOW_FILE     = var.launch_workflow_file
       TTL_MINUTES       = tostring(var.ttl_minutes)
       DAILY_CAP         = tostring(var.daily_cap)
+      QUOTA_TIMEZONE    = var.quota_timezone
       NONCE_TTL_SECONDS = tostring(var.nonce_ttl_seconds)
     }
   }

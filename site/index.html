@@ -1863,11 +1863,35 @@
       // the real one.
       var ENDPOINT_LAUNCH = /\blaunch\s+ss-[0-9a-f]/i;
 
+      // THE SAME DAY THE ENDPOINT COUNTS (ADR-0072). This used
+      // `toISOString().slice(0,10)`, which is the UTC date, and the Lambda now
+      // keys its counter by the calendar date in QUOTA_TIMEZONE. Two definitions
+      // of "today" seven hours apart would put the tile and the endpoint into
+      // open disagreement for those seven hours every single day - and the tile
+      // says out loud that the endpoint keeps the authoritative count, which is
+      // only worth saying if the two are usually the same.
+      //
+      // `en-CA` because its short date format IS `YYYY-MM-DD`, which is the key
+      // shape, rather than assembling one out of parts.
+      var QUOTA_TZ = "America/Los_Angeles";
+      function quotaDay(when) {
+        try {
+          return new Intl.DateTimeFormat("en-CA", { timeZone: QUOTA_TZ }).format(when);
+        } catch (e) {
+          // A browser without that zone falls back to UTC and the tile may then
+          // disagree with the endpoint for a few hours. It says where its number
+          // came from, and the endpoint is what actually refuses.
+          return when.toISOString().slice(0, 10);
+        }
+      }
+
       function selfServiceRunsToday() {
-        var today = new Date().toISOString().slice(0, 10);
+        var today = quotaDay(new Date());
         return (state.runs || []).filter(function (r) {
-          return r.path === ".github/workflows/self-service.yml" &&
-                 String(r.created_at || "").slice(0, 10) === today &&
+          if (r.path !== ".github/workflows/self-service.yml") return false;
+          var at = Date.parse(r.created_at || "");
+          if (!at) return false;
+          return quotaDay(new Date(at)) === today &&
                  ENDPOINT_LAUNCH.test(r.name || r.display_title || "");
         });
       }
@@ -1914,8 +1938,9 @@
         if (quota) {
           quota.textContent = left + " of " + SELF_SERVICE.dailyCap;
           quota.className = "quota" + (left === 0 ? " spent" : "");
-          quota.title = used + " started today (UTC), counted from the runs this " +
-            "page can see. The endpoint keeps the authoritative count.";
+          quota.title = used + " started today (" + QUOTA_TZ + ", the zone the cap " +
+            "is counted in), from the runs this page can see. The endpoint keeps " +
+            "the authoritative count and resets at local midnight.";
         }
 
         // DISABLED WHILE ONE IS RUNNING, and while the day is spent. Phase 19's

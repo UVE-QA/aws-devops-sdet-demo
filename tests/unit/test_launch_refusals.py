@@ -18,11 +18,13 @@ thinks they mean. That is 19b, against the real table, with the output kept.
 from __future__ import annotations
 
 import pytest
+from datetime import datetime, timezone
 
 import control
 from control import CapReached, ControlStore, LockHeld, StoreUnavailable
 
-NOW = 1_785_000_000  # 2026-07-25 17:20 UTC; the day counter is keyed by UTC date
+NOW = 1_785_000_000  # 2026-07-25 17:20 UTC = 10:20 PDT; same date in both zones,
+                     # which is why the zone test below picks its own moments (ADR-0072)
 TTL = 90
 CAP = 3
 GOOD_ID = "ss-0123456789abcdef"
@@ -102,7 +104,7 @@ def test_a_clean_press_takes_the_lock_and_consumes_one_launch():
     assert decision.allowed
     assert store.lock["launch_id"] == GOOD_ID
     assert store.lock["expires_at"] == NOW + TTL * 60, "the lock's expiry IS the TTL"
-    assert store.counts[control.utc_day(NOW)] == 1
+    assert store.counts[control.quota_day(NOW)] == 1
     assert "good-nonce" not in store.nonces, "a nonce is single use"
 
 
@@ -126,7 +128,7 @@ def test_the_kill_switch_is_read_before_anything_else():
 # --------------------------------------------------------- 2. the day cap
 def test_the_cap_refuses_when_today_is_used_up():
     store = FakeStore()
-    store.counts[control.utc_day(NOW)] = CAP
+    store.counts[control.quota_day(NOW)] = CAP
 
     decision = decide(store)
 
@@ -140,7 +142,7 @@ def test_the_cap_refuses_when_today_is_used_up():
 def test_the_cap_refusal_releases_the_lock_it_took():
     """Otherwise the first press after midnight is refused by yesterday's lock."""
     store = FakeStore()
-    store.counts[control.utc_day(NOW)] = CAP
+    store.counts[control.quota_day(NOW)] = CAP
 
     decide(store)
 
@@ -170,7 +172,7 @@ def test_the_store_refusal_names_the_store_and_not_the_cap():
     broken = decide(FakeStore(increment_day=True))
 
     capped = FakeStore()
-    capped.counts[control.utc_day(NOW)] = CAP
+    capped.counts[control.quota_day(NOW)] = CAP
     at_cap = decide(capped)
 
     assert broken.code != at_cap.code
@@ -201,7 +203,7 @@ def test_a_second_press_is_refused_and_names_what_holds_the_lock():
     assert second.code == "locked"
     assert second.status == 409
     assert second.detail["launch_id"] == GOOD_ID, "the refusal has to name the holder"
-    assert store.counts[control.utc_day(NOW)] == 1, "a refused press must not consume a launch"
+    assert store.counts[control.quota_day(NOW)] == 1, "a refused press must not consume a launch"
 
 
 def test_an_expired_lock_can_be_taken_over():
@@ -276,9 +278,38 @@ def test_a_lock_with_no_deadline_counts_as_expired():
     assert control.lock_is_expired(None, NOW) is False, "no lock is not an expired lock"
 
 
-def test_the_day_key_is_utc_so_the_reset_time_is_the_same_everywhere():
-    assert control.utc_day(NOW) == "2026-07-25"
-    assert 0 < control.seconds_until_utc_midnight(NOW) <= 86400
+def test_the_day_key_is_one_named_zone_not_utc_and_not_the_visitor_s():
+    """ADR-0072. This asserted UTC, on the grounds that the reset time is then
+    the same everywhere - true, and the thing it made the same for everyone was
+    a reset in the middle of the working day. The counter is a single shared
+    item, so it cannot follow whoever is looking; it follows ONE named zone.
+
+    NAMED, not an offset. America/Los_Angeles is UTC-7 in July and UTC-8 in
+    December, so a reset pinned to an hour of UTC would be an hour wrong for
+    half the year."""
+    # THE MOMENT THAT SEPARATES THEM. 03:00 UTC is the previous evening in the
+    # quota's zone, and it is exactly the window UTC keying got wrong: three
+    # launches at 20:00 local counted against a day that had already turned.
+    evening = int(datetime(2026, 7, 25, 3, 0, tzinfo=timezone.utc).timestamp())
+    assert control.quota_day(evening) == "2026-07-24"
+    assert control.quota_day(evening, "UTC") == "2026-07-25"
+
+    # NOW is mid-morning local, where the two agree - so a test that only used it
+    # would have passed against either implementation.
+    assert control.quota_day(NOW) == control.quota_day(NOW, "UTC") == "2026-07-25"
+
+    # The window is a local day and never a fixed 86400 from now.
+    assert 0 < control.seconds_until_quota_reset(NOW) <= 86400
+
+    # Both sides of the DST boundary, because the offset is what moves.
+    winter = int(datetime(2026, 12, 15, 3, 0, tzinfo=timezone.utc).timestamp())
+    assert control.quota_day(evening) == "2026-07-24"  # UTC-7
+    assert control.quota_day(winter) == "2026-12-14"   # UTC-8
+
+    # A zone that cannot be loaded REFUSES rather than quietly becoming UTC:
+    # a counter that lies about its own window is worse than one that stops.
+    with pytest.raises(control.StoreUnavailable):
+        control.quota_day(NOW, "Not/AZone")
 
 
 # ------------------------------- what the kill switch is allowed to say (19d)

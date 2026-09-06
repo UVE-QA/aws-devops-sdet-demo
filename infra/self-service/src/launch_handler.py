@@ -38,6 +38,9 @@ WORKFLOW = os.environ.get("WORKFLOW_FILE", "self-service.yml")
 REF = os.environ.get("GITHUB_REF_NAME", "main")
 TTL_MINUTES = int(os.environ.get("TTL_MINUTES", "90"))
 DAILY_CAP = int(os.environ.get("DAILY_CAP", "3"))
+# The zone the daily cap is counted in (ADR-0072). Named, not an offset:
+# the offset moves twice a year and the reset would follow it.
+QUOTA_TIMEZONE = os.environ.get("QUOTA_TIMEZONE") or control.DEFAULT_QUOTA_TZ
 NONCE_TTL = int(os.environ.get("NONCE_TTL_SECONDS", "300"))
 
 _secrets = boto3.client("secretsmanager")
@@ -142,6 +145,7 @@ def _launch(store, now: int, event: dict) -> dict:
         ttl_minutes=TTL_MINUTES,
         daily_cap=DAILY_CAP,
         configured=bool(APP_ID and INSTALL_ID and SECRET_NAME),
+        quota_timezone=QUOTA_TIMEZONE,
     )
 
     # Every refusal is logged with its code, because the reason a visitor was

@@ -80,8 +80,27 @@ variable "ttl_minutes" {
   }
 }
 
+variable "quota_timezone" {
+  description = <<-EOT
+    The IANA zone the daily cap is counted in (ADR-0072). The counter was keyed
+    by UTC date, which made the reset the same instant everywhere - and that
+    instant was 17:00 local, the middle of the working day, so the window nobody
+    could see the edge of reset while people were using it.
+
+    ONE NAMED ZONE, not the visitor's: the counter is a single shared item, and a
+    reset that followed whoever was looking would empty at a different moment for
+    each of them.
+
+    NAMED, not an offset. America/Los_Angeles is UTC-7 in summer and UTC-8 in
+    winter; a reset pinned to an hour of UTC would be an hour wrong for half the
+    year, in the direction nobody checks.
+  EOT
+  type        = string
+  default     = "America/Los_Angeles"
+}
+
 variable "daily_cap" {
-  description = "How many public launches a UTC day may start (ADR-0035 guardrail 2). Three, giving ~$0.30/day worst case."
+  description = "How many public launches a day may start (ADR-0035 guardrail 2). Three, giving ~$0.30/day worst case. A DAY IN var.quota_timezone, not in UTC, since ADR-0072 - the two are the same length and start seven or eight hours apart."
   type        = number
   default     = 3
 }
