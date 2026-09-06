@@ -6,6 +6,40 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
+**As of 2026-09-06 (34–36 — what a live cycle found that no gate could).** Three
+cycles run for real, one of them the first fully clean unattended cycle: six jobs
+green, prod up behind HTTPS and destroyed five visible minutes later, nothing
+left billing. **ADR-0069**, **ADR-0070**, **ADR-0071**.
+
+**EVERY FINDING TONIGHT CAME FROM RUNNING IT OR FROM LOOKING AT IT.** `make
+gates` was 12/12 green throughout and found none of them. The gates check what
+the page SAYS about data it is handed; nobody checks what the page is like to
+READ while something is happening.
+
+**A LOCK THAT PROTECTS NOTHING** (34). A `startup_failure` strands the lock and
+eats a daily launch: `release-lock` is a job, and `always()` cannot run when the
+file was rejected before any job existed. ADR-0068 made it worse without
+noticing — raising the TTL 90 → 150 also lengthened the stranding window by an
+hour. D1 unimplemented; the manual recovery is documented.
+
+**A STALE READING IS A DIRECTION** (35). Every estate card was lit while nothing
+existed in AWS, and the panel three inches above said UNKNOWN. A recorded
+decision said a stale `destroyed` must not grey the map — right principle,
+inverted application: it assumed grey means *destroyed*, when this page's own CSS
+says grey means *do not read this as live*, which is weaker than `unknown`, not
+firmer. A cycle is a transition, so a stale reading keeps its direction.
+
+**THE PAGE DESCRIBES A CYCLE THAT NO LONGER EXISTS** (36). "The step in flight"
+opened with a job that had finished half an hour earlier, because ADR-0068 turned
+three jobs into six and the live one is last. And a suite deliberately not run by
+a public cycle is drawn with the words for a report that went missing. Proposed:
+no fixture can express the new shape yet.
+
+**SECOND FALSE GREEN FROM session-close IN ONE SESSION.** It compares the
+narrative's phase to the newest session file; with no file for 34–36 both said 33
+and agreed, about a record that had stopped. Caught once already tonight and
+recurred immediately.
+
 **As of 2026-09-05 (33 — the public path reaches prod, and that sentence used to
 be the guarantee).** The button now runs the whole lifecycle unattended: stage
 up, the tested digest promoted to prod, stage down, a five-minute hold with a

@@ -68,6 +68,9 @@ confirmation before the next phase. This file is the "where we are" cursor.
 | 31    | The page a stranger gets; two documents with no policy | ✅ done — full cycle, one finding, PROD LEFT UP by decision | sessions/2026-09-05-phase-31-the-page-a-stranger-gets.md |
 | 32    | An open cycle publishes a rate, not a figure | ✅ done — $0; not visible until the next apply | sessions/2026-09-05-phase-31-the-page-a-stranger-gets.md |
 | 33    | The public path reaches prod, and that sentence used to be the guarantee | ⚠️ done in the repository, NOT APPLIED — infra/self-service is unapplied, so the unattended path has no watchdog for prod | sessions/2026-09-05-phase-31-the-page-a-stranger-gets.md |
+| 34    | A lock that protects nothing is not a lock | ⚠️ decision only — D1 unimplemented, D2/D3 done | sessions/2026-09-06-phases-34-36-what-a-live-cycle-found.md |
+| 35    | A stale reading is a direction, not an absence of one | ✅ done — implemented, 51 tense calls | sessions/2026-09-06-phases-34-36-what-a-live-cycle-found.md |
+| 36    | The page describes a cycle that no longer exists | 📋 proposed — needs a fixture of the new shape first | sessions/2026-09-06-phases-34-36-what-a-live-cycle-found.md |
 
 **Lettered sub-phases end here (ADR-0055).** From Phase 21 the identifier is a
 plain integer and every phase is planned together with the sentence that closes
