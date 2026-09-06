@@ -2908,8 +2908,14 @@
             `<span class="clock" id="countdown-clock" data-at="${esc(doc.starts_at)}">` +
             `${countdownText(left)}</span>` +
             `<span class="what">to start the ${env} teardown</span>` +
-            '<p class="why">This cycle was started from the button on this page and runs ' +
-            `unattended. <b>${env}</b> is up now; when this reaches zero the teardown runs ` +
+            // NOT "started from the button on this page". Same defect as the one
+            // fixed in renderLaunch(), missed here because it is a second copy of
+            // the same claim - and a claim this page cannot check: the Actions
+            // API does not say who dispatched a run. Caught on the live page
+            // during a cycle the OWNER had started, under a tile saying the
+            // button had started it.
+            '<p class="why">This cycle runs unattended, whoever started it. ' +
+            `<b>${env}</b> is up now; when this reaches zero the teardown runs ` +
             'on its own, and what it removed is then verified against the AWS CLI' +
             (url ? ` &mdash; <a href="${esc(url)}">watch the run &rarr;</a>` : "") +
             '.</p></div>';
