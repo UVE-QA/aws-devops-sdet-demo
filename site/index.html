@@ -3334,10 +3334,32 @@
            a scan of postgres. A reading that could not be checked against the
            newest run is `unknown`, not `up` and not `destroyed` - the map is not
            entitled to a firmer answer than the panel gives. */
+        /* A STALE OBSERVATION IS A DIRECTION, NOT AN ABSENCE OF ONE.
+           This returned "unknown" for anything stale, and `unknown` is drawn
+           like `exists` - so a stage verified destroyed, with a cycle under way
+           to bring it back, showed eight estate cards at full colour. The panel
+           three inches above them read UNKNOWN and "Last reported values, shown
+           for reference only", and the cards silently contradicted it. Exactly
+           the defect the comment above nodeTense() records as fixed, reached by
+           the one route that comment does not cover: staleness rather than a
+           verified state.
+           The rule is the transition, not the uncertainty. A cycle moves an
+           environment BETWEEN two states, and until it reports, the honest
+           reading is that it is still the one it was:
+             was destroyed, now unknown   it is not up YET      -> stay grey
+             was up, now unknown          it is not gone YET    -> stay lit
+           So only the destroyed direction gets a value of its own. The other
+           already reads correctly as "unknown", because a node that was live
+           and is being torn down should not go grey before the teardown has
+           said anything - and that is the same argument, in the other
+           direction. */
         function envTense(observation, env) {
           const seen = observation && observation.environments
             ? observation.environments[env] : null;
-          if (!seen || !seen.state || seen.stale) return "unknown";
+          if (!seen || !seen.state) return "unknown";
+          if (seen.stale) {
+            return seen.state === "destroyed" ? "destroyed-unverified" : "unknown";
+          }
           if (seen.state === "up" || seen.state === "destroyed") return seen.state;
           return "partial";
         }
@@ -3425,6 +3447,15 @@
           // figures.
           if (envs === "destroyed" && node.service !== "destroy") {
             return { word: "destroyed", note: "these figures are from the cycle that ended",
+                     cls: "unobserved", gone: true };
+          }
+          // THE SAME NODE, BEFORE THE NEXT CYCLE HAS SAID ANYTHING. `gone` for
+          // the same reason as above - what a reader needs is "do not read this
+          // as live" - but the WORD may not claim the environment is still
+          // destroyed, because a run is under way that exists to change that.
+          // It says what was last seen and that nothing has confirmed it since.
+          if (envs === "destroyed-unverified" && node.service !== "destroy") {
+            return { word: "destroyed", note: "last seen destroyed in AWS; a cycle is under way and has not reported",
                      cls: "unobserved", gone: true };
           }
           // A FIGURE DRAWN DURING A RUN BELONGS TO ONE OF TWO CYCLES, AND THE
