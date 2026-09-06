@@ -6,7 +6,7 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
-**As of 2026-09-06 (34–36 — what a live cycle found that no gate could).** Three
+**As of 2026-09-06 (36 — the page describes a cycle that no longer exists; with 34 and 35 in the same session).** Three
 cycles run for real, one of them the first fully clean unattended cycle: six jobs
 green, prod up behind HTTPS and destroyed five visible minutes later, nothing
 left billing. **ADR-0069**, **ADR-0070**, **ADR-0071**.
