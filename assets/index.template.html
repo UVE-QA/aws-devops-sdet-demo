@@ -1733,18 +1733,49 @@
          roughly right to stop a visitor pressing a button that will refuse.
          The endpoint still has the last word: it is what actually refuses, and
          its refusal is what the page prints when one comes back. */
+      // ONLY THE ENDPOINT'S OWN LAUNCHES COUNT. The cap is the Lambda's, and the
+      // Lambda increments it only for launches IT issued - a cycle the owner
+      // dispatches from Actions never reaches the counter at all.
+      //
+      // This counted every run of the workflow and so reported an owner-run
+      // cycle as one of the three spent: the page said `2 of 3` while the
+      // endpoint's counter for the day was absent, meaning zero. A quota that
+      // overstates what has been used is the same class of wrong as one that
+      // understates it - the page claiming something the authoritative source
+      // does not say.
+      //
+      // The signal is the run NAME, which is how this dashboard has identified
+      // launches since ADR-0034: the endpoint issues `ss-<hex>` and a
+      // hand-dispatched cycle carries anything else, `by the owner` by default.
+      // A convention, and a weaker one than reading the counter - which is why
+      // the tooltip says where the number came from and that the endpoint keeps
+      // the real one.
+      var ENDPOINT_LAUNCH = /\blaunch\s+ss-[0-9a-f]/i;
+
       function selfServiceRunsToday() {
         var today = new Date().toISOString().slice(0, 10);
         return (state.runs || []).filter(function (r) {
           return r.path === ".github/workflows/self-service.yml" &&
-                 String(r.created_at || "").slice(0, 10) === today;
+                 String(r.created_at || "").slice(0, 10) === today &&
+                 ENDPOINT_LAUNCH.test(r.name || r.display_title || "");
         });
       }
 
-      function selfServiceInFlight() {
-        return selfServiceRunsToday().filter(function (r) {
-          return r.status === "queued" || r.status === "in_progress" || r.status === "waiting";
+      // Busy is a different question from spent, and it is NOT filtered by who
+      // started the run: one cycle at a time is a property of the environments,
+      // not of the endpoint's quota. An owner-run cycle must still close the
+      // button, which is what `concurrency` enforces on the workflow side.
+      function anySelfServiceInFlight() {
+        var today = new Date().toISOString().slice(0, 10);
+        return (state.runs || []).filter(function (r) {
+          return r.path === ".github/workflows/self-service.yml" &&
+                 String(r.created_at || "").slice(0, 10) === today &&
+                 (r.status === "queued" || r.status === "in_progress" || r.status === "waiting");
         })[0] || null;
+      }
+
+      function selfServiceInFlight() {
+        return anySelfServiceInFlight();
       }
 
       // Set when THIS browser starts a launch, and honoured for as long as it
