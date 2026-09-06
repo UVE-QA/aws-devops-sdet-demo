@@ -166,6 +166,25 @@ class DynamoDbControlStore(ControlStore):
             raise StoreUnavailable("clear_sweep") from exc
 
     # -- the day counter ----------------------------------------------------
+    def read_day(self, day: str) -> int:
+        """How many launches that day has had. A read, and only for reporting.
+
+        An ABSENT item is zero launches, which is the one case where absence
+        really is a value here: the counter is created by the first increment.
+        An unreadable store is still a refusal - `StoreUnavailable` - because a
+        quota nobody could read is not a quota of three.
+        """
+        try:
+            result = self._client.get_item(
+                TableName=self._table,
+                Key={"pk": {"S": f"count#{day}"}},
+                ConsistentRead=True,
+            )
+        except ClientError as exc:
+            raise StoreUnavailable("read_day") from exc
+        item = result.get("Item")
+        return int(item["n"]["N"]) if item and "n" in item else 0
+
     def increment_day(self, day: str, cap: int) -> int:
         """A conditional increment, never a read followed by a write.
 

@@ -85,6 +85,12 @@ class ControlStore:
     def increment_day(self, day: str, cap: int) -> int:
         raise NotImplementedError
 
+    # A READ, for the status path only (ADR-0073). Deliberately not used by
+    # decide_launch: the cap is enforced by a CONDITIONAL increment, because
+    # read-then-write is how two simultaneous presses both see two.
+    def read_day(self, day: str) -> int:
+        raise NotImplementedError
+
     # The watchdog's own record (ADR-0036 D1). It is on this interface rather
     # than on the DynamoDB class alone so `tests/unit` can break it in the same
     # ways as everything else - and because the fake store implements THIS, not

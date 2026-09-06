@@ -81,10 +81,56 @@ def handler(event, _context=None):
     now = int(time.time())
 
     if method == "GET":
+        # A STATUS READ THAT MINTS NOTHING (ADR-0073). `?quota` answers how many
+        # launches the day has left and writes no item - the page calls it on
+        # every load, and a nonce per page load is a DynamoDB write per visitor
+        # for a number nobody is about to spend.
+        raw = event.get("rawQueryString") or ""
+        params = event.get("queryStringParameters") or {}
+        if "quota" in params or "quota" in raw:
+            return _quota(store, now)
         return _issue(store, now)
     if method == "POST":
         return _launch(store, now, event)
     return _response(405, {"code": "method", "message": "GET or POST"})
+
+
+def _quota(store, now: int) -> dict:
+    """What the cap has left today, from the counter that actually refuses.
+
+    THE PAGE HAD TO DERIVE THIS AND COULD NOT DERIVE IT RIGHT. It counted runs
+    of the workflow whose name carries an endpoint-issued id, on the calendar day
+    in the quota's zone - a good approximation and not the same thing. The two
+    disagreed the first time the counter was touched by hand, and the page was
+    the one telling a visitor the button would refuse when it would not.
+
+    Reads, never writes: no nonce, no lock, no increment. The kill switch is
+    checked because a parked endpoint should not answer questions about a quota
+    nobody may spend.
+    """
+    refusal = control.kill_switch_refusal(store)
+    if refusal is not None:
+        return _response(
+            refusal.status,
+            {"code": refusal.code, "message": refusal.message, "detail": refusal.detail},
+        )
+    day = control.quota_day(now, QUOTA_TIMEZONE)
+    try:
+        used = store.read_day(day)
+    except control.StoreUnavailable as exc:
+        log.warning("quota read unavailable: %s", exc)
+        return _response(503, {"code": "store_unavailable", "message": str(exc)})
+    return _response(
+        200,
+        {
+            "day": day,
+            "timezone": QUOTA_TIMEZONE,
+            "daily_cap": DAILY_CAP,
+            "launches_today": used,
+            "launches_left": max(0, DAILY_CAP - used),
+            "resets_in_seconds": control.seconds_until_quota_reset(now, QUOTA_TIMEZONE),
+        },
+    )
 
 
 def _issue(store, now: int) -> dict:
