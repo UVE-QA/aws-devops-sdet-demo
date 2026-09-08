@@ -8,7 +8,7 @@
         site-data site-data-check timeline-check node-states-check \
         suite-inventory suite-inventory-check results-check live-state-check \
         page-tense-check page-freshness-check page-inflight-check \
-        publish-prefixes-check contrast-check measure-page gates gates-check
+        publish-prefixes-check contrast-check measure-page gates gates-full gates-check
 
 # Bring up postgres + app (build app image if needed), detached.
 local-up:
@@ -450,6 +450,20 @@ cost-check:
 # shorter suite quietly.
 gates:
 	python3 scripts/run-gates.py
+
+# THE SAME LIST, ASKED WHAT THIS MACHINE CAN ACTUALLY RUN. `make gates` is the
+# checkout's twelve, and CI runs exactly those under the same name; the other
+# twenty are reported and not attempted. That is right for a runner and wrong
+# for the devbox, which HAS the venvs, node_modules and chromium that three of
+# ci.yml's own steps need - and in September main carried two red gates for two
+# days, one hiding the other, while every session read `12/12 green` and pushed.
+#
+# So this probes: for each gate the list says needs more than a checkout, it asks
+# whether this machine has what it names, and runs the ones it can. Nothing is
+# started - a stack that is down is reported as a missing capability, and
+# `make local-up` is yours to run.
+gates-full:
+	python3 scripts/run-gates.py --full
 
 gates-check:
 	python3 scripts/run-gates.py --check
