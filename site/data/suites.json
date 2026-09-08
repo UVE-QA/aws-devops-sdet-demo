@@ -598,7 +598,7 @@
         },
         {
           "file": "tests/unit/test_launch_refusals.py",
-          "name": "test_the_day_key_is_utc_so_the_reset_time_is_the_same_everywhere"
+          "name": "test_the_day_key_is_one_named_zone_not_utc_and_not_the_visitor_s"
         },
         {
           "file": "tests/unit/test_launch_refusals.py",
