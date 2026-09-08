@@ -88,13 +88,24 @@ check "a page that never reads it is caught, not green" 1 \
 restore
 
 echo "=== [C] the page reads a partial document with no run in flight ==="
+# BOTH GUARDS COME OUT, and that is a finding rather than a heavier hand. At rest
+# `flightHere()` answers null, so the flight guard refuses - and the run-id
+# comparison independently refuses too, because a document naming a run can never
+# equal null. Removing either one alone leaves the case defended, which is why
+# the first version of this variant passed with the comparison gone and proved
+# nothing. What the claim has to be shown catching is the state itself, so the
+# variant produces the state.
 python3 - <<'PY'
 p = "assets/index.template.html"
 s = open(p).read()
-old = "          if (!flight || flight === true) return null;"
-new = "          if (false) return null;"
-assert s.count(old) == 1, "the anchor moved; this variant would prove nothing"
-open(p, "w").write(s.replace(old, new))
+pairs = [
+    ("          if (!flight || flight === true) return null;", "          if (false) return null;"),
+    ("          return wroteIt && String(wroteIt) === flight ? doc : null;", "          return doc;"),
+]
+for old, new in pairs:
+    assert s.count(old) == 1, "the anchor moved; this variant would prove nothing"
+    s = s.replace(old, new)
+open(p, "w").write(s)
 PY
 check "a reading left behind by a finished cycle is caught at rest" 1 \
       'were painted from a partial reading with no run in flight'
