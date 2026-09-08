@@ -371,11 +371,19 @@
         grid-template-columns: repeat(var(--estate-cols, 8), minmax(0, 1fr));
       }
       .perm .node { border-style: dashed; }
-      .perm > .node { align-items: center; text-align: center; padding: 0.6rem 0.4rem 0.5rem; }
+      .perm > .node { align-items: center; text-align: center; padding: 0.55rem 0.4rem 0.5rem; }
       .perm > .node .head { display: flex; flex-direction: column; align-items: center; gap: 0.3rem; }
-      .perm > .node .head .icon { min-width: 5rem; height: 5rem; font-size: 0.8rem; border-radius: 12px; }
-      .perm > .node .head .icon.aws { width: 5rem; border-radius: 12px; }
-      .perm > .node .name { font-size: 0.9rem; }
+      /* SMALLER THAN THE ENVIRONMENTS, AND STILL IN COLOUR. Drawn at the board's
+         5rem they were the brightest thing on the page - six saturated marks
+         between a half-built prod above and the cycle map below - which inverts
+         what the page is for. These levels never change; they are the least
+         newsworthy thing on it, and they were shouting loudest.
+         They keep their colour, because colour on this board means PRESENT and
+         they are always present. They give up the size. */
+      .perm > .node .head .icon { min-width: 2.6rem; height: 2.6rem; font-size: 0.66rem; border-radius: 8px; }
+      .perm > .node .head .icon.aws { width: 2.6rem; border-radius: 8px; }
+      .perm > .node { opacity: 0.86; }
+      .perm > .node .name { font-size: 0.78rem; }
       .perm > .node .ident { white-space: normal; overflow-wrap: anywhere; font-size: 0.7rem; }
       .perm > .node .asserts { font-size: 0.72rem; line-height: 1.4; }
       @media (max-width: 1000px) {
@@ -383,9 +391,7 @@
           display: flex; flex-wrap: wrap; grid-template-columns: none;
         }
         .perm > .node { width: var(--tile); flex: 0 0 var(--tile); padding: 0.5rem 0.35rem 0.45rem; }
-        .perm > .node .head .icon { min-width: var(--tile-icon); height: var(--tile-icon); }
-        .perm > .node .head .icon.aws { width: var(--tile-icon); }
-        .perm > .node .name { font-size: 0.76rem; }
+        .perm > .node .name { font-size: 0.74rem; }
       }
 
       /* ---------- the three contours (ADR-0054 D1) ----------

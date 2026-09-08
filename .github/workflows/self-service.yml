@@ -338,20 +338,31 @@ jobs:
 
 
 
-      # The document says a cycle is in flight; leaving it says so forever.
-      # `always()`, because a run that died is exactly when it must go.
-      - name: Stop the progress watcher
-        if: always()
-        uses: ./.github/actions/stop-progress
-        with:
-          environment: stage
-          site-bucket: ${{ vars.SITE_BUCKET }}
       - name: Configure AWS credentials (OIDC, publish role)
         if: always()
         uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
         with:
           role-to-assume: ${{ vars.SITE_PUBLISH_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
+
+      # The watcher is stopped and its document removed AFTER the publish role is
+      # in the foreground, and that ordering is the whole of it. Placed before
+      # this step - which is where it was on 2026-09-08 - the `aws s3 rm` runs
+      # under the DEPLOY role, which holds nothing on the site bucket, and the
+      # job printed `could not remove the progress document` as a warning and
+      # carried on green. The document then sat in the bucket describing an
+      # environment that was about to be torn down.
+      #
+      # It did no harm that day only because the record supersedes a partial
+      # reading the moment `published_by` names the run in flight (ADR-0076 D6),
+      # and the job published one four seconds later. That is a second defence
+      # working, not this one.
+      - name: Stop the progress watcher
+        if: always()
+        uses: ./.github/actions/stop-progress
+        with:
+          environment: stage
+          site-bucket: ${{ vars.SITE_BUCKET }}
 
       - name: Publish status to the dashboard
         if: always()

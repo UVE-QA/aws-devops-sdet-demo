@@ -87,8 +87,16 @@ lines up with the two above and the two empty columns at the end are the two
 levels the estate does not have rather than a ragged edge.
 
 It also makes the contour answer its own question at a glance: on a page at rest
-the permanent row is in full colour and both environment rows are grey, which is
+the permanent row is in colour and both environment rows are grey, which is
 exactly the state of the account.
+
+**They are smaller than the environments, and that is a correction to this
+decision made an hour after it.** Drawn at the board's own 5rem they became the
+brightest thing on the page - six saturated marks between a half-built prod above
+and the cycle map below - and the owner said so at once. It inverts what the page
+is for: these levels never change, so they are the least newsworthy thing on it,
+and they were shouting loudest. They keep their colour, because colour on this
+board means PRESENT and they always are. They give up the size.
 
 **D6. The room comes out of the reference line, not out of the columns.** Raising
 the crossover to 1200px was tried: it buys 134px instead of 122px at a 1082px
@@ -101,6 +109,22 @@ So the columns hold as long as they can be columns, and `creates 2 · provisions
 as the state, taking three lines under a two-line name on a tile whose subject is
 what exists NOW - is set smaller. It keeps every word, because ADR-0058 draws the
 reference at both ends and this is one of them.
+
+**D7. The watcher's stop step runs after the publish role is in the foreground.**
+Recorded here rather than as a fix in passing, because it is the shape ADR-0076
+D2 warned about and it still got through. The stop step was placed BEFORE the
+credential swap, so its `aws s3 rm` ran under the deploy role, which holds
+nothing on the site bucket. self-service #14 printed
+
+    ##[warning]could not remove the progress document
+
+and carried on green, leaving `status/progress/stage.json` in the bucket
+describing an environment that was minutes from being torn down.
+
+**It did no harm that day only because a different defence held.** The record
+supersedes a partial reading the moment `published_by` names the run in flight
+(ADR-0076 D6), and the job published one four seconds later. A second defence
+working is not this one working.
 
 ## Consequences
 
