@@ -9,34 +9,41 @@
 #   [B] the page stops reading the document at all - the vacuous green this file
 #       has caught in itself twice, where every other claim about the reading
 #       stays true because there is no reading
-#   [C] the page reads it without checking WHICH run wrote it - the defect the
-#       whole design turns on. A document left behind by a finished cycle then
-#       lights an environment that has been torn down since, which is the twelve
-#       minutes prod.rds spent at full colour while it was being deleted
-#   [D] the record stops superseding the partial reading - the board goes on
+#   [C] the page reads a document with no run in flight at all - a reading left
+#       behind by a finished cycle then lights an environment that has been torn
+#       down since, which is the twelve minutes prod.rds spent at full colour
+#       while it was being deleted
+#   [D] the document names a DIFFERENT run from the one in flight. The page must
+#       refuse it, and the observable consequence is that the gate goes red for
+#       the OTHER half of the same claim - nothing was painted. [D2] then removes
+#       the comparison and the gate goes green again over the same fixture, which
+#       is what shows the comparison did it rather than something else
+#   [E] the record stops superseding the partial reading - the board goes on
 #       saying `being created` over an environment the same run has already
 #       reported complete
 #
-# The tree must be clean: every variant patches assets/index.template.html and
-# restores it with `git checkout`, which discards anything uncommitted in it.
+# The tree must be clean: every variant patches assets/index.template.html or
+# the layer fixture and restores them with `git checkout`, which discards
+# anything uncommitted in them.
 
 set -uo pipefail
 cd "$(dirname "$0")/.."
 
 TPL="assets/index.template.html"
 GATE="scripts/check-page-inflight.mjs"
+DOC="tests/fixtures/page-inflight/layer/status/progress/stage.json"
 OUT="$(mktemp -d)/gate.out"
 pass=0
 fail=0
 
-if [ -n "$(git status --porcelain -- "$TPL" "$GATE")" ]; then
+if [ -n "$(git status --porcelain -- "$TPL" "$GATE" "$DOC")" ]; then
   echo "break-progress-attribution: $TPL or $GATE is dirty. Commit first - every"
   echo "variant below restores them with git checkout, which would take your edit with it."
   exit 2
 fi
 
 restore() {
-  git checkout -- "$TPL" "$GATE" 2>/dev/null
+  git checkout -- "$TPL" "$GATE" "$DOC" 2>/dev/null
   python3 scripts/build-site-page.py > /dev/null 2>&1
 }
 trap restore EXIT
@@ -80,7 +87,39 @@ check "a page that never reads it is caught, not green" 1 \
       'no node on the page was painted from status/progress'
 restore
 
-echo "=== [C] the run the document names is not checked ==="
+echo "=== [C] the page reads a partial document with no run in flight ==="
+python3 - <<'PY'
+p = "assets/index.template.html"
+s = open(p).read()
+old = "          if (!flight || flight === true) return null;"
+new = "          if (false) return null;"
+assert s.count(old) == 1, "the anchor moved; this variant would prove nothing"
+open(p, "w").write(s.replace(old, new))
+PY
+check "a reading left behind by a finished cycle is caught at rest" 1 \
+      'were painted from a partial reading with no run in flight'
+restore
+
+echo "=== [D] the document names a run that is NOT the one in flight ==="
+# THE FIXTURE MOVES HERE, NOT THE PAGE. With the page as committed this must
+# produce a board that paints nothing - and `nothing painted while a run is in
+# flight` is the other half of the same claim, so the gate goes red saying so.
+python3 - <<'PY'
+import json
+p = "tests/fixtures/page-inflight/layer/status/progress/stage.json"
+d = json.load(open(p))
+assert d["run"]["id"] == "31461000064", "the fixture moved; this variant would prove nothing"
+d["run"] = {"id": "31461000099", "number": "99", "workflow": "deploy-stage"}
+json.dump(d, open(p, "w"), indent=2)
+PY
+check "a document naming another run is refused by the page" 1 \
+      'no node on the page was painted from status/progress'
+
+echo "=== [D2] ... and the comparison is what refused it ==="
+# Same fixture, still naming #99. Removing the comparison makes the page accept
+# it, the board paints, and the gate goes GREEN over a page reading a document
+# written by a different cycle. Green is the DEFECT here, and it is the contrast
+# with [D] that shows which line was doing the work.
 python3 - <<'PY'
 p = "assets/index.template.html"
 s = open(p).read()
@@ -89,11 +128,11 @@ new = "          return doc;"
 assert s.count(old) == 1, "the anchor moved; this variant would prove nothing"
 open(p, "w").write(s.replace(old, new))
 PY
-check "a document from a cycle that is over is caught at rest" 1 \
-      'were painted from a partial reading with no run in flight'
+check "without it the page accepts the other run's document" 0 \
+      'ok    in-flight: a partial reading is read only by the run that wrote it'
 restore
 
-echo "=== [D] the record stops superseding the partial reading ==="
+echo "=== [E] the record stops superseding the partial reading ==="
 python3 - <<'PY'
 p = "assets/index.template.html"
 s = open(p).read()
@@ -108,7 +147,7 @@ check "a publish that the board ignores is caught by the sequence pass" 1 \
       'not one of the published nodes says anything different after the swap'
 restore
 
-echo "=== [E] control again, after every mutation was restored ==="
+echo "=== [F] control again, after every mutation was restored ==="
 check "the control is green on both sides of the breaks" 0 \
       'ok    at-rest: a partial reading is read only by the run that wrote it'
 
