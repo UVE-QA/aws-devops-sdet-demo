@@ -90,13 +90,25 @@ It also makes the contour answer its own question at a glance: on a page at rest
 the permanent row is in colour and both environment rows are grey, which is
 exactly the state of the account.
 
-**They are smaller than the environments, and that is a correction to this
-decision made an hour after it.** Drawn at the board's own 5rem they became the
-brightest thing on the page - six saturated marks between a half-built prod above
-and the cycle map below - and the owner said so at once. It inverts what the page
-is for: these levels never change, so they are the least newsworthy thing on it,
-and they were shouting loudest. They keep their colour, because colour on this
-board means PRESENT and they always are. They give up the size.
+**And then they moved, which is the correction that was actually needed.** Drawn
+at the board's own 5rem *inside the estate contour* they became the brightest
+thing on the page - six saturated marks between a half-built prod above and the
+cycle map below - and the owner said so at once. Shrinking them was tried first
+and was the wrong answer to the right complaint: the problem was the POSITION,
+not the weight. A reader following what a cycle is doing right now had six tiles
+of unchanging scenery in the middle of it.
+
+So they are their own contour, `#c-permanent`, after the assertions and above
+the fold - full size, same board, same marks, nothing hidden. **ADR-0054 D5 is
+not reversed**: it took them out from under a cut because a noun that survives
+every teardown is not a footnote to the nouns that do not, and that still holds.
+Only the ordering changes. When the dashboard grows tabs (ADR-0074) this is the
+section that moves whole.
+
+The sentence under the new heading is deliberately NOT the one `renderDetail()`
+writes. *Applied once, by hand, under a human SSO session…* stays there; a second
+copy would be the same prose in two places, which is how two places stop
+agreeing.
 
 **D6. The room comes out of the reference line, not out of the columns.** Raising
 the crossover to 1200px was tried: it buys 134px instead of 122px at a 1082px
