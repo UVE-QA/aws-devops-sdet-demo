@@ -130,6 +130,26 @@ The new claim is two-sided, because the negative half alone is satisfied by a pa
 that never reads the document — the vacuous green this file has caught in itself
 twice. `scripts/break-progress-attribution.sh` runs seven variants.
 
+**D8. A partial reading has a shelf life, and it is the defence that holds when
+the others do not.** Added the same day, by a cycle that failed.
+
+self-service #14's prod apply timed out waiting for an ALB to leave
+`provisioning`. Two consequences, both of them the removal of a defence:
+
+* the job published no record — *node states NOT published: this apply is
+  errored* — so D6's supersede rule had nothing to supersede with;
+* the stop step's `aws s3 rm` was denied, because it ran under the deploy role
+  (ADR-0077 D7), so the document stayed in the bucket.
+
+Both defences gone at once, and the page went on drawing a prod that was being
+torn down as it read. The document was removed by hand.
+
+The writer publishes every fifteen seconds, so **a document older than two
+minutes means nobody is writing it any more** — and that is a fact the document
+itself carries, so it holds when the bucket, the workflow and the credential have
+all failed together. Two minutes is eight missed writes, generous on purpose
+against a clock the page does not own.
+
 ## Consequences
 
 **The at-rest case turned out to be defended twice, and that is a finding.**

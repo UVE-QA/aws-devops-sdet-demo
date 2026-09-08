@@ -371,19 +371,17 @@
         grid-template-columns: repeat(var(--estate-cols, 8), minmax(0, 1fr));
       }
       .perm .node { border-style: dashed; }
-      .perm > .node { align-items: center; text-align: center; padding: 0.55rem 0.4rem 0.5rem; }
+      .perm > .node { align-items: center; text-align: center; padding: 0.6rem 0.4rem 0.5rem; }
       .perm > .node .head { display: flex; flex-direction: column; align-items: center; gap: 0.3rem; }
-      /* SMALLER THAN THE ENVIRONMENTS, AND STILL IN COLOUR. Drawn at the board's
-         5rem they were the brightest thing on the page - six saturated marks
-         between a half-built prod above and the cycle map below - which inverts
-         what the page is for. These levels never change; they are the least
-         newsworthy thing on it, and they were shouting loudest.
-         They keep their colour, because colour on this board means PRESENT and
-         they are always present. They give up the size. */
-      .perm > .node .head .icon { min-width: 2.6rem; height: 2.6rem; font-size: 0.66rem; border-radius: 8px; }
-      .perm > .node .head .icon.aws { width: 2.6rem; border-radius: 8px; }
-      .perm > .node { opacity: 0.86; }
-      .perm > .node .name { font-size: 0.78rem; }
+      /* THE SAME MARK AS THE ENVIRONMENTS. Shrinking these was the wrong answer
+         to the right complaint: six saturated marks WERE the brightest thing on
+         the page, and the reason was where they sat, not how big they were.
+         Moved out from between the live rows and the cycle map they can be what
+         they are - the half of the estate no teardown touches, drawn like the
+         half it does. */
+      .perm > .node .head .icon { min-width: 5rem; height: 5rem; font-size: 0.8rem; border-radius: 12px; }
+      .perm > .node .head .icon.aws { width: 5rem; border-radius: 12px; }
+      .perm > .node .name { font-size: 0.9rem; }
       .perm > .node .ident { white-space: normal; overflow-wrap: anywhere; font-size: 0.7rem; }
       .perm > .node .asserts { font-size: 0.72rem; line-height: 1.4; }
       @media (max-width: 1000px) {
@@ -391,7 +389,9 @@
           display: flex; flex-wrap: wrap; grid-template-columns: none;
         }
         .perm > .node { width: var(--tile); flex: 0 0 var(--tile); padding: 0.5rem 0.35rem 0.45rem; }
-        .perm > .node .name { font-size: 0.74rem; }
+        .perm > .node .head .icon { min-width: var(--tile-icon); height: var(--tile-icon); }
+        .perm > .node .head .icon.aws { width: var(--tile-icon); }
+        .perm > .node .name { font-size: 0.76rem; }
       }
 
       /* ---------- the three contours (ADR-0054 D1) ----------
@@ -1240,8 +1240,6 @@
         <h2>The estate <span class="note">&mdash; the nouns. What is in AWS, answered by observation</span></h2>
         <p class="sub" id="estate-caption">Reading the topology&hellip;</p>
         <div id="estate-envs"></div>
-        <h3 class="contour-sub">Permanent <span class="note" id="perm-note">no destroy workflow touches these</span></h3>
-        <div class="perm" id="perm"></div>
       </section>
 
       <!-- CONTOUR 2 OF 3 - THE CYCLE. The verbs, in the order they happen. A
@@ -1305,6 +1303,30 @@
         <h2>What the repository asserts <span class="note">&mdash; the suites themselves, collected, with no tense</span></h2>
         <p class="sub" id="assertions-sub">Reading the topology&hellip;</p>
         <div class="suites" id="suites"></div>
+      </section>
+
+      <!-- THE PERMANENT LEVELS, LAST AND AT FULL SIZE (ADR-0077 D5).
+           They were inside the estate contour, between the two environment rows
+           and the cycle map - so a reader following what a cycle is doing right
+           now had six tiles of unchanging scenery in the middle of it. They are
+           not scenery, which is why they are not under a cut and not shrunk:
+           they are the half of the estate that survives every teardown, and
+           ADR-0054 D5 brought them out from under a cut for exactly that reason.
+           What was wrong was the POSITION, not the weight.
+
+           Their own contour, after the assertions, so nothing live is
+           interrupted by them and nothing about them is hidden. When the
+           dashboard grows tabs (ADR-0074) this is the section that moves whole. -->
+      <section class="contour" id="c-permanent">
+        <h2>Permanent <span class="note">&mdash; <span id="perm-note">no destroy workflow touches these</span></span></h2>
+        <!-- NOT the sentence under the cut. `Applied once, by hand, under a human
+             SSO session...` is written in renderDetail() and stays there; a second
+             copy here would be the same prose in two places, which is how the two
+             stop agreeing. This says the thing the detail text does not: why these
+             are on the same board as the environments and carry no figures. -->
+        <p class="sub">The half of the estate no teardown touches &mdash; same board, same
+           marks. Nothing here has a cycle to report, so nothing here carries one.</p>
+        <div class="perm" id="perm"></div>
       </section>
 
       <!-- BELOW THE FOLD. A cut here is not hidden content (ADR-0047 D2): the
@@ -3678,13 +3700,33 @@
            so an unidentifiable run reads no progress at all - a board lighting
            up from a document it cannot attribute is exactly the twelve minutes
            prod.rds spent at full colour while it was being deleted. */
+        const PROGRESS_SHELF_MS = 120000;
+
         function progressHere(observation, env) {
           const doc = RUNSTATE.progress ? RUNSTATE.progress[env] : null;
           if (!doc || doc.partial !== true) return null;
           const flight = flightHere(observation, env);
           if (!flight || flight === true) return null;
           const wroteIt = doc.run && doc.run.id;
-          return wroteIt && String(wroteIt) === flight ? doc : null;
+          if (!wroteIt || String(wroteIt) !== flight) return null;
+          // A PARTIAL READING HAS A SHELF LIFE, and it is the only defence left
+          // when a cycle ERRORS. Watched on 2026-09-08: prod's apply timed out
+          // waiting for an ALB, so no record was published - `node states NOT
+          // published: this apply is errored` - and the document therefore had
+          // nothing to supersede it (ADR-0076 D6's second defence, absent). The
+          // removal was the last one, and on that run it was denied because the
+          // stop step held the wrong role. Two defences, both gone, and the page
+          // went on drawing a prod that was being torn down as it read.
+          //
+          // The writer publishes every fifteen seconds. A document older than
+          // two minutes means nobody is writing it any more, whatever the run
+          // list says about the cycle - and that is a fact the DOCUMENT carries,
+          // so it holds when the bucket, the workflow and the credential have
+          // all failed at once. Generous against clock skew on purpose: eight
+          // missed writes, not one.
+          const taken = Date.parse(doc.taken_at || "");
+          if (!taken || Date.now() - taken > PROGRESS_SHELF_MS) return null;
+          return doc;
         }
 
         /* ONE NODE'S STATE, FROM THAT DOCUMENT. Same shape nodeTense() returns,

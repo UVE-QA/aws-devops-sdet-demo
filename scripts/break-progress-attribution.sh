@@ -18,7 +18,11 @@
 #       the OTHER half of the same claim - nothing was painted. [D2] then removes
 #       the comparison and the gate goes green again over the same fixture, which
 #       is what shows the comparison did it rather than something else
-#   [E] the record stops superseding the partial reading - the board goes on
+#   [E] the document has gone stale - nobody is writing it any more. On
+#       2026-09-08 this was the ONLY defence left: prod's apply errored so no
+#       record was published to supersede it, and the removal was denied because
+#       the stop step held the wrong role
+#   [F] the record stops superseding the partial reading - the board goes on
 #       saying `being created` over an environment the same run has already
 #       reported complete
 #
@@ -88,19 +92,21 @@ check "a page that never reads it is caught, not green" 1 \
 restore
 
 echo "=== [C] the page reads a partial document with no run in flight ==="
-# BOTH GUARDS COME OUT, and that is a finding rather than a heavier hand. At rest
-# `flightHere()` answers null, so the flight guard refuses - and the run-id
-# comparison independently refuses too, because a document naming a run can never
-# equal null. Removing either one alone leaves the case defended, which is why
-# the first version of this variant passed with the comparison gone and proved
-# nothing. What the claim has to be shown catching is the state itself, so the
-# variant produces the state.
+# ALL THREE GUARDS COME OUT, and that is a finding rather than a heavier hand.
+# At rest the flight guard refuses because `flightHere()` answers null; the
+# run-id comparison refuses independently, because a document naming a run can
+# never equal null; and the shelf life refuses independently again, because this
+# fixture's clock is thirteen minutes past the document. Removing any one leaves
+# the case defended - which is why the first version of this variant passed with
+# the comparison gone and proved nothing. What the claim has to be shown catching
+# is the STATE, so the variant produces the state.
 python3 - <<'PY'
 p = "assets/index.template.html"
 s = open(p).read()
 pairs = [
     ("          if (!flight || flight === true) return null;", "          if (false) return null;"),
-    ("          return wroteIt && String(wroteIt) === flight ? doc : null;", "          return doc;"),
+    ("          if (!wroteIt || String(wroteIt) !== flight) return null;", "          if (false) return null;"),
+    ("          if (!taken || Date.now() - taken > PROGRESS_SHELF_MS) return null;", "          if (false) return null;"),
 ]
 for old, new in pairs:
     assert s.count(old) == 1, "the anchor moved; this variant would prove nothing"
@@ -134,8 +140,8 @@ echo "=== [D2] ... and the comparison is what refused it ==="
 python3 - <<'PY'
 p = "assets/index.template.html"
 s = open(p).read()
-old = "          return wroteIt && String(wroteIt) === flight ? doc : null;"
-new = "          return doc;"
+old = "          if (!wroteIt || String(wroteIt) !== flight) return null;"
+new = "          if (false) return null;"
 assert s.count(old) == 1, "the anchor moved; this variant would prove nothing"
 open(p, "w").write(s.replace(old, new))
 PY
@@ -143,7 +149,25 @@ check "without it the page accepts the other run's document" 0 \
       'ok    in-flight: a partial reading is read only by the run that wrote it'
 restore
 
-echo "=== [E] the record stops superseding the partial reading ==="
+echo "=== [E] the document is old, so nobody is writing it any more ==="
+# THE LAST DEFENCE, AND ON 2026-09-08 THE ONLY ONE LEFT. prod's apply timed out
+# waiting for an ALB, so no record was published to supersede the document, and
+# the removal was denied because the stop step held the wrong role. Both other
+# defences gone at once. This one is a fact the DOCUMENT carries, so it holds
+# when the bucket, the workflow and the credential have all failed together.
+python3 - <<'PY'
+import json
+p = "tests/fixtures/page-inflight/layer/status/progress/stage.json"
+d = json.load(open(p))
+assert d["taken_at"] == "2026-08-11T04:11:46Z", "the fixture moved; this variant would prove nothing"
+d["taken_at"] = "2026-08-11T03:55:00Z"      # seventeen minutes before the fixture's clock
+json.dump(d, open(p, "w"), indent=2)
+PY
+check "a reading nobody has refreshed in seventeen minutes is dropped" 1 \
+      'no node on the page was painted from status/progress'
+restore
+
+echo "=== [F] the record stops superseding the partial reading ==="
 python3 - <<'PY'
 p = "assets/index.template.html"
 s = open(p).read()
@@ -158,7 +182,7 @@ check "a publish that the board ignores is caught by the sequence pass" 1 \
       'not one of the published nodes says anything different after the swap'
 restore
 
-echo "=== [F] control again, after every mutation was restored ==="
+echo "=== [G] control again, after every mutation was restored ==="
 check "the control is green on both sides of the breaks" 0 \
       'ok    at-rest: a partial reading is read only by the run that wrote it'
 
