@@ -169,6 +169,9 @@
            are sized against each other. */
         --tile: 6.9rem;
         --tile-icon: 2.9rem;
+        /* The page's own width, and the board's. See `main` below: this is a
+           screen, not a round number. */
+        --page: 94.5rem;
         --gap: 0.6rem;
         --arrow: 1.6rem;
       }
@@ -223,7 +226,15 @@
          rendering fault rather than as a choice. 120rem is 1920px: the page
          fills a 1920 screen, keeps a margin on a 2560 one, and the map's
          columns widen past the longest word either draws. */
-      main { max-width: 120rem; margin: 0 auto; }
+      /* 94.5rem is 1512px: the logical width of a 15-inch MacBook Air, chosen
+         because it is a screen this page is actually read on rather than a
+         round number. It was 120rem (1920), which no display here is, so on a
+         1920 monitor the page filled the glass and on a 2560 one it sat in a
+         400px margin - and the estate board, which is a fixed number of
+         columns, used barely half of either. The cap is now the width the
+         board is sized against, so the two agree on every screen wider than
+         it. ADR-0077. */
+      main { max-width: var(--page); margin: 0 auto; }
       h1 { font-size: 1.55rem; margin: 0 0 0.25rem; letter-spacing: -0.01em; }
       .sub { color: var(--muted); margin: 0 0 1.25rem; max-width: 46rem; }
       h2 {
@@ -399,13 +410,40 @@
          thing a board that exists to be compared across environments must not
          do. Fixed tiles wrap instead, and a wrapped row is honest about
          running out of width. */
+      /* AS MANY COLUMNS AS THE WIDEST ENVIRONMENT HAS NODES, and not as many as
+         happen to fit. `--estate-cols` is set once by renderEstate() from the
+         data - the largest node count across the environments - and BOTH rows
+         use it, which is the whole point: the rows are read by COLUMN. VPC sits
+         over VPC, RDS over RDS, and the column stage leaves empty is not a gap
+         but a statement, because prod carries a Route 53 record stage does not.
+
+         `auto-fill` was tried and is wrong here for the same reason `1fr` was
+         wrong before it: it gives whatever fits, so a 1512px row becomes
+         thirteen columns of which five are empty in both rows. The number of
+         columns is a property of the estate, not of the viewport. */
       .estate-set {
-        display: flex; flex-wrap: wrap; gap: var(--gap);
+        display: grid; gap: var(--gap);
+        grid-template-columns: repeat(var(--estate-cols, 8), minmax(0, 1fr));
       }
       .estate-set > .node {
-        width: var(--tile); flex: 0 0 var(--tile);
         align-items: center; text-align: center;
-        padding: 0.5rem 0.3rem 0.45rem;
+        padding: 0.6rem 0.4rem 0.5rem;
+      }
+      /* BELOW THE CROSSOVER THE GRID STOPS BEING ONE. At about 1000px eight
+         columns are already down to --tile, the width at which `Application
+         Load Balancer` stops breaking into four lines, so under it the board
+         wraps fixed tiles instead - and the marks go back to the size they are
+         legible at in a narrow column. The rows no longer line up by column
+         there, and cannot: a row that wraps has no columns to line up. */
+      @media (max-width: 1000px) {
+        .estate-set {
+          display: flex; flex-wrap: wrap;
+          grid-template-columns: none;
+        }
+        .estate-set > .node { width: var(--tile); flex: 0 0 var(--tile); padding: 0.5rem 0.3rem 0.45rem; }
+        .estate-set > .node .head .icon { min-width: var(--tile-icon); height: var(--tile-icon); }
+        .estate-set > .node .head .icon.aws { width: var(--tile-icon); }
+        .estate-set > .node .name { font-size: 0.72rem; }
       }
       /* The state rail moves from the left edge to the top one. Same 4px, same
          colour, same meaning - but a rail down the left of a centred tile
@@ -421,17 +459,17 @@
       .estate-set > .node .head {
         display: flex; flex-direction: column; align-items: center; gap: 0.3rem;
       }
+      /* 5rem, not --tile-icon's 2.9rem: in grid mode the tile is 174px on the
+         page's own width and a 46px mark in it reads as a footnote to its own
+         label. --tile-icon stays the floor the wrapped board uses. */
       .estate-set > .node .head .icon {
-        min-width: var(--tile-icon); height: var(--tile-icon);
-        font-size: 0.72rem; border-radius: 8px;
+        min-width: 5rem; height: 5rem; font-size: 0.8rem; border-radius: 12px;
       }
-      .estate-set > .node .head .icon.aws {
-        width: var(--tile-icon); border-radius: 8px;
-      }
-      .estate-set > .node .name { font-size: 0.72rem; }
+      .estate-set > .node .head .icon.aws { width: 5rem; border-radius: 12px; }
+      .estate-set > .node .name { font-size: 0.86rem; }
       .estate-set > .node .nmeta,
-      .estate-set > .node .touchedby { font-size: 0.6rem; line-height: 1.4; }
-      .estate-set > .node .nstate { font-size: 0.63rem; }
+      .estate-set > .node .touchedby { font-size: 0.66rem; line-height: 1.4; }
+      .estate-set > .node .nstate { font-size: 0.7rem; }
       /* WHAT `absent` AND `gone` LOOK LIKE ON A BOARD, AND WHY THEY STOP
          LOOKING ALIKE HERE. Everywhere else on this page the two are drawn
          identically on purpose (see .node.absent below): what a reader needs
@@ -490,10 +528,19 @@
            zero. */
         align-self: stretch;
       }
-      .pbar i { display: block; height: 100%; background: var(--state-working); transition: width 0.4s ease; }
+      .pbar i { display: block; height: 100%; background: var(--state-working); }
+      /* Indeterminate: a sliver that travels, saying `working` without saying
+         how far along. It has no width to animate to, so nothing about it can
+         be read as a proportion. */
+      .pbar.indeterminate i { width: 35%; animation: pbar-travel 1.4s ease-in-out infinite; }
+      @keyframes pbar-travel {
+        0%   { transform: translateX(-100%); }
+        100% { transform: translateX(285%); }
+      }
       @media (prefers-reduced-motion: reduce) {
         .estate-set > .node.working { animation: none; }
-        .pbar i { transition: none; }
+        /* Still visible, still saying nothing about how far along. */
+        .pbar.indeterminate i { animation: none; width: 100%; opacity: 0.55; }
       }
       /* The reference, drawn as a name at both ends (ADR-0058). Muted on
          purpose: it is the relationship, and the thing it points at is
@@ -2509,15 +2556,14 @@
             // the sentence on every tile rather than losing the disagreement.
             const note = shared && shared.note && shared.note === t.note ? "" : t.note;
             body = line(t.word, [note].concat(figs), t.cls);
-            // THE BAR IS A COUNT, NOT A FORECAST (ADR-0076). `3 of 8 resource
-            // blocks` is a fact about this cycle; a bar against the previous
-            // cycle's duration would be a claim about how long the other five
-            // take, and would have nothing to say at all on a first run. The
-            // sentence beside it is the same count in words, so the bar adds a
-            // shape and never a number of its own.
-            if (n.progress && n.progress.live && n.progress.ratio !== null) {
-              body += `<div class="pbar"><i style="width:${
-                Math.round(n.progress.ratio * 100)}%"></i></div>`;
+            // THE BAR CARRIES NO NUMBER (ADR-0077, narrowing ADR-0076 D4). It
+            // was a proportion of `resources_complete / resources_observed`,
+            // which reads as progress and is not: the denominator is what has
+            // STARTED and it grows. It says `working` now and nothing else,
+            // which is the only thing about a running apply that is knowable
+            // from outside it.
+            if (n.progress && n.progress.live) {
+              body += `<div class="pbar indeterminate"><i></i></div>`;
             }
           }
 
@@ -3617,14 +3663,24 @@
             return { word: "created", note: "observed by the cycle under way",
                      cls: "", paint: "measured", ratio: 1, live: false };
           }
+          // NO FRACTION, BECAUSE THE DENOMINATOR IS NOT A TOTAL (ADR-0077).
+          // `resources_observed` counts what has STARTED, not what there is:
+          // watched live on 2026-09-08, stage.vpc went 4/7 -> 9/9 inside thirty
+          // seconds, so a bar against it stands at 100% on a node that is not
+          // finished. Neither is the map's own `resources` a total - that counts
+          // resource BLOCKS in infra/, and `count`/`for_each` turn six blocks
+          // into nine instances at apply time. Nothing knows how many there will
+          // be until the apply is over, which is what `being created` means.
+          //
+          // So the tile says what it has seen finish, with no denominator, and
+          // the bar carries no number at all - it is the indeterminate kind,
+          // which says `working` and claims nothing. Same rule as the cost box:
+          // publish the inputs, never a figure that ages into a lie.
           const done = rec.resources_complete;
-          const seen = rec.resources_observed;
           return {
             word: "being created",
-            note: (done != null && seen != null)
-              ? `${done} of ${seen} resource block${seen === 1 ? "" : "s"}` : "",
-            cls: "", paint: "working", live: true,
-            ratio: (done != null && seen) ? Math.min(1, done / seen) : null
+            note: done ? `${done} created so far` : "nothing finished yet",
+            cls: "", paint: "working", live: true, ratio: null
           };
         }
 
@@ -3820,6 +3876,16 @@
           const host = $("#estate-envs");
           if (!host || !d) return;
           host.innerHTML = "";
+          // THE BOARD'S COLUMN COUNT, FROM THE DATA (ADR-0077). The largest node
+          // count across the environments, so every row is read by column and
+          // the column an environment leaves empty says it has one fewer noun
+          // than its neighbour rather than that the row ran out of width. Set
+          // here because it is a property of the estate; a number in the
+          // stylesheet would be this file's node counts written down a second
+          // time, and topology.json is generated from infra/.
+          host.style.setProperty("--estate-cols", String(
+            (d.estate.environments || []).reduce(
+              (most, e) => Math.max(most, (e.nodes || []).length), 1)));
           (d.estate.environments || []).forEach((e) => {
             const sec = document.createElement("section");
             sec.className = "estate-env";
