@@ -235,6 +235,50 @@
          board is sized against, so the two agree on every screen wider than
          it. ADR-0077. */
       main { max-width: var(--page); margin: 0 auto; }
+
+      /* ONE PART AT A TIME (ADR-0078). `display: none` rather than the `hidden`
+         attribute, and that is not a preference: #cost-box and #launch carry
+         `hidden` of their OWN, meaning `there is nothing to say yet`, and a
+         switcher that wrote the same attribute would forget which of the two
+         reasons a block was hidden for the moment both applied. The attribute
+         stays theirs; the part filter is a rule about the page. */
+      /* THE RULE HIDES; IT NEVER SHOWS. Written the obvious way round - hide
+         everything, then `display: revert` the chosen part - it flattened the
+         cycle map into a single column, because `revert` rolls back to the
+         BROWSER's value and discards `.cycle { display: grid }` along with the
+         author rule it was meant to restore. Found by looking at the map, not
+         by reading the rule.
+         So the showing part is never given a `display` at all and keeps its own,
+         whatever that is; only the others are taken out. It also means a part
+         carrying its own `hidden` - #cost-box does, meaning `nothing to say yet`
+         - stays hidden without a second rule about it. */
+      main[data-showing="now"]    > [data-part]:not([data-part="now"]),
+      main[data-showing="estate"] > [data-part]:not([data-part="estate"]),
+      main[data-showing="cycle"]  > [data-part]:not([data-part="cycle"]),
+      main[data-showing="tests"]  > [data-part]:not([data-part="tests"]),
+      main[data-showing="detail"] > [data-part]:not([data-part="detail"]) { display: none; }
+
+      .parts {
+        display: flex; flex-wrap: wrap; gap: 0.3rem;
+        margin: 0 0 1rem; padding: 0.25rem;
+        border: 1px solid var(--line); border-radius: 10px; background: var(--panel);
+        width: fit-content; max-width: 100%;
+      }
+      .parts button {
+        font: inherit; font-size: 0.82rem; font-weight: 600; line-height: 1.2;
+        padding: 0.4rem 0.85rem; border-radius: 7px;
+        border: 1px solid transparent; background: transparent; color: var(--muted);
+        cursor: pointer;
+      }
+      .parts button:hover { color: var(--fg); border-color: var(--line); }
+      /* The selected one is filled in the accent at the contrast the Launch
+         control was computed for (ADR-0064): 4.6:1 light, 8.2:1 dark. A control
+         is not one of the map's states, so contrast-check does not cover it and
+         the figure is here rather than in a gate. */
+      .parts button[aria-selected="true"] {
+        background: var(--accent); color: var(--bg); border-color: var(--accent);
+      }
+      .parts button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
       h1 { font-size: 1.55rem; margin: 0 0 0.25rem; letter-spacing: -0.01em; }
       .sub { color: var(--muted); margin: 0 0 1.25rem; max-width: 46rem; }
       h2 {
@@ -1080,7 +1124,11 @@
          what the map shows, and it sits under a header, so it takes the size of
          a caption rather than of body text. */
       #map-sub { font-size: 0.82rem; margin: 0 0 0.7rem; max-width: 60rem; }
-      .legend-cut { margin-left: auto; }
+      .legend-cut { flex-basis: 100%; }
+      .legend-head {
+        margin: 0.5rem 0 0; font-size: 0.72rem; font-weight: 700;
+        letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted);
+      }
       .legend-cut > summary {
         cursor: pointer; list-style: none; font-size: 0.74rem;
         color: var(--accent); font-weight: 600;
@@ -1239,7 +1287,7 @@
         <path d="M26,33 L28,33 L28,31 L26,31 L26,33 Z M21,33 L23,33 L23,31 L21,31 L21,33 Z M16,33 L18,33 L18,31 L16,31 L16,33 Z M11,33 L13,33 L13,31 L11,31 L11,33 Z M47.987,37.921 L49.556,37.398 L47.987,36.875 L47.464,35.307 L46.941,36.875 L45.373,37.398 L46.941,37.921 L47.464,39.489 L47.987,37.921 Z M29.617,40.66 L29.095,42.229 L27.526,42.751 L29.095,43.274 L29.617,44.843 L30.141,43.274 L31.709,42.751 L30.141,42.229 L29.617,40.66 Z M29.617,20.434 L29.095,22.003 L27.526,22.525 L29.095,23.048 L29.617,24.617 L30.141,23.048 L31.709,22.525 L30.141,22.003 L29.617,20.434 Z M32.946,31.945 C35.767,33.914 37.773,37.547 38.666,42.317 C40.316,40.08 42.684,36.14 42.684,31.945 C42.684,27.74 40.563,24.016 38.675,21.533 C37.785,26.323 35.775,29.971 32.946,31.945 L32.946,31.945 Z M30.509,32.864 C30.142,32.706 29.903,32.345 29.903,31.945 C29.903,31.545 30.142,31.183 30.509,31.026 C33.997,29.53 36.367,25.168 37.013,19.058 C37.054,18.666 37.322,18.334 37.697,18.212 C38.072,18.09 38.483,18.199 38.749,18.493 C40.965,20.946 44.684,25.956 44.684,31.945 C44.684,38.307 40.141,43.844 38.749,45.39 C38.556,45.604 38.284,45.721 38.006,45.721 C37.902,45.721 37.799,45.705 37.697,45.672 C37.321,45.55 37.053,45.218 37.012,44.826 C36.365,38.719 33.995,34.359 30.509,32.864 L30.509,32.864 Z M54,32 C54,42.477 45.477,51 35,51 C25.682,51 17.802,44.341 16.263,35.166 L18.235,34.834 C19.611,43.042 26.662,49 35,49 C44.374,49 52,41.374 52,32 C52,22.626 44.374,15 35,15 C26.662,15 19.611,20.958 18.235,29.166 L16.263,28.834 C17.802,19.659 25.682,13 35,13 C45.477,13 54,21.523 54,32 L54,32 Z" id="lightsail-Amazon-Lightsail-Icon_48_Squid" fill="#FFFFFF"></path>
     </g></symbol>
 </svg>
-    <main>
+    <main data-showing="now">
       <!-- IDENTITY, AND THE LINKS. Discovery measured the repository link at
            100% of scroll depth: the one thing a thirty-second visitor needs was
            the last thing on the page (ADR-0047 D1). The footer keeps them; it
@@ -1271,11 +1319,32 @@
            Phase 22 paid for, in the same file, four phases later. -->
       <div id="countdown-slot"></div>
 
+      <!-- THE PARTS BAR (ADR-0078). Not navigation: no link, no history entry,
+           no reload - the whole page is loaded, and this shows one part of it at
+           a time. `Pseudo tabs, like filters` is the owner's phrase and it is the
+           accurate one, because nothing here is a destination.
+
+           WHAT STAYS ABOVE IT stays above it on purpose: the identity, the
+           claim, the links, the red banner and the hold's clock. Those are the
+           page's argument and its alarms, and an alarm behind a filter is not an
+           alarm. Everything below is a part.
+
+           Rendered as static markup rather than by script so the bar exists
+           before any fetch resolves - a page whose only navigation appears a
+           second late is a page that looks broken for a second. -->
+      <nav class="parts" id="parts" role="tablist" aria-label="Which part of the page to show">
+        <button type="button" role="tab" data-show="now"    aria-selected="true">Now</button>
+        <button type="button" role="tab" data-show="estate" aria-selected="false">Estate</button>
+        <button type="button" role="tab" data-show="cycle"  aria-selected="false">Cycle</button>
+        <button type="button" role="tab" data-show="tests"  aria-selected="false">Tests</button>
+        <button type="button" role="tab" data-show="detail" aria-selected="false">Detail</button>
+      </nav>
+
       <!-- THE FIRST SCREEN IS THE DASHBOARD (ADR-0047 D1): what is observed in
            AWS, where a request goes, and the run in flight - side by side, in
            blocks, above the map. Everything else is below the fold and under a
            cut. -->
-      <div class="top">
+      <div data-part="now" class="top">
         <section class="panel p-env">
           <h2>Environments <span class="note">&mdash; observed in AWS, not inferred from a green run</span></h2>
           <div id="environments">
@@ -1347,7 +1416,7 @@
            are observed now, the figures beside them belong to a cycle, and
            there is one place to say so rather than one per state - which is how
            it came to be attached to `destroyed` and to nothing else. -->
-      <section class="contour" id="c-estate">
+      <section data-part="estate" class="contour" id="c-estate">
         <h2>The estate <span class="note">&mdash; the nouns. What is in AWS, answered by observation</span></h2>
         <p class="sub" id="estate-caption">Reading the topology&hellip;</p>
         <div id="estate-envs"></div>
@@ -1356,16 +1425,18 @@
       <!-- CONTOUR 2 OF 3 - THE CYCLE. The verbs, in the order they happen. A
            phase draws its own steps and NAMES the estate nodes it touches
            (ADR-0058); it no longer contains them. -->
-      <div class="maphead">
+      <div data-part="cycle" class="maphead">
         <h2>What a cycle does, in the order it does it
           <span class="note">&mdash; the verbs, generated from <code>infra/</code> and <code>tests/</code>, not written by hand</span>
         </h2>
-        <!-- THE LEGEND IS A CUT IN THIS HEADER (ADR-0048 D2). Every node now
-             carries the word for its own state, so a decoder is not what this
-             is any more: it is the one place that says what the encoding is,
-             for a reader who wants it, and it is closed by default. -->
-        <details class="legend-cut" id="legend">
-          <summary>state encoding</summary>
+        <!-- THE LEGEND (ADR-0048 D2, opened by ADR-0078). Every node carries
+             the word for its own state, so this is not a decoder: it is the one
+             place that says what the ENCODING is. It was closed by default when
+             it sat in a page you scrolled; on a Cycle part that shows the map
+             and nothing else there is room for it, and a key folded away on the
+             one screen it explains is a key nobody reads. -->
+        <div class="legend-cut" id="legend">
+          <p class="legend-head">state encoding</p>
           <div class="legend">
             <span><b>not run yet</b> nothing recorded &mdash; carried by the word alone, deliberately quiet</span>
             <span><b>not reached yet</b> a cycle is under way and has not got here &mdash; figures arrive when it ends</span>
@@ -1378,10 +1449,10 @@
             <span><b>no arrow inside a phase</b> those happen together</span>
             <span class="best">Best on a laptop or wider &mdash; on a phone the map reflows to one column, which works but flattens the shape</span>
           </div>
-        </details>
+        </div>
       </div>
-      <p class="sub" id="map-sub">Reading the topology&hellip;</p>
-      <div class="cycle" id="rows"></div>
+      <p data-part="cycle" class="sub" id="map-sub">Reading the topology&hellip;</p>
+      <div data-part="cycle" class="cycle" id="rows"></div>
       <!-- 20f. A BAND, never one end of it: nothing in the event stream can see
            the instant AWS starts charging, and for RDS the two ends were 62%
            apart (ADR-0045). Rendering the low end alone would make a claim the
@@ -1393,7 +1464,7 @@
            Every other figure on this page is in a bordered box with a label
            over it, so this one is too - the same `.panel` the environments and
            the current cycle are drawn in, and no new vocabulary. -->
-      <section class="panel costbox" id="cost-box" hidden>
+      <section data-part="now" class="panel costbox" id="cost-box" hidden>
         <h2><span id="cost-head">What the last cycle cost</span> <span class="note">&mdash; computed from resource lifetimes, not from a bill</span></h2>
         <p class="approx" id="cost-line"></p>
       </section>
@@ -1410,7 +1481,7 @@
            and drawn nowhere, because it runs in no cycle and the map only had
            somewhere to put a run. All five are here, and the one that no cycle
            runs says so in its own words rather than by being absent. -->
-      <section class="contour" id="c-assertions">
+      <section data-part="tests" class="contour" id="c-assertions">
         <h2>What the repository asserts <span class="note">&mdash; the suites themselves, collected, with no tense</span></h2>
         <p class="sub" id="assertions-sub">Reading the topology&hellip;</p>
         <div class="suites" id="suites"></div>
@@ -1428,7 +1499,7 @@
            Their own contour, after the assertions, so nothing live is
            interrupted by them and nothing about them is hidden. When the
            dashboard grows tabs (ADR-0074) this is the section that moves whole. -->
-      <section class="contour" id="c-permanent">
+      <section data-part="estate" class="contour" id="c-permanent">
         <h2>Permanent <span class="note">&mdash; <span id="perm-note">no destroy workflow touches these</span></span></h2>
         <!-- NOT the sentence under the cut. `Applied once, by hand, under a human
              SSO session...` is written in renderDetail() and stays there; a second
@@ -1440,32 +1511,39 @@
         <div class="perm" id="perm"></div>
       </section>
 
-      <!-- BELOW THE FOLD. A cut here is not hidden content (ADR-0047 D2): the
-           header answers the one question - is anything wrong - and the lines
-           inside answer which. A green run has nothing worth opening, and that
-           is the point. -->
-      <p class="fold">&darr; below the fold: every long list, collapsed to what is current</p>
+      <!-- NO CUTS BELOW A FOLD, BECAUSE THERE IS NO FOLD (ADR-0078). ADR-0047
+           D2's rule was that a cut is not hidden content: the header answers `is
+           anything wrong` and the lines inside answer `which`. The part bar now
+           answers a bigger version of the same question - which of five things
+           are you looking at - and a cut inside a part is the same hiding twice,
+           two clicks from a fact. So each of these opens flat inside the part it
+           belongs to, and the part is the only place anything is put away.
 
-      <details class="cut" id="history-cut">
-        <summary id="history-summary">Recent lifecycle runs <span class="small">reading run history&hellip;</span></summary>
+           `details.inline` survives, and is a different animal: those are the
+           per-resource lists renderDetail() generates INSIDE this reference
+           text, fifteen of them, and flattening those would not be removing a
+           layer of hiding, it would be printing a hundred and sixteen lines
+           nobody asked for. -->
+      <section data-part="tests" class="contour" id="history-cut">
+        <h2 id="history-summary">Recent lifecycle runs <span class="small">reading run history&hellip;</span></h2>
         <div id="history"></div>
-      </details>
+      </section>
 
-      <details class="cut" id="outside-cut">
-        <summary>Outside the cycle <span class="small">neither is in <code>infra/</code></span></summary>
+      <section data-part="detail" class="contour" id="outside-cut">
+        <h2>Outside the cycle <span class="note">&mdash; neither is in <code>infra/</code></span></h2>
         <p class="sub" id="outside-note"></p>
         <div class="outside" id="outside"></div>
-      </details>
+      </section>
 
-      <details class="cut detail" id="detail">
-        <summary>Every resource named <span class="small">the same thing in words, and the list this dashboard deliberately is not</span></summary>
+      <section data-part="detail" class="contour detail" id="detail">
+        <h2>Every resource named <span class="note">&mdash; the same thing in words, and the list this dashboard deliberately is not</span></h2>
         <div id="detail-body"></div>
-      </details>
+      </section>
 
-      <details class="cut" id="counts-cut">
-        <summary>Counts <span class="small">rendered from the same file, never spelled out in prose</span></summary>
+      <section data-part="detail" class="contour" id="counts-cut">
+        <h2>Counts <span class="note">&mdash; rendered from the same file, never spelled out in prose</span></h2>
         <p class="sub" id="counts"></p>
-      </details>
+      </section>
 
       <footer>
         <p>
@@ -2366,6 +2444,39 @@
           // endpoint was about to refuse.
           .then(function () { readQuota(); renderLaunch(); });
       }
+
+      /* THE PARTS SWITCH (ADR-0078). Everything it does is one attribute on
+         <main>; the CSS above decides what that means. Deliberately not a
+         router: no hash, no history entry, no fetch. The owner's word for it was
+         `filters`, and a filter that changed the address would be a link.
+
+         NOTHING IS RE-RENDERED. Every part is in the document the whole time,
+         re-read on the same clock whether it is showing or not, so switching
+         cannot show a stale part and cannot cost a GitHub request. That is also
+         why `display: none` and not removal: the map's own render() runs against
+         nodes that are present, and a part rebuilt on show would be a second
+         render path with its own bugs.
+
+         The choice is NOT remembered across a reload. The page re-reads its
+         sources on a timer without reloading (ADR-0062 D2), so a tab left open
+         keeps whatever part it was on for as long as it is open - which is the
+         case that matters. A visitor who comes back tomorrow gets `Now`, which
+         is what a visitor should get. */
+      function showPart(name) {
+        const main = document.querySelector("main");
+        if (!main) return;
+        main.dataset.showing = name;
+        document.querySelectorAll("#parts button").forEach((b) => {
+          b.setAttribute("aria-selected", b.dataset.show === name ? "true" : "false");
+        });
+        // The part is shown from its own top. Switching from halfway down a long
+        // Detail into a one-screen Estate otherwise lands on empty page.
+        window.scrollTo({ top: 0, behavior: "auto" });
+      }
+
+      document.querySelectorAll("#parts button").forEach((b) => {
+        b.addEventListener("click", () => showPart(b.dataset.show));
+      });
 
       function renderAll() {
         renderClocks();
@@ -4582,11 +4693,39 @@
             "|" + money + "|" + reports;
         }
 
-        let t;
-        addEventListener("resize", () => { clearTimeout(t); t = setTimeout(render, 120); });
-        // Belt as well as braces: the gutter above keeps the width steady, and this
-        // re-lays the map if anything else about opening the cut moves it.
-        $("#detail").addEventListener("toggle", () => DATA && render());
+        /* THE MAP RE-LAYS ITSELF WHEN ITS OWN BOX CHANGES WIDTH (ADR-0078).
+           render() folds the phases by measuring `host.clientWidth`, and the
+           parts made that measurement zero: at load the page shows `Now`, so
+           #rows is `display: none`, a hidden element's clientWidth is 0, `fits`
+           came out 1 and the whole map drew as a single column. Every gate was
+           green over it - none of them looks at how many columns the map has -
+           and it was found by looking at the picture.
+
+           A ResizeObserver on #rows and not a `resize` listener on the window,
+           because the width now changes for a reason the window knows nothing
+           about. It replaces the window listener rather than joining it: two
+           paths that re-lay the same map are two things to keep in step.
+
+           WIDTH ONLY. render() sets `gridTemplateColumns`, which changes the
+           map's HEIGHT, which fires this observer again - so a callback that
+           re-rendered on any change would drive itself. The last width rendered
+           at is kept and compared, and a height-only change returns.
+
+           Debounced for the reason the window listener was: a drag across a
+           screen is hundreds of these, and render() rebuilds every node. */
+        let lastRenderWidth = -1;
+        let relayout;
+        const rowsHost = $("#rows");
+        new ResizeObserver(() => {
+          const w = rowsHost.clientWidth;
+          if (w === lastRenderWidth || !DATA) return;
+          lastRenderWidth = w;
+          // Zero means the part is not showing. Nothing to lay out, and
+          // rendering into it would only have to be done again on the way back.
+          if (!w) return;
+          clearTimeout(relayout);
+          relayout = setTimeout(render, 120);
+        }).observe(rowsHost);
       })();
     </script>
   </body>

@@ -103,6 +103,13 @@ const SITE = path.join(ROOT, "site");
 const FIXTURES = path.join(ROOT, "tests/fixtures/page-measure");
 const LAYER = path.join(FIXTURES, "layer");
 
+/* THE FIVE PARTS (ADR-0078). Named here and clicked through the page's own
+   switch, so a part added to the markup and not to this list is measured by
+   nobody - which is the same shape as assets/gates.json's `requires`, and the
+   same reason it is written down rather than discovered from the DOM: a list
+   read out of the page cannot notice a part the page forgot to draw. */
+const PARTS = ["now", "estate", "cycle", "tests", "detail"];
+
 const VIEWPORTS = [
   { name: "2560x1440", width: 2560, height: 1440, note: "the stated primary target" },
   { name: "1920x1080", width: 1920, height: 1080 },
@@ -518,7 +525,7 @@ async function main() {
   const results = [];
   for (const fixture of sets) {
     for (const viewport of viewports) {
-      for (const cuts of ["closed", "open"]) {
+      for (const part of PARTS) {
         const context = await browser.newContext({
           viewport: { width: viewport.width, height: viewport.height }
         });
@@ -579,11 +586,27 @@ async function main() {
         await page.waitForLoadState("networkidle");
         await page.waitForTimeout(400);
 
-        if (cuts === "open") {
-          await page.evaluate(() => {
-            document.querySelectorAll("details").forEach((d) => { d.open = true; });
-          });
-          await page.waitForTimeout(300);
+        // THE AXIS IS THE PART, NOT THE CUT (ADR-0078). It was `cuts closed`
+        // and `cuts open`, and both are gone: the page-level <details> were
+        // flattened into the parts that now hold them, so `open` would measure
+        // a state the page cannot be in. What replaced them is a bigger version
+        // of the same question - a reader sees ONE part - so each is measured on
+        // its own, which is what a reader's screen actually contains.
+        //
+        // Clicked rather than set, so this measures the page's own switch. A
+        // measurement taken by writing the attribute directly would be green
+        // over a switch that no longer works.
+        await page.evaluate((name) => {
+          const b = document.querySelector(`#parts button[data-show="${name}"]`);
+          if (b) b.click();
+        }, part);
+        await page.waitForTimeout(300);
+        const showing = await page.evaluate(() => document.querySelector("main").dataset.showing);
+        if (showing !== part) {
+          await browser.close();
+          server.close();
+          refuse(`asked the page for the \`${part}\` part and it is showing \`${showing}\`. ` +
+                 `Every figure below would be of the wrong part.`);
         }
 
         const measured = await page.evaluate(measureInPage);
@@ -613,7 +636,7 @@ async function main() {
               "its sources is shorter than the real one, and its figures mean nothing."
           );
         }
-        results.push({ fixture: fixture.name, viewport: viewport.name, cuts, ...measured,
+        results.push({ fixture: fixture.name, viewport: viewport.name, part, ...measured,
           screens: Math.round((measured.height / viewport.height) * 10) / 10 });
         await context.close();
       }
@@ -624,10 +647,10 @@ async function main() {
 
   // ---- report -------------------------------------------------------------
   console.log("page height - document.scrollHeight, and screens of the viewport it was measured in\n");
-  console.log("  fixture     viewport    cuts      height    screens   doc overflow-x");
+  console.log("  fixture     viewport    part      height    screens   doc overflow-x");
   for (const r of results) {
     console.log(
-      "  " + r.fixture.padEnd(12) + r.viewport.padEnd(12) + r.cuts.padEnd(10) +
+      "  " + r.fixture.padEnd(12) + r.viewport.padEnd(12) + r.part.padEnd(10) +
       (r.height + "px").padStart(7) + "  " + String(r.screens).padStart(8) + "   " +
       (r.docOverflowX > 1 ? r.docOverflowX + "px" : "-")
     );
@@ -635,7 +658,7 @@ async function main() {
 
   for (const r of results) {
     if (!r.beyondParent.length && !r.contentWide.length) continue;
-    console.log(`\n${r.fixture} · ${r.viewport} · cuts ${r.cuts}`);
+    console.log(`\n${r.fixture} · ${r.viewport} · part ${r.part}`);
     if (r.beyondParent.length) {
       console.log("  beyond its parent's padding edge");
       for (const f of r.beyondParent.slice(0, top)) {
@@ -664,7 +687,7 @@ async function main() {
   // ---- the packing, and what it costs in air ------------------------------
   console.log("\nthe packing - every box against the height of the row it shares\n");
   for (const r of results) {
-    if (r.cuts !== "closed") continue;
+    if (r.part !== "cycle") continue;
     console.log(`${r.fixture} · ${r.viewport} · map ${r.packing.mapHeight}px in ${r.packing.columns} columns · air ${r.packing.air}px`);
     for (const [what, rows] of [["top", r.packing.topRows], ["map", r.packing.mapRows]]) {
       for (const row of rows) {
@@ -685,14 +708,14 @@ async function main() {
   console.log("\nbroken words - a word split across two lines, outside the fields that break on purpose\n");
   for (const r of results) {
     if (!r.broken.length) continue;
-    console.log(`${r.fixture} · ${r.viewport} · cuts ${r.cuts}`);
+    console.log(`${r.fixture} · ${r.viewport} · part ${r.part}`);
     for (const b of r.broken) console.log(`    ${b.word}${b.count > 1 ? ` (x${b.count})` : ""}   ${b.where}`);
   }
   if (!results.some((r) => r.broken.length)) console.log("  none, at any viewport measured");
 
   // ---- the floor the map is folded at -------------------------------------
   console.log("\nthe floor - what the narrowest node would have to be, derived from what a node draws\n");
-  const allFloors = results.filter((r) => r.cuts === "closed").flatMap((r) => r.floors);
+  const allFloors = results.filter((r) => r.part === "cycle").flatMap((r) => r.floors);
   const worstWord = allFloors.reduce((a, b) => (b.wholeWord > a.wholeWord ? b : a), allFloors[0]);
   const worstLine = allFloors.reduce((a, b) => (b.oneLine > a.oneLine ? b : a), allFloors[0]);
   if (worstWord) {
