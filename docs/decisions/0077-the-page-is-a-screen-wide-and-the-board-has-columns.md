@@ -77,15 +77,39 @@ started. The mark stays in colour once anything of it exists — only `absent` a
 `gone` are greyed — so what flickers is the pulse and the word, and both are
 accurate at the moment they are drawn.
 
+**D5. The permanent levels are on the same board, at the same size.** They were
+cards at `--card-min` with a 1.4rem badge, sitting under two rows of 5rem marks,
+which said they were a different kind of object. They are not: they are AWS
+resources in this account, drawn from the same generated file. What is different
+is that no teardown touches them, and the heading says so while the dashed border
+says it again on every tile. Six of them in the same eight columns, so the row
+lines up with the two above and the two empty columns at the end are the two
+levels the estate does not have rather than a ragged edge.
+
+It also makes the contour answer its own question at a glance: on a page at rest
+the permanent row is in full colour and both environment rows are grey, which is
+exactly the state of the account.
+
+**D6. The room comes out of the reference line, not out of the columns.** Raising
+the crossover to 1200px was tried: it buys 134px instead of 122px at a 1082px
+window and ORPHANS prod, whose eight nodes wrap to 7 + 1 - a lone tile on a row
+of its own under a full row of stage, with nothing about it saying why. A board
+read by column with one tile hanging below it is worse than a slightly tight one.
+
+So the columns hold as long as they can be columns, and `creates 2 · provisions 3
+· asserts 4 · destroys 8` - four pointers into the map below, set at the same size
+as the state, taking three lines under a two-line name on a tile whose subject is
+what exists NOW - is set smaller. It keeps every word, because ADR-0058 draws the
+reference at both ends and this is one of them.
+
 ## Consequences
 
 **The page got taller, and the figure is here rather than in a stylesheet.**
 `measure-page`, at rest, cuts closed:
 
-    2560x1440    3387px  ->  3624px      2.4 screens  ->  2.5
-    1920x1080    3387px  ->  3624px      3.1 screens  ->  3.4
-    1440x900     3631px  ->  3699px      4.0 screens  ->  4.1
-    390x844      9060px  ->  9464px     unchanged in kind
+    2560x1440    3387px  ->  3718px      2.4 screens  ->  2.6
+    1920x1080    3387px  ->  3718px      3.1 screens  ->  3.4
+    390x844      9060px  ->  9546px     11.2 screens  ->  11.3
 
 Narrower page, more wrapping, more height. That is the trade the cap buys and it
 is not free. Below 1512 nothing much moves, which is the point: the cap changes

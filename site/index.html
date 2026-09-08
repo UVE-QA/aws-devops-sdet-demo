@@ -355,8 +355,38 @@
          The rules below are the pilot's, unchanged - the layout was decided by
          LOOKING at it at 1440/1180/834/390, so paraphrasing it here would throw
          away the only part of this phase that was not derived. */
-      .perm { display: grid; gap: var(--gap); grid-template-columns: repeat(auto-fit, minmax(var(--card-min), 1fr)); }
+      /* THE PERMANENT LEVELS ARE ON THE SAME BOARD, at the same size, because
+         they are the same kind of thing: AWS resources, in this account, drawn
+         from the same generated file. They were cards at --card-min with a
+         1.4rem badge under two rows of 5rem marks, which said they were a
+         different kind of object - and the difference is not the kind, it is
+         that no teardown touches them. The heading says that, and the dashed
+         border says it again on every tile.
+
+         Six of them in the same eight columns, so the row lines up with the two
+         above it and the two empty columns at the end are the two levels the
+         estate does not have rather than a ragged edge. */
+      .perm {
+        display: grid; gap: var(--gap);
+        grid-template-columns: repeat(var(--estate-cols, 8), minmax(0, 1fr));
+      }
       .perm .node { border-style: dashed; }
+      .perm > .node { align-items: center; text-align: center; padding: 0.6rem 0.4rem 0.5rem; }
+      .perm > .node .head { display: flex; flex-direction: column; align-items: center; gap: 0.3rem; }
+      .perm > .node .head .icon { min-width: 5rem; height: 5rem; font-size: 0.8rem; border-radius: 12px; }
+      .perm > .node .head .icon.aws { width: 5rem; border-radius: 12px; }
+      .perm > .node .name { font-size: 0.9rem; }
+      .perm > .node .ident { white-space: normal; overflow-wrap: anywhere; font-size: 0.7rem; }
+      .perm > .node .asserts { font-size: 0.72rem; line-height: 1.4; }
+      @media (max-width: 1000px) {
+        .perm {
+          display: flex; flex-wrap: wrap; grid-template-columns: none;
+        }
+        .perm > .node { width: var(--tile); flex: 0 0 var(--tile); padding: 0.5rem 0.35rem 0.45rem; }
+        .perm > .node .head .icon { min-width: var(--tile-icon); height: var(--tile-icon); }
+        .perm > .node .head .icon.aws { width: var(--tile-icon); }
+        .perm > .node .name { font-size: 0.76rem; }
+      }
 
       /* ---------- the three contours (ADR-0054 D1) ----------
          A contour is a titled REGION, not a panel: a panel is a box on the
@@ -435,14 +465,34 @@
          wraps fixed tiles instead - and the marks go back to the size they are
          legible at in a narrow column. The rows no longer line up by column
          there, and cannot: a row that wraps has no columns to line up. */
+      /* THE CROSSOVER, AND WHY IT IS NOT HIGHER. Raising it to 1200 was tried:
+         it makes the tile 134px instead of 122px at a 1082px window, and it
+         ORPHANS prod - eight nodes wrap to 7 + 1, a lone Budgets tile on a row
+         of its own under a full row of stage. A board read by column that has
+         one tile hanging below it is worse than a slightly tight one, and
+         nothing about the orphan says why it is there.
+
+         So the columns hold as long as they can be columns, and the room comes
+         out of the TEXT instead - which is where it was going anyway: a 122px
+         tile with a two-line name is fine, and it was `creates 2 · provisions 3
+         · asserts 4 · destroys 8` underneath taking three more that made it
+         cramped. Below 1000px eight columns are under 90px and no amount of
+         type-setting saves that, so there the board wraps. */
       @media (max-width: 1000px) {
+        :root { --tile: 8.4rem; --tile-icon: 3.4rem; }
         .estate-set {
           display: flex; flex-wrap: wrap;
           grid-template-columns: none;
         }
-        .estate-set > .node { width: var(--tile); flex: 0 0 var(--tile); padding: 0.5rem 0.3rem 0.45rem; }
+        .estate-set > .node { width: var(--tile); flex: 0 0 var(--tile); padding: 0.5rem 0.35rem 0.45rem; }
         .estate-set > .node .head .icon { min-width: var(--tile-icon); height: var(--tile-icon); }
         .estate-set > .node .head .icon.aws { width: var(--tile-icon); }
+        .estate-set > .node .name { font-size: 0.76rem; }
+      }
+      /* The phone keeps the narrow tile. 8.4rem there is two per row instead of
+         three, on a page already eleven screens long. */
+      @media (max-width: 680px) {
+        :root { --tile: 6.9rem; --tile-icon: 2.9rem; }
         .estate-set > .node .name { font-size: 0.72rem; }
       }
       /* The state rail moves from the left edge to the top one. Same 4px, same
@@ -466,10 +516,19 @@
         min-width: 5rem; height: 5rem; font-size: 0.8rem; border-radius: 12px;
       }
       .estate-set > .node .head .icon.aws { width: 5rem; border-radius: 12px; }
-      .estate-set > .node .name { font-size: 0.86rem; }
-      .estate-set > .node .nmeta,
-      .estate-set > .node .touchedby { font-size: 0.66rem; line-height: 1.4; }
-      .estate-set > .node .nstate { font-size: 0.7rem; }
+      .estate-set > .node .name { font-size: 0.9rem; }
+      .estate-set > .node .nmeta { font-size: 0.72rem; line-height: 1.35; }
+      .estate-set > .node .nstate { font-size: 0.78rem; line-height: 1.35; }
+      /* THE REFERENCE PAYS FOR THE ROOM. `creates 2 · provisions 3 · asserts 4 ·
+         destroys 8` is four pointers into the map below and it was the tallest
+         thing on a tile whose subject is what exists NOW - three lines under a
+         two-line name, in the accent, at the same size as the state. It keeps
+         every word (ADR-0058 draws the reference at both ends and this is one of
+         them); it stops being set like a headline. */
+      .estate-set > .node .touchedby {
+        font-size: 0.64rem; line-height: 1.35; margin-top: 0.28rem;
+        opacity: 0.9;
+      }
       /* WHAT `absent` AND `gone` LOOK LIKE ON A BOARD, AND WHY THEY STOP
          LOOKING ALIKE HERE. Everywhere else on this page the two are drawn
          identically on purpose (see .node.absent below): what a reader needs
