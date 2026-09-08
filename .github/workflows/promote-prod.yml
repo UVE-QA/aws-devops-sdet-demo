@@ -85,6 +85,20 @@ jobs:
           role-to-assume: ${{ vars.OIDC_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
 
+
+      # WHAT THIS APPLY HAS CREATED, WHILE IT IS CREATING IT (ADR-0076). The
+      # watcher runs under the PUBLISH role and every step after this one is
+      # back on the deploy role - see .github/actions/watch-progress for why
+      # that works and why widening the deploy role was refused.
+      - name: Start the progress watcher
+        uses: ./.github/actions/watch-progress
+        with:
+          environment: prod
+          aws-region: ${{ vars.AWS_REGION }}
+          publish-role: ${{ vars.SITE_PUBLISH_ROLE_ARN }}
+          deploy-role: ${{ vars.OIDC_ROLE_ARN }}
+          site-bucket: ${{ vars.SITE_BUCKET }}
+          stream-dir: ${{ env.TF_STREAM_DIR }}
       - name: Resolve the image digest
         id: image
         shell: bash
@@ -579,6 +593,15 @@ jobs:
             "${args[@]}" \
             --out /tmp/results-prod.json
 
+
+      # The document says a cycle is in flight; leaving it says so forever.
+      # `always()`, because a run that died is exactly when it must go.
+      - name: Stop the progress watcher
+        if: always()
+        uses: ./.github/actions/stop-progress
+        with:
+          environment: prod
+          site-bucket: ${{ vars.SITE_BUCKET }}
       - name: Configure AWS credentials (OIDC, publish role)
         if: always()
         uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3

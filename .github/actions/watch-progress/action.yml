@@ -1,0 +1,81 @@
+name: Watch an apply and publish what it has created so far
+description: >
+  Start scripts/watch-progress.sh in the background under the PUBLISH role, then
+  hand the foreground back to the deploy role. ADR-0076.
+
+# WHY THIS IS AN ACTION AND NOT SIX LINES IN THREE WORKFLOWS. The ordering below
+# is the whole of the design and it is not obvious from reading it: a background
+# process keeps the environment it was started with, so it goes on holding the
+# publish credential while every step after this one holds the deploy credential
+# again. Written inline it would be three copies of a subtlety, and the day one
+# of them lost a line the symptom would be a board that quietly stopped lighting
+# up - the empty result that looks clean.
+#
+# THE ALTERNATIVE WAS TO WIDEN THE DEPLOY ROLE, and it was refused. This project
+# splits the credential that can change infrastructure from the credential that
+# writes the page reporting on it, and publish-status.sh's own header says so.
+# Adding `s3:PutObject` on the site bucket to a role that can create an RDS
+# instance would erode that split for an instrument - and the instrument does not
+# need it, because the runner can hold both roles at once as long as only one of
+# them is in the foreground.
+#
+# The watcher's failures are its own: it exits 0 whatever happens, and a loop
+# that published nothing says so in the job log. An apply must not fail because
+# the thing watching it did.
+
+inputs:
+  environment:
+    description: stage or prod
+    required: true
+  aws-region:
+    required: true
+    description: the region both roles are assumed in
+  publish-role:
+    required: true
+    description: the narrow site-publish role ARN; the watcher runs under this
+  deploy-role:
+    required: true
+    description: the deploy role ARN to restore for every step after this one
+  site-bucket:
+    required: true
+    description: the dashboard bucket
+  stream-dir:
+    required: true
+    description: TF_STREAM_DIR, where tf-stream.sh drops terraform's event stream
+  stop-file:
+    required: false
+    default: /tmp/progress.stop
+    description: touch this to end the loop; the job's cleanup would kill it anyway
+
+runs:
+  using: composite
+  steps:
+    - name: Configure AWS credentials (OIDC, publish role, for the watcher)
+      uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
+      with:
+        role-to-assume: ${{ inputs.publish-role }}
+        aws-region: ${{ inputs.aws-region }}
+
+    - name: Start publishing what the apply has created so far
+      shell: bash
+      env:
+        SITE_BUCKET: ${{ inputs.site-bucket }}
+        TF_STREAM_DIR: ${{ inputs.stream-dir }}
+        PROGRESS_STOP: ${{ inputs.stop-file }}
+      run: |
+        set -euo pipefail
+        rm -f "$PROGRESS_STOP"
+        # nohup and a redirect, because a background process holding the step's
+        # stdout keeps the step open. Its log is collected by the stop step, so
+        # a run that published nothing is answerable afterwards rather than
+        # silently absent.
+        nohup "$GITHUB_WORKSPACE/scripts/watch-progress.sh" "${{ inputs.environment }}" \
+          > /tmp/watch-progress-${{ inputs.environment }}.log 2>&1 &
+        echo $! > /tmp/watch-progress-${{ inputs.environment }}.pid
+        echo "watcher started, pid $(cat /tmp/watch-progress-${{ inputs.environment }}.pid)"
+
+    - name: Configure AWS credentials (OIDC, deploy role, for everything else)
+      uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
+      with:
+        role-to-assume: ${{ inputs.deploy-role }}
+        aws-region: ${{ inputs.aws-region }}

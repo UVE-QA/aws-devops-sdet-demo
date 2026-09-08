@@ -175,7 +175,17 @@ const MIME = {
    serves from has to be changeable between two reads of the SAME page. `box`
    holds it, the lookup is overlay-then-layer-then-site, and nothing else about
    the server moves. */
-const OPTIONAL_ABSENT = new Set(["/status/countdown.json"]);
+const OPTIONAL_ABSENT = new Set([
+  "/status/countdown.json",
+  // ADR-0076. Written every few seconds WHILE an apply runs and removed
+  // when the job ends, so absent is the state for all but a few minutes a
+  // day - and absent for an environment no cycle is touching even then.
+  // Named per environment rather than by prefix, for the reason the
+  // countdown is: `status/` as a pattern would swallow stage.json and
+  // prod.json, the two documents whose silent absence this guard is for.
+  "/status/progress/stage.json",
+  "/status/progress/prod.json"
+]);
 
 function serve(notFound, box) {
   const server = http.createServer((req, res) => {
@@ -248,6 +258,11 @@ const OBSERVE = () => {
         id: n.dataset.id,
         word: n.dataset.word || "",
         state: t(n.querySelector(".nstate")),
+        // Set by the page when the tile was painted from `status/progress/
+        // <env>.json` - a reading taken BY the run in flight (ADR-0076). Read
+        // as a fact off the element rather than inferred from the wording,
+        // which would be the page's vocabulary in a second place.
+        observed: n.dataset.observed || "",
         // WHAT IS SAID ABOUT THIS NODE SOMEWHERE OTHER THAN ON IT. The estate
         // board hoists a sentence every tile of a row would print onto the
         // row's own header (ADR-0075) - the same move a phase has made with its
@@ -717,6 +732,12 @@ function claimFiguresDated({ meta, seen }, index) {
     // QUALIFIER may be on the node or on the row header that governs it, and
     // must be in one of the two: `said` is the union, so a page saying it in
     // neither place fails exactly as before.
+    // A COUNT TAKEN BY THE RUN IN FLIGHT IS NOT AN UNDATED LEFTOVER. `2 of 5
+    // resource blocks` is numeric and is about the cycle on the page, published
+    // by it seconds ago; requiring `these figures are from the cycle before this
+    // one` on it would require the page to say something false. The dating is
+    // the attribute, which the page sets only where it read that document.
+    if (node.observed === "cycle-under-way") continue;
     const said = state + " " + (node.governs || "");
     const qualified = QUALIFIERS.some((q) => said.includes(q));
     if (under.has(known.env) && !qualified) {
@@ -726,6 +747,47 @@ function claimFiguresDated({ meta, seen }, index) {
     if (!under.has(known.env) && qualified) {
       out.push(`${node.id} (${known.env}) calls its figure earlier, and no run is touching ` +
         `${known.env}: "${state}"`);
+    }
+  }
+  return out;
+}
+
+/* A PARTIAL READING IS READ ONLY BY THE RUN THAT WROTE IT (ADR-0076).
+   `status/progress/<env>.json` is written every few seconds while an apply runs
+   and removed when the job ends - but a removal that failed, or an edge that has
+   not revalidated, leaves a document describing an environment that has since
+   been torn down. Both fixture states are served the SAME document, naming
+   deploy-stage #64: in-flight is that run, at-rest is not.
+
+   TWO-SIDED ON PURPOSE. The negative half alone would be satisfied by a page
+   that never reads the document at all, which is the vacuous green this file has
+   caught in itself twice. So the in-flight state must show at least one tile
+   painted from it, and the at-rest state none. */
+function claimProgressAttributed({ meta, seen }, index) {
+  const out = [];
+  const painted = seen.nodes.filter((n) => n.observed === "cycle-under-way");
+  const inFlight = !!(meta.cycle && meta.cycle.in_flight);
+  if (inFlight && !painted.length) {
+    out.push(
+      "no node on the page was painted from status/progress/<env>.json, so this claim " +
+      "and everything it protects would be true of a page that ignores the document " +
+      "entirely. The fixture's layer carries one naming the run in flight."
+    );
+  }
+  if (!inFlight && painted.length) {
+    out.push(
+      `${painted.length} node(s) were painted from a partial reading with no run in ` +
+      `flight: ${painted.map((n) => n.id).join(", ")}. That document was written by a ` +
+      `cycle that is over, and the environment it describes has been torn down since.`
+    );
+  }
+  // Attributed nodes must be NOUNS. The progress join is over the estate, and a
+  // phase node reaching it would mean the run layer and this reading had been
+  // welded together - which is the thing ADR-0054 D3 exists to prevent.
+  for (const n of painted) {
+    const known = index[n.id];
+    if (!known || !known.env) {
+      out.push(`${n.id} was painted from a partial reading and is not an estate node.`);
     }
   }
   return out;
@@ -803,7 +865,8 @@ async function main() {
   const CLAIMS = [
     ["the verdict counts only the runs that finished", claimVerdict],
     ["a node nothing can ever measure never promises figures", claimNeverMeasured],
-    ["a figure printed while a cycle is in flight says which cycle it is from", claimFiguresDated]
+    ["a figure printed while a cycle is in flight says which cycle it is from", claimFiguresDated],
+    ["a partial reading is read only by the run that wrote it", claimProgressAttributed]
   ];
 
   let failed = 0;

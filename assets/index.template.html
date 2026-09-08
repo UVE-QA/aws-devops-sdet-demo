@@ -462,6 +462,39 @@
          loudest thing in a row that exists to look quiet. */
       .estate-set > .node.gone .verb,
       .estate-set > .node.absent .verb { color: var(--muted); }
+      /* BEING CREATED, RIGHT NOW (ADR-0076). `working` is the state the
+         contrast contract already floors and the map already draws dashed in
+         the accent; on the board it also breathes, because the one thing this
+         tile is saying that no colour says is that it is not finished yet. The
+         ring never reaches zero opacity - same rule as the state dot's beat,
+         written down when the old pulse spent most of its cycle invisible and
+         read as a still tile. */
+      .estate-set > .node.working { animation: tile-beat 1.6s ease-in-out infinite; }
+      @keyframes tile-beat {
+        0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--state-working) 42%, transparent); }
+        55%      { box-shadow: 0 0 0 0.5rem color-mix(in srgb, var(--state-working) 0%, transparent); }
+      }
+      /* THE BAR IS A COUNT. Its width is `resources_complete / resources_
+         observed` for this cycle and nothing else - no previous duration, no
+         estimate - which is why it cannot be wrong on a first run and why the
+         sentence above it says the same thing in words. It is drawn only while
+         a node is being created; a finished tile has its colour to say so and
+         does not need a bar sitting at 100%. */
+      .pbar {
+        height: 4px; border-radius: 2px; background: var(--line);
+        margin: 0.3rem 0.5rem 0.05rem; overflow: hidden;
+        /* THE TILE CENTRES ITS CHILDREN, so a block with no text in it shrank
+           to zero width and the bar rendered as nothing at all. Found by
+           measuring the element rather than by looking at the screenshot: the
+           markup was right, `width:40%` was on the fill, and 40% of zero is
+           zero. */
+        align-self: stretch;
+      }
+      .pbar i { display: block; height: 100%; background: var(--state-working); transition: width 0.4s ease; }
+      @media (prefers-reduced-motion: reduce) {
+        .estate-set > .node.working { animation: none; }
+        .pbar i { transition: none; }
+      }
       /* The reference, drawn as a name at both ends (ADR-0058). Muted on
          purpose: it is the relationship, and the thing it points at is
          already drawn full strength somewhere else on this page. */
@@ -2351,7 +2384,12 @@
           const ownLive = run && run.state === "running" && run.via === "own";
           const phaseLive = run && run.state === "running" && run.via === "phase";
           const st = ownLive ? "live" : n.kind === "suite" && n.result ? n.result.status : n.state || "absent";
-          el.className = "node " + st;
+          // ADR-0076. While a cycle is being watched resource by resource, the
+          // class follows what that cycle has OBSERVED and not what the last one
+          // recorded - otherwise a noun the apply has not reached is painted
+          // from the figures of the cycle before it, which is the twelve minutes
+          // prod.rds spent at full colour while it was being deleted.
+          el.className = "node " + (n.progress ? n.progress.paint : st);
           if (phaseLive) el.classList.add("working");
           if (run && run.state === "finished" && !(n.kind === "suite" && n.result)) el.classList.add("done");
           if (run && run.state === "failed") el.classList.add("failed-now");
@@ -2444,14 +2482,24 @@
             // a state the branches above are supposed to have caught. Falling
             // back to the word already on the node beats a thrown exception,
             // which blanks the whole map.
-            const t = nodeTense(n, rec, envTense(RUNSTATE.observation, n.env),
+            // THE OBSERVATION OF THE CYCLE UNDER WAY WINS, and only where there
+            // is one (ADR-0076). nodeTense() answers about a FINISHED cycle -
+            // what was measured, and whether the environment has been torn down
+            // since. While a cycle is in flight and publishing what it has
+            // created so far, that question is not the one a reader is asking,
+            // and the answer to the one they are asking is on the page.
+            const t = n.progress ||
+              nodeTense(n, rec, envTense(RUNSTATE.observation, n.env),
                                 flightHere(RUNSTATE.observation, n.env)) ||
               { word: st, note: "", cls: "", gone: false };
             if (t.gone) el.classList.add("gone");
             // The figures are assembled HERE, never in the block above: a node
             // whose environment is gone keeps the numbers it was measured with,
             // and only the word around them changes.
-            const figs = rec && rec.state === "measured"
+            // A FIGURE FROM THE PREVIOUS CYCLE IS NOT DRAWN BESIDE A READING OF
+            // THIS ONE. `duration_s` is the last cycle's, and printed under
+            // `being created` it would read as this cycle's elapsed time.
+            const figs = !n.progress && rec && rec.state === "measured"
               ? [secs(n.duration_s), n.cost_usd ? `$${n.cost_usd.toFixed(3)} computed` : ""]
               : [];
             stateNote = t.note || "";
@@ -2461,6 +2509,16 @@
             // the sentence on every tile rather than losing the disagreement.
             const note = shared && shared.note && shared.note === t.note ? "" : t.note;
             body = line(t.word, [note].concat(figs), t.cls);
+            // THE BAR IS A COUNT, NOT A FORECAST (ADR-0076). `3 of 8 resource
+            // blocks` is a fact about this cycle; a bar against the previous
+            // cycle's duration would be a claim about how long the other five
+            // take, and would have nothing to say at all on a first run. The
+            // sentence beside it is the same count in words, so the bar adds a
+            // shape and never a number of its own.
+            if (n.progress && n.progress.live && n.progress.ratio !== null) {
+              body += `<div class="pbar"><i style="width:${
+                Math.round(n.progress.ratio * 100)}%"></i></div>`;
+            }
           }
 
           // THE TOOL, IN TEXT, ON EVERY NODE (ADR-0047 D4). Derived: `tool` in
@@ -2479,6 +2537,14 @@
               ${n.env && !(shared && shared.env) ? `<span class="envtag ${n.env}">${n.env}</span>` : ""}
             </div>${meta ? `<div class="nmeta">${meta}</div>` : ""}${body}`;
           el.dataset.word = stateWord;
+          // WHICH CYCLE THIS TILE IS A READING OF (ADR-0076). A figure drawn
+          // during a run has to say which cycle measured it, and `2 of 5
+          // resource blocks` is a count taken by the run in flight - the
+          // opposite of a leftover. The page knows that here; a gate reading the
+          // rendered page would otherwise have to infer it from the wording,
+          // which is the page's vocabulary in a second place. Absent whenever no
+          // progress document was consulted, which is the normal state.
+          if (n.progress) el.dataset.observed = "cycle-under-way";
           el.dataset.note = stateNote;
           el.dataset.tool = tool;
           // THE NODE ANSWERS TO ITS OWN NAME. `data-word` has been here since
@@ -2827,6 +2893,15 @@
           // and its teardown starting, so an absent one is not a failed read and
           // the page draws nothing rather than a sentence about waiting.
           countdown: null,
+          // WHAT AN APPLY HAS CREATED SO FAR, per environment (ADR-0076). The
+          // same fold and the same join that write the record at the end of a
+          // job, run over streams terraform has not finished writing, published
+          // every few seconds and removed when the job ends. Empty is the normal
+          // state, and a document here is only ever consulted when the run it
+          // names is the run this page is watching - a reading left behind by a
+          // cycle that is over describes an environment that has since been torn
+          // down.
+          progress: {},
         };
 
         function readJSON(path) {
@@ -2906,6 +2981,23 @@
           // prefix of its own, so publish-site.sh's existing --delete exclusion
           // already covers it.
           wanted.push(["countdown", readJSON("status/countdown.json")]);
+          // status/progress/<env>.json - a PARTIAL reading of an apply that is
+          // still running (ADR-0076). Absent whenever no cycle is touching that
+          // environment, which is most of the time, so the 404 is the normal
+          // state and is named in check-page-inflight.mjs's one-item optional
+          // set beside the countdown.
+          //
+          // NOT the run layer. The run layer infers a node's state from a
+          // PHASE's state in the Actions API, which is why ADR-0054 D3 keeps it
+          // away from the estate: a phase that is running says nothing about
+          // which of its seven resources exists. This document is Terraform's
+          // own event stream, folded and joined by the same two scripts that
+          // write the record at the end of the job, and it names the resource.
+          // A noun answered by it is answered by observation, which is the rule
+          // ADR-0054 D3 states in those words.
+          ENVS.forEach((env) => {
+            wanted.push([`progress:${env}`, readJSON(`status/progress/${env}.json`)]);
+          });
           return Promise.all(wanted.map((w) => w[1])).then((results) => {
             // The whole layer, assembled beside the live one. Nothing below
             // writes into RUNSTATE until every document has been folded in, so
@@ -2913,7 +3005,7 @@
             // cycle and half of another.
             const next = {
               nodes: {}, cycles: [], unfinished: [], unknown: [], hidden: [],
-              phases: {}, results: {}, cost: {}, countdown: null
+              phases: {}, results: {}, cost: {}, countdown: null, progress: {}
             };
             results.forEach((doc, i) => {
               if (!doc) return;
@@ -2957,6 +3049,12 @@
                 next.cost[kind.slice(5)] = doc;
               } else if (kind === "countdown") {
                 next.countdown = doc;
+              } else if (kind.indexOf("progress:") === 0) {
+                // Kept only if it SAYS it is partial. A document under this key
+                // that does not is either a shape this page does not know or a
+                // record published to the wrong place, and painting an estate
+                // from either is worse than painting it from nothing.
+                next.progress[kind.slice(9)] = doc && doc.partial === true ? doc : null;
               } else if (doc.status && doc.status !== "complete") {
                 next.unfinished.push({ environment: doc.environment, status: doc.status, at: doc.written_at });
               }
@@ -2970,6 +3068,7 @@
             RUNSTATE.results = next.results;
             RUNSTATE.cost = next.cost;
             RUNSTATE.countdown = next.countdown;
+            RUNSTATE.progress = next.progress;
             let longest = 1;
             Object.keys(RUNSTATE.nodes).forEach((id) => {
               const n = RUNSTATE.nodes[id];
@@ -3453,6 +3552,82 @@
           return id === undefined || id === null ? true : String(id);
         }
 
+        /* WHAT AN APPLY HAS DONE SO FAR, AND WHETHER THIS PAGE MAY READ IT
+           (ADR-0076). `status/progress/<env>.json` is written every few seconds
+           while terraform runs and is REMOVED when the job ends - but a removal
+           that failed, or an edge that has not revalidated, leaves a document
+           describing an environment that has since been torn down. So the
+           document is consulted only when it names the run this page is already
+           watching, which is the identical predicate ADR-0062 D1 fixed on the
+           node figures: not `is a run touching this environment` but `does this
+           document belong to the run in flight`.
+
+           `flightHere()` answers with the RUN, or with `true` when a run is in
+           flight and cannot be identified. `true` deliberately equals nothing,
+           so an unidentifiable run reads no progress at all - a board lighting
+           up from a document it cannot attribute is exactly the twelve minutes
+           prod.rds spent at full colour while it was being deleted. */
+        function progressHere(observation, env) {
+          const doc = RUNSTATE.progress ? RUNSTATE.progress[env] : null;
+          if (!doc || doc.partial !== true) return null;
+          const flight = flightHere(observation, env);
+          if (!flight || flight === true) return null;
+          const wroteIt = doc.run && doc.run.id;
+          return wroteIt && String(wroteIt) === flight ? doc : null;
+        }
+
+        /* ONE NODE'S STATE, FROM THAT DOCUMENT. Same shape nodeTense() returns,
+           so the drawing code has one contract and not two, plus `ratio` - which
+           is a COUNT and not a prediction. `3 of 8 resource blocks` is a fact
+           about this cycle; `40% done` would be a claim about how long the other
+           five take, and this project publishes inputs rather than forecasts.
+           The bar the owner asked for is that count, which is also why it cannot
+           lie on a first cycle: it has no history in it.
+
+           THE THREE STATES ARE THE JOIN'S OWN, unchanged and un-reinterpreted:
+
+             absent from `nodes`   no member of it has started
+             `incomplete`          some member started, not all finished
+             `measured`            every member finished
+
+           node-states.py already produces exactly these from a partial stream,
+           because a stream with no `.rc` beside it has always folded that way -
+           the reading is not weakened, it is a correct reading of a cycle that
+           is not over. */
+        function nodeProgress(node, doc) {
+          if (!doc || !node || !node.env) return null;
+          // AN APPLY, AND NOTHING ELSE. scripts/node-states.py matches a DELETE
+          // by environment rather than by address, on purpose - the destroy
+          // nodes are whole levels, and `destroy.stage` stands for all thirty
+          // blocks. So a teardown's join names one node and it is not a noun,
+          // and a document from one has nothing to say about any tile on this
+          // board. Read one anyway and every tile would report `the teardown has
+          // not reached it` for the whole teardown, which is inert and says it
+          // seven times.
+          if (doc.kind !== "apply") return null;
+          const rec = (doc.nodes || {})[node.id] || null;
+          // NOT `gone`. A node the apply has not reached was never measured by
+          // this cycle, and `gone` on this board means measured and then removed
+          // - it keeps the figures it earned. This one has none to keep.
+          if (!rec) {
+            return { word: "not created yet", note: "the cycle under way has not reached it",
+                     cls: "unobserved", paint: "absent", ratio: null, live: false };
+          }
+          if (rec.state === "measured") {
+            return { word: "created", note: "observed by the cycle under way",
+                     cls: "", paint: "measured", ratio: 1, live: false };
+          }
+          const done = rec.resources_complete;
+          const seen = rec.resources_observed;
+          return {
+            word: "being created",
+            note: (done != null && seen != null)
+              ? `${done} of ${seen} resource block${seen === 1 ? "" : "s"}` : "",
+            cls: "", paint: "working", live: true,
+            ratio: (done != null && seen) ? Math.min(1, done / seen) : null
+          };
+        }
+
         /* THE FIFTH TENSE DECISION IS NOT IN THIS BLOCK, and that is the
            correction 22 needed. historyTally() answers a question of exactly
            this kind - has this run finished, and may it be counted yet - but
@@ -3806,7 +3981,32 @@
           // deleted.
           estateNodes().forEach((n) => {
             n.run = undefined;
+            // WHAT THE CYCLE UNDER WAY HAS OBSERVED OF THIS NOUN (ADR-0076).
+            // Not the run layer - `n.run` is cleared one line up and stays
+            // cleared, and check-live-state.mjs still fails the build if an
+            // estate id ever reaches runLayerStates(). This is Terraform's own
+            // event stream, folded and joined on the runner by the same two
+            // scripts that write the record at the end of the job, and it names
+            // the resource rather than inferring it from a phase.
+            //
+            // null whenever no cycle is touching this environment, or the
+            // document does not name the run the page is watching - which is
+            // most of the time and is why nothing below changed.
             const observed = RUNSTATE.nodes[n.id];
+            // THE RECORD SUPERSEDES THE PARTIAL READING, the moment the job
+            // that is producing it publishes one. `published_by` is the run that
+            // wrote the node figures (ADR-0062 D1), so a record carrying the run
+            // in flight means that job has finished this environment and said
+            // so - real durations, real identifiers - and a document written
+            // fifteen seconds earlier over an unfinished stream has nothing to
+            // add. Without this the board would keep showing `being created`
+            // over an environment the same run had already reported complete.
+            const flight = flightHere(RUNSTATE.observation, n.env);
+            const reported = observed && observed.published_by && flight &&
+                             String(observed.published_by) === String(flight);
+            n.progress = reported
+              ? null
+              : nodeProgress(n, progressHere(RUNSTATE.observation, n.env));
             if (observed) {
               n.duration_s = observed.duration_s;
               n.identifier = observed.identifier;

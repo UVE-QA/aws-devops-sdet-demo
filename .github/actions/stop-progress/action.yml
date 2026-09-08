@@ -1,0 +1,51 @@
+name: Stop the progress watcher and remove its document
+description: >
+  End the loop scripts/watch-progress.sh is running, print what it managed to
+  publish, and delete status/progress/<environment>.json. ADR-0076.
+
+# THE REMOVAL IS THE HALF THAT MATTERS. The document says a cycle is in flight,
+# and a document left in the bucket says it forever. The page defends itself -
+# it reads the document only when it names the run it is already watching - but
+# a page defending itself against a bucket that lies is not a reason for the
+# bucket to lie. `if: always()`, and a delete that fails does not fail the job:
+# a stale document is a visible wrong state, and a failed teardown over it is
+# a worse one.
+
+inputs:
+  environment:
+    required: true
+    description: stage or prod
+  site-bucket:
+    required: true
+    description: the dashboard bucket
+  stop-file:
+    required: false
+    default: /tmp/progress.stop
+
+runs:
+  using: composite
+  steps:
+    - name: Stop the watcher
+      shell: bash
+      run: |
+        touch "${{ inputs.stop-file }}"
+        # It naps in one-second slices and checks the stop file each time, so it
+        # is gone within about a second. This waits rather than killing, because
+        # a kill in the middle of an `aws s3 cp` is how a truncated object gets
+        # published.
+        for _ in $(seq 1 15); do
+          [ -f /tmp/watch-progress-${{ inputs.environment }}.pid ] || break
+          pid="$(cat /tmp/watch-progress-${{ inputs.environment }}.pid)"
+          kill -0 "$pid" 2>/dev/null || break
+          sleep 1
+        done
+        echo "--- watch-progress log ---"
+        cat /tmp/watch-progress-${{ inputs.environment }}.log 2>/dev/null || echo "(no log)"
+
+    - name: Remove the in-flight document
+      shell: bash
+      env:
+        SITE_BUCKET: ${{ inputs.site-bucket }}
+      run: |
+        aws s3 rm "s3://${SITE_BUCKET}/status/progress/${{ inputs.environment }}.json" \
+          --only-show-errors || echo "::warning::could not remove the progress document"

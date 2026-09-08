@@ -223,7 +223,17 @@ const MIME = {
    identical reason, and the note there applies here word for word: a set and
    not a prefix, because `status/` as a pattern would swallow stage.json and
    prod.json - the two documents whose silent absence this guard exists for. */
-const OPTIONAL_ABSENT = new Set(["/status/countdown.json"]);
+const OPTIONAL_ABSENT = new Set([
+  "/status/countdown.json",
+  // ADR-0076. Written every few seconds WHILE an apply runs and removed
+  // when the job ends, so absent is the state for all but a few minutes a
+  // day - and absent for an environment no cycle is touching even then.
+  // Named per environment rather than by prefix, for the reason the
+  // countdown is: `status/` as a pattern would swallow stage.json and
+  // prod.json, the two documents whose silent absence this guard is for.
+  "/status/progress/stage.json",
+  "/status/progress/prod.json"
+]);
 
 function serve(notFound) {
   const server = http.createServer((req, res) => {

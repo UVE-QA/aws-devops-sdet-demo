@@ -32,7 +32,13 @@ def main() -> int:
     problems: list[str] = []
     seen = 0
 
-    for path in sorted(glob.glob(".github/workflows/*.yml")):
+    # EVERY `uses:` IN .github/, not only the workflows. Phase 39 added
+    # .github/actions/*/action.yml, and a composite action pulls third-party
+    # actions exactly the way a workflow does - by a ref that can be moved under
+    # it. A checker that looked only at workflows would have been green over the
+    # first unpinned one, which is this file's whole subject.
+    for path in sorted(glob.glob(".github/workflows/*.yml")
+                       + glob.glob(".github/actions/*/action.yml")):
         for number, line in enumerate(open(path), start=1):
             match = USES.match(line.rstrip("\n"))
             if not match:
@@ -56,7 +62,7 @@ def main() -> int:
 
     if seen == 0:
         print(
-            "action-pins: found no `uses:` lines in .github/workflows/ at all. "
+            "action-pins: found no `uses:` lines in .github/workflows/ or .github/actions/ at all. "
             "Either the workflows moved or the pattern is broken. Refusing to "
             "pass without checking anything."
         )

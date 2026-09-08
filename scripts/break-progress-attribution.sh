@@ -1,0 +1,117 @@
+#!/usr/bin/env bash
+# BREAK TEST for the partial-reading claim of page-inflight-check (Phase 39,
+# ADR-0076).
+#
+#     bash scripts/break-progress-attribution.sh
+#
+# The claim is two-sided and both sides are the point:
+#
+#   [B] the page stops reading the document at all - the vacuous green this file
+#       has caught in itself twice, where every other claim about the reading
+#       stays true because there is no reading
+#   [C] the page reads it without checking WHICH run wrote it - the defect the
+#       whole design turns on. A document left behind by a finished cycle then
+#       lights an environment that has been torn down since, which is the twelve
+#       minutes prod.rds spent at full colour while it was being deleted
+#   [D] the record stops superseding the partial reading - the board goes on
+#       saying `being created` over an environment the same run has already
+#       reported complete
+#
+# The tree must be clean: every variant patches assets/index.template.html and
+# restores it with `git checkout`, which discards anything uncommitted in it.
+
+set -uo pipefail
+cd "$(dirname "$0")/.."
+
+TPL="assets/index.template.html"
+GATE="scripts/check-page-inflight.mjs"
+OUT="$(mktemp -d)/gate.out"
+pass=0
+fail=0
+
+if [ -n "$(git status --porcelain -- "$TPL" "$GATE")" ]; then
+  echo "break-progress-attribution: $TPL or $GATE is dirty. Commit first - every"
+  echo "variant below restores them with git checkout, which would take your edit with it."
+  exit 2
+fi
+
+restore() {
+  git checkout -- "$TPL" "$GATE" 2>/dev/null
+  python3 scripts/build-site-page.py > /dev/null 2>&1
+}
+trap restore EXIT
+
+run_gate() {
+  python3 scripts/build-site-page.py > /dev/null 2>&1
+  node "$GATE" > "$OUT" 2>&1
+  echo $?
+}
+
+check() {  # check <label> <expected exit> <expected regex>
+  local label="$1" want_exit="$2" want="$3" got_exit line
+  got_exit="$(run_gate)"
+  line="$(grep -E 'partial reading|page-inflight:|were painted|no node on the page|says anything different' "$OUT" | head -6)"
+  if [ "$got_exit" = "$want_exit" ] && grep -qE "$want" "$OUT"; then
+    printf 'ok    %s\n' "$label"
+    pass=$((pass + 1))
+  else
+    printf 'FAIL  %s\n' "$label"
+    printf '      wanted exit %s matching: %s\n' "$want_exit" "$want"
+    printf '      got exit %s\n' "$got_exit"
+    fail=$((fail + 1))
+  fi
+  printf '%s\n\n' "$line" | sed 's/^/        /'
+}
+
+echo "=== [A] control: the tree as committed ==="
+check "the claim holds in both states" 0 \
+      'ok    in-flight: a partial reading is read only by the run that wrote it'
+
+echo "=== [B] the page stops reading the document ==="
+python3 - <<'PY'
+p = "assets/index.template.html"
+s = open(p).read()
+old = "          if (!doc || doc.partial !== true) return null;"
+new = "          if (true) return null;"
+assert s.count(old) == 1, "the anchor moved; this variant would prove nothing"
+open(p, "w").write(s.replace(old, new))
+PY
+check "a page that never reads it is caught, not green" 1 \
+      'no node on the page was painted from status/progress'
+restore
+
+echo "=== [C] the run the document names is not checked ==="
+python3 - <<'PY'
+p = "assets/index.template.html"
+s = open(p).read()
+old = "          return wroteIt && String(wroteIt) === flight ? doc : null;"
+new = "          return doc;"
+assert s.count(old) == 1, "the anchor moved; this variant would prove nothing"
+open(p, "w").write(s.replace(old, new))
+PY
+check "a document from a cycle that is over is caught at rest" 1 \
+      'were painted from a partial reading with no run in flight'
+restore
+
+echo "=== [D] the record stops superseding the partial reading ==="
+python3 - <<'PY'
+p = "assets/index.template.html"
+s = open(p).read()
+old = """            n.progress = reported
+              ? null
+              : nodeProgress(n, progressHere(RUNSTATE.observation, n.env));"""
+new = """            n.progress = nodeProgress(n, progressHere(RUNSTATE.observation, n.env));"""
+assert s.count(old) == 1, "the anchor moved; this variant would prove nothing"
+open(p, "w").write(s.replace(old, new))
+PY
+check "a publish that the board ignores is caught by the sequence pass" 1 \
+      'not one of the published nodes says anything different after the swap'
+restore
+
+echo "=== [E] control again, after every mutation was restored ==="
+check "the control is green on both sides of the breaks" 0 \
+      'ok    at-rest: a partial reading is read only by the run that wrote it'
+
+printf 'break-progress-attribution: %d of %d variants behaved as written.\n' \
+       "$pass" "$((pass + fail))"
+[ "$fail" -eq 0 ] || exit 1

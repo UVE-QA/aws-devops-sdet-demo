@@ -1,0 +1,55 @@
+{
+  "_": "A PARTIAL reading of a cycle still in flight (ADR-0076). SYNTHETIC, in the shape scripts/publish-progress.sh writes: the join's own node states, taken over streams terraform has not finished writing. deploy-stage #64 is the run in flight in this fixture's runs.json, and this document names it - which is what entitles the page to read it. The at-rest state serves the same file and must IGNORE it, because no run is in flight there.",
+  "partial": true,
+  "environment": "stage",
+  "taken_at": "2026-08-11T04:11:46Z",
+  "run": {
+    "id": "31461000064",
+    "number": "64",
+    "workflow": "deploy-stage"
+  },
+  "kind": "apply",
+  "observed": {
+    "resources": 17,
+    "matched": 17,
+    "not_shown": 0,
+    "read": 0,
+    "unknown": 0,
+    "nodes": 4
+  },
+  "nodes": {
+    "stage.vpc": {
+      "state": "measured",
+      "duration_s": 24,
+      "identifier": "vpc-0af31c2b7e9d4a615",
+      "identifier_from": "module.network.aws_vpc.this",
+      "resources_observed": 6,
+      "resources_complete": 6
+    },
+    "stage.secrets": {
+      "state": "measured",
+      "duration_s": 6,
+      "identifier": null,
+      "identifier_from": null,
+      "resources_observed": 2,
+      "resources_complete": 2
+    },
+    "stage.rds": {
+      "state": "measured",
+      "duration_s": 281,
+      "identifier": "demo-stage-db",
+      "identifier_from": "module.rds.aws_db_instance.this",
+      "resources_observed": 4,
+      "resources_complete": 4
+    },
+    "stage.alb": {
+      "state": "incomplete",
+      "duration_s": null,
+      "identifier": null,
+      "identifier_from": null,
+      "resources_observed": 5,
+      "resources_complete": 2
+    }
+  },
+  "unmatched": null
+}

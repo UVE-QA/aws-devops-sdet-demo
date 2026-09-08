@@ -112,6 +112,7 @@ jobs:
         working-directory: infra/envs/${{ inputs.environment }}
         run: terraform init -input=false
 
+
       # A cancelled apply leaves the state lock held, and this workflow is what
       # the watchdog dispatches to clean up after one - so without this step the
       # dispatched destroy dies on the lock and the recovery needs a human with
@@ -380,6 +381,7 @@ jobs:
             --apply "$anchor" \
             --destroy "/tmp/timeline-${{ inputs.environment }}.json" \
             --out "/tmp/cost-${{ inputs.environment }}.json"
+
 
       - name: Configure AWS credentials (OIDC, publish role)
         if: always()

@@ -141,6 +141,27 @@ jobs:
           role-to-assume: ${{ vars.OIDC_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
 
+
+
+      # WHAT THIS APPLY HAS CREATED, WHILE IT IS CREATING IT (ADR-0076). The
+      # watcher runs under the PUBLISH role and every step after this one is
+      # back on the deploy role - see .github/actions/watch-progress for why
+      # that works and why widening the deploy role was refused.
+      #
+      # The LAUNCH job only. The teardown job below folds the same way and its
+      # join names one node, `destroy.stage`, which is not a noun on the estate
+      # board - a delete is matched by environment and not by address, because
+      # the destroy nodes are whole levels. There is nothing for a watcher to
+      # publish there.
+      - name: Start the progress watcher
+        uses: ./.github/actions/watch-progress
+        with:
+          environment: stage
+          aws-region: ${{ vars.AWS_REGION }}
+          publish-role: ${{ vars.SITE_PUBLISH_ROLE_ARN }}
+          deploy-role: ${{ vars.OIDC_ROLE_ARN }}
+          site-bucket: ${{ vars.SITE_BUCKET }}
+          stream-dir: ${{ env.TF_STREAM_DIR }}
       - name: Login to Amazon ECR
         id: ecr
         uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2.1.7
@@ -315,6 +336,16 @@ jobs:
             "${args[@]}" \
             --out /tmp/results-stage.json
 
+
+
+      # The document says a cycle is in flight; leaving it says so forever.
+      # `always()`, because a run that died is exactly when it must go.
+      - name: Stop the progress watcher
+        if: always()
+        uses: ./.github/actions/stop-progress
+        with:
+          environment: stage
+          site-bucket: ${{ vars.SITE_BUCKET }}
       - name: Configure AWS credentials (OIDC, publish role)
         if: always()
         uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
@@ -525,6 +556,7 @@ jobs:
         working-directory: infra/envs/stage
         run: terraform init -input=false
 
+
       # The step that makes a cancelled run recoverable without a human. It is a
       # no-op on every normal cycle - and that no-op branch running every time is
       # the point: the branch that must never do anything is exercised
@@ -651,6 +683,7 @@ jobs:
           --topology site/data/topology.json
           --timeline /tmp/timeline-stage.json
           --out /tmp/nodes-stage.json
+
 
       - name: Configure AWS credentials (OIDC, publish role)
         if: always()
