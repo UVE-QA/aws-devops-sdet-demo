@@ -162,7 +162,8 @@ function readFixture(name) {
     meta,
     runs: read("runs.json"),
     jobs: read("jobs.json"),
-    status: { stage: read("status-stage.json"), prod: read("status-prod.json") }
+    status: { stage: read("status-stage.json"), prod: read("status-prod.json") },
+    quota: read("quota.json")
   };
 }
 
@@ -215,6 +216,15 @@ const MIME = {
    shorter and quieter, with every node reading `not run yet` and no banner
    drawn. The empty result that looks clean, one directory below the guard that
    was watching for it. */
+/* The one document whose absence is the NORMAL state. `status/countdown.json`
+   exists only while an unattended cycle is holding an environment up (ADR-0068),
+   which is a few minutes of the day; the page is written to read the 404 and
+   draw nothing. check-page-inflight.mjs carries the identical set for the
+   identical reason, and the note there applies here word for word: a set and
+   not a prefix, because `status/` as a pattern would swallow stage.json and
+   prod.json - the two documents whose silent absence this guard exists for. */
+const OPTIONAL_ABSENT = new Set(["/status/countdown.json"]);
+
 function serve(notFound) {
   const server = http.createServer((req, res) => {
     const url = new URL(req.url, "http://127.0.0.1");
@@ -231,7 +241,7 @@ function serve(notFound) {
       return;
     }
     if (!fs.existsSync(file) || fs.statSync(file).isDirectory()) {
-      notFound.push("/" + rel);
+      if (!OPTIONAL_ABSENT.has("/" + rel)) notFound.push("/" + rel);
       res.writeHead(404, { "content-type": "text/plain" });
       res.end("not found");
       return;
@@ -518,6 +528,23 @@ async function main() {
               });
             }
             return route.continue();
+          }
+          // The self-service endpoint, GET ?quota (ADR-0073). It is a Lambda
+          // Function URL, so it leaves the origin and lands here rather than in
+          // the branch above. Frozen for the same reason as the rest: the page
+          // draws the quota tile from what this returns, and a tile drawn from
+          // a live endpoint would measure a different page each morning.
+          //
+          // Only the read is answered. A POST to the same URL is the LAUNCH,
+          // and this instrument must never be one keystroke from firing one -
+          // it falls through to `unmocked` and refuses the run instead.
+          if (/^https:\/\/[^/]+\.lambda-url\.[^/]+\.on\.aws\//.test(url) &&
+              route.request().method() === "GET" && /[?&]quota\b/.test(url)) {
+            return route.fulfill({
+              status: 200,
+              contentType: "application/json",
+              body: JSON.stringify(fixture.quota)
+            });
           }
           if (url.startsWith("https://api.github.com/")) {
             const body = /\/jobs(\?|$)/.test(url) ? fixture.jobs : fixture.runs;

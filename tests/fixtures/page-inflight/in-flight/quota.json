@@ -1,0 +1,9 @@
+{
+  "_": "Frozen reply of the self-service endpoint's `?quota` branch (ADR-0073). This gate asserts nothing about the quota tile: the document is here so the page under test is the WHOLE page, because a fetch nobody answers leaves a tile out and a shorter page is not the page a visitor gets. The figures are a constant chosen for the fixture, like status-stage.json beside it, and are not derived from this fixture's runs.json.",
+  "day": "2026-08-09",
+  "timezone": "America/Los_Angeles",
+  "daily_cap": 3,
+  "launches_today": 1,
+  "launches_left": 2,
+  "resets_in_seconds": 34200
+}

@@ -124,7 +124,8 @@ function loadSources() {
     status: {
       stage: readJSON(path.join(dir, "status-stage.json")),
       prod: readJSON(path.join(dir, "status-prod.json"))
-    }
+    },
+    quota: readJSON(path.join(dir, "quota.json"))
   };
 }
 
@@ -220,6 +221,18 @@ async function openPage(browser, origin, sources, layerRef, now) {
         return route.fulfill({ status: 200, contentType: "application/json", body });
       }
       return route.continue();
+    }
+    // The self-service endpoint, GET ?quota (ADR-0073). A Lambda Function
+    // URL, so it leaves the origin and reaches here rather than the branch
+    // above. Answered because the page under test has to be the WHOLE
+    // page: an unanswered fetch takes the quota tile off it, and a shorter
+    // page is not the one a visitor gets. Only the GET is answered - a
+    // POST to the same URL is the LAUNCH, and no gate may be one route
+    // handler away from firing one, so it falls through and refuses.
+    if (/^https:\/\/[^/]+\.lambda-url\.[^/]+\.on\.aws\//.test(url) &&
+        route.request().method() === "GET" && /[?&]quota\b/.test(url)) {
+      return route.fulfill({ status: 200, contentType: "application/json",
+                             body: JSON.stringify(sources.quota) });
     }
     if (url.startsWith("https://api.github.com/")) {
       const body = /\/jobs(\?|$)/.test(url) ? sources.jobs : sources.runs;

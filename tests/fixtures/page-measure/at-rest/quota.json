@@ -1,0 +1,9 @@
+{
+  "_": "Frozen reply of the self-service endpoint's `?quota` branch (ADR-0073). Shape copied from launch_handler._quota; the figures are chosen to match this fixture's own runs.json, not taken from a live endpoint.",
+  "day": "2026-08-09",
+  "timezone": "America/Los_Angeles",
+  "daily_cap": 3,
+  "launches_today": 0,
+  "launches_left": 3,
+  "resets_in_seconds": 34200
+}

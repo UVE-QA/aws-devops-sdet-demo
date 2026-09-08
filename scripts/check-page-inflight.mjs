@@ -248,6 +248,22 @@ const OBSERVE = () => {
         id: n.dataset.id,
         word: n.dataset.word || "",
         state: t(n.querySelector(".nstate")),
+        // WHAT IS SAID ABOUT THIS NODE SOMEWHERE OTHER THAN ON IT. The estate
+        // board hoists a sentence every tile of a row would print onto the
+        // row's own header (ADR-0075) - the same move a phase has made with its
+        // shared WORD since 20e.1. A claim that read only `.nstate` would then
+        // report seven undated figures under a header dating all seven, which
+        // is a true statement about the DOM and a false one about the page.
+        //
+        // Harvested, not assumed: this is the header text that actually governs
+        // the tile, read through `closest` from the tile itself. When the row
+        // hoists nothing the string is empty and every claim below is exactly
+        // as strict as it was.
+        governs: (() => {
+          const row = n.closest(".estate-env");
+          const note = row && row.querySelector(":scope > header .sharednote");
+          return note ? t(note) : "";
+        })(),
         text: t(n)
       }))
   };
@@ -266,7 +282,8 @@ function readState(state) {
     status: {
       stage: readJSON(path.join(dir, "status-stage.json"), "what the bucket last observed of stage"),
       prod: readJSON(path.join(dir, "status-prod.json"), "what the bucket last observed of prod")
-    }
+    },
+    quota: readJSON(path.join(dir, "quota.json"), "what the endpoint says the day's cap has left")
   };
 }
 
@@ -287,6 +304,18 @@ async function installRoutes(page, origin, src, unmocked) {
                                body: JSON.stringify(status[env]) });
       }
       return route.continue();
+    }
+    // The self-service endpoint, GET ?quota (ADR-0073). A Lambda Function
+    // URL, so it leaves the origin and reaches here rather than the branch
+    // above. Answered because the page under test has to be the WHOLE
+    // page: an unanswered fetch takes the quota tile off it, and a shorter
+    // page is not the one a visitor gets. Only the GET is answered - a
+    // POST to the same URL is the LAUNCH, and no gate may be one route
+    // handler away from firing one, so it falls through and refuses.
+    if (/^https:\/\/[^/]+\.lambda-url\.[^/]+\.on\.aws\//.test(url) &&
+        route.request().method() === "GET" && /[?&]quota\b/.test(url)) {
+      return route.fulfill({ status: 200, contentType: "application/json",
+                             body: JSON.stringify(src.current.quota) });
     }
     if (url.startsWith("https://api.github.com/")) {
       const body = /\/jobs(\?|$)/.test(url) ? jobs : runs;
@@ -684,7 +713,12 @@ function claimFiguresDated({ meta, seen }, index) {
     if (!known || !known.env) continue;
     const state = node.state || "";
     if (!/\d/.test(state)) continue;                    // nothing numeric was printed
-    const qualified = QUALIFIERS.some((q) => state.includes(q));
+    // The FIGURE has to be on the node - a number is about one resource. The
+    // QUALIFIER may be on the node or on the row header that governs it, and
+    // must be in one of the two: `said` is the union, so a page saying it in
+    // neither place fails exactly as before.
+    const said = state + " " + (node.governs || "");
+    const qualified = QUALIFIERS.some((q) => said.includes(q));
     if (under.has(known.env) && !qualified) {
       out.push(`${node.id} (${known.env}) prints a figure from the cycle before this one ` +
         `and does not say so: "${state}"`);

@@ -70,6 +70,19 @@ Checked by reading the rendered page rather than by reasoning about it, which is
 the reason these documents are here unshifted instead of moved back a day to
 make the ordering tidy.
 
+**The quota reply is frozen too, and the two sets disagree about it on purpose.**
+Since ADR-0073 the page asks the self-service Function URL what the day's cap has
+left and draws the answer, so a page measured against a LIVE endpoint would be a
+different page every morning — and, worse, a different one after every launch
+anybody made. `quota.json` holds the reply per set: `at-rest` has spent none of
+the day's three, `in-flight` has spent the one that put the cycle on the page.
+The figures are chosen to agree with each set's own `runs.json`; they are not
+derived from it, and nothing here re-implements the endpoint's counting rule.
+
+Only the `GET …?quota` is answered. A `POST` to the same URL is the LAUNCH, and
+no instrument in this repository may be one route handler away from firing one,
+so a POST falls through to the unmocked list and refuses the run.
+
 **An origin 404 is a refusal, and so is a document that does not parse.** The
 page's own reader is `r.ok ? r.json() : null` with a `.catch(() => null)`, so
 both failures render as a shorter, quieter page with no banner — the empty
