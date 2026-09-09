@@ -252,10 +252,7 @@
          whatever that is; only the others are taken out. It also means a part
          carrying its own `hidden` - #cost-box does, meaning `nothing to say yet`
          - stays hidden without a second rule about it. */
-      main[data-showing="now"]    > [data-part]:not([data-part="now"]),
-      main[data-showing="estate"] > [data-part]:not([data-part="estate"]),
       main[data-showing="cycle"]  > [data-part]:not([data-part="cycle"]),
-      main[data-showing="tests"]  > [data-part]:not([data-part="tests"]),
       main[data-showing="detail"] > [data-part]:not([data-part="detail"]) { display: none; }
 
       .parts {
@@ -998,9 +995,15 @@
       /* Two columns, and the left one is one panel tall enough to be both rows.
          The row order is unchanged in the source, so a reader still meets the
          environments, then the path, then the run. */
-      .p-env { grid-column: span 4; grid-row: span 2; }
-      .p-arch { grid-column: span 8; }
+      /* TWO PANELS, NOT THREE (ADR-0079). `.p-env` spanned two rows because the
+         path and the run were stacked beside it; the path is static and has
+         left, so the row span would now hold a hole open. */
+      .p-env { grid-column: span 4; }
       .p-run { grid-column: span 8; }
+      /* The path is a block of its own in the static part, so it has no column
+         to span - but it keeps the rule that gave it a full row below 1500,
+         which is what stopped `RDS PostgreSQL` breaking as `PostgreSQ|L`. */
+      .p-arch { margin: 0.75rem 0 1.25rem; }
       /* TRIED AT 1500 AND REVERTED IN 20g, AND THE REPACK ABOVE SETTLED IT.
          At 5/12 of 1385px the five hops had about 100px each and `RDS
          PostgreSQL` broke as `PostgreSQ|L`. Giving the path the full row below
@@ -1176,7 +1179,7 @@
   </head>
   <body>
     <!--ICON-SPRITE-->
-    <main data-showing="now">
+    <main data-showing="cycle">
       <!-- IDENTITY, AND THE LINKS. Discovery measured the repository link at
            100% of scroll depth: the one thing a thirty-second visitor needs was
            the last thing on the page (ADR-0047 D1). The footer keeps them; it
@@ -1222,18 +1225,15 @@
            before any fetch resolves - a page whose only navigation appears a
            second late is a page that looks broken for a second. -->
       <nav class="parts" id="parts" role="tablist" aria-label="Which part of the page to show">
-        <button type="button" role="tab" data-show="now"    aria-selected="true">Now</button>
-        <button type="button" role="tab" data-show="estate" aria-selected="false">Estate</button>
-        <button type="button" role="tab" data-show="cycle"  aria-selected="false">Cycle</button>
-        <button type="button" role="tab" data-show="tests"  aria-selected="false">Tests</button>
-        <button type="button" role="tab" data-show="detail" aria-selected="false">Detail</button>
+        <button type="button" role="tab" data-show="cycle"  aria-selected="true">Cycle</button>
+        <button type="button" role="tab" data-show="detail" aria-selected="false">Details</button>
       </nav>
 
       <!-- THE FIRST SCREEN IS THE DASHBOARD (ADR-0047 D1): what is observed in
            AWS, where a request goes, and the run in flight - side by side, in
            blocks, above the map. Everything else is below the fold and under a
            cut. -->
-      <div data-part="now" class="top">
+      <div data-part="cycle" class="top">
         <section class="panel p-env">
           <h2>Environments <span class="note">&mdash; observed in AWS, not inferred from a green run</span></h2>
           <div id="environments">
@@ -1274,17 +1274,6 @@
           </div>
         </section>
 
-        <!-- WHERE IT LIVES. The hops are generated: each one cites a node this
-             map already draws, and scripts/generate-topology.py refuses when the
-             citation names something that is not there, so this panel cannot
-             outlive the infrastructure it describes. The ORDER and the tool
-             names are editorial and the panel says so (ADR-0047 D4). -->
-        <section class="panel p-arch">
-          <h2>Where it lives <span class="note" id="path-note">&mdash; reading the topology&hellip;</span></h2>
-          <div class="path" id="path"></div>
-          <div class="strip" id="strip"></div>
-        </section>
-
         <section class="panel p-run">
           <h2>Current cycle <span class="note">&mdash; the step in flight, not the whole log</span></h2>
           <div id="cycle"><p class="why">Reading run history&hellip;</p></div>
@@ -1305,7 +1294,7 @@
            are observed now, the figures beside them belong to a cycle, and
            there is one place to say so rather than one per state - which is how
            it came to be attached to `destroyed` and to nothing else. -->
-      <section data-part="estate" class="contour" id="c-estate">
+      <section data-part="cycle" class="contour" id="c-estate">
         <h2>The estate <span class="note">&mdash; the nouns. What is in AWS, answered by observation</span></h2>
         <p class="sub" id="estate-caption">Reading the topology&hellip;</p>
         <div id="estate-envs"></div>
@@ -1353,7 +1342,7 @@
            Every other figure on this page is in a bordered box with a label
            over it, so this one is too - the same `.panel` the environments and
            the current cycle are drawn in, and no new vocabulary. -->
-      <section data-part="now" class="panel costbox" id="cost-box" hidden>
+      <section data-part="cycle" class="panel costbox" id="cost-box" hidden>
         <h2><span id="cost-head">What the last cycle cost</span> <span class="note">&mdash; computed from resource lifetimes, not from a bill</span></h2>
         <p class="approx" id="cost-line"></p>
       </section>
@@ -1370,7 +1359,7 @@
            and drawn nowhere, because it runs in no cycle and the map only had
            somewhere to put a run. All five are here, and the one that no cycle
            runs says so in its own words rather than by being absent. -->
-      <section data-part="tests" class="contour" id="c-assertions">
+      <section data-part="cycle" class="contour" id="c-assertions">
         <h2>What the repository asserts <span class="note">&mdash; the suites themselves, collected, with no tense</span></h2>
         <p class="sub" id="assertions-sub">Reading the topology&hellip;</p>
         <div class="suites" id="suites"></div>
@@ -1388,7 +1377,18 @@
            Their own contour, after the assertions, so nothing live is
            interrupted by them and nothing about them is hidden. When the
            dashboard grows tabs (ADR-0074) this is the section that moves whole. -->
-      <section data-part="estate" class="contour" id="c-permanent">
+      <!-- WHERE IT LIVES. The hops are generated: each one cites a node this
+           map already draws, and scripts/generate-topology.py refuses when the
+           citation names something that is not there, so this panel cannot
+           outlive the infrastructure it describes. The ORDER and the tool
+           names are editorial and the panel says so (ADR-0047 D4). -->
+      <section data-part="detail" class="panel p-arch">
+        <h2>Where it lives <span class="note" id="path-note">&mdash; reading the topology&hellip;</span></h2>
+        <div class="path" id="path"></div>
+        <div class="strip" id="strip"></div>
+      </section>
+
+      <section data-part="detail" class="contour" id="c-permanent">
         <h2>Permanent <span class="note">&mdash; <span id="perm-note">no destroy workflow touches these</span></span></h2>
         <!-- NOT the sentence under the cut. `Applied once, by hand, under a human
              SSO session...` is written in renderDetail() and stays there; a second
@@ -1413,7 +1413,7 @@
            text, fifteen of them, and flattening those would not be removing a
            layer of hiding, it would be printing a hundred and sixteen lines
            nobody asked for. -->
-      <section data-part="tests" class="contour" id="history-cut">
+      <section data-part="cycle" class="contour" id="history-cut">
         <h2 id="history-summary">Recent lifecycle runs <span class="small">reading run history&hellip;</span></h2>
         <div id="history"></div>
       </section>
@@ -1424,10 +1424,16 @@
         <div class="outside" id="outside"></div>
       </section>
 
-      <section data-part="detail" class="contour detail" id="detail">
-        <h2>Every resource named <span class="note">&mdash; the same thing in words, and the list this dashboard deliberately is not</span></h2>
+      <!-- THE ONE CUT LEFT (ADR-0079). Every other page-level <details> was
+           flattened when the parts arrived, because a cut inside a part is the
+           same hiding twice. This one earns it on size alone: it is the whole of
+           `infra/` written out, four thousand pixels of it, and it is a
+           reference - the list this dashboard deliberately is not. A part that
+           opened with it flat would bury the three blocks above it. -->
+      <details data-part="detail" class="cut detail" id="detail">
+        <summary>Every resource named <span class="small">the same thing in words, and the list this dashboard deliberately is not</span></summary>
         <div id="detail-body"></div>
-      </section>
+      </details>
 
       <section data-part="detail" class="contour" id="counts-cut">
         <h2>Counts <span class="note">&mdash; rendered from the same file, never spelled out in prose</span></h2>
