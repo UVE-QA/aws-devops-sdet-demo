@@ -231,6 +231,36 @@ def spec_files(spec) -> int:
 WORKFLOWS = ROOT / ".github/workflows"
 JOB_KEY = re.compile(r"^  ([A-Za-z0-9_.-]+):\s*$")
 STEP_NAME = re.compile(r"^\s*-\s+name:\s*(.+?)\s*$")
+# A job that CALLS another workflow declares no steps of its own. ADR-0068
+# converted three of them, and the map's bindings kept naming the caller's job
+# key - which is not what the Actions API calls that job at runtime.
+JOB_USES = re.compile(r"^    uses:\s*\./\.github/workflows/([A-Za-z0-9_.-]+)\s*$")
+
+
+def workflow_calls(path: pathlib.Path) -> dict[str, str]:
+    """job id -> the workflow file it calls, for the jobs that are calls.
+
+    Read the same line-based way as the steps beside it, and for the same
+    reason: this file runs before anything is installed.
+    """
+    calls: dict[str, str] = {}
+    current, in_jobs = None, False
+    for line in path.read_text().splitlines():
+        if line.startswith("jobs:"):
+            in_jobs = True
+            continue
+        if in_jobs and line.strip() and not line.startswith(" "):
+            break
+        if not in_jobs:
+            continue
+        m = JOB_KEY.match(line)
+        if m:
+            current = m.group(1)
+            continue
+        u = JOB_USES.match(line)
+        if u and current:
+            calls[current] = u.group(1)
+    return calls
 
 
 def workflow_jobs(path: pathlib.Path) -> dict[str, list[str]]:
@@ -298,11 +328,39 @@ def live_bindings(owner: str, spec: dict) -> tuple[list[dict], list[str]]:
                 f"(it has: {', '.join(sorted(jobs)) or 'none'})"
             )
             continue
+        # A JOB THAT CALLS ANOTHER WORKFLOW IS NAMED TWICE, and the page needs
+        # the other name (ADR-0080). In the file the job is `destroy`; in the
+        # Actions API, which is what bindingState() matches on, it is
+        # `destroy / destroy` - the caller's key, then the callee's. The binding
+        # is written with the FILE's name, which is the one a rename can be
+        # caught against, and the runtime name is derived here.
+        #
+        # Its steps are the callee's, so they are checked there. Checking them
+        # against the caller would refuse every call - which is exactly what
+        # happened the moment the stage teardown became one.
+        job_name, step_owner = b["job"], jobs[b["job"]]
+        called = workflow_calls(path).get(b["job"])
+        if called:
+            callee = WORKFLOWS / called
+            if not callee.is_file():
+                findings.append(f"{owner}: {b['workflow']} job {b['job']} calls {called}, which is not there")
+                continue
+            inner = workflow_jobs(callee)
+            if len(inner) != 1:
+                findings.append(
+                    f"{owner}: {called} declares {len(inner)} jobs, so the runtime name of "
+                    f"{b['workflow']}'s {b['job']} cannot be derived. Name it explicitly or "
+                    f"give the called workflow one job."
+                )
+                continue
+            inner_key = next(iter(inner))
+            job_name = f"{b['job']} / {inner_key}"
+            step_owner = inner[inner_key]
         steps = b.get("steps", [])
         for step in steps:
-            if step not in jobs[b["job"]]:
+            if step not in step_owner:
                 findings.append(
-                    f"{owner}: {b['workflow']} job {b['job']} has no step "
+                    f"{owner}: {b['workflow']} job {job_name} has no step "
                     f"named {step!r}. Renaming a step breaks the pulse silently; "
                     f"this is that rename, caught."
                 )
@@ -315,7 +373,9 @@ def live_bindings(owner: str, spec: dict) -> tuple[list[dict], list[str]]:
             {
                 "workflow": b["workflow"],
                 "path": f".github/workflows/{b['workflow']}",
-                "job": b["job"],
+                # The name the Actions API uses, which is the caller's key and
+                # the callee's for a call, and just the key otherwise.
+                "job": job_name,
                 "when": when,
                 "steps": steps,
             }

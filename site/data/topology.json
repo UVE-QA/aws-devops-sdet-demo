@@ -11,7 +11,7 @@
     "modules": 9,
     "suites": 5,
     "workflows": 6,
-    "adrs": 80,
+    "adrs": 81,
     "repeated_blocks": 9
   },
   "measured_cycle": null,
@@ -782,6 +782,13 @@
             "job": "promote",
             "when": "waiting",
             "steps": []
+          },
+          {
+            "workflow": "self-service.yml",
+            "path": ".github/workflows/self-service.yml",
+            "job": "promote / promote",
+            "when": "waiting",
+            "steps": []
           }
         ],
         "nodes": [
@@ -808,6 +815,16 @@
             "workflow": "promote-prod.yml",
             "path": ".github/workflows/promote-prod.yml",
             "job": "promote",
+            "when": "step",
+            "steps": [
+              "Terraform plan",
+              "Terraform apply"
+            ]
+          },
+          {
+            "workflow": "self-service.yml",
+            "path": ".github/workflows/self-service.yml",
+            "job": "promote / promote",
             "when": "step",
             "steps": [
               "Terraform plan",
@@ -861,6 +878,16 @@
             "workflow": "promote-prod.yml",
             "path": ".github/workflows/promote-prod.yml",
             "job": "promote",
+            "when": "step",
+            "steps": [
+              "Provision the prod database (migrate, seed, db-assert)",
+              "Read-only smoke against prod"
+            ]
+          },
+          {
+            "workflow": "self-service.yml",
+            "path": ".github/workflows/self-service.yml",
+            "job": "promote / promote",
             "when": "step",
             "steps": [
               "Provision the prod database (migrate, seed, db-assert)",
@@ -950,7 +977,17 @@
           {
             "workflow": "self-service.yml",
             "path": ".github/workflows/self-service.yml",
-            "job": "destroy",
+            "job": "destroy / destroy",
+            "when": "step",
+            "steps": [
+              "Destroy ALB first (release ENIs before the IGW)",
+              "Terraform destroy"
+            ]
+          },
+          {
+            "workflow": "self-service.yml",
+            "path": ".github/workflows/self-service.yml",
+            "job": "destroy-prod / destroy",
             "when": "step",
             "steps": [
               "Destroy ALB first (release ENIs before the IGW)",

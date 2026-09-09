@@ -537,182 +537,27 @@ jobs:
     # not leave stage standing.
     needs: [launch, promote]
     if: always()
-    runs-on: ubuntu-latest
-    environment: stage
-    timeout-minutes: 30
-    env:
-      AWS_REGION: ${{ vars.AWS_REGION }}
-      TF_VAR_demo_account_id: ${{ vars.TF_VAR_demo_account_id }}
-      TF_VAR_budget_email: ${{ secrets.TF_VAR_BUDGET_EMAIL }}
-      TF_VAR_owner: ${{ vars.TF_VAR_owner }}
-      TF_VAR_launch_id: ${{ inputs.launch_id }}
-      TF_VAR_expires_at: ${{ needs.launch.outputs.expires_at }}
-      TF_STREAM_DIR: /tmp/tf-streams
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Set up Terraform
-        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
-        with:
-          terraform_version: "1.15.5"
-
-      - name: Configure AWS credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
-        with:
-          role-to-assume: ${{ vars.OIDC_ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION }}
-
-      - name: Terraform init
-        working-directory: infra/envs/stage
-        run: terraform init -input=false
-
-
-      # The step that makes a cancelled run recoverable without a human. It is a
-      # no-op on every normal cycle - and that no-op branch running every time is
-      # the point: the branch that must never do anything is exercised
-      # continuously. `init` does not take the state lock, so this sits between
-      # init and the first operation that does.
-      - name: Break a state lock left behind by a cancelled run
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: scripts/break-stale-state-lock.sh stage
-
-      # The general form of the same defect (ADR-0037 D2), and the one that
-      # matters most on the public path: this job runs after a cancellation as
-      # often as after a clean cycle, and a cancellation is exactly when the
-      # referrer sits outside whatever is being destroyed. Revoking first means
-      # no group deletion here is impossible, whatever state the apply stopped
-      # in.
-      #
-      # Stage and prod get this in the same commit, in destroy.yml, even though
-      # nothing public can reach prod.
-      - name: Revoke cross-group security group rules
-        run: scripts/revoke-cross-sg-rules.sh stage
-
-      # ADR-0038. The teardown adopts what it does not manage BEFORE it tries to
-      # destroy. A cancelled apply leaves resources outside state; Terraform can
-      # then delete neither them nor what depends on them, which is how an
-      # unmanaged RDS instance held a managed subnet group and failed this
-      # workflow twice in seventy seconds on 2026-08-07.
-      #
-      # It runs on every teardown, not only after a failure. On a healthy
-      # environment it finds nothing and costs a few seconds, and a path that
-      # only runs after a disaster is a path nobody has exercised.
-      #
-      # LAST before the destroy, deliberately. The tagging API lags - 40 seconds
-      # into a teardown it did not report an RDS instance that was still
-      # `creating` - so every second between the cancellation and this step is a
-      # second in which discovery gets more complete.
-      #
-      # It refuses only when the question could not be answered at all. An
-      # import that fails is printed and the run continues, because the two
-      # gates at the end are what judge the result (ADR-0038 D5).
-      - name: Adopt live resources Terraform does not manage
-        run: scripts/adopt-orphans.sh stage
-
-      # The TARGET is the load balancer, not the module. Destroying
-      # `module.alb` includes `aws_security_group.alb`, which cannot be
-      # deleted while the app SG's ingress rule still references it: AWS
-      # answers DependencyViolation, Terraform retries for 15 minutes, and
-      # the main destroy below never runs. Observed 2026-08-06 on a run
-      # cancelled mid-apply. The LB alone releases the ENIs, which is all
-      # this step is for; the SG leaves with the full destroy, together
-      # with the rule that points at it.
-      - name: Destroy ALB first (release ENIs before the IGW)
-        working-directory: infra/envs/stage
-        run: >
-          $GITHUB_WORKSPACE/scripts/tf-stream.sh destroy-alb
-          destroy -input=false -auto-approve -json -target=module.alb.aws_lb.this
-
-      - name: Terraform destroy
-        working-directory: infra/envs/stage
-        run: >
-          $GITHUB_WORKSPACE/scripts/tf-stream.sh destroy
-          destroy -input=false -auto-approve -json
-
-      # `if: always()` (ADR-0037 D3). Skipped exactly when a destroy failed,
-      # which is the only time its answer is news. The `sts` line below was
-      # already here and becomes load-bearing now: this step can run after a
-      # failed credentials step, and every call would then answer nothing.
-      - name: Verify no billable stage resources remain
-        if: always()
-        run: |
-          set -euo pipefail
-          # `sts` FIRST and every result assigned under `set -e`. A check whose
-          # credentials have expired prints empty lines, and empty lines are
-          # exactly what a clean account looks like.
-          aws sts get-caller-identity --query Account --output text
-          REGION="${{ vars.AWS_REGION }}"
-          PREFIX="aws-devops-sdet-demo-stage"
-          leftovers=0
-          ecs=$(aws ecs list-clusters --region "$REGION" --query "clusterArns[?contains(@, '$PREFIX')]" --output text)
-          rds=$(aws rds describe-db-instances --region "$REGION" --query "DBInstances[?starts_with(DBInstanceIdentifier, '$PREFIX')].DBInstanceIdentifier" --output text)
-          alb=$(aws elbv2 describe-load-balancers --region "$REGION" --query "LoadBalancers[?starts_with(LoadBalancerName, '$PREFIX')].LoadBalancerName" --output text)
-          echo "ecs: ${ecs:-<none>}"; [ -n "$ecs" ] && leftovers=$((leftovers+1))
-          echo "rds: ${rds:-<none>}"; [ -n "$rds" ] && leftovers=$((leftovers+1))
-          echo "alb: ${alb:-<none>}"; [ -n "$alb" ] && leftovers=$((leftovers+1))
-          if [ "$leftovers" -ne 0 ]; then
-            echo "::error::$leftovers resource group(s) still present after a public launch"
-            exit 1
-          fi
-          echo "OK: nothing billable remains from launch ${{ inputs.launch_id }}"
-
-      # ADR-0037 D4. The step above asks three services about a name prefix;
-      # this one asks AWS what is tagged `stage` and fails on anything Terraform
-      # does not manage. A cancelled launch is the case that produces exactly
-      # that: resources created before the cancellation never reached state, and
-      # nothing else in this workflow can see them.
-      - name: Sweep for resources Terraform does not manage
-        if: always()
-        run: scripts/sweep-orphans.sh stage
-
-      - name: Observe the destroyed environment
-        if: always()
-        run: scripts/observe-environment.sh stage > /tmp/observation.json
-
-      - name: Fold the terraform event stream into a timeline
-        if: always()
-        run: >
-          python3 scripts/fold-timeline.py
-          --environment stage
-          --stream-dir "$TF_STREAM_DIR"
-          --out /tmp/timeline-stage.json
-
-      # The join onto the map's nodes (ADR-0039 D4). Separate from the fold
-      # because it answers a different question - the fold says what terraform
-      # did, this says which node on the picture that was - and separate from
-      # the page because the rule would otherwise live in JavaScript here and in
-      # Python in the gate that checks it.
-      #
-      # `if: always()` for the same reason the fold has it, and no `continue-on-
-      # error`: the script exits 0 even when addresses go unmatched, on purpose.
-      - name: Join the timeline onto the map's nodes
-        if: always()
-        run: >
-          python3 scripts/node-states.py
-          --topology site/data/topology.json
-          --timeline /tmp/timeline-stage.json
-          --out /tmp/nodes-stage.json
-
-
-      - name: Configure AWS credentials (OIDC, publish role)
-        if: always()
-        uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
-        with:
-          role-to-assume: ${{ vars.SITE_PUBLISH_ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION }}
-
-      - name: Publish status to the dashboard
-        if: always()
-        env:
-          SITE_BUCKET: ${{ vars.SITE_BUCKET }}
-          SITE_DISTRIBUTION_ID: ${{ vars.SITE_DISTRIBUTION_ID }}
-          SITE_BASE_URL: ${{ vars.SITE_URL }}
-          JOB_STATUS: ${{ job.status }}
-          TIMELINE_JSON: /tmp/timeline-stage.json
-          NODE_STATES_JSON: /tmp/nodes-stage.json
-        run: scripts/publish-status.sh stage /tmp/observation.json
+    # IT CALLS THE TEARDOWN NOW, LIKE destroy-prod ABOVE (ADR-0080). This was a
+    # hand-written copy of destroy.yml - sixteen steps against its nineteen -
+    # and ADR-0068 converted the promotion and the prod teardown to calls for
+    # exactly this reason while leaving the stage one behind.
+    #
+    # THE COPY HAD ALREADY DRIFTED, and by the one step that mattered: `Price
+    # the cycle from its two timelines`. Watched live on 2026-09-09, cycle #15,
+    # both halves green:
+    #
+    #     destroy       no cost to publish (looked at: '<none>')
+    #     destroy-prod  cost: prod - COMPUTED ESTIMATE, 3 priced, 27 free
+    #
+    # So every cycle the button has ever run priced prod and never priced stage,
+    # and the stage figure on the page came from whatever owner-run destroy.yml
+    # last touched it. Adding the missing step to the copy would have fixed the
+    # symptom and left two definitions of what a teardown is.
+    uses: ./.github/workflows/destroy.yml
+    with:
+      environment: stage
+      confirm: DESTROY
+    secrets: inherit
 
   # Guardrail 1's other half: the lock is taken by the Lambda and released here -
   # but only when `destroy` actually succeeded (ADR-0036 D2).
