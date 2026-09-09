@@ -64,6 +64,17 @@ square; a project glyph — `WWW`, `CI` — carries letters on a bordered one. T
 border is the distinction and it survives the change. The glyph's type grows with
 its box: `WWW` at 0.58rem in a 5rem square reads as an empty grey tile.
 
+**D5. The permanent row gets its own column count.** It used `--estate-cols`,
+the board's, so all three rows lined up column by column — which was right while
+they were one contour on one screen. D1 put the environments on the live part and
+these on the static one, so **there is nothing left to line up with**: eight
+columns holding six cards is two columns of air at the end of a row. Six columns,
+counted from the same generated file the eight are counted from.
+
+That is the second thing this sort quietly invalidated, after `.p-env`'s row
+span. Worth expecting a third: a layout rule whose reason was *these sit
+together* is a rule with a hidden dependency on the page's order.
+
 **The cycle map is the remaining exception, and deliberately.** Its nodes still
 carry 1.4rem badges, because there are twenty-six of them and the map's whole
 argument is that a couple of dozen marks fit on a screen where a hundred and

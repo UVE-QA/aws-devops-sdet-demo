@@ -407,9 +407,17 @@
          Six of them in the same eight columns, so the row lines up with the two
          above it and the two empty columns at the end are the two levels the
          estate does not have rather than a ragged edge. */
+      /* AS MANY COLUMNS AS THERE ARE PERMANENT LEVELS, and not the estate
+         board's count. It used `--estate-cols` so the three rows lined up
+         column by column - and that was right while they were one contour on
+         one screen. ADR-0079 put the environments on the live part and these on
+         the static one, so there is nothing left to line up WITH: eight columns
+         holding six cards is now just two columns of air at the end of a row.
+         The count comes from the data for the same reason `--estate-cols` does:
+         it is a property of the estate, and topology.json is generated. */
       .perm {
         display: grid; gap: var(--gap);
-        grid-template-columns: repeat(var(--estate-cols, 8), minmax(0, 1fr));
+        grid-template-columns: repeat(var(--perm-cols, 6), minmax(0, 1fr));
       }
       .perm .node { border-style: dashed; }
       .perm > .node { align-items: center; text-align: center; padding: 0.6rem 0.4rem 0.5rem; }
@@ -4190,6 +4198,11 @@
           const perm = $("#perm");
           if (perm) {
             perm.innerHTML = "";
+            // Its own column count, from its own list (ADR-0079 D5). Not
+            // --estate-cols any more: the rows this used to line up with are on
+            // the other part now.
+            perm.style.setProperty("--perm-cols",
+              String(Math.max(1, (d.estate.permanent || []).length)));
             (d.estate.permanent || []).forEach((n) => {
               const el = estateNodeEl({ ...n, state: "perm" });
               el.insertAdjacentHTML("beforeend",
