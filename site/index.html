@@ -429,7 +429,7 @@
          they are - the half of the estate no teardown touches, drawn like the
          half it does. */
       .perm > .node .head .icon { min-width: 5rem; height: 5rem; font-size: 0.8rem; border-radius: 12px; }
-      .perm > .node .head .icon.aws { width: 5rem; border-radius: 12px; }
+      .perm > .node .head .icon.mark { width: 5rem; border-radius: 12px; }
       .perm > .node .name { font-size: 0.9rem; }
       .perm > .node .ident { white-space: normal; overflow-wrap: anywhere; font-size: 0.7rem; }
       .perm > .node .asserts { font-size: 0.72rem; line-height: 1.4; }
@@ -439,7 +439,7 @@
         }
         .perm > .node { width: var(--tile); flex: 0 0 var(--tile); padding: 0.5rem 0.35rem 0.45rem; }
         .perm > .node .head .icon { min-width: var(--tile-icon); height: var(--tile-icon); }
-        .perm > .node .head .icon.aws { width: var(--tile-icon); }
+        .perm > .node .head .icon.mark { width: var(--tile-icon); }
         .perm > .node .name { font-size: 0.76rem; }
       }
 
@@ -541,7 +541,7 @@
         }
         .estate-set > .node { width: var(--tile); flex: 0 0 var(--tile); padding: 0.5rem 0.35rem 0.45rem; }
         .estate-set > .node .head .icon { min-width: var(--tile-icon); height: var(--tile-icon); }
-        .estate-set > .node .head .icon.aws { width: var(--tile-icon); }
+        .estate-set > .node .head .icon.mark { width: var(--tile-icon); }
         .estate-set > .node .name { font-size: 0.76rem; }
       }
       /* The phone keeps the narrow tile. 8.4rem there is two per row instead of
@@ -570,7 +570,7 @@
       .estate-set > .node .head .icon {
         min-width: 5rem; height: 5rem; font-size: 0.8rem; border-radius: 12px;
       }
-      .estate-set > .node .head .icon.aws { width: 5rem; border-radius: 12px; }
+      .estate-set > .node .head .icon.mark { width: 5rem; border-radius: 12px; }
       .estate-set > .node .name { font-size: 0.9rem; }
       .estate-set > .node .nmeta { font-size: 0.72rem; line-height: 1.35; }
       .estate-set > .node .nstate { font-size: 0.78rem; line-height: 1.35; }
@@ -784,7 +784,7 @@
          1.4rem box was right for the one-glyph marks it was written for and
          wrong for every longer one: `WWW` measured 31px of content in a 20px
          box, `TEST` 26px in seven places, `YOU` 22px - on EVERY viewport
-         including 2560, not only on the phone. `.icon.aws` never showed it
+         including 2560, not only on the phone. `.icon.mark` never showed it
          because it clips; the text badge has nothing to clip with, so the
          letters simply sat outside their own border. Clipping them instead
          would have hidden a word rather than drawn it, so the box grows:
@@ -799,15 +799,15 @@
         display: grid; place-items: center;
         font-size: 0.58rem; font-weight: 700; color: var(--muted); text-transform: uppercase;
       }
-      .icon.aws { border: 0; background: none; overflow: hidden; border-radius: 5px; width: 1.4rem; padding: 0; }
-      .icon.aws svg { width: 100%; height: 100%; display: block; }
+      .icon.mark { border: 0; background: none; overflow: hidden; border-radius: 5px; width: 1.4rem; padding: 0; }
+      .icon.mark svg { width: 100%; height: 100%; display: block; }
       /* `gone` is drawn exactly like `absent` and means something else: absent
          is "no record", gone is "the record is real and the thing it describes
          has been destroyed". They look alike because what a reader needs from
          both is the same - do not read this as live - and the WORD on the state
          line is what tells them apart. Two environments in the identical state
          were drawn as opposites until this existed (20h). */
-      .node.absent .icon.aws, .node.gone .icon.aws { filter: grayscale(1); }
+      .node.absent .icon.mark, .node.gone .icon.mark { filter: grayscale(1); }
       .node .name { font-size: 0.78rem; font-weight: 600; line-height: 1.2; }
       /* ONE STATE LINE, WORD FIRST (ADR-0048 D3): `<word> · <figure>`, and no
          separator printed when there is no figure. It replaces the duration bar,
@@ -913,7 +913,7 @@
          is the border, and it survives the size. */
       .outside .node .icon { border-style: solid; min-width: 5rem; height: 5rem;
         font-size: 1.15rem; border-radius: 12px; }
-      .outside .node .icon.aws { width: 5rem; border-radius: 12px; }
+      .outside .node .icon.mark { width: 5rem; border-radius: 12px; }
       .outside .node .head { display: flex; flex-direction: column; align-items: center; gap: 0.3rem; }
       .outside .node { align-items: center; text-align: center; padding: 0.6rem 0.5rem 0.5rem; }
       .outside .node .name { font-size: 0.9rem; }
@@ -1119,13 +1119,14 @@
          carried the map's 1.4rem badge, the permanent levels the board's 5rem
          one, and the two sat on one screen a hand apart - three sizes of the
          same object, and nothing about the difference meant anything.
-         `.icon.aws` holds an unmodified AWS Architecture Icon, so it is a square
-         and stays one; only the square gets bigger. */
+         `.icon.mark` holds an unmodified mark - an AWS Architecture Icon or a
+         vendor's own - so it is a square and stays one; only the square gets
+         bigger. */
       /* The TEXT badge scales with its box. `WWW` at 0.58rem in a 5rem square
          reads as an empty grey tile; the glyph is the mark, so it grows too. */
       .path .hop .icon { margin: 0 auto 0.3rem; min-width: 5rem; height: 5rem;
         font-size: 1.15rem; border-radius: 12px; }
-      .path .hop .icon.aws { width: 5rem; border-radius: 12px; }
+      .path .hop .icon.mark { width: 5rem; border-radius: 12px; }
       .path .hop b { display: block; font-size: 0.86rem; line-height: 1.25; overflow-wrap: break-word; }
       .path .hop .tool { font-size: 0.72rem; color: var(--muted); overflow-wrap: break-word; }
       .path .arrow { min-width: 0.9rem; font-size: 0.95rem; }
@@ -1317,6 +1318,8 @@
         </g>
         <path d="M26,33 L28,33 L28,31 L26,31 L26,33 Z M21,33 L23,33 L23,31 L21,31 L21,33 Z M16,33 L18,33 L18,31 L16,31 L16,33 Z M11,33 L13,33 L13,31 L11,31 L11,33 Z M47.987,37.921 L49.556,37.398 L47.987,36.875 L47.464,35.307 L46.941,36.875 L45.373,37.398 L46.941,37.921 L47.464,39.489 L47.987,37.921 Z M29.617,40.66 L29.095,42.229 L27.526,42.751 L29.095,43.274 L29.617,44.843 L30.141,43.274 L31.709,42.751 L30.141,42.229 L29.617,40.66 Z M29.617,20.434 L29.095,22.003 L27.526,22.525 L29.095,23.048 L29.617,24.617 L30.141,23.048 L31.709,22.525 L30.141,22.003 L29.617,20.434 Z M32.946,31.945 C35.767,33.914 37.773,37.547 38.666,42.317 C40.316,40.08 42.684,36.14 42.684,31.945 C42.684,27.74 40.563,24.016 38.675,21.533 C37.785,26.323 35.775,29.971 32.946,31.945 L32.946,31.945 Z M30.509,32.864 C30.142,32.706 29.903,32.345 29.903,31.945 C29.903,31.545 30.142,31.183 30.509,31.026 C33.997,29.53 36.367,25.168 37.013,19.058 C37.054,18.666 37.322,18.334 37.697,18.212 C38.072,18.09 38.483,18.199 38.749,18.493 C40.965,20.946 44.684,25.956 44.684,31.945 C44.684,38.307 40.141,43.844 38.749,45.39 C38.556,45.604 38.284,45.721 38.006,45.721 C37.902,45.721 37.799,45.705 37.697,45.672 C37.321,45.55 37.053,45.218 37.012,44.826 C36.365,38.719 33.995,34.359 30.509,32.864 L30.509,32.864 Z M54,32 C54,42.477 45.477,51 35,51 C25.682,51 17.802,44.341 16.263,35.166 L18.235,34.834 C19.611,43.042 26.662,49 35,49 C44.374,49 52,41.374 52,32 C52,22.626 44.374,15 35,15 C26.662,15 19.611,20.958 18.235,29.166 L16.263,28.834 C17.802,19.659 25.682,13 35,13 C45.477,13 54,21.523 54,32 L54,32 Z" id="lightsail-Amazon-Lightsail-Icon_48_Squid" fill="#FFFFFF"></path>
     </g></symbol>
+<symbol id="ic-github" viewBox="0 0 16 16">GitHub</title>
+  <path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></symbol>
 </svg>
     <main data-showing="cycle">
       <!-- IDENTITY, AND THE LINKS. Discovery measured the repository link at
@@ -2664,23 +2667,33 @@
       (function () {
         const $ = (s) => document.querySelector(s);
         // service -> official AWS Architecture Icon in the inline sprite
-        const AWS_ICON = new Set([
+        /* EVERY MARK THIS PAGE HOLDS, whoever owns it. It was `AWS_ICON` and the
+           name was the whole of the confusion: a set called AWS_ICON reads as a
+           rule that only AWS gets a mark, and for months `github` sat in GLYPH
+           with a comment saying its licence permits the real thing and pointing
+           at a notice file that was never written.
+
+           The distinction that matters is not AWS-or-not, it is `is there an
+           owner's mark for this` - and it is drawn by the NOTICE beside each
+           icon, not by the name of a set. assets/aws-icons/NOTICE.md records a
+           position taken in the absence of a `no`; assets/vendor-icons/NOTICE.md
+           records an MIT licence granted in writing. */
+        const MARK = new Set([
           "s3", "iam", "secretsmanager", "acm", "ecr", "ecs", "route53", "cloudfront",
           "vpc", "elb", "rds", "dynamodb", "cloudwatch", "budgets", "lambda", "sns", "eventbridge",
           "lightsail",
+          "github",
         ]);
-        // Everything that is NOT an AWS service keeps a project glyph. Drawing one
-        // of these in AWS's visual language would be a claim about what it is.
-        //
-        // `github` is the one left waiting. GitHub's terms, unlike AWS's, name this
-        // case explicitly and permit it - see assets/github-logo/NOTICE.md - but
-        // the mark may not be modified or recreated, and the official asset has to
-        // be fetched rather than drawn. Until it is, a project glyph.
-        const GLYPH = { suite: "TEST", human: "YOU", destroy: "DEL", github: "CI" };
+        /* A PROJECT GLYPH ONLY WHERE NO OWNER'S MARK EXISTS. A test suite, a
+           human approval and a teardown are not products and have no logo;
+           `WWW` for a browser is right for the same reason - a browser is a kind
+           of program, not a vendor. Drawing any of them in AWS's visual language
+           would still be a claim about what they are, and that rule is untouched. */
+        const GLYPH = { suite: "TEST", human: "YOU", destroy: "DEL" };
 
         const iconEl = (service) =>
-          AWS_ICON.has(service)
-            ? `<span class="icon aws"><svg><use href="#ic-${service}"></use></svg></span>`
+          MARK.has(service)
+            ? `<span class="icon mark"><svg><use href="#ic-${service}"></use></svg></span>`
             : `<span class="icon">${GLYPH[service] || "&middot;"}</span>`;
         const secs = (s) => {
           const v = Math.round(s);

@@ -37,7 +37,12 @@ import re
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-ICONS = ROOT / "assets/aws-icons"
+# TWO SOURCES, AND THE SPLIT IS ABOUT WHOSE TERMS APPLY, not about drawing. The
+# AWS icons are used under a position taken in the absence of a `no`; a vendor's
+# own mark is used under that vendor's own licence. Each directory carries the
+# notice for its own footing, and mixing them would put one file's reasoning over
+# another owner's mark.
+ICON_DIRS = [ROOT / "assets/aws-icons", ROOT / "assets/vendor-icons"]
 TEMPLATE = ROOT / "assets/index.template.html"
 OUT = ROOT / "site/index.html"
 MARKER = "<!--ICON-SPRITE-->"
@@ -48,13 +53,24 @@ KEYS = [
     "s3", "iam", "secretsmanager", "acm", "ecr", "ecs", "route53", "cloudfront",
     "vpc", "elb", "rds", "dynamodb", "cloudwatch", "budgets", "lambda", "sns",
     "eventbridge", "lightsail",
+    # not AWS, and drawn with its owner's own mark under its owner's own licence
+    "github",
 ]
 
 
 def symbol(key: str) -> str:
-    path = ICONS / f"{key}.svg"
-    if not path.is_file():
-        raise SystemExit(f"missing icon: {path}")
+    # First directory that has it. A key in two of them is an ambiguity nobody
+    # would notice from the rendered page, so it is refused rather than resolved
+    # by order.
+    found = [d / f"{key}.svg" for d in ICON_DIRS if (d / f"{key}.svg").is_file()]
+    if not found:
+        raise SystemExit(
+            f"missing icon: {key}.svg in " + " or ".join(str(d) for d in ICON_DIRS))
+    if len(found) > 1:
+        raise SystemExit(
+            f"{key}.svg exists in more than one icon directory: "
+            + ", ".join(str(p) for p in found))
+    path = found[0]
     raw = path.read_text()
 
     vb = re.search(r'viewBox="([^"]+)"', raw)

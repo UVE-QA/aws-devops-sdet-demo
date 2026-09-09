@@ -53,7 +53,12 @@ use            architecture diagrams of this project's own infrastructure, on a
 unmodified     no recolouring, reproportioning or cropping. scripts/build-icon-
                sprite.py namespaces internal element ids and touches nothing else
 not AWS        a test suite, a human approval and a teardown are not AWS
-               services and carry project glyphs, never an AWS mark
+               services and carry project glyphs, never an AWS mark. This is a
+               rule about AWS's marks and nothing else: a vendor that is not AWS
+               carries ITS OWN mark, under its own terms, recorded in
+               assets/vendor-icons/NOTICE.md. Said out loud because the absence
+               of that sentence was once read as a prohibition, and the GitHub
+               card wore the letters `CI` for months over it
 no endorsement the page claims no affiliation with, or endorsement by, AWS
 ```
 
@@ -62,8 +67,9 @@ portfolio in a job search, and a lawyer need not agree that this is
 "non-commercial".
 
 If AWS's terms are ever clarified against this reading, the remedy is one commit —
-the icons live in this one directory and are referenced through a single sprite
-builder.
+the AWS icons live in this one directory and are reached through one sprite
+builder, which now reads a second directory beside it for marks that are not
+AWS's and are not governed by this file.
 
 Amazon Web Services, AWS and the AWS marks are trademarks of Amazon.com, Inc. or
 its affiliates.
