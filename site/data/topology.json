@@ -11,7 +11,7 @@
     "modules": 9,
     "suites": 5,
     "workflows": 6,
-    "adrs": 81,
+    "adrs": 82,
     "repeated_blocks": 9
   },
   "measured_cycle": null,
@@ -1003,6 +1003,18 @@
             "kind": "service",
             "env": "stage",
             "observer": "terraform",
+            "live": [
+              {
+                "workflow": "self-service.yml",
+                "path": ".github/workflows/self-service.yml",
+                "job": "destroy / destroy",
+                "when": "step",
+                "steps": [
+                  "Destroy ALB first (release ENIs before the IGW)",
+                  "Terraform destroy"
+                ]
+              }
+            ],
             "resources": 30,
             "level": "infra/envs/stage",
             "tool": "terraform"
@@ -1014,6 +1026,18 @@
             "kind": "service",
             "env": "prod",
             "observer": "terraform",
+            "live": [
+              {
+                "workflow": "self-service.yml",
+                "path": ".github/workflows/self-service.yml",
+                "job": "destroy-prod / destroy",
+                "when": "step",
+                "steps": [
+                  "Destroy ALB first (release ENIs before the IGW)",
+                  "Terraform destroy"
+                ]
+              }
+            ],
             "resources": 31,
             "level": "infra/envs/prod",
             "tool": "terraform"

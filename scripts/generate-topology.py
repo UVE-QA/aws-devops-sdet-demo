@@ -580,7 +580,25 @@ def build():
                     }
                 )
             elif "whole_level" in n:
-                node = {k: v for k, v in n.items() if k != "whole_level"}
+                node = {k: v for k, v in n.items() if k not in ("whole_level", "live")}
+                # A WHOLE-LEVEL NODE MAY BIND ITS OWN JOB, and the destroy nodes
+                # now do (ADR-0081). The page already prefers a node's own
+                # binding over its phase's - the branch has been there for suites
+                # since ADR-0043 D1 - and the comment above it says why these two
+                # could not use it: `when the run does not say which environment
+                # it is about, both are lit`. On the self-service path the run
+                # DOES say which, because the two teardowns are two jobs with
+                # different names, so the premise is false there and only there.
+                #
+                # Optional, unlike a phase's: a level with no binding cannot
+                # pulse on its own and falls through to its phase, which is the
+                # honest answer for a workflow that takes the environment as an
+                # input and is named the same either way.
+                if "live" in n:
+                    node_live, node_findings = live_bindings(f"node {n['id']}", n)
+                    if node_findings:
+                        raise Refusal("\n".join(node_findings))
+                    node["live"] = node_live
                 node["resources"] = len(owned[ROOT / n["whole_level"]])
                 node["level"] = n["whole_level"]
                 nodes.append(node)

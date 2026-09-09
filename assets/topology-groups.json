@@ -873,7 +873,17 @@
           "kind": "service",
           "env": "stage",
           "observer": "terraform",
-          "whole_level": "infra/envs/stage"
+          "whole_level": "infra/envs/stage",
+          "live": [
+            {
+              "workflow": "self-service.yml",
+              "job": "destroy",
+              "steps": [
+                "Destroy ALB first (release ENIs before the IGW)",
+                "Terraform destroy"
+              ]
+            }
+          ]
         },
         {
           "id": "destroy.prod",
@@ -882,7 +892,17 @@
           "kind": "service",
           "env": "prod",
           "observer": "terraform",
-          "whole_level": "infra/envs/prod"
+          "whole_level": "infra/envs/prod",
+          "live": [
+            {
+              "workflow": "self-service.yml",
+              "job": "destroy-prod",
+              "steps": [
+                "Destroy ALB first (release ENIs before the IGW)",
+                "Terraform destroy"
+              ]
+            }
+          ]
         }
       ]
     }
