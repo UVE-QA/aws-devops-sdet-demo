@@ -899,7 +899,17 @@
          renderings of data/topology.json - never maintained beside it. */
       .outside { display: grid; gap: var(--gap); grid-template-columns: repeat(auto-fit, minmax(var(--card-min), 1fr)); }
       .outside .node { opacity: 1; border-style: solid; background: var(--panel); }
-      .outside .node .icon { border-style: solid; }
+      /* Same mark as everything else on this part. These two are not AWS
+         services and carry a project glyph rather than an Architecture Icon, so
+         the border stays solid - the DISTINCTION between the two kinds of mark
+         is the border, and it survives the size. */
+      .outside .node .icon { border-style: solid; min-width: 5rem; height: 5rem;
+        font-size: 1.15rem; border-radius: 12px; }
+      .outside .node .icon.aws { width: 5rem; border-radius: 12px; }
+      .outside .node .head { display: flex; flex-direction: column; align-items: center; gap: 0.3rem; }
+      .outside .node { align-items: center; text-align: center; padding: 0.6rem 0.5rem 0.5rem; }
+      .outside .node .name { font-size: 0.9rem; }
+      .outside .node .asserts { font-size: 0.76rem; line-height: 1.45; }
       /* Reserve the scrollbar always. Opening the cut makes the page taller, the
          scrollbar appears, the viewport narrows by its width - and the map had
          already been laid out against the wider one, so it spilled. The layout
@@ -1097,9 +1107,19 @@
         padding: 0.4rem 0.35rem; text-align: center; background: var(--bg);
       }
       @media (max-width: 680px) { .path { flex-wrap: wrap; } .path .hop { flex: 1 1 5.5rem; } }
-      .path .hop .icon { margin: 0 auto 0.2rem; }
-      .path .hop b { display: block; font-size: 0.74rem; line-height: 1.25; overflow-wrap: break-word; }
-      .path .hop .tool { font-size: 0.66rem; color: var(--muted); overflow-wrap: break-word; }
+      /* THE SAME MARK EVERYWHERE ON THE STATIC PART (ADR-0079 D4). The hops
+         carried the map's 1.4rem badge, the permanent levels the board's 5rem
+         one, and the two sat on one screen a hand apart - three sizes of the
+         same object, and nothing about the difference meant anything.
+         `.icon.aws` holds an unmodified AWS Architecture Icon, so it is a square
+         and stays one; only the square gets bigger. */
+      /* The TEXT badge scales with its box. `WWW` at 0.58rem in a 5rem square
+         reads as an empty grey tile; the glyph is the mark, so it grows too. */
+      .path .hop .icon { margin: 0 auto 0.3rem; min-width: 5rem; height: 5rem;
+        font-size: 1.15rem; border-radius: 12px; }
+      .path .hop .icon.aws { width: 5rem; border-radius: 12px; }
+      .path .hop b { display: block; font-size: 0.86rem; line-height: 1.25; overflow-wrap: break-word; }
+      .path .hop .tool { font-size: 0.72rem; color: var(--muted); overflow-wrap: break-word; }
       .path .arrow { min-width: 0.9rem; font-size: 0.95rem; }
       .strip { display: flex; flex-wrap: wrap; gap: 0.25rem; margin-top: 0.55rem; }
       .strip span {

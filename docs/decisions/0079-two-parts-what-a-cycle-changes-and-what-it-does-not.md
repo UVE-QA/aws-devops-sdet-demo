@@ -52,6 +52,24 @@ hiding twice — is about a cut that hides *the point of the part*. This one is 
 reference the dashboard deliberately is not, and flat it buries the three blocks
 above it. Every other cut stays flat.
 
+**D4. One mark size on the static part.** The request path's hops carried the
+map's 1.4rem badge, the permanent levels the board's 5rem one, and the two now
+sit on one screen a hand apart. Three sizes of the same object, and nothing about
+the difference meant anything. The hops and the two `Outside the cycle` cards go
+to 5rem with the rest.
+
+The two kinds of mark stay distinguishable, which was ADR-0039's point and is not
+about size: an AWS service carries an unmodified Architecture Icon in a filled
+square; a project glyph — `WWW`, `CI` — carries letters on a bordered one. The
+border is the distinction and it survives the change. The glyph's type grows with
+its box: `WWW` at 0.58rem in a 5rem square reads as an empty grey tile.
+
+**The cycle map is the remaining exception, and deliberately.** Its nodes still
+carry 1.4rem badges, because there are twenty-six of them and the map's whole
+argument is that a couple of dozen marks fit on a screen where a hundred and
+sixteen do not (ADR-0039 D5). Five-rem marks there would be a different picture,
+not a bigger one. Not a decision taken here.
+
 ## Consequences
 
 **The live part is nearly as long as the old page.** Measured, at rest:
