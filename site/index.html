@@ -273,7 +273,14 @@
       /* THE NAME IS AN IDENTIFIER; THIS IS THE STATEMENT. `aws-devops-sdet-demo`
          ties the page to the link in a CV and tells a stranger nothing, which is
          what ADR-0082 D3 gave up when the claim went to `Details`. One clause of
-         it comes back - the shortest true one - and the paragraph stays there. */
+         it comes back - the shortest true one - and the paragraph stays there.
+
+         THE CHAIN IS COMPLETE OR IT IS NOT THE CHAIN. Written first without
+         `approve`, to save a word, which dropped the only step in it that
+         involves a person and made the row name four verbs where the map below
+         draws five. scripts/check-claim-chain.py compares this against the
+         paragraph and against the README's opening, and it caught that an hour
+         after it was written. */
       .ident-what { color: var(--muted); font-size: 0.8rem; }
       .launch { margin-left: auto; }
       .launch-said { margin: 0 0 1rem; }
@@ -1398,7 +1405,7 @@
              needed to know where you are. -->
         <div class="ident-mark">
           <b>aws-devops-sdet-demo</b>
-          <span class="ident-what">deploy &rarr; test &rarr; promote &rarr; destroy on AWS, reporting on itself</span>
+          <span class="ident-what">deploy &rarr; test &rarr; approve &rarr; promote &rarr; destroy on AWS, reporting on itself</span>
         </div>
         <nav class="parts" id="parts" role="tablist" aria-label="Which part of the page to show">
           <button type="button" role="tab" data-show="now"    aria-selected="true">Now</button>

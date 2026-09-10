@@ -8,7 +8,7 @@
         site-data site-data-check timeline-check node-states-check \
         suite-inventory suite-inventory-check results-check live-state-check \
         page-tense-check page-freshness-check page-inflight-check \
-        publish-prefixes-check contrast-check measure-page gates gates-full gates-check
+        publish-prefixes-check claim-chain contrast-check measure-page gates gates-full gates-check
 
 # Bring up postgres + app (build app image if needed), detached.
 local-up:
@@ -398,6 +398,18 @@ measure-page:
 # versioning. This reads the correspondence out of both files instead (ADR-0044).
 publish-prefixes-check:
 	python3 scripts/check-publish-prefixes.py
+
+# THREE COPIES OF ONE FACT, and the fact is the shape of the pipeline. The
+# README's opening, the claim paragraph on the page and the clause beside the
+# name all state the same chain of verbs - and the map below draws that chain as
+# phases, so a page naming four steps where the map draws five is wrong in the
+# first place a reader looks.
+#
+# They agreed because two were copied from the third. This is what checks that
+# they still do; it caught the row dropping `approve` - the only step in the
+# chain that involves a person - an hour after the row was written.
+claim-chain:
+	python3 scripts/check-claim-chain.py
 
 # What a cycle cost, COMPUTED from how long its resources existed (ADR-0045).
 #

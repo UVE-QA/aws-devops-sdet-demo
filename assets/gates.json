@@ -45,6 +45,10 @@
       "local": true
     },
     {
+      "target": "claim-chain",
+      "local": true
+    },
+    {
       "target": "cost-check",
       "local": true
     },
