@@ -3932,6 +3932,50 @@ blamed the script (**ADR-0063 D7**).
   declared-and-not-applied versioning (Phase 28), and Phase 26's broken-word rule
   with its two desktop false positives.
 
+### Phase 39 — What four cycles and a pair of eyes found  ✅ DONE 2026-09-10
+
+Three days, eleven records (**ADR-0075**…**ADR-0085**), four real cycles. The
+subject was a visual — make the estate board light up as a cycle builds it — and
+became something else: **every defect was found by running a cycle or by the
+owner looking at the page, and `make gates` was green through all of them.**
+
+Delivered:
+
+- the estate as a board of AWS marks, in `topology.json`'s own order, with a row
+  saying once what every tile would repeat (0075)
+- the board lighting up **during** the apply, from a partial fold of Terraform's
+  own stream — no change to the fold or the join, because a stream with no `.rc`
+  already reads that way (0076)
+- the page cut into five parts by two questions in sequence: *does a cycle change
+  it* (0079, the owner's), then *what is the reader asking* (0082)
+- the stage teardown calling `destroy.yml` instead of copying it, which is what
+  made stage priced for the first time (0080)
+- a called job's runtime name derived from `uses:` rather than written down (0080)
+- each teardown tile bound to its own job (0081), and a phase that runs as two
+  jobs given one span (0083)
+- `make gates-full`, and `claim-chain` — which found a defect on its first run
+
+Found and fixed in passing, none of it the subject:
+
+- **CI had been red on every push since 2026-09-06**, and a second red gate was
+  *skipped* behind the first — main carried two and only one was visible
+- `check-action-pins.py` read one directory; `check-publish-prefixes.py` named one
+  publisher — ADR-0044's own defect, inside the checker written to prevent it
+- the progress bar's denominator grows, so it stood at 100% on unfinished nodes
+- the watcher's stop step ran under the deploy role and warned in yellow
+
+- Break tests: 4 of 4, 8 of 8, 4 of 4, 6 of 6. Two of them proved a line that was
+  not the one guarding the case and had to be retargeted; one at-rest case turned
+  out to be defended three times over.
+- Cost: four cycles, ≈ $0.09 each by the page's own fold. Nothing left behind on
+  any of them.
+- Next allowed step: **nothing is queued.** Open and cold-startable: the request
+  path's home (`Details` by the sort, `Cycle` by meaning), a check that every
+  `data-part` is one of the five, a check that a live binding ever matched a real
+  job, and the phone — 2.2–4.4 screens per part, deferred by the owner. The
+  dashboard bucket's declared-and-not-applied versioning (Phase 28) and the
+  release-tag 403 of 2026-09-05 are both still open and still undiagnosed.
+
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,
 `phase complete`, `go next`, `ок`, `дальше`, `подтверждаю`.
