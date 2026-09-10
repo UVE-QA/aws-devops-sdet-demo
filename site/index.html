@@ -3222,7 +3222,8 @@
             const since = pst && pst.state === "running" ? pst.since : null;
             const was = RUNSTATE.phases[p.id];
             const wasText = was && was.duration_s
-              ? `<span class="was" title="measured${was.date ? " on " + was.date : ""}">${
+              ? `<span class="was" title="measured${was.date ? " on " + was.date : ""}${
+                  was.jobs > 1 ? `, across ${was.jobs} jobs of one cycle - first start to last end, so a wait between them is inside it` : ""}">${
                   figuresAreOlder(RUNSTATE.observation) ? "last time " : ""}${secs(was.duration_s)}</span>`
               : ``;
             // The third thing a phase can be, and the one that was missing:
@@ -3455,8 +3456,55 @@
                 // The phase span, measured. Not the sum of its nodes: they
                 // overlap, so adding them up overstates it - which is why this
                 // arrives computed rather than being worked out here.
+                //
+                // A PHASE THAT RUNS AS TWO JOBS PUBLISHES TWO SPANS UNDER ONE
+                // KEY, and this used to keep whichever was folded last (ADR-0083).
+                // Phase 8 is the case: a self-service cycle tears down stage,
+                // holds prod for five minutes, then tears down prod, and each
+                // teardown writes `phases.destroy` into its own environment's
+                // document. Measured on 2026-09-09 - 468s from stage and 469s
+                // from prod - and the page showed 469s, for no reason except
+                // that `ENVS` has prod second. Beside it the live clock read
+                // eighteen minutes, because that one runs from the first bound
+                // step to now. The two numbers had never measured the same
+                // thing.
+                //
+                // Merged when both documents name the SAME RUN, which is
+                // ADR-0062 D1's predicate again: not `is this the same phase`
+                // but `does this document belong to the same cycle`. The merge
+                // is the UNION - earliest start to latest end - so it measures
+                // what the live clock measures, hold included. A span that
+                // excluded the wait would be a truer description of the work and
+                // a second number that disagrees with the clock beside it, which
+                // is the defect being fixed.
+                //
+                // From DIFFERENT runs it keeps the one that finished LAST. That
+                // is the owner's path, where each environment is torn down by
+                // its own dispatch of destroy.yml, and the two are not one
+                // cycle. Deterministic where it used to be fold order.
                 Object.keys(doc.phases || {}).forEach((id) => {
-                  next.phases[id] = { ...doc.phases[id], date: doc.cycle && doc.cycle.date };
+                  const span = { ...doc.phases[id],
+                                 date: doc.cycle && doc.cycle.date,
+                                 run: doc.cycle && doc.cycle.run && String(doc.cycle.run.id || "") };
+                  const had = next.phases[id];
+                  if (!had) { next.phases[id] = span; return; }
+                  const sameRun = had.run && span.run && had.run === span.run;
+                  if (sameRun) {
+                    const a = [had.started_at, span.started_at].filter(Boolean).sort();
+                    const b = [had.finished_at, span.finished_at].filter(Boolean).sort();
+                    const from = a[0], to = b[b.length - 1];
+                    const secs = from && to ? Math.round((Date.parse(to) - Date.parse(from)) / 1000) : null;
+                    next.phases[id] = { ...span, started_at: from, finished_at: to,
+                                        // Only when both ends are readable. A merge
+                                        // that guessed a duration would be exactly
+                                        // the plausible number this file refuses.
+                                        duration_s: secs !== null && secs >= 0 ? secs : had.duration_s,
+                                        jobs: (had.jobs || 1) + 1 };
+                    return;
+                  }
+                  const older = !span.finished_at ||
+                    (had.finished_at && had.finished_at > span.finished_at);
+                  if (!older) next.phases[id] = span;
                 });
                 next.cycles.push(doc.cycle);
                 // Carried onto the page rather than only into the apply log. A
