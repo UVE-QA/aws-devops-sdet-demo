@@ -108,7 +108,7 @@ const LAYER = path.join(FIXTURES, "layer");
    nobody - which is the same shape as assets/gates.json's `requires`, and the
    same reason it is written down rather than discovered from the DOM: a list
    read out of the page cannot notice a part the page forgot to draw. */
-const PARTS = ["cycle", "detail"];
+const PARTS = ["now", "estate", "cycle", "tests", "detail"];
 
 const VIEWPORTS = [
   { name: "2560x1440", width: 2560, height: 1440, note: "the stated primary target" },

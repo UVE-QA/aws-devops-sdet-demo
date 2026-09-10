@@ -252,12 +252,22 @@
          whatever that is; only the others are taken out. It also means a part
          carrying its own `hidden` - #cost-box does, meaning `nothing to say yet`
          - stays hidden without a second rule about it. */
+      main[data-showing="now"]    > [data-part]:not([data-part="now"]),
+      main[data-showing="estate"] > [data-part]:not([data-part="estate"]),
       main[data-showing="cycle"]  > [data-part]:not([data-part="cycle"]),
+      main[data-showing="tests"]  > [data-part]:not([data-part="tests"]),
       main[data-showing="detail"] > [data-part]:not([data-part="detail"]) { display: none; }
 
+      .topbar {
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 0.75rem; flex-wrap: wrap; margin: 0 0 1rem;
+      }
+      .launch { margin: 0; }
+      .launch-said { margin: 0 0 1rem; }
+      .launch-said .why { max-width: 52rem; margin: 0 0 0.3rem; }
       .parts {
         display: flex; flex-wrap: wrap; gap: 0.3rem;
-        margin: 0 0 1rem; padding: 0.25rem;
+        margin: 0; padding: 0.25rem;
         border: 1px solid var(--line); border-radius: 10px; background: var(--panel);
         width: fit-content; max-width: 100%;
       }
@@ -1016,8 +1026,20 @@
       /* TWO PANELS, NOT THREE (ADR-0079). `.p-env` spanned two rows because the
          path and the run were stacked beside it; the path is static and has
          left, so the row span would now hold a hole open. */
-      .p-env { grid-column: span 4; }
+      /* WHAT IS HAPPENING, IN TWO COLUMNS. `.p-run` had all twelve and its
+         content is a list of step names with a duration on the far right: at
+         1450px the eye crosses a metre of nothing to read `7m 45s`. The cost
+         box stood under it at full width holding two sentences.
+         The environments panel keeps twelve because nothing shares its row. */
+      /* WHAT IS HAPPENING, WITH NO HOLE IN IT. The environments panel is tall
+         and narrow - two environments and their words - and the run panel is a
+         step list that wants width. The cost box is two sentences and fits under
+         the run. Four and eight, with the left column spanning both rows: the
+         shape ADR-0047 D1 measured for, minus the request path that left for
+         `Details`. */
+      .p-env { grid-column: span 4; grid-row: span 2; }
       .p-run { grid-column: span 8; }
+      .costbox { grid-column: span 8; }
       /* The path is a block of its own in the static part, so it has no column
          to span - but it keeps the rule that gave it a full row below 1500,
          which is what stopped `RDS PostgreSQL` breaking as `PostgreSQ|L`. */
@@ -1208,29 +1230,7 @@
   </head>
   <body>
     <!--ICON-SPRITE-->
-    <main data-showing="cycle">
-      <!-- IDENTITY, AND THE LINKS. Discovery measured the repository link at
-           100% of scroll depth: the one thing a thirty-second visitor needs was
-           the last thing on the page (ADR-0047 D1). The footer keeps them; it
-           stops being the only place they are. -->
-      <div class="idbar">
-        <h1>aws-devops-sdet-demo</h1>
-        <span class="live-badge">dashboard live</span>
-        <p class="claim">
-          A deploy &rarr; test &rarr; approve &rarr; promote &rarr; destroy pipeline on AWS,
-          reporting on itself. There is no manual AWS operation anywhere in that sentence,
-          teardown included, and every state it leaves is read back out of AWS afterwards
-          rather than taken from the run that claimed it. This page is a permanent state
-          level of its own, so it stays online when every workload environment is gone
-          &mdash; which is most of the time, and is the point of it.
-        </p>
-        <nav class="links">
-          <a href="https://github.com/UVE-QA/aws-devops-sdet-demo">repository &rarr;</a>
-          <a href="https://github.com/UVE-QA/aws-devops-sdet-demo/tree/main/docs/decisions"><b id="adr-count">&hellip;</b> decision records &rarr;</a>
-          <a href="https://github.com/UVE-QA/aws-devops-sdet-demo/actions">Actions &rarr;</a>
-        </nav>
-      </div>
-
+    <main data-showing="now">
       <div id="banners"></div>
       <!-- THE HOLD'S CLOCK (ADR-0068). Its OWN slot rather than a line inside
            #banners, and that is not a layout preference: #banners is rendered by
@@ -1240,59 +1240,58 @@
            Phase 22 paid for, in the same file, four phases later. -->
       <div id="countdown-slot"></div>
 
-      <!-- THE PARTS BAR (ADR-0078). Not navigation: no link, no history entry,
-           no reload - the whole page is loaded, and this shows one part of it at
-           a time. `Pseudo tabs, like filters` is the owner's phrase and it is the
-           accurate one, because nothing here is a destination.
+      <!-- THE TAB ROW CARRIES THE CONTROL (ADR-0082). Left: which part you
+           are looking at. Right: the one thing this page can be asked to do,
+           and the number that says whether it will be refused. Opposite ends of
+           one line, because they are the two things that are true of the WHOLE
+           page rather than of any part of it.
 
-           WHAT STAYS ABOVE IT stays above it on purpose: the identity, the
-           claim, the links, the red banner and the hold's clock. Those are the
-           page's argument and its alarms, and an alarm behind a filter is not an
-           alarm. Everything below is a part.
+           THE PARTS ARE NOT NAVIGATION (ADR-0078): no link, no history entry,
+           no reload. `Pseudo tabs, like filters` is the owner's phrase and the
+           accurate one - nothing here is a destination. Static markup rather
+           than script, so the row exists before any fetch resolves.
 
-           Rendered as static markup rather than by script so the bar exists
-           before any fetch resolves - a page whose only navigation appears a
-           second late is a page that looks broken for a second. -->
-      <nav class="parts" id="parts" role="tablist" aria-label="Which part of the page to show">
-        <button type="button" role="tab" data-show="cycle"  aria-selected="true">Cycle</button>
-        <button type="button" role="tab" data-show="detail" aria-selected="false">Details</button>
-      </nav>
+           WHAT STAYS ABOVE IT: the red banner and the hold's clock. An alarm
+           behind a filter is not an alarm.
+
+           THE SENTENCES THAT EXPLAIN THE BUTTON DO NOT COME WITH IT. They are
+           three lines about what a cycle does and what the cap is, and prose in
+           a control strip is prose nobody reads. They are drawn at the top of
+           `Now`, beside the environments the button acts on and the run it
+           starts - and `#launch-said` carries `hidden` with `#launch`, so a
+           control that is absent does not leave its own explanation behind. -->
+      <div class="topbar">
+        <nav class="parts" id="parts" role="tablist" aria-label="Which part of the page to show">
+          <button type="button" role="tab" data-show="now"    aria-selected="true">Now</button>
+          <button type="button" role="tab" data-show="estate" aria-selected="false">Estate</button>
+          <button type="button" role="tab" data-show="cycle"  aria-selected="false">Cycle</button>
+          <button type="button" role="tab" data-show="tests"  aria-selected="false">Tests</button>
+          <button type="button" role="tab" data-show="detail" aria-selected="false">Details</button>
+        </nav>
+        <div id="launch" class="launch" hidden>
+          <div class="launchrow">
+            <button id="launch-button" type="button">Launch a full cycle</button>
+            <!-- The remaining quota, beside the control it limits. The endpoint
+                 keeps the authoritative count and is what actually refuses. -->
+            <span class="quota" id="launch-quota" aria-label="launches left today"></span>
+          </div>
+        </div>
+      </div>
+
+      <div data-part="now" class="launch-said" id="launch-said" hidden>
+        <p class="why" id="launch-why"></p>
+        <p class="why" id="launch-result"></p>
+      </div>
 
       <!-- THE FIRST SCREEN IS THE DASHBOARD (ADR-0047 D1): what is observed in
            AWS, where a request goes, and the run in flight - side by side, in
            blocks, above the map. Everything else is below the fold and under a
            cut. -->
-      <div data-part="cycle" class="top">
+      <div data-part="now" class="top">
         <section class="panel p-env">
           <h2>Environments <span class="note">&mdash; observed in AWS, not inferred from a green run</span></h2>
           <div id="environments">
             <p class="why">Reading <code>status/stage.json</code> and <code>status/prod.json</code>&hellip;</p>
-          </div>
-          <!-- THE BUTTON BELONGS TO THIS PANEL (ADR-0048 D1). It acts on what
-               this panel observes, and its refusals - one environment at a time,
-               a daily cap - are statements about that state, so the refusal and
-               the thing it is about are in the same box. Not the identity bar,
-               which is navigation and no place for a control that spends money.
-
-               It sits ABOVE the clocks rather than under them (ADR-0064). D1 put
-               it in this panel and called it the panel's footer; the clocks are
-               the panel's footnote by their own comment, and a control was
-               reading as less important than the two timestamps that date it.
-               Same box, same panel, one row up.
-
-               Hidden entirely while disabled: a control that is visible and
-               inert is worse than one that is absent, because a visitor cannot
-               tell it apart from one that is broken. -->
-          <div id="launch" class="launch" hidden>
-            <p class="why" id="launch-why"></p>
-            <div class="launchrow">
-              <button id="launch-button" type="button">Launch a full cycle</button>
-              <!-- The remaining quota, beside the control it limits. Counted from
-                   the runs, and the title says so; the endpoint keeps the
-                   authoritative count and is what actually refuses. -->
-              <span class="quota" id="launch-quota" aria-label="launches left today"></span>
-            </div>
-            <p class="why" id="launch-result"></p>
           </div>
           <div class="clocks">
             <span>GitHub read <b id="clock-github">&hellip;</b></span>
@@ -1307,7 +1306,34 @@
           <h2>Current cycle <span class="note">&mdash; the step in flight, not the whole log</span></h2>
           <div id="cycle"><p class="why">Reading run history&hellip;</p></div>
         </section>
-      </div>
+        <!-- 20f. A BAND, never one end of it: nothing in the event stream can see
+             the instant AWS starts charging, and for RDS the two ends were 62%
+             apart (ADR-0045). Rendering the low end alone would make a claim the
+             fold declined to make.
+
+             WHERE IT BELONGS was 20e's question and 20h answered it by watching:
+             this was an unheaded grey paragraph under the map, and the person who
+             had just run the cycle to produce the number read straight past it.
+             Every other figure on this page is in a bordered box with a label
+             over it, so this one is too - the same `.panel` the environments and
+             the current cycle are drawn in, and no new vocabulary. -->
+        <section class="panel costbox" id="cost-box" hidden>
+          <h2><span id="cost-head">What the last cycle cost</span> <span class="note">&mdash; computed from resource lifetimes, not from a bill</span></h2>
+          <p class="approx" id="cost-line"></p>
+        </section>
+
+        <!-- CONTOUR 3 OF 3 - THE ASSERTIONS (ADR-0054 D1, D4). What the
+             repository claims and checks. Tenseless: a suite is a property of the
+             repository, and how it RAN is a property of a run - which is drawn in
+             the cycle above, as suite x environment, and is a different object
+             (ADR-0039 D2b's second half, which stands).
+
+             ADR-0039 D2b's FIRST half forbade a panel like this on the grounds
+             that it would be a second place telling the same story. It is the
+             opposite: `tests/unit` was inventoried, counted in `counts.suites`
+             and drawn nowhere, because it runs in no cycle and the map only had
+             somewhere to put a run. All five are here, and the one that no cycle
+             runs says so in its own words rather than by being absent. -->      </div>
 
       <!-- CONTOUR 1 OF 3 - THE ESTATE (ADR-0054 D1, D5). The nouns: the
            permanent levels and the two workload environments, present tense,
@@ -1323,7 +1349,7 @@
            are observed now, the figures beside them belong to a cycle, and
            there is one place to say so rather than one per state - which is how
            it came to be attached to `destroyed` and to nothing else. -->
-      <section data-part="cycle" class="contour" id="c-estate">
+      <section data-part="estate" class="contour" id="c-estate">
         <h2>The estate <span class="note">&mdash; the nouns. What is in AWS, answered by observation</span></h2>
         <p class="sub" id="estate-caption">Reading the topology&hellip;</p>
         <div id="estate-envs"></div>
@@ -1360,35 +1386,7 @@
       </div>
       <p data-part="cycle" class="sub" id="map-sub">Reading the topology&hellip;</p>
       <div data-part="cycle" class="cycle" id="rows"></div>
-      <!-- 20f. A BAND, never one end of it: nothing in the event stream can see
-           the instant AWS starts charging, and for RDS the two ends were 62%
-           apart (ADR-0045). Rendering the low end alone would make a claim the
-           fold declined to make.
-
-           WHERE IT BELONGS was 20e's question and 20h answered it by watching:
-           this was an unheaded grey paragraph under the map, and the person who
-           had just run the cycle to produce the number read straight past it.
-           Every other figure on this page is in a bordered box with a label
-           over it, so this one is too - the same `.panel` the environments and
-           the current cycle are drawn in, and no new vocabulary. -->
-      <section data-part="cycle" class="panel costbox" id="cost-box" hidden>
-        <h2><span id="cost-head">What the last cycle cost</span> <span class="note">&mdash; computed from resource lifetimes, not from a bill</span></h2>
-        <p class="approx" id="cost-line"></p>
-      </section>
-
-      <!-- CONTOUR 3 OF 3 - THE ASSERTIONS (ADR-0054 D1, D4). What the
-           repository claims and checks. Tenseless: a suite is a property of the
-           repository, and how it RAN is a property of a run - which is drawn in
-           the cycle above, as suite x environment, and is a different object
-           (ADR-0039 D2b's second half, which stands).
-
-           ADR-0039 D2b's FIRST half forbade a panel like this on the grounds
-           that it would be a second place telling the same story. It is the
-           opposite: `tests/unit` was inventoried, counted in `counts.suites`
-           and drawn nowhere, because it runs in no cycle and the map only had
-           somewhere to put a run. All five are here, and the one that no cycle
-           runs says so in its own words rather than by being absent. -->
-      <section data-part="cycle" class="contour" id="c-assertions">
+      <section data-part="tests" class="contour" id="c-assertions">
         <h2>What the repository asserts <span class="note">&mdash; the suites themselves, collected, with no tense</span></h2>
         <p class="sub" id="assertions-sub">Reading the topology&hellip;</p>
         <div class="suites" id="suites"></div>
@@ -1411,6 +1409,29 @@
            citation names something that is not there, so this panel cannot
            outlive the infrastructure it describes. The ORDER and the tool
            names are editorial and the panel says so (ADR-0047 D4). -->
+      <!-- IDENTITY, AND THE LINKS. IN `Details` NOW, and no longer above the
+           parts bar: Discovery measured the repository link at
+           100% of scroll depth: the one thing a thirty-second visitor needs was
+           the last thing on the page (ADR-0047 D1). The footer keeps them; it
+           stops being the only place they are. -->
+      <div data-part="detail" class="idbar">
+        <h1>aws-devops-sdet-demo</h1>
+        <span class="live-badge">dashboard live</span>
+        <p class="claim">
+          A deploy &rarr; test &rarr; approve &rarr; promote &rarr; destroy pipeline on AWS,
+          reporting on itself. There is no manual AWS operation anywhere in that sentence,
+          teardown included, and every state it leaves is read back out of AWS afterwards
+          rather than taken from the run that claimed it. This page is a permanent state
+          level of its own, so it stays online when every workload environment is gone
+          &mdash; which is most of the time, and is the point of it.
+        </p>
+        <nav class="links">
+          <a href="https://github.com/UVE-QA/aws-devops-sdet-demo">repository &rarr;</a>
+          <a href="https://github.com/UVE-QA/aws-devops-sdet-demo/tree/main/docs/decisions"><b id="adr-count">&hellip;</b> decision records &rarr;</a>
+          <a href="https://github.com/UVE-QA/aws-devops-sdet-demo/actions">Actions &rarr;</a>
+        </nav>
+      </div>
+
       <section data-part="detail" class="panel p-arch">
         <h2>Where it lives <span class="note" id="path-note">&mdash; reading the topology&hellip;</span></h2>
         <div class="path" id="path"></div>
@@ -1442,7 +1463,7 @@
            text, fifteen of them, and flattening those would not be removing a
            layer of hiding, it would be printing a hundred and sixteen lines
            nobody asked for. -->
-      <section data-part="cycle" class="contour" id="history-cut">
+      <section data-part="tests" class="contour" id="history-cut">
         <h2 id="history-summary">Recent lifecycle runs <span class="small">reading run history&hellip;</span></h2>
         <div id="history"></div>
       </section>
@@ -2211,6 +2232,12 @@
       function renderLaunch() {
         if (!SELF_SERVICE.enabled || !SELF_SERVICE.endpoint) return;
         el("launch").hidden = false;
+        // The explanation carries the control's own visibility (ADR-0082). It
+        // is drawn in `Now` and the control is on the tab row, so nothing else
+        // would take it down with them - and a page that says what a button
+        // does while showing no button is worse than one that says neither.
+        var said = el("launch-said");
+        if (said) said.hidden = false;
 
         // THE ENDPOINT'S OWN NUMBER WHEN IT HAS ANSWERED (ADR-0073), and this
         // page's approximation until then. Deriving it from run history was
