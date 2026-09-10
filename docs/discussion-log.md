@@ -6,6 +6,36 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
+**As of 2026-09-10 (39 — what four cycles and a pair of eyes found).** Eleven
+records, **ADR-0075**…**ADR-0085**, four real cycles across three days. The
+subject was a visual — make the estate board light up as a cycle builds it — and
+became something else: **every defect in it was found by running a cycle or by
+the owner looking at the page, with `make gates` green through all of them.**
+
+The board is drawn and it does light up, from a partial fold of Terraform's own
+event stream published while the apply runs — and that needed **no change to the
+fold or the join**, because a stream with no `.rc` beside it already reads as
+`incomplete`, which is the same thing during a live apply as after a killed one.
+The page is five parts now, cut by two questions in sequence: *does a cycle
+change it*, which was the owner's and is a property of the data, and then *what
+is the reader asking*.
+
+What the cycles found, none of it the subject and none of it caught by a gate:
+the progress bar's denominator **grows**, so it stood at 100% on unfinished
+nodes; the watcher's stop step ran under the deploy role and said so in yellow
+while the job stayed green; **stage had never been priced** because the
+self-service teardown was a hand-written copy of `destroy.yml` missing exactly
+one step; and **the prod half of the map had never pulsed on the public path**,
+because the bindings named workflows that are not the one running.
+
+Three gates were red or blind before any of this started. **CI had failed on
+every push since 2026-09-06**, and a second red gate was *skipped* behind the
+first — main carried two and only one was visible. A skipped step reads like a
+step with nothing to say.
+
+`make gates-full` exists now: the same list, asked what *this machine* can
+answer, 22 of 32 on the devbox against 12 in a bare checkout.
+
 **As of 2026-09-06 (36 — the page describes a cycle that no longer exists; with 34 and 35 in the same session).** Three
 cycles run for real, one of them the first fully clean unattended cycle: six jobs
 green, prod up behind HTTPS and destroyed five visible minutes later, nothing
