@@ -259,10 +259,23 @@
       main[data-showing="detail"] > [data-part]:not([data-part="detail"]) { display: none; }
 
       .topbar {
-        display: flex; align-items: center; justify-content: space-between;
-        gap: 0.75rem; flex-wrap: wrap; margin: 0 0 1rem;
+        display: flex; align-items: center; gap: 0.75rem;
+        flex-wrap: wrap; margin: 0 0 1rem;
       }
-      .launch { margin: 0; }
+      /* The name sits left of the parts and the control is pushed to the far
+         right, so the row reads: WHAT this is, WHICH part, and the one thing it
+         can be asked to do. */
+      .ident-mark {
+        display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
+        font-size: 0.95rem;
+      }
+      .ident-mark b { font-weight: 700; }
+      /* THE NAME IS AN IDENTIFIER; THIS IS THE STATEMENT. `aws-devops-sdet-demo`
+         ties the page to the link in a CV and tells a stranger nothing, which is
+         what ADR-0082 D3 gave up when the claim went to `Details`. One clause of
+         it comes back - the shortest true one - and the paragraph stays there. */
+      .ident-what { color: var(--muted); font-size: 0.8rem; }
+      .launch { margin-left: auto; }
       .launch-said { margin: 0 0 1rem; }
       .launch-said .why { max-width: 52rem; margin: 0 0 0.3rem; }
       .parts {
@@ -1374,6 +1387,19 @@
            starts - and `#launch-said` carries `hidden` with `#launch`, so a
            control that is absent does not leave its own explanation behind. -->
       <div class="topbar">
+        <!-- THE NAME, LEFT OF THE PARTS (ADR-0084). ADR-0082 D3 moved the whole
+             identity bar into `Details` and named the cost: the page no longer
+             said what it was above the fold, which is fine for the owner and
+             wrong for a stranger arriving from a CV link. This is the half that
+             answers `what am I looking at` - the name and whether the dashboard
+             is live - on the row that is already there, so it costs no height.
+             The claim, the links and the decision-record count stay in
+             `Details`: those are the argument and the way out, and neither is
+             needed to know where you are. -->
+        <div class="ident-mark">
+          <b>aws-devops-sdet-demo</b>
+          <span class="ident-what">deploy &rarr; test &rarr; promote &rarr; destroy on AWS, reporting on itself</span>
+        </div>
         <nav class="parts" id="parts" role="tablist" aria-label="Which part of the page to show">
           <button type="button" role="tab" data-show="now"    aria-selected="true">Now</button>
           <button type="button" role="tab" data-show="estate" aria-selected="false">Estate</button>

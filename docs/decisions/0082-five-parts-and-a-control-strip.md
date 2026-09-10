@@ -53,12 +53,11 @@ than one that says neither.
 on the grounds that the page's argument is not a part. Measured, that argument
 cost 145px on **every** part, and the owner reads it fifty times a day.
 
-**The cost is real and is not a rounding error:** the page no longer says what it
-is above the fold. A visitor arriving from a CV link sees a tab row and a button.
-The footer's repository link is the only identification left. Taken deliberately,
-by the owner, on a dashboard he is the main reader of — and it is the first thing
-to revisit if the page is ever judged as a portfolio page rather than used as a
-dashboard.
+**The cost was real and was paid back the same day (ADR-0084).** As first
+written, the page no longer said what it was above the fold: a visitor arriving
+from a CV link saw a tab row and a button. The name and one clause of the claim
+now sit left of the parts, on the row that was already there, so the fix costs no
+height. The paragraph, the links and the decision-record count stay here.
 
 **D4. Every part shares its width with something.** `Now` is the shape ADR-0047
 D1 measured, minus the request path that left for `Details`: environments in four
