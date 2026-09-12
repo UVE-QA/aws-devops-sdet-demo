@@ -2649,7 +2649,16 @@
           return Boolean(state.teardown[env]) !== Boolean(next[env]);
         });
         state.teardown = next;
-        if (changed) renderEnvironments();
+        if (!changed) return;
+        renderEnvironments();
+        // AND STRAIGHT BACK, so the map has it on the SAME render rather than on
+        // the next bucket tick. Watched live on 2026-09-12: the badge read BEING
+        // DESTROYED and the seven tiles below it stood at full colour, because
+        // the map's copy of `environments` was the one built before it answered.
+        // Thirty seconds of that on every fresh load, which is most of what a
+        // visitor sees. Terminates on the `changed` guard above: the map's reply
+        // to this round says the same thing, so there is no second one.
+        announceCycle();
       });
 
       el("refresh").addEventListener("click", function () { load(); });
@@ -4766,7 +4775,11 @@
             // record is published when a JOB ends, so `the last cycle that
             // finished` dated the one still running.
             ? (figuresAreOlder(RUNSTATE.observation)
-                ? `A cycle is under way; what is drawn below is what has published so far, the newest of it ${date}, and every node says which cycle it is speaking for. `
+                // No full stop: the clause this joins is `the map is on the page
+                // whether or not anything is running`, which reads on from a
+                // semicolon and started a sentence with a lower-case `the` when
+                // this branch ended with one.
+                ? `A cycle is under way; what is drawn below is what has published so far, the newest of it ${date}, and every node says which cycle it is speaking for &mdash; `
                 : `At rest it shows the last cycle that finished, dated ${date}; `)
             : `Nothing has been measured into it yet, so every node below is unobserved; `) +
           `the map is on the page whether or not anything is running.` +

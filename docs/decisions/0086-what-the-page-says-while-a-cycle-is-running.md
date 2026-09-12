@@ -194,6 +194,15 @@ approval gate and one that lost it look identical on a map that draws neither.
 - `break-phase-span-merge.sh` asserts the SUM now: 678 s + 725 s = 23m 23s, where
   the union of the same two spans reads 32m 8s. The 525 seconds between them are
   the hold, and the break test names them.
+- `break-run-in-flight-statuses.sh` holds D1, and it had to be written because
+  the fixture holds one moment and that moment is `in_progress`: the defect was
+  unreachable from it. The variants move the run through `queued`, `waiting` and
+  `requested` and require the page to say the same thing about all three, and the
+  last one restores the two-status predicate with the run `queued` — seven stage
+  nodes print the previous cycle's figures with nothing saying so, which is the
+  page of 2026-09-11 at 20:09, reproduced. 6 of 6. It was also the evidence for
+  D1 itself: the live cycle's 75-second sampling walked straight past the gap.
+
 - **Two break tests have stopped biting, and it is not this ADR that stopped
   them.** Run against the previous commit as a control:
   `break-estate-hoisted-note` is 3 of 4 and `break-page-inflight-sequence` is 5

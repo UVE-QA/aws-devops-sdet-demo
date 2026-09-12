@@ -96,6 +96,11 @@ an approval gate and one that lost it look identical on a map that draws neither
 - `break-phase-span-merge.sh` asserts the sum — 678 + 725 = 23m 23s — where the
   union of the same two spans reads 32m 8s. The 525 seconds between them are the
   hold.
+- `break-run-in-flight-statuses.sh`, six variants: the run moved through
+  `queued`, `waiting` and `requested`, and the old two-status predicate restored
+  with the run `queued` — seven stage nodes printing undated figures, the page of
+  20:09 reproduced. The verification cycle's own sampling missed that gap by
+  seconds, so the fixture is what holds it.
 - `make gates` 13/13, the three browser gates green, contrast unchanged.
 
 ## Still open, from the same cycle
