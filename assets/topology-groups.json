@@ -391,14 +391,16 @@
           "job": "deploy",
           "steps": [
             "Terraform plan",
-            "Terraform apply"
+            "Terraform apply",
+            "Wait for ECS service to be stable"
           ]
         },
         {
           "workflow": "self-service.yml",
           "job": "launch",
           "steps": [
-            "Terraform apply"
+            "Terraform apply",
+            "Wait for ECS service to be stable"
           ]
         }
       ],
@@ -445,7 +447,6 @@
           "workflow": "deploy-stage.yml",
           "job": "deploy",
           "steps": [
-            "Wait for ECS service to be stable",
             "Run one-off tasks (migrate, seed, db-assert)"
           ]
         },
@@ -453,7 +454,6 @@
           "workflow": "self-service.yml",
           "job": "launch",
           "steps": [
-            "Wait for ECS service to be stable",
             "Run one-off tasks (migrate, seed, db-assert)"
           ]
         }
@@ -653,7 +653,9 @@
           "job": "promote",
           "steps": [
             "Terraform plan",
-            "Terraform apply"
+            "Terraform apply",
+            "Wait for ECS service to be stable",
+            "Wait for the public HTTPS name to answer"
           ]
         },
         {
@@ -661,7 +663,9 @@
           "job": "promote",
           "steps": [
             "Terraform plan",
-            "Terraform apply"
+            "Terraform apply",
+            "Wait for ECS service to be stable",
+            "Wait for the public HTTPS name to answer"
           ]
         }
       ],

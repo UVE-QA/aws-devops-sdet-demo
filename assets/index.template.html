@@ -258,16 +258,31 @@
       main[data-showing="tests"]  > [data-part]:not([data-part="tests"]),
       main[data-showing="detail"] > [data-part]:not([data-part="detail"]) { display: none; }
 
-      .topbar {
+      /* TWO ROWS, AND THE SECOND ONE IS THE CONTROLS (ADR-0089). The name and
+         its clause take the first; the tabs and the launch control take the
+         second, one at each end. They stopped fitting on one line when the
+         estimate joined the button, and a control group that drops to its own
+         line beneath a rule reads as a different section of the page. */
+      .topbar { margin: 0 0 1rem; }
+      .topbar .controls {
         display: flex; align-items: center; gap: 0.75rem;
-        flex-wrap: wrap; margin: 0 0 1rem;
+        flex-wrap: wrap; justify-content: space-between;
       }
       /* The name sits left of the parts and the control is pushed to the far
          right, so the row reads: WHAT this is, WHICH part, and the one thing it
          can be asked to do. */
+      /* IT SHRINKS BEFORE THE ROW BREAKS (ADR-0089). The estimate beside the
+         button made the row 40px wider, and at anything under about 1450px the
+         whole control group dropped to a second line - a divider, then a button
+         floating on its own, which is what the owner saw first. The name and the
+         tabs and the control belong on ONE line; the clause is the only part of
+         it that can give ground, so it is the part that does: it shrinks, and
+         past its floor it ends in an ellipsis. The claim it states in full is
+         three lines down in `Details`, and the gate that keeps the three copies
+         identical reads the DOM, which an ellipsis does not touch. */
       .ident-mark {
-        display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
-        font-size: 0.95rem;
+        display: flex; align-items: baseline; gap: 0.5rem; flex-wrap: wrap;
+        font-size: 0.95rem; margin: 0 0 0.5rem;
       }
       .ident-mark b { font-weight: 700; }
       /* THE NAME IS AN IDENTIFIER; THIS IS THE STATEMENT. `aws-devops-sdet-demo`
@@ -313,6 +328,20 @@
         color: var(--muted); margin: 2.75rem 0 0.85rem; font-weight: 600;
       }
       h2 .note { text-transform: none; letter-spacing: 0; font-weight: 400; }
+      /* A HEADING THAT CARRIES A VERDICT, since the run history came out from
+         behind its `<details>` (ADR-0082) and kept the summary's contents
+         without the summary's layout: the badge sat against the text with no
+         gap, and the sentence after it was set in the heading's own capitals -
+         `LAST: SELF-SERVICE LAUNCH BY THE OWNER #20 · IN PROGRESS`, shouted.
+         Same rule the cut had: the badge keeps its shape, the sentence beside it
+         drops back to a sentence, and it takes the right-hand slot. */
+         Addressed by id rather than with `:has(.verdict)`: there is one heading
+         like this, and a selector that reaches for any future one would decide
+         the layout of a heading nobody has written yet. */
+      #history-summary { display: flex; align-items: baseline; gap: 0.5rem; flex-wrap: wrap; }
+      #history-summary .small {
+        text-transform: none; letter-spacing: 0; font-weight: 400; margin-left: auto;
+      }
       code, .mono {
         font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
         font-size: 0.88em;
@@ -1300,19 +1329,23 @@
            starts - and `#launch-said` carries `hidden` with `#launch`, so a
            control that is absent does not leave its own explanation behind. -->
       <div class="topbar">
-        <!-- THE NAME, LEFT OF THE PARTS (ADR-0084). ADR-0082 D3 moved the whole
-             identity bar into `Details` and named the cost: the page no longer
-             said what it was above the fold, which is fine for the owner and
-             wrong for a stranger arriving from a CV link. This is the half that
-             answers `what am I looking at` - the name and whether the dashboard
-             is live - on the row that is already there, so it costs no height.
-             The claim, the links and the decision-record count stay in
-             `Details`: those are the argument and the way out, and neither is
-             needed to know where you are. -->
+        <!-- THE NAME, ON ITS OWN LINE (ADR-0084, moved by ADR-0089). ADR-0082 D3
+             moved the whole identity bar into `Details` and named the cost: the
+             page no longer said what it was above the fold, which is fine for
+             the owner and wrong for a stranger arriving from a CV link. This is
+             the half that answers `what am I looking at`.
+             It sat LEFT OF THE TABS until the estimate arrived beside the button
+             and the row ran out of width - under about 1450px the control group
+             dropped to a line of its own, which is what the owner saw. Three
+             things do not fit on one line; two do. So the name takes the line
+             above, and the line below is the tabs at one end and the control at
+             the other, which is the arrangement the owner asked for and the one
+             that stops competing for the same pixels. -->
         <div class="ident-mark">
           <b>aws-devops-sdet-demo</b>
           <span class="ident-what">deploy &rarr; test &rarr; promote &rarr; destroy on AWS, reporting on itself</span>
         </div>
+        <div class="controls">
         <nav class="parts" id="parts" role="tablist" aria-label="Which part of the page to show">
           <button type="button" role="tab" data-show="now"    aria-selected="true">Now</button>
           <button type="button" role="tab" data-show="estate" aria-selected="false">Estate</button>
@@ -1333,6 +1366,7 @@
                  keeps the authoritative count and is what actually refuses. -->
             <span class="quota" id="launch-quota" aria-label="launches left today"></span>
           </div>
+        </div>
         </div>
       </div>
 
@@ -1634,12 +1668,14 @@
         rateReset: null,
         timer: null,
         nextGithubAt: 0,
-        // Which environments the run in flight is TEARING DOWN right now, and
-        // since when. Not derived here: the map owns the binding that knows
-        // which job destroys which environment (ADR-0086), and sends it back
-        // through `cycle:teardown`. Empty until it does, which is the honest
-        // state for a page that has not read the topology yet.
-        teardown: {}
+        // What the run in flight is DOING to each environment - tearing it down,
+        // or building it - and since when. Not derived here: the map owns the
+        // binding that knows which job destroys which environment and the
+        // partial document that says what an apply has reached (ADR-0086,
+        // ADR-0089), and sends both back through `cycle:environment`. Empty
+        // until it does, which is the honest state for a page that has not read
+        // the topology yet.
+        envwork: {}
       };
 
       // ---- small helpers -----------------------------------------------------
@@ -1821,17 +1857,37 @@
         // from the job that built the thing this job is now deleting. So the
         // reading is not stale by that test and was drawn as a live environment
         // with a working link, for the whole of prod's teardown.
-        var tearing = Boolean(file && state.teardown && state.teardown[env]);
+        var work = (state.envwork && state.envwork[env]) || {};
+        var tearing = Boolean(file && work.tearing);
         if (tearing) {
           stale = true;
           reason = "A job of the cycle under way is tearing this environment down now" +
-            (typeof state.teardown[env] === "string"
-              ? ", since " + esc(ago(state.teardown[env])) : "") +
+            (typeof work.tearing === "string" ? ", since " + esc(ago(work.tearing)) : "") +
             ". What is below was observed before that began.";
+        }
+        // AND THE OTHER DIRECTION (ADR-0089). `unknown` is the right answer to
+        // *this reading could not be checked*, and it was the answer given while
+        // a cycle was visibly building the thing - a yellow badge over an
+        // environment whose board three inches below was lighting up node by
+        // node. A cycle moves an environment BETWEEN two states, the same
+        // argument ADR-0070 made for the map, and the panel is entitled to say
+        // which direction when a document written by this run says so.
+        var building = Boolean(!tearing && work.building);
+        if (building) {
+          // Stale in the sense the label means: what is below is older than what
+          // is happening. It also takes the application link down, which a
+          // half-built environment has no business offering.
+          stale = true;
+          reason = "A job of the cycle under way is building this environment now. " +
+            (file ? "What is below was observed before it started."
+                  : "Nothing has been observed in it yet; figures arrive when the job ends.");
         }
 
         var stateName, cls, unverified = false;
-        if (entry.missing || !file) {
+        if (building) {
+          stateName = "being created";
+          cls = "partial";
+        } else if (entry.missing || !file) {
           stateName = "no observation";
           cls = "unknown";
         } else if (tearing) {
@@ -1850,7 +1906,8 @@
         }
         return {
           entry: entry, file: file, newest: newest, stale: stale, reason: reason,
-          stateName: stateName, cls: cls, unverified: unverified, tearing: tearing
+          stateName: stateName, cls: cls, unverified: unverified,
+          tearing: tearing, building: building
         };
       }
 
@@ -2100,7 +2157,25 @@
                 'That is an absence, not a failed read.</p>';
               return;
             }
-            h += '<ol class="steps">' + stepWindow(steps).map(stepLine).join("") + "</ol>";
+            // A JOB THAT IS OVER AND WENT GREEN SHOWS NO STEPS (ADR-0089). The
+            // window is the step in flight and its neighbours, and in a finished
+            // job those neighbours are its last three lines - `Post Configure
+            // AWS credentials`, `Post Checkout`, `Complete job` - which is the
+            // runner tidying up and says nothing about the cycle. Four jobs of a
+            // self-service run are over by the hold, so the panel headed *the
+            // step in flight* was three quarters housekeeping. The line above
+            // carries the verdict and the duration, and the disclosure below
+            // still holds every step for anyone who wants them.
+            //
+            // A FAILED job keeps its window, because stepWindow() centres on the
+            // failing step and that is the one line worth putting in front of a
+            // reader without a click.
+            var over = job.status === "completed";
+            var broke = over && job.conclusion && job.conclusion !== "success" &&
+                        job.conclusion !== "skipped";
+            if (!over || broke) {
+              h += '<ol class="steps">' + stepWindow(steps).map(stepLine).join("") + "</ol>";
+            }
             if (steps.length > 3) {
               h += '<details class="inline"><summary>all ' + steps.length + ' steps &middot; ' +
                 esc(stepTally(steps)) + ' &darr;</summary><ol class="steps">' +
@@ -2700,19 +2775,26 @@
 
       function load() { return tick(true); }
 
-      // THE MAP ANSWERS BACK, ONCE, ABOUT ONE THING (ADR-0086): which
-      // environment a job of the run in flight is deleting. The panel cannot ask
-      // it - the binding from job to environment is the map's - and the panel
-      // must not draw an environment as UP with a live link to it while its load
-      // balancer is being deleted, which is what it did on 2026-09-11. Re-render
+      // THE MAP ANSWERS BACK, ABOUT TWO THINGS (ADR-0086, ADR-0089): which
+      // environment a job of the run in flight is DELETING, and which one it is
+      // BUILDING. The panel can ask neither - the binding from job to
+      // environment is the map's, and so is the partial apply document - and
+      // without the first it drew prod as UP, with a live link, while its load
+      // balancer was being deleted. Without the second it drew a yellow UNKNOWN
+      // over an environment the board beside it was visibly building. Re-render
       // rather than wait for the next tick: the badge is the most wrong it will
       // ever be in exactly the seconds after this arrives.
-      document.addEventListener("cycle:teardown", function (e) {
+      document.addEventListener("cycle:environment", function (e) {
         var next = e.detail || {};
+        var was = function (env, key) {
+          return Boolean((state.envwork[env] || {})[key]);
+        };
         var changed = ENVIRONMENTS.some(function (env) {
-          return Boolean(state.teardown[env]) !== Boolean(next[env]);
+          var now = next[env] || {};
+          return was(env, "tearing") !== Boolean(now.tearing) ||
+                 was(env, "building") !== Boolean(now.building);
         });
-        state.teardown = next;
+        state.envwork = next;
         if (!changed) return;
         renderEnvironments();
         // AND STRAIGHT BACK, so the map has it on the SAME render rather than on
@@ -3760,7 +3842,21 @@
             if (!c || !c.cycle) return null;
             if (c.cycle.status === "open") {
               const live = openCost(c, now);
-              if (!live) return null;
+              // AN ENVIRONMENT THAT IS UP DOES NOT VANISH FROM THE COST BOX
+              // (ADR-0089). openCost() declines for several good reasons - no
+              // priced resource in the document yet, a rate it cannot read, a
+              // creation timestamp in this page's future - and each of them used
+              // to remove the environment from this line entirely. Watched on
+              // 2026-09-11 during the hold: the box read `stage $0.0238` and
+              // nothing else, with prod up, behind HTTPS, and spending. A
+              // missing line reads as nothing to pay, which is the one thing it
+              // never means.
+              if (!live) {
+                anyOpen = true;
+                return `<b>${env}</b> up now, and this page cannot price it yet &mdash; ` +
+                       `the open document carries no priced resource it can read against ` +
+                       `its own clock. The figure arrives when the cycle closes it`;
+              }
               anyOpen = true;
               // data-env drives the once-a-second retick below, so the figure is
               // recomputed without render() rebuilding the map underneath it.
@@ -4716,7 +4812,7 @@
           const states = runLayerStates(RUNSTATE.observation, DATA.cycle.phases);
           RUNSTATE.phase = states.phases;
           RUNSTATE.node = states.nodes;
-          announceTeardown();
+          announceEnvironmentWork();
           // THE ESTATE IS PAINTED FIRST, AND WITHOUT THE RUN LAYER (ADR-0054
           // D3). A noun's word comes from the observation and its figures come
           // from the last cycle that measured it; the run layer is not
@@ -4976,25 +5072,37 @@
             .then(() => { rereading = false; redraw(); });
         });
 
-        /* THE ONE THING THIS MAP TELLS THE DASHBOARD (ADR-0086), and it is the
-           answer to a question only this half can ask. `destroy.<env>` carries
-           its own live binding (ADR-0081), so the map knows WHICH JOB OF THE RUN
-           IN FLIGHT is tearing which environment down; the panel knows what a
-           state word means and owns the badge. Neither learns the other's
-           internals - this carries an environment and a timestamp, the way
-           `cycle:observed` carries a run and a job list, and nothing else.
+        /* WHAT THIS MAP TELLS THE DASHBOARD (ADR-0086, widened by ADR-0089),
+           and both halves are questions only this side can answer. `destroy.<env>`
+           carries its own live binding (ADR-0081), so the map knows WHICH JOB OF
+           THE RUN IN FLIGHT is tearing which environment down; the progress
+           document says which one is being BUILT. The panel knows what a state
+           word means and owns the badge. Neither learns the other's internals -
+           this carries an environment and two timestamps, the way `cycle:observed`
+           carries a run and a job list, and nothing else.
 
-           Sent on every paint, including the paint where nothing is being torn
-           down: the panel has to be told when a teardown ENDS, and an event that
-           only ever announced bad news would leave `being destroyed` on the
-           badge until something unrelated re-rendered it. */
-        function announceTeardown() {
+           Sent on every paint, including the paint where nothing is happening:
+           the panel has to be told when a teardown ENDS, and an event that only
+           ever announced bad news would leave `being destroyed` on the badge
+           until something unrelated re-rendered it. */
+        function announceEnvironmentWork() {
           const detail = {};
           ENVS.forEach((env) => {
             const n = RUNSTATE.node["destroy." + env];
-            detail[env] = n && n.state === "running" ? (n.since || true) : null;
+            // BUILDING is the other half of the same question (ADR-0089), and
+            // the answer is the document ADR-0076 already publishes: a partial
+            // apply, attributed to the run this page is watching. The panel
+            // cannot ask it - `status/progress/<env>.json` is read here, joined
+            // to nodes here, and shelf-lifed here - and without it the panel sat
+            // on UNKNOWN, in the yellow it uses for *this could not be checked*,
+            // three inches above a board drawing the thing being built.
+            const doc = progressHere(RUNSTATE.observation, env);
+            detail[env] = {
+              tearing: n && n.state === "running" ? (n.since || true) : null,
+              building: doc && doc.kind === "apply" ? (doc.taken_at || true) : null
+            };
           });
-          document.dispatchEvent(new CustomEvent("cycle:teardown", { detail: detail }));
+          document.dispatchEvent(new CustomEvent("cycle:environment", { detail: detail }));
         }
 
         function redraw() {

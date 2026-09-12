@@ -11,7 +11,7 @@
     "modules": 9,
     "suites": 5,
     "workflows": 6,
-    "adrs": 89,
+    "adrs": 90,
     "repeated_blocks": 9
   },
   "measured_cycle": null,
@@ -522,7 +522,8 @@
             "when": "step",
             "steps": [
               "Terraform plan",
-              "Terraform apply"
+              "Terraform apply",
+              "Wait for ECS service to be stable"
             ]
           },
           {
@@ -531,7 +532,8 @@
             "job": "launch",
             "when": "step",
             "steps": [
-              "Terraform apply"
+              "Terraform apply",
+              "Wait for ECS service to be stable"
             ]
           }
         ],
@@ -580,7 +582,6 @@
             "job": "deploy",
             "when": "step",
             "steps": [
-              "Wait for ECS service to be stable",
               "Run one-off tasks (migrate, seed, db-assert)"
             ]
           },
@@ -590,7 +591,6 @@
             "job": "launch",
             "when": "step",
             "steps": [
-              "Wait for ECS service to be stable",
               "Run one-off tasks (migrate, seed, db-assert)"
             ]
           }
@@ -830,7 +830,9 @@
             "when": "step",
             "steps": [
               "Terraform plan",
-              "Terraform apply"
+              "Terraform apply",
+              "Wait for ECS service to be stable",
+              "Wait for the public HTTPS name to answer"
             ]
           },
           {
@@ -840,7 +842,9 @@
             "when": "step",
             "steps": [
               "Terraform plan",
-              "Terraform apply"
+              "Terraform apply",
+              "Wait for ECS service to be stable",
+              "Wait for the public HTTPS name to answer"
             ]
           }
         ],
