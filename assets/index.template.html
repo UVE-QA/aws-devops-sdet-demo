@@ -1129,6 +1129,13 @@
          everywhere else on this page and is the one colour a reader already
          associates with "this will not happen". */
       .quota.spent { color: var(--bad); border-color: var(--bad); }
+      /* WHAT PRESSING IT COMMITS TO. Beside the quota and quieter than it: the
+         quota is a refusal the button will make, this is a duration it will
+         take. No border, so the two do not read as a pair of counters. */
+      .howlong {
+        font-size: 0.95rem; font-weight: 700; font-variant-numeric: tabular-nums;
+        color: var(--muted); white-space: nowrap;
+      }
 
       /* Environments, one line each. What each one IS stays on the line; what it
          is made of goes behind the panel's own disclosure - which is not hidden
@@ -1316,6 +1323,12 @@
         <div id="launch" class="launch" hidden>
           <div class="launchrow">
             <button id="launch-button" type="button">Launch a full cycle</button>
+            <!-- HOW LONG THIS TAKES, before it is pressed (ADR-0087). Measured
+                 from the cycles that have finished, never a number written here:
+                 a figure typed into the markup would describe whatever the
+                 pipeline was on the day it was typed. Hidden until runs exist to
+                 measure. -->
+            <span class="howlong" id="launch-howlong" hidden></span>
             <!-- The remaining quota, beside the control it limits. The endpoint
                  keeps the authoritative count and is what actually refuses. -->
             <span class="quota" id="launch-quota" aria-label="launches left today"></span>
@@ -2273,6 +2286,38 @@
         });
       }
 
+      /* HOW LONG THE CYCLE TAKES, measured (ADR-0087).
+         Only self-service runs that FINISHED and SUCCEEDED: a cancelled one is
+         shorter than the thing it was going to do, and a failed one stops
+         wherever it broke - both would drag an estimate down and neither is an
+         answer to "how long will this take". Owner dispatches count, because the
+         workflow is the same one and its shape is what is being measured.
+         The MEDIAN, not the mean: one run that waited twenty minutes for a
+         runner is a property of that morning, not of the pipeline, and a mean
+         carries it into every reading afterwards. The range goes in the title,
+         so the spread is available without a second number on the row.
+         `null` when nothing has finished - the badge is hidden rather than
+         guessed at, which is the same rule the cost box follows. */
+      var CYCLE_SAMPLE = 7;
+      function cycleMinutes() {
+        var mins = (state.runs || []).filter(function (r) {
+          return r.path === ".github/workflows/self-service.yml" &&
+                 r.status === "completed" && r.conclusion === "success";
+        }).map(function (r) {
+          var from = Date.parse(r.run_started_at || r.created_at || "");
+          var to = Date.parse(r.updated_at || "");
+          return from && to && to > from ? Math.round((to - from) / 60000) : null;
+        }).filter(function (v) { return v !== null; }).slice(0, CYCLE_SAMPLE);
+        if (!mins.length) return null;
+        var sorted = mins.slice().sort(function (a, b) { return a - b; });
+        return {
+          median: sorted[Math.floor(sorted.length / 2)],
+          low: sorted[0],
+          high: sorted[sorted.length - 1],
+          count: sorted.length
+        };
+      }
+
       // Busy is a different question from spent, and it is NOT filtered by who
       // started the run: one cycle at a time is a property of the environments,
       // not of the endpoint's quota. An owner-run cycle must still close the
@@ -2332,6 +2377,25 @@
               ? "Reported by the endpoint's own counter."
               : "Counted from the runs this page can see; the endpoint has not answered yet.") +
             " It resets at local midnight.";
+        }
+
+        // HOW LONG A FULL CYCLE TAKES (ADR-0087), from the ones that have taken
+        // it. A visitor could read every word on this page and not learn that
+        // the button they are about to press starts something that runs for the
+        // better part of an hour - and the whole of the page's argument is that
+        // a figure is worth more when it was measured than when it was chosen.
+        var howlong = el("launch-howlong");
+        if (howlong) {
+          var m = cycleMinutes();
+          howlong.hidden = !m;
+          if (m) {
+            howlong.textContent = "≈ " + m.median + " min";
+            howlong.title = "How long a full cycle has taken: the median of the last " +
+              m.count + " that finished" +
+              (m.low === m.high ? "" : " (" + m.low + "–" + m.high + " min)") +
+              ", measured by the Actions API. The button stays closed for the whole of " +
+              "it, whoever started it.";
+          }
         }
 
         // DISABLED WHILE ONE IS RUNNING, and while the day is spent. Phase 19's

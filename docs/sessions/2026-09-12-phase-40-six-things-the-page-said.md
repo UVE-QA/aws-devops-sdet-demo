@@ -137,6 +137,15 @@ cycle ENDS, the sentence over the map and the estate's caption can disagree —
 once, for about ninety seconds. Not reproduced since; named rather than guessed
 at.
 
+## And one thing the owner asked for
+
+**The button now says how long** (**ADR-0087**): `≈ 52 min`, between the control
+and its quota. Measured — the median of the last seven self-service runs that
+finished and succeeded, out of the run history the page already reads — and
+hidden until there is something to measure. *чтоб запускающий понимал, на что он
+подписывается*: nobody watches fifty minutes of a cycle, and that is exactly why
+the number belongs on the button rather than in the account of it afterwards.
+
 ## Still open, from the same cycle
 
 The owner's list, not yet done: the run panel showing `Post …`/`Complete job` for
