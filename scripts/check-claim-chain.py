@@ -72,13 +72,22 @@ def main() -> int:
             return 1
 
     source = TEMPLATE.read_text()
+    # TWO COPIES NOW, NOT THREE (ADR-0091). The claim paragraph used to open with
+    # the chain and the header clause repeated it; the owner asked for the whole
+    # opening sentence at the top of the page, on every part, so the paragraph
+    # keeps what the chain COSTS to be true and states the chain once, in the
+    # header, four lines above wherever that paragraph is read.
+    #
+    # The check is unchanged in kind and is worth exactly what it was worth: it
+    # compares every place the chain IS stated and refuses when one of them
+    # cannot be found. Removing a copy removes a way for them to disagree; it
+    # does not make the remaining two agree by themselves, which is what ADR-0085
+    # exists to notice.
     copies = {
         "README.md opening": longest(README.read_text()[:1200]),
-        "the claim paragraph": longest(
-            region(source, '<p class="claim">', "</p>", "the claim paragraph", problems)),
-        "the clause beside the name": longest(
+        "the clause in the header": longest(
             region(source, '<span class="ident-what">', "</span>",
-                   "the clause beside the name", problems)),
+                   "the clause in the header", problems)),
     }
 
     missing = [w for w, c in copies.items() if not c]

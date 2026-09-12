@@ -173,6 +173,31 @@ the first attempt — keep one row, let the clause ellipsize — did not work,
 because **a wrapping flex container breaks lines on each item's hypothetical
 size, before any shrinking is applied**.
 
+## The board in the other direction
+
+**ADR-0090**, and the owner again, watching the cycle that verified ADR-0086:
+
+> прод погас одновременно
+
+Eight tiles grey in one instant at the start of a nine-minute teardown, and
+nothing moving until it was over. The apply has lit them one at a time since
+Phase 39; the teardown could not, because `destroy.yml` never started the watcher
+— and the reason written down for that was *a teardown's join names one node,
+which is not a noun on the estate board*. True of the join, and the conclusion
+did not follow: a delete carries an address, and the join was discarding it.
+
+A delete is read twice now — by environment for the destroy node, which is
+unchanged, and by address for the tile — and the destroy's own plan is the
+denominator, so a tile says `3 of 4 destroyed` with a real bar. Four words:
+**still standing** until the teardown reaches it, **being destroyed** with its
+fraction, **destroyed — removed by the cycle under way** after.
+
+One thing had to move for it to work at all: in a self-service cycle ONE run
+publishes both directions, so the apply's record would have superseded the
+teardown's partial reading under ADR-0076 D6 and the board would have stayed lit.
+What supersedes a partial reading is a record of the SAME KIND; the record now
+carries its `kind` beside `published_by`.
+
 ## Still open, from the same cycle
 
 The owner's list, not yet done: the run panel showing `Post …`/`Complete job` for

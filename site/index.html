@@ -1456,7 +1456,7 @@
              that stops competing for the same pixels. -->
         <div class="ident-mark">
           <b>aws-devops-sdet-demo</b>
-          <span class="ident-what">deploy &rarr; test &rarr; promote &rarr; destroy on AWS, reporting on itself</span>
+          <span class="ident-what">A deploy &rarr; test &rarr; promote &rarr; destroy pipeline on AWS, reporting on itself.</span>
         </div>
         <div class="controls">
         <nav class="parts" id="parts" role="tablist" aria-label="Which part of the page to show">
@@ -1629,9 +1629,16 @@
       <div data-part="detail" class="idbar">
         <h1>aws-devops-sdet-demo</h1>
         <span class="live-badge">dashboard live</span>
+        <!-- THE SENTENCE THIS ONE ANSWERS TO IS IN THE HEADER (ADR-0091), on
+             every part, four lines above this paragraph wherever it is read.
+             `that sentence` is not a dangling reference: it points at the line
+             the owner asked to have at the top of the page, which is why the two
+             halves could be split at all. The claim-chain gate reads the arrow
+             chain out of the header copy now; this paragraph carries what the
+             chain COSTS to be true, which is the half that was never going to
+             fit on a control row. -->
         <p class="claim">
-          A deploy &rarr; test &rarr; promote &rarr; destroy pipeline on AWS,
-          reporting on itself. There is no manual AWS operation anywhere in that sentence,
+          There is no manual AWS operation anywhere in that sentence,
           teardown included, and every state it leaves is read back out of AWS afterwards
           rather than taken from the run that claimed it. This page is a permanent state
           level of its own, so it stays online when every workload environment is gone
