@@ -4023,10 +4023,19 @@ proceeds — the mirror of what Phase 39 built for the apply.
   the history heading, the ECS wait moved to Apply, `being created` in the panel,
   an up environment that never vanishes from the cost box, and the header split
   into two rows.
-- Next allowed step: **the board going dark through a teardown** - the mirror of
-  what Phase 39 built for the apply, which ADR-0086 D2's plan denominator now
-  makes cheap. The countdown's red full-width banner is the owner's call and is
-  not queued. Open from before: the request
+- **ADR-0090** the board goes dark one noun at a time - a delete read twice, the
+  destroy's own plan as the denominator, and the watcher started in destroy.yml.
+  Verified live on #34671314769: `2 of 8 destroyed` under a bar, four tiles still
+  standing beside it, and both rows ending grey.
+- **ADR-0091** the claim, the ways out and the live badge all move to the header,
+  on every part; `Details` keeps what the claim costs to be true.
+- **ADR-0092** the control says how long the cycle has been running, beside the
+  estimate of how long it takes.
+- Next allowed step: **nothing is queued.** The countdown's red full-width banner
+  is the owner's call. Open from before: the request path's home, a check that
+  every `data-part` is one of the five, a check that a live binding ever matched
+  a real job, the phone, the two break tests that stopped biting, the bucket
+  versioning of Phase 28 and the release-tag 403 of 2026-09-05. Open from before: the request
   path's home (`Details` by the sort, `Cycle` by meaning), a check that every
   `data-part` is one of the five, a check that a live binding ever matched a real
   job, and the phone — 2.2–4.4 screens per part, deferred by the owner. The

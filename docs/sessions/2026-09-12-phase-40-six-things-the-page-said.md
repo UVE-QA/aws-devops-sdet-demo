@@ -198,6 +198,29 @@ teardown's partial reading under ADR-0076 D6 and the board would have stayed lit
 What supersedes a partial reading is a record of the SAME KIND; the record now
 carries its `kind` beside `published_by`.
 
+### What the teardown cycle showed
+
+[#34671314769](https://github.com/UVE-QA/aws-devops-sdet-demo/actions/runs/34671314769),
+six jobs green, 55 minutes, both environments verified `destroyed`, both progress
+documents removed. The board during stage's teardown, read off the live page:
+
+```text
+04:22  secrets   destroyed · removed by the cycle under way
+       rds       destroyed · removed by the cycle under way
+       ecs       being destroyed · 2 of 8 destroyed          (a quarter-filled bar)
+       vpc, alb, cloudwatch, budgets
+                 still standing · the teardown under way has not reached it
+04:28  all seven destroyed, in the order Terraform chose
+```
+
+and the same for prod fifteen minutes later, eight tiles, ending on the row
+hoisting one sentence for all of them.
+
+One note about the instrument rather than the page: a reading taken five seconds
+after a cold load caught the board before the run layer had been re-read, and
+showed the previous cycle's words. Eight seconds is enough. The page was right;
+the screenshot was early.
+
 ## Still open, from the same cycle
 
 The owner's list, not yet done: the run panel showing `Post …`/`Complete job` for
