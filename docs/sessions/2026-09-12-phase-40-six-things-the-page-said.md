@@ -239,6 +239,20 @@ from `next` while the demo is out. Page work needs no cycle; pipeline work that
 does needs a `lab` environment. First thing on `next`: the bucket versioning of
 Phase 28, which is now the rollback for a bad publish.
 
+## CI went red on a commit that touched no image
+
+The first push after the split - the branch filter, page and fixtures only -
+failed `image-scan` on `main`: twelve HIGH/CRITICAL findings with a fix
+available in apt, all OS packages of a freshly pulled `python:3.12-slim`
+(perl-base, libsqlite3, gzip, libpcre2, `+deb13u1/u2`). Reproduced on the devbox
+with the same `make image-scan`, fresh pull first. Phase 31 met the same shape
+and rebuilt the base; this time the base had not caught up with the
+distribution, so the Dockerfile takes Debian's fixes at build time - one
+`apt-get upgrade` layer - and a rebuild is current with the distribution rather
+than with the tag. Scan green locally with only *no fix yet* findings left,
+which the gate deliberately does not act on; the app brought up and smoked on
+the rebuilt image before anything was pushed.
+
 ## Still open, from the same cycle
 
 The owner's list, not yet done: the run panel showing `Post …`/`Complete job` for

@@ -2,6 +2,19 @@
 # psycopg2-binary is used so no libpq-dev/gcc build step is needed on slim.
 FROM python:3.12-slim
 
+# TAKE DEBIAN'S FIXES, WHATEVER THE BASE TAG CARRIES. The base image is
+# rebuilt on its own schedule and lags the distribution: on 2026-09-12
+# `make image-scan` found twelve HIGH/CRITICAL findings with a fix available
+# in apt (perl-base, libsqlite3, gzip, libpcre2 - all `+deb13u1/u2`) on a
+# freshly pulled python:3.12-slim, and CI went red on a commit that touched
+# no image at all. Phase 31 met the same shape and rebuilt the base; this
+# takes the fix at build time instead, so a rebuild is always current with
+# the distribution and not with the tag. The lists are removed so the layer
+# carries no package index.
+RUN apt-get update \
+    && apt-get upgrade -y --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
+
 # Faster, cleaner Python in containers.
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
