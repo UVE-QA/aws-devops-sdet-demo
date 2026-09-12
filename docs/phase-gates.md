@@ -4047,8 +4047,11 @@ proceeds — the mirror of what Phase 39 built for the apply.
   127 delete markers on 2026-09-13, 70 MB of non-current data, 1,709 of them
   under `reports/`, 1,129 under `status/`, and 48 versions of `index.html` -
   which is the rollback stock, and the reason to keep them for a while.
-- Next allowed step: **a lifecycle rule for non-current versions on the site
-  bucket** (owner's yes needed - it is a permanent level). The countdown's red full-width banner
+- **Lifecycle rule applied 2026-09-13** under `demo-admin`, with the owner's yes:
+  non-current versions expire after 30 days, expired delete markers and
+  abandoned multipart uploads are cleaned up, current objects untouched. Read
+  back from the account; `terraform plan` on the level is *No changes* again.
+- Next allowed step: **nothing is queued on `next`.** The countdown's red full-width banner
   is the owner's call. Open from before: the request path's home, a check that
   every `data-part` is one of the five, a check that a live binding ever matched
   a real job, the phone, the two break tests that stopped biting, the bucket

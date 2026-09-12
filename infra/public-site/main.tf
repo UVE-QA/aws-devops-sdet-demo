@@ -116,6 +116,43 @@ resource "aws_s3_bucket_versioning" "site" {
   }
 }
 
+# VERSIONING WITHOUT A LIFECYCLE IS A BUCKET THAT ONLY GROWS. Read on
+# 2026-09-13: 3,445 versions and 127 delete markers, 70 MB of non-current data,
+# most of it fifteen-second progress writes and per-run reports that nothing
+# will ever read again. The versions are kept for the one thing they are for -
+# putting back a page or a status document that a publish got wrong - and a
+# month is longer than anyone has ever needed to notice a bad publish here.
+# Expired delete markers are the leftovers of the progress document's removal
+# at the end of every job; incomplete multipart uploads are the leftovers of an
+# interrupted sync. Neither is a version of anything and neither costs much,
+# but a rule that keeps a bucket tidy should keep all of it tidy.
+resource "aws_s3_bucket_lifecycle_configuration" "site" {
+  bucket = aws_s3_bucket.site.id
+
+  # The versioning resource must exist first: a lifecycle rule about
+  # non-current versions on a bucket that has none is accepted and meaningless.
+  depends_on = [aws_s3_bucket_versioning.site]
+
+  rule {
+    id     = "non-current-versions-expire"
+    status = "Enabled"
+
+    filter {}
+
+    noncurrent_version_expiration {
+      noncurrent_days = 30
+    }
+
+    expiration {
+      expired_object_delete_marker = true
+    }
+
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 7
+    }
+  }
+}
+
 resource "aws_s3_bucket_server_side_encryption_configuration" "site" {
   bucket = aws_s3_bucket.site.id
 
