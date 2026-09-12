@@ -983,6 +983,14 @@
 
       /* The band above the cycle, and the text under the cut. Both are second
          renderings of data/topology.json - never maintained beside it. */
+      /* The plan (ADR-0094): a numbered list, the title carrying the weight,
+         what it is and why it is there in two quieter lines. Deliberately not
+         cards - cards are for things that exist. */
+      .roadmap { margin: 0.4rem 0 0; padding-left: 1.4rem; display: grid; gap: 0.55rem; }
+      .roadmap li { line-height: 1.4; }
+      .roadmap li > b { display: block; font-size: 0.95rem; }
+      .roadmap .what { display: block; font-size: 0.86rem; }
+      .roadmap .why { display: block; font-size: 0.8rem; color: var(--muted); }
       .outside { display: grid; gap: var(--gap); grid-template-columns: repeat(auto-fit, minmax(var(--card-min), 1fr)); }
       .outside .node { opacity: 1; border-style: solid; background: var(--panel); }
       /* Same mark as everything else on this part. These two are not AWS
@@ -1596,6 +1604,20 @@
         <h2>Outside the cycle <span class="note">&mdash; neither is in <code>infra/</code></span></h2>
         <p class="sub" id="outside-note"></p>
         <div class="outside" id="outside"></div>
+      </section>
+
+      <!-- WHAT IS PLANNED, AND DELIBERATELY NOT BUILT (ADR-0094). Editorial, like
+           the band above it, and the heading says so: nothing here is in
+           infra/, the map draws none of it. It is on the page because a reader
+           who has followed the argument this far asks `and then what?`, and the
+           owner's answer is a better one than silence. The list is generated
+           from the same file as the map and refused by the same generator if
+           the plan document stops naming an item - so it cannot outlive the
+           plan it summarises. -->
+      <section data-part="detail" class="contour" id="roadmap-cut">
+        <h2>What comes next <span class="note">&mdash; planned, in this order; none of it is in <code>infra/</code> yet</span></h2>
+        <p class="sub" id="roadmap-note"></p>
+        <ol class="roadmap" id="roadmap"></ol>
       </section>
 
       <!-- THE ONE CUT LEFT (ADR-0079). Every other page-level <details> was
@@ -5110,6 +5132,18 @@
               el.insertAdjacentHTML("beforeend", `<div class="asserts">${n.why}</div>`);
               outside.appendChild(el);
             });
+            // THE PLAN, IN THE ORDER IT WILL BE DONE (ADR-0094). Drawn from the
+            // generated file, never typed here: the generator has already
+            // refused any item the plan document does not name.
+            const roadmapNote = $("#roadmap-note");
+            const roadmap = $("#roadmap");
+            if (roadmapNote && roadmap && d.roadmap) {
+              roadmapNote.textContent = d.roadmap.note || "";
+              roadmap.innerHTML = (d.roadmap.items || []).map((it) =>
+                `<li data-plan="${esc(it.id)}"><b>${esc(it.title)}</b>` +
+                `<span class="what">${esc(it.what)}</span>` +
+                `<span class="why">${esc(it.why)}</span></li>`).join("");
+            }
 
             const hidden = d.not_shown.reduce((a, g) => a + g.resources, 0);
             $("#counts").innerHTML =

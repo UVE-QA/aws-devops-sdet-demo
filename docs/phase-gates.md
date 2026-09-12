@@ -4051,7 +4051,14 @@ proceeds — the mirror of what Phase 39 built for the apply.
   non-current versions expire after 30 days, expired delete markers and
   abandoned multipart uploads are cleaned up, current objects untouched. Read
   back from the account; `terraform plan` on the level is *No changes* again.
-- Next allowed step: **nothing is queued on `next`.** The countdown's red full-width banner
+- **ADR-0094** the plan is on the page: a *What comes next* band in `Details`,
+  five items in the owner's order, refused by the generator if
+  `docs/next-phases.md` stops naming one. The plan itself is there, with the
+  reasons; EKS is back in as item 3, Argo CD and Flux stay out. CI runs on
+  `next` as well as `main`.
+- Next allowed step: **item 1 of the plan - split the container into `web` and
+  `api`** - on `next`, with a `lab` environment for any cycle it needs while the
+  demo is out (ADR-0093 D3). The countdown's red full-width banner
   is the owner's call. Open from before: the request path's home, a check that
   every `data-part` is one of the five, a check that a live binding ever matched
   a real job, the phone, the two break tests that stopped biting, the bucket

@@ -274,6 +274,24 @@ here has needed to notice a bad publish - expired delete markers and abandoned
 multipart uploads are swept, and current objects are not touched. One resource
 added, read back from the account, plan clean afterwards.
 
+## The plan goes on the page
+
+Two conversations - a Kubernetes runtime as a configuration rather than a second
+pipeline, and where the application goes from here - ended in a plan the owner
+set: split `web` from `api`, a queue and a worker, the same digests on EKS
+beside stage and prod, each service owning its data, and a services manifest so
+the machinery becomes a blueprint. Written into `docs/next-phases.md` with the
+reasons and the order, and the out-of-scope list reconciled: EKS reversed with
+the cost accepted, Argo CD and Flux still out.
+
+**ADR-0094** puts it on the page: a *What comes next* band in `Details`, drawn
+from the same editorial file as the map, refused by the same generator if the
+plan document stops naming an item - proven: a title the plan does not contain
+is `site-data: REFUSED`. Cards are for things that exist, so this is a list.
+
+And `ci.yml` runs on `next` now. The gates have to run where the work is;
+nothing in CI publishes or touches AWS, so a branch run costs a runner.
+
 ## Still open, from the same cycle
 
 The owner's list, not yet done: the run panel showing `Post …`/`Complete job` for

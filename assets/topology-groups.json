@@ -945,5 +945,41 @@
       "asserts": "the page loads and the app reaches its database \u2014 read-only"
     }
   },
-  "_suites": "THE ASSERTIONS CONTOUR (ADR-0054 D1/D4). What the repository claims, tenseless. Every suite here becomes a node; a RUN of a suite is suite x environment and lives in the cycle, referencing this one by id. A suite that no run node references must say why, in `not_in_cycle`, or the generator refuses: counts.suites said 5 while the map drew 4 for months, and nothing objected."
+  "_suites": "THE ASSERTIONS CONTOUR (ADR-0054 D1/D4). What the repository claims, tenseless. Every suite here becomes a node; a RUN of a suite is suite x environment and lives in the cycle, referencing this one by id. A suite that no run node references must say why, in `not_in_cycle`, or the generator refuses: counts.suites said 5 while the map drew 4 for months, and nothing objected.",
+  "_roadmap": "EDITORIAL, like `outside` and `request_path`, and the page says so in its own heading: nothing here exists in infra/, the map draws none of it, and the generator refuses if any of it did. It is the plan the owner set on 2026-09-12, in the order it will be done, and it is on the page so that a reader who asks `and then what?` gets the same answer the owner gave. ONE FACT, TWO COPIES, ONE CHECK (ADR-0085): the same plan is written out in docs/next-phases.md, and generate-topology.py refuses a title here that the plan does not contain - so this list cannot outlive the plan it summarises.",
+  "roadmap": {
+    "note": "Planned, and deliberately not built yet. Nothing below is in infra/, the map draws none of it, and the order is the order it will be done in.",
+    "items": [
+      {
+        "id": "web-api-split",
+        "title": "Split the container into web and api",
+        "what": "two images behind one load balancer, routed by path; a release becomes a set of digests rather than one",
+        "why": "the first boundary, and the one that makes promotion by digest mean something across services"
+      },
+      {
+        "id": "queue-worker",
+        "title": "A queue and a worker",
+        "what": "api publishes an event to SQS, a worker consumes it, with a dead-letter queue and an alarm on it",
+        "why": "asynchronous decoupling, idempotency and retries - the questions every interview asks - for pennies"
+      },
+      {
+        "id": "same-digests-on-eks",
+        "title": "The same digests on EKS",
+        "what": "Terraform brings up the cluster and the platform, Helm installs the application with --atomic --wait, the same digests stage tested; a lab environment beside stage and prod, reached from the same button",
+        "why": "a second runtime for the same containers, and the teardown trap a Kubernetes load balancer sets: a Service creates an ALB that Terraform does not own"
+      },
+      {
+        "id": "data-ownership",
+        "title": "Each service owns its data",
+        "what": "the worker gets its own schema and its own migrations; services meet only through the queue and the API contract, and contract tests stand between them",
+        "why": "microservices is a statement about data, not about the number of containers"
+      },
+      {
+        "id": "services-manifest",
+        "title": "A services manifest",
+        "what": "the pipeline, the estate and this page derived from a declared list of services instead of from one container",
+        "why": "so the machinery around the application - the observed teardown, the cost fold, the gates - becomes a blueprint another project can declare its way into"
+      }
+    ]
+  }
 }

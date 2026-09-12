@@ -1552,14 +1552,70 @@ the broken-word rule       has no concept of a hyphen, and since Phase 26
                            than one (`read-only` and `promote-prod`). The one
                            item here that can be taken cold, with no cycle and
                            no page in flight around it.
-bucket versioning          `infra/public-site/main.tf` declares Enabled on the
-                           dashboard bucket; the account returns empty where
-                           the tfstate bucket returns {"Status": "Enabled"},
-                           both rc=0. NOT diagnosed - reading the state under
-                           demo-admin returns 403, itself unexplained. Phase
-                           28 declined to chase it with a billable cycle
-                           running, which was right and does not close it.
+bucket versioning          CLOSED 2026-09-13: it had been Enabled since the
+                           apply of 2026-08-12, the state agrees, and the 403
+                           did not recur. A lifecycle rule for non-current
+                           versions was applied the same day (Phase 40).
 ```
+
+## The plan from here — set by the owner on 2026-09-12
+
+The application has been deliberately boring so that the machinery around it
+could be the subject. The next stretch turns the application into a blueprint
+for something bigger, in an order chosen so that every step has a reason to
+exist on its own and a story to tell at an interview. The dashboard shows this
+list in `Details` and `scripts/generate-topology.py` refuses a page item that
+this document does not name (ADR-0094).
+
+**Front + back + database is not microservices; it is a three-tier
+application.** Splitting by layer shows nothing of the microservice story —
+no independent release, no data ownership, no asynchronous seam. Three
+components, each with a reason to exist, is the smallest shape that shows all
+of it and the largest that a home project can carry without noise.
+
+```text
+1. Split the container into web and api
+   Two images behind one load balancer, routed by path; a release becomes a
+   SET of digests rather than one. The first boundary, and the one that makes
+   promotion by digest mean something across services.
+
+2. A queue and a worker
+   api publishes an event to SQS, a worker consumes it; a dead-letter queue
+   with an alarm on it. Asynchronous decoupling, idempotency, retries - for
+   pennies.
+
+3. The same digests on EKS
+   Terraform brings up the cluster and the platform (including the load
+   balancer controller, as a helm_release); Helm installs the APPLICATION with
+   --atomic --wait and the same digests stage tested. A lab environment beside
+   stage and prod, reached from the same public button - not instead of them,
+   because replacing stage loses the comparison. Kubernetes is worth doing only
+   AFTER 1 or 2: on one container it shows what ECS already shows, at a higher
+   price. The page observes the cluster the way it observes AWS - a kubectl
+   read beside observe-environment.sh - rather than through Terraform's
+   stream, which Helm's objects never enter. No Argo CD, no Flux: one more
+   system to run, and a paragraph explaining their absence is worth more here
+   than the controller.
+
+4. Each service owns its data
+   The worker gets its own schema and its own migrations; services meet only
+   through the queue and the API contract; contract tests stand between them.
+   Microservices is a statement about data, not about the number of
+   containers.
+
+5. A services manifest
+   The pipeline, the estate and the dashboard derived from a declared list of
+   services - name, Dockerfile, port, health, route, suites, database - instead
+   of from one container. This is the blueprint: the observed teardown, the
+   cost fold and the gates are the valuable part, and a new project should be
+   able to declare its way into them.
+```
+
+What each of these costs is written where it is decided; the first three are
+expected to add several minutes to a cycle and a lab cluster adds control-plane
+cost by the hour, which the owner has accepted for the sake of hands-on work.
+The rule that makes any of this possible while the demo is being handed out is
+ADR-0093: `main` is the released line, the work happens on `next`.
 
 ## Deliberately out of scope
 
@@ -1567,12 +1623,22 @@ Not "someday" — considered and excluded, with reasons. Being able to explain w
 something was *not* built is itself an interview asset.
 
 ```text
-EKS / Helm / ArgoCD / Flux
-  ECS Fargate already demonstrates container delivery. EKS adds a control-plane
-  cost and a large surface for no additional narrative here.
+EKS / Helm - REVERSED 2026-09-12, see the plan above
+  ECS Fargate already demonstrates container delivery, and EKS on one container
+  would show the same thing at a control-plane price. It is back in as item 3
+  of the plan, AFTER the services split gives it something to show, with the
+  cost accepted by the owner for hands-on value.
 
-React / Vite frontend
-  The frontend exists to be tested, not to be a frontend portfolio piece.
+ArgoCD / Flux
+  Still out: one more system to run, update and explain. The Helm release is
+  driven from the workflow, and README will say why there is no GitOps
+  controller behind it.
+
+React / Vite frontend as a portfolio piece
+  The frontend exists to be tested, not to be a frontend portfolio piece. Item
+  1 of the plan gives it a container of its own - the most boring one that
+  serves built assets - so that "the same container on ECS and on EKS" stays
+  the line of the story; it does not make the frontend the subject.
 
 Grafana / Prometheus / Loki on Lightsail
   CloudWatch covers observability at zero extra cost and no extra maintenance.

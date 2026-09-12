@@ -8,7 +8,12 @@ name: ci
 on:
   pull_request:
   push:
-    branches: [main]
+    # `next` as well as `main` (ADR-0093): the work happens on `next` and the
+    # gates have to run where the work is, or a broken branch is found at the
+    # merge. Nothing here publishes or touches AWS - no `id-token`, no
+    # environment - so a branch run costs the same as a main run: a runner.
+    # publish-site.yml stays on main alone; that one publishes.
+    branches: [main, next]
 
 permissions:
   contents: read

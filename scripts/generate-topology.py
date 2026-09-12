@@ -814,6 +814,36 @@ def build():
     if findings:
         raise Refusal("\n".join(findings))
 
+    # ------------------------------------------------------------- the roadmap
+    # EDITORIAL, and checked the one way editorial text can be (ADR-0085): the
+    # same plan is written out in docs/next-phases.md, and a title here that the
+    # plan does not contain is a refusal. The page shows what the owner decided
+    # on 2026-09-12 (ADR-0094); the plan document is where that decision lives;
+    # this keeps the summary from outliving it. Nothing here may already exist:
+    # an id that names a display group or a node is a plan item that was built
+    # and never taken off the list.
+    roadmap = spec.get("roadmap")
+    if not roadmap or not roadmap.get("items"):
+        raise Refusal("assets/topology-groups.json has no `roadmap`. The plan is a fact about the project and the page must not invent one.")
+    plan_text = (ROOT / "docs" / "next-phases.md").read_text(encoding="utf-8")
+    seen_ids: set[str] = set()
+    for item in roadmap["items"]:
+        for key in ("id", "title", "what", "why"):
+            if not item.get(key):
+                findings.append(f"roadmap item {item.get('id') or '?'} has no `{key}`")
+        if item.get("id") in seen_ids:
+            findings.append(f"roadmap item {item['id']} is listed twice")
+        seen_ids.add(item.get("id"))
+        if item.get("title") and item["title"] not in plan_text:
+            findings.append(
+                f"roadmap item {item['id']}: docs/next-phases.md does not contain the title "
+                f"{item['title']!r}. The page would be summarising a plan the plan does not state."
+            )
+        if item.get("id") in {g["id"] for g in spec.get("groups", [])} or item.get("id") in reference_targets:
+            findings.append(f"roadmap item {item['id']} names something the map already draws - built, and not taken off the plan")
+    if findings:
+        raise Refusal("\n".join(findings))
+
     # ---------------------------------------------------- the assertions contour
     # What the repository CLAIMS, tenseless (ADR-0054 D1/D4). A suite carries two
     # facts and ADR-0042 D5 had already split them in the data: what it contains,
@@ -885,6 +915,7 @@ def build():
         "layout": layout,
         "request_path": request_path,
         "outside": outside,
+        "roadmap": roadmap,
         # THE THREE CONTOURS (ADR-0054 D1), symmetrical on purpose. `permanent`
         # and `phases` used to sit at the top level beside each other with the
         # environments inside the phases; a half-applied model is what this phase

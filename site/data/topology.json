@@ -11,7 +11,7 @@
     "modules": 9,
     "suites": 5,
     "workflows": 6,
-    "adrs": 94,
+    "adrs": 95,
     "repeated_blocks": 9
   },
   "measured_cycle": null,
@@ -88,6 +88,41 @@
         "kind": "ci",
         "backed_by": "infra/modules/iam_github_oidc_provider::aws_iam_openid_connect_provider.github",
         "why": "every phase below is a job on a GitHub runner. It reaches this AWS account by assuming a role through the OIDC provider in infra/bootstrap-oidc, for the length of one job. The provider is cited rather than described: delete it and this card goes red."
+      }
+    ]
+  },
+  "roadmap": {
+    "note": "Planned, and deliberately not built yet. Nothing below is in infra/, the map draws none of it, and the order is the order it will be done in.",
+    "items": [
+      {
+        "id": "web-api-split",
+        "title": "Split the container into web and api",
+        "what": "two images behind one load balancer, routed by path; a release becomes a set of digests rather than one",
+        "why": "the first boundary, and the one that makes promotion by digest mean something across services"
+      },
+      {
+        "id": "queue-worker",
+        "title": "A queue and a worker",
+        "what": "api publishes an event to SQS, a worker consumes it, with a dead-letter queue and an alarm on it",
+        "why": "asynchronous decoupling, idempotency and retries - the questions every interview asks - for pennies"
+      },
+      {
+        "id": "same-digests-on-eks",
+        "title": "The same digests on EKS",
+        "what": "Terraform brings up the cluster and the platform, Helm installs the application with --atomic --wait, the same digests stage tested; a lab environment beside stage and prod, reached from the same button",
+        "why": "a second runtime for the same containers, and the teardown trap a Kubernetes load balancer sets: a Service creates an ALB that Terraform does not own"
+      },
+      {
+        "id": "data-ownership",
+        "title": "Each service owns its data",
+        "what": "the worker gets its own schema and its own migrations; services meet only through the queue and the API contract, and contract tests stand between them",
+        "why": "microservices is a statement about data, not about the number of containers"
+      },
+      {
+        "id": "services-manifest",
+        "title": "A services manifest",
+        "what": "the pipeline, the estate and this page derived from a declared list of services instead of from one container",
+        "why": "so the machinery around the application - the observed teardown, the cost fold, the gates - becomes a blueprint another project can declare its way into"
       }
     ]
   },
