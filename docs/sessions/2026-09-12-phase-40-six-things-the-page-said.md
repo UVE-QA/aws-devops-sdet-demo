@@ -146,6 +146,33 @@ hidden until there is something to measure. *чтоб запускающий п�
 подписывается*: nobody watches fifty minutes of a cycle, and that is exactly why
 the number belongs on the button rather than in the account of it afterwards.
 
+## The rest of the owner's list
+
+**ADR-0088 — the public path runs the same suites.** `promote` is conditioned on
+a green launch job, and green meant four tests; the owner's own path puts
+sixty-six behind the same word. The public cycle now runs the API contract suite,
+smoke + regression and the RDS write assertion, and then gives the environment
+back: the two probes `items.spec.ts` leaves on purpose are removed through the
+app's own API, the seed is re-run and re-asserted. Measured on the first cycle
+that ran it — 24s, 50s, 63s, 133s, about four and a half minutes — and the log
+says `removed ui-probe-34668302790-1 (id=32)`, `removed ui-edit-probe…(id=33)`,
+`[seed] 'seed-item-001' already present`. All four stage suites now report:
+52 of 52, 12 of 12, 2 of 2, 2 of 2.
+
+**ADR-0089 — six small things said badly.** A finished job that went green shows
+no steps (the window was `Post Checkout` and its neighbours); the run-history
+heading lays itself out like the summary it used to be; waiting for the ECS
+service is the tail of the apply rather than Provision; the panel says
+**being created** while a cycle builds an environment, from the document the map
+already reads; an environment that is up never vanishes from the cost box; and
+the header is two rows, the name above, tabs and control at either end of the
+one below.
+
+The header change is the owner's, twice: the estimate made the row too wide, and
+the first attempt — keep one row, let the clause ellipsize — did not work,
+because **a wrapping flex container breaks lines on each item's hypothetical
+size, before any shrinking is applied**.
+
 ## Still open, from the same cycle
 
 The owner's list, not yet done: the run panel showing `Post …`/`Complete job` for

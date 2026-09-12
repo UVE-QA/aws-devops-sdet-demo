@@ -4014,8 +4014,19 @@ proceeds — the mirror of what Phase 39 built for the apply.
   rather than the next tick (fixed), and after a cycle ENDS the map's sentence
   and the estate's caption can disagree for one read window (open, named in the
   session record).
-- Next allowed step: **the owner's remaining list** — items 7-13 of the review
-  and the board going dark through a teardown. Open from before: the request
+- **ADR-0087** the button says how long: `≈ 52 min`, the median of the last seven
+  cycles that finished, measured rather than written down.
+- **ADR-0088** the public path runs the same suites as the owner's and gives the
+  environment back afterwards - verified on the first cycle that ran it, four
+  steps green, both probes removed by name, the seed re-asserted.
+- **ADR-0089** the rest of the owner's list: no steps on a finished green job,
+  the history heading, the ECS wait moved to Apply, `being created` in the panel,
+  an up environment that never vanishes from the cost box, and the header split
+  into two rows.
+- Next allowed step: **the board going dark through a teardown** - the mirror of
+  what Phase 39 built for the apply, which ADR-0086 D2's plan denominator now
+  makes cheap. The countdown's red full-width banner is the owner's call and is
+  not queued. Open from before: the request
   path's home (`Details` by the sort, `Cycle` by meaning), a check that every
   `data-part` is one of the five, a check that a live binding ever matched a real
   job, and the phone — 2.2–4.4 screens per part, deferred by the owner. The
