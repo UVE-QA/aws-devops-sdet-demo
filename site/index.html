@@ -1464,6 +1464,11 @@
         <div class="identrow">
           <div class="ident-mark">
             <b>aws-devops-sdet-demo</b>
+            <!-- THE ONE THING THIS PAGE SAYS ABOUT ITSELF (ADR-0091 D5): that it
+                 is up while everything it reports on is gone, which is the
+                 property the whole exhibit turns on. It was in the identity bar
+                 in `Details`; it belongs beside the name, wherever the name is. -->
+            <span class="live-badge">dashboard live</span>
             <span class="ident-what">A deploy &rarr; test &rarr; promote &rarr; destroy pipeline on AWS, reporting on itself.</span>
           </div>
           <!-- THE WAYS OUT, ON EVERY PART (ADR-0091 D4). They were in the
@@ -1647,7 +1652,6 @@
            stops being the only place they are. -->
       <div data-part="detail" class="idbar">
         <h1>aws-devops-sdet-demo</h1>
-        <span class="live-badge">dashboard live</span>
         <!-- THE SENTENCE THIS ONE ANSWERS TO IS IN THE HEADER (ADR-0091), on
              every part, four lines above this paragraph wherever it is read.
              `that sentence` is not a dangling reference: it points at the line

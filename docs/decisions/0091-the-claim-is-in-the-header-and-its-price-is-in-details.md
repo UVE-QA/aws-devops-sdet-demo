@@ -50,6 +50,10 @@ the five parts. What this is at one end of the line, where to verify it at the
 other, and the count of decision records still comes from `topology.json` rather
 than from the markup.
 
+**D5. And the badge.** `dashboard live` sits beside the name. It is the one
+claim the page makes about ITSELF — that it is up while everything it reports on
+is gone — and it was readable on one part in five.
+
 ## Consequences
 
 - One fewer place to forget. ADR-0085's finding — a copy that dropped `approve`
@@ -59,8 +63,8 @@ than from the markup.
 - `Details` opens mid-argument by design. Read on its own it is a paragraph about
   a sentence that is on the screen; read from the top of the page it is the
   second half of one thought.
-- `Details` keeps the name, the live badge and the paragraph. It is a smaller
-  card than it was, and nothing that was on it is gone from the page.
+- `Details` keeps the name and the paragraph. It is a smaller card than it was,
+  and nothing that was on it is gone from the page.
 - The header row now carries a full sentence at 1280px and below without
   wrapping, because the name has a line of its own since ADR-0089 D6. If it ever
   does wrap, the clause is the part that should give ground — and the way to make
