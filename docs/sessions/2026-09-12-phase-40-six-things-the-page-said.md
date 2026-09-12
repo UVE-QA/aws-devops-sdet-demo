@@ -268,7 +268,11 @@ open for a month over a fact that was already true.
 What is genuinely missing is the rule that makes versioning sustainable: a
 lifecycle for non-current versions. Every fifteen-second progress write is a
 version and every removal a delete marker, and they are kept forever - the
-numbers are in the cursor. Proposed, not applied: it is a permanent level.
+numbers are in the cursor. Proposed with the plan in front of the owner, applied
+on his yes: non-current versions expire after thirty days - longer than anyone
+here has needed to notice a bad publish - expired delete markers and abandoned
+multipart uploads are swept, and current objects are not touched. One resource
+added, read back from the account, plan clean afterwards.
 
 ## Still open, from the same cycle
 

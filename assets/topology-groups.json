@@ -254,6 +254,7 @@
       "aws_s3_bucket.site": "perm.site",
       "aws_s3_bucket_public_access_block.site": "perm.site",
       "aws_s3_bucket_versioning.site": "perm.site",
+      "aws_s3_bucket_lifecycle_configuration.site": "perm.site",
       "aws_s3_bucket_server_side_encryption_configuration.site": "perm.site",
       "aws_acm_certificate.site": "perm.site",
       "aws_route53_record.cert_validation": "perm.site",
