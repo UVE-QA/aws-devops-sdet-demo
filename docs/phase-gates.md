@@ -3998,6 +3998,13 @@ runs` heading, the ECS wait counted as Provision, `UNKNOWN` while an apply is
 running, the cost box mid-cycle), and the board going dark as a teardown
 proceeds — the mirror of what Phase 39 built for the apply.
 
+- Found while running the break tests, and NOT caused by this phase: two of them
+  no longer reproduce their subject — `break-estate-hoisted-note` 3 of 4 and
+  `break-page-inflight-sequence` 5 of 7, both confirmed identical on the previous
+  commit. The in-flight fixture has no environment that a run is touching while
+  it still carries the previous cycle's figures, which is what those variants
+  need. Queued, named in ADR-0086.
+
 - Next allowed step: **a live cycle that watches these six.** Everything above is
   verified only by fixtures and one at-rest render. Open from before: the request
   path's home (`Details` by the sort, `Cycle` by meaning), a check that every

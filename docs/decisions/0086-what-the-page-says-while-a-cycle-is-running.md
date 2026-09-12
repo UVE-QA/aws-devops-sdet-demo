@@ -194,6 +194,20 @@ approval gate and one that lost it look identical on a map that draws neither.
 - `break-phase-span-merge.sh` asserts the SUM now: 678 s + 725 s = 23m 23s, where
   the union of the same two spans reads 32m 8s. The 525 seconds between them are
   the hold, and the break test names them.
+- **Two break tests have stopped biting, and it is not this ADR that stopped
+  them.** Run against the previous commit as a control:
+  `break-estate-hoisted-note` is 3 of 4 and `break-page-inflight-sequence` is 5
+  of 7, and both were recorded green when they were written. The variants that
+  no longer reproduce anything all need the same thing: an environment the run in
+  flight is touching, drawing a figure from the cycle BEFORE it. The in-flight
+  fixture stopped containing one when ADR-0076's progress feed arrived — a node
+  the cycle is building shows what the cycle has done, not a leftover — so the
+  page can no longer be made to commit the defect those variants describe. The
+  gate is not wrong and the claims still hold; what is missing is a fixture state
+  where a run touches an environment it is NOT rebuilding, which is what a
+  self-service cycle does to prod for its first fifteen minutes. Named here,
+  queued, not fixed in this pass.
+
 - Nothing in this ADR was found by a gate. All six came from watching one cycle,
   and two of the six came from the owner looking at the screen. That is the same
   finding as Phase 39's and it is the reason a cycle is watched at all.

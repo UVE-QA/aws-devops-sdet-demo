@@ -47,19 +47,23 @@ check "the three agree" 0 "all stating"
 echo "=== [B] the README gains a step the page does not name ==="
 python3 - <<'PY'
 p = "README.md"; s = open(p).read()
-old = "A deploy → test → approve → promote → destroy pipeline"
-new = "A deploy → test → approve → promote → verify → destroy pipeline"
+old = "A deploy → test → promote → destroy pipeline"
+new = "A deploy → test → promote → verify → destroy pipeline"
 assert s.count(old) == 1, "the anchor moved; this variant would prove nothing"
 open(p, "w").write(s.replace(old, new, 1))
 PY
 check "a chain that grew in one copy is caught" 1 "THE COPIES DISAGREE"
 restore
 
+# The step this drops is `promote`, not `approve`: ADR-0086 took `approve` out of
+# the chain for good, and a variant removing a verb that is no longer there would
+# assert nothing. The defect being reproduced is the same one - a copy shortened
+# by a word - and the verb is whichever one is still in all three.
 echo "=== [C] the row loses a step, which is the defect this was written for ==="
 python3 - <<'PY'
 p = "assets/index.template.html"; s = open(p).read()
-old = '<span class="ident-what">deploy &rarr; test &rarr; approve &rarr; promote &rarr; destroy on AWS'
-new = '<span class="ident-what">deploy &rarr; test &rarr; promote &rarr; destroy on AWS'
+old = '<span class="ident-what">deploy &rarr; test &rarr; promote &rarr; destroy on AWS'
+new = '<span class="ident-what">deploy &rarr; test &rarr; destroy on AWS'
 assert s.count(old) == 1, "the anchor moved; this variant would prove nothing"
 open(p, "w").write(s.replace(old, new, 1))
 PY
@@ -72,7 +76,7 @@ echo "=== [D] a copy loses its chain entirely ==="
 # remain - which is the failure mode this repository keeps finding in itself.
 python3 - <<'PY'
 p = "assets/index.template.html"; s = open(p).read()
-old = 'deploy &rarr; test &rarr; approve &rarr; promote &rarr; destroy on AWS, reporting on itself'
+old = 'deploy &rarr; test &rarr; promote &rarr; destroy on AWS, reporting on itself'
 new = 'a pipeline on AWS, reporting on itself'
 assert s.count(old) == 1, "the anchor moved; this variant would prove nothing"
 open(p, "w").write(s.replace(old, new, 1))
