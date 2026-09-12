@@ -2605,12 +2605,27 @@
         // unchanged. This is the different case: the control is real, the reason
         // it will not act is knowable in advance, and saying so is better than a
         // press that spends nothing and explains itself afterwards.
+        // HOW LONG IT HAS BEEN RUNNING, ON THE CONTROL (ADR-0092). The elapsed
+        // clock was in the `Current cycle` card, which is on `Now` and nowhere
+        // else, so a reader on `Estate` or `Cycle` could see that a cycle was
+        // running and not how far into it they were. The owner asked for it on
+        // the button, where it is beside the estimate it should be read against:
+        // `A cycle is running · 5m 27s` next to `≈ 52 min`.
+        //
+        // `busy` is not always a run this page can see - launchedButNotYetSeen()
+        // covers the three minutes after a press, before the run appears - and
+        // there the button says what it always said. A clock with nothing behind
+        // it would be a number this page made up.
         var button = el("launch-button");
         if (button) {
+          var running = busy && busy !== true ? busy : null;
+          var startedAt = running && (running.run_started_at || running.created_at) || "";
           button.disabled = !!busy || left === 0;
-          button.textContent = busy ? "A cycle is running" :
-                               left === 0 ? "No launches left today" :
-                               "Launch a full cycle";
+          button.dataset.since = startedAt;
+          button.textContent = busy
+            ? "A cycle is running" + (startedAt ? " \u00b7 " + dur(startedAt) : "")
+            : left === 0 ? "No launches left today"
+            : "Launch a full cycle";
         }
 
         // WHOSE LIMIT THIS IS. The cap, the nonce and the lock all live in the
@@ -2932,6 +2947,19 @@
         // to this round says the same thing, so there is no second one.
         announceCycle();
       });
+
+      // ONE SECOND, ONE LABEL, NO RE-RENDER (ADR-0092). Same rule the map's own
+      // clocks follow: renderAll() rebuilds the panel, and doing that once a
+      // second to change four characters would throw away the layout work sixty
+      // times a minute. The button carries its own start, so this is arithmetic
+      // on an attribute and nothing else - and it goes quiet the moment the
+      // button stops saying a cycle is running.
+      setInterval(function () {
+        var b = el("launch-button");
+        if (!b || !b.dataset.since) return;
+        if (b.textContent.indexOf("A cycle is running") !== 0) return;
+        b.textContent = "A cycle is running \u00b7 " + dur(b.dataset.since);
+      }, 1000);
 
       el("refresh").addEventListener("click", function () { load(); });
       el("launch-button").addEventListener("click", function () { launch(); });
