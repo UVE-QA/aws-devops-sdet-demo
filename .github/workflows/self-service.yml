@@ -143,7 +143,7 @@ jobs:
           terraform_version: "1.15.5"
 
       - name: Configure AWS credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
+        uses: aws-actions/configure-aws-credentials@cbe3b392738ccf3f987d68400dafcf4b0624a56c # v6.2.4
         with:
           role-to-assume: ${{ vars.OIDC_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
@@ -423,7 +423,7 @@ jobs:
 
       - name: Configure AWS credentials (OIDC, publish role)
         if: always()
-        uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
+        uses: aws-actions/configure-aws-credentials@cbe3b392738ccf3f987d68400dafcf4b0624a56c # v6.2.4
         with:
           role-to-assume: ${{ vars.SITE_PUBLISH_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
@@ -522,7 +522,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Configure AWS credentials (OIDC, publish role)
-        uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
+        uses: aws-actions/configure-aws-credentials@cbe3b392738ccf3f987d68400dafcf4b0624a56c # v6.2.4
         with:
           role-to-assume: ${{ vars.SITE_PUBLISH_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
@@ -693,7 +693,7 @@ jobs:
           echo "region, callback role and table are all set"
 
       - name: Configure AWS credentials (OIDC, callback role)
-        uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
+        uses: aws-actions/configure-aws-credentials@cbe3b392738ccf3f987d68400dafcf4b0624a56c # v6.2.4
         with:
           role-to-assume: ${{ vars.SELF_SERVICE_CALLBACK_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
