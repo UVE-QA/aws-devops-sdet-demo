@@ -4031,7 +4031,12 @@ proceeds — the mirror of what Phase 39 built for the apply.
   on every part; `Details` keeps what the claim costs to be true.
 - **ADR-0092** the control says how long the cycle has been running, beside the
   estimate of how long it takes.
-- Next allowed step: **nothing is queued.** The countdown's red full-width banner
+- **ADR-0093** the page reports the released line. `main` is what recruiters see,
+  tagged `demo-2026-09-12`; the work is on `next`; the page filters runs to
+  `main` at the source, and the in-flight gate plants a failed `next` run that
+  must be shown nowhere.
+- Next allowed step: **on `next`, first the bucket versioning of Phase 28** - it
+  is the rollback for a bad publish now. The countdown's red full-width banner
   is the owner's call. Open from before: the request path's home, a check that
   every `data-part` is one of the five, a check that a live binding ever matched
   a real job, the phone, the two break tests that stopped biting, the bucket

@@ -221,6 +221,24 @@ after a cold load caught the board before the run layer had been re-read, and
 showed the previous cycle's words. Eight seconds is enough. The page was right;
 the screenshot was early.
 
+## The demo goes out, and the work moves aside
+
+The owner is handing the dashboard to recruiters. Until now a push to `main`
+republished the page within a minute and the button dispatched from `main`, so
+development and the exhibit were one thing. **ADR-0093**: `main` is the released
+line, tagged `demo-2026-09-12`; the work happens on `next`; and the page reports
+only `main`'s runs, filtered once at the source so the history, the panel, the
+quota, the busy state and the estimate cannot disagree about which line they
+describe. Every fixture run now carries a `head_branch`, both page-inflight
+states plant a newer, failed `next` run that must be shown nowhere, and with the
+filter removed four claims go red at once - the intruder becomes the run in
+flight, which is exactly the damage.
+
+The rule no code enforces is written down instead: no cycle on `stage`/`prod`
+from `next` while the demo is out. Page work needs no cycle; pipeline work that
+does needs a `lab` environment. First thing on `next`: the bucket versioning of
+Phase 28, which is now the rollback for a bad publish.
+
 ## Still open, from the same cycle
 
 The owner's list, not yet done: the run panel showing `Post …`/`Complete job` for

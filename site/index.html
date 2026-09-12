@@ -1745,6 +1745,10 @@
       var REPO = "UVE-QA/aws-devops-sdet-demo";
       var API = "https://api.github.com/repos/" + REPO;
       var ENVIRONMENTS = ["stage", "prod"];
+      // The branch this page describes (ADR-0093). It is also the branch that
+      // publishes the page and the one the button dispatches, and those three
+      // being the same branch is the whole arrangement.
+      var RELEASED_BRANCH = "main";
 
       // Which workflow writes which environment's status file. This mapping is the
       // page's half of ADR-0026: a run that cannot write an environment's file must
@@ -1871,7 +1875,21 @@
           if (!r.ok) throw new Error("HTTP " + r.status);
           return r.json();
         }).then(function (data) {
-          state.runs = (data.workflow_runs || []).slice();
+          // THE PAGE REPORTS THE RELEASED LINE (ADR-0093). Every workflow here
+          // can be dispatched from any branch, and from 2026-09-12 the work
+          // happens on `next` while `main` is what the page publishes and what
+          // the button dispatches. A cycle run from a working branch is a real
+          // run in the same account, and it used to land here as a row in the
+          // history and as the "step in flight" - a red row from an experiment
+          // on the page a stranger was handed. Filtered ONCE, at the source, so
+          // the history, the panel, the quota, the busy state and the estimate
+          // all answer about the same set of runs and cannot disagree about
+          // which line they describe. STRICT on the field: a run with no
+          // `head_branch` is not a run the Actions API returned, it is a
+          // fixture that has not been told about this rule.
+          state.runs = (data.workflow_runs || []).filter(function (r) {
+            return r.head_branch === RELEASED_BRANCH;
+          });
           state.githubError = null;
           state.githubReadAt = new Date();
           state.lastGithubOk = state.githubReadAt;

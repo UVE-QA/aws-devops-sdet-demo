@@ -595,10 +595,18 @@ obvious once prod runs an image that stage's teardown would delete (ADR-0018).
 - Every permanent level is applied. A cycle now starts straight at
   deploy-stage; the local applies are only needed on a fresh account, in the
   order listed in docs/preflight-inventory.md.
-- prod's approval gate has BOTH halves: trust_branch_ref = false in IAM, and the
-  prod environment's 2 protection rules in GitHub (required reviewers, main-only,
-  admin bypass off). The GitHub half is UI state that git cannot assert — if a
-  promotion ever runs without pausing, check it first.
+- prod's approval gate has ONE half left: trust_branch_ref = false in IAM. The
+  reviewer rule on the prod environment was removed in ADR-0068 and `approve`
+  left the verb chain in ADR-0086 - a promotion that does not pause is the
+  design now, not a symptom. The branch-policy rule (main only) is still UI
+  state git cannot assert.
+- main is the RELEASED line and the work happens on `next` (ADR-0093, from
+  2026-09-12, while the demo is being handed to recruiters). The page publishes
+  from main, the button dispatches from main, the page shows only main's runs.
+  Do not run a cycle on stage/prod from `next` while the demo is out: it
+  serialises behind a visitor's cycle and the page cannot see it. Page work
+  needs no cycle at all; pipeline work that does needs a `lab` environment or
+  patience. Merge `next` only after a green cycle from it.
 - the NS record delegating demo.uveapp.net lives BY HAND in the parent zone, in
   org-management. Untracked by git, same category as the protection rules. If
   prod's name stops resolving, check it before anything else. And beware: a

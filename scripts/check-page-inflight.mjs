@@ -243,6 +243,7 @@ const OBSERVE = () => {
   const t = (el) => (el ? el.textContent.replace(/\s+/g, " ").trim() : null);
   return {
     history: t(document.querySelector("#history-summary")),
+    cycle: t(document.querySelector("#cycle")),
     verdict: t(document.querySelector("#history-summary .verdict")),
     mapSub: t(document.querySelector("#map-sub")),
     autorefresh: t(document.querySelector("#autorefresh")),
@@ -637,7 +638,11 @@ function auditFixture({ state, meta, runs }) {
     ".github/workflows/self-service.yml": ["stage"],
     ".github/workflows/destroy.yml": null
   };
-  const lifecycle = (runs.workflow_runs || []).filter((r) => r.path in WRITERS);
+  // The audit describes the runs the PAGE reports, and the page reports the
+  // released branch (ADR-0093). A run off it is in the fixture on purpose - to
+  // be shown nowhere - and must not be counted here as a red row either.
+  const lifecycle = (runs.workflow_runs || [])
+    .filter((r) => r.path in WRITERS && r.head_branch === "main");
   if (!lifecycle.length) refuse(`${state}: the fixture's history contains no lifecycle run at all.`);
   const bad = lifecycle.filter((r) => r.status === "completed" && r.conclusion !== "success");
   if (bad.length) {
@@ -834,6 +839,43 @@ function claimProgressFraction({ meta, seen }, index) {
   return out;
 }
 
+/* THE PAGE REPORTS THE RELEASED LINE (ADR-0093). Every workflow can be
+   dispatched from any branch, and a cycle run from `next` is a real run in the
+   same account. It must show NOWHERE on the page: not as a history row, not as
+   the run in flight, not in the verdict. The fixture plants one - newest of all
+   and failed, so a filter that let it through would sit at the top of the table
+   and turn the verdict red - and this refuses to pass unless the fixture still
+   contains such a run, because a claim about runs on other branches is vacuous
+   over a fixture with none. */
+function claimReleasedLineOnly({ meta, seen }, index, dir) {
+  const out = [];
+  const runs = readJSON(path.join(dir, "runs.json"), "the run history");
+  const list = (runs && runs.workflow_runs) || [];
+  const foreign = list.filter((r) => r.head_branch !== "main");
+  if (!foreign.length) {
+    out.push("no run in the fixture is off the released branch, so this claim would be " +
+             "true of a page that ignores branches entirely.");
+    return out;
+  }
+  const unstamped = list.filter((r) => !r.head_branch);
+  if (unstamped.length) {
+    out.push(`${unstamped.length} run(s) in the fixture carry no head_branch; the page is strict ` +
+             "about that field and so is this.");
+  }
+  const texts = [seen.history || "", seen.verdict || "", seen.cycle || ""]
+    .concat((seen.rows || []).map((r) => r.join(" ")));
+  for (const r of foreign) {
+    const marks = [`#${r.run_number}`, String(r.id)];
+    for (const text of texts) {
+      if (marks.some((m) => text.includes(m))) {
+        out.push(`run #${r.run_number} is on branch ${r.head_branch} and the page names it: "${text.slice(0, 120)}"`);
+        break;
+      }
+    }
+  }
+  return out;
+}
+
 /* THE CONTROL THAT MUST DIFFER. Two renderings that agree would make every claim
    above true of a page that draws nothing at all. What must differ is named
    rather than hashed: the verdict, because one state has a run in flight, and at
@@ -882,6 +924,7 @@ async function main() {
       box.overlay = null;
       const reading = await render(browser, origin, state, notFound);
       reading.audit = auditFixture(reading);
+      reading.dir = path.join(FIXTURE, state);
       readings.push(reading);
     }
     if (!wanted) {
@@ -908,13 +951,14 @@ async function main() {
     ["a node nothing can ever measure never promises figures", claimNeverMeasured],
     ["a figure printed while a cycle is in flight says which cycle it is from", claimFiguresDated],
     ["a partial reading is read only by the run that wrote it", claimProgressAttributed],
-    ["a node short of its plan says how many of how many", claimProgressFraction]
+    ["a node short of its plan says how many of how many", claimProgressFraction],
+    ["a run from another branch is shown nowhere", claimReleasedLineOnly]
   ];
 
   let failed = 0;
   for (const r of readings) {
     for (const [name, fn] of CLAIMS) {
-      const findings = fn(r, fn === claimVerdict ? r.audit : index);
+      const findings = fn(r, fn === claimVerdict ? r.audit : index, r.dir);
       if (findings.length) {
         failed += 1;
         console.log(`FAIL  ${r.state}: ${name}`);

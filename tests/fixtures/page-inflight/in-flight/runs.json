@@ -2,6 +2,22 @@
   "total_count": 14,
   "workflow_runs": [
     {
+      "_": "NOT ON THE RELEASED BRANCH (ADR-0093): a self-service cycle dispatched from `next`, newer than everything else here and FAILED. The page must show it nowhere - not as a history row, not as the run in flight, not in the verdict - because it describes the released line and this run is not on it. Newest and red on purpose: a filter that let it through would put it at the top of the table and turn the verdict red.",
+      "id": 31461000099,
+      "name": "self-service launch by the owner",
+      "display_title": "self-service launch by the owner",
+      "run_number": 99,
+      "path": ".github/workflows/self-service.yml",
+      "event": "workflow_dispatch",
+      "status": "completed",
+      "conclusion": "failure",
+      "head_branch": "next",
+      "created_at": "2026-08-11T04:05:00Z",
+      "run_started_at": "2026-08-11T04:05:05Z",
+      "updated_at": "2026-08-11T04:10:00Z",
+      "html_url": "https://github.com/UVE-QA/aws-devops-sdet-demo/actions/runs/31461000099"
+    },
+    {
       "id": 31461000064,
       "name": "deploy-stage",
       "path": ".github/workflows/deploy-stage.yml",
@@ -14,7 +30,8 @@
       "created_at": "2026-08-11T04:00:00Z",
       "run_started_at": "2026-08-11T04:00:08Z",
       "updated_at": "2026-08-11T04:11:30Z",
-      "html_url": "https://github.com/UVE-QA/aws-devops-sdet-demo/actions/runs/31461000064"
+      "html_url": "https://github.com/UVE-QA/aws-devops-sdet-demo/actions/runs/31461000064",
+      "head_branch": "main"
     },
     {
       "id": 31460000199,
@@ -29,7 +46,8 @@
       "created_at": "2026-08-11T01:59:00Z",
       "run_started_at": "2026-08-11T01:59:06Z",
       "updated_at": "2026-08-11T02:01:27Z",
-      "html_url": "https://github.com/UVE-QA/aws-devops-sdet-demo/actions/runs/31460000199"
+      "html_url": "https://github.com/UVE-QA/aws-devops-sdet-demo/actions/runs/31460000199",
+      "head_branch": "main"
     },
     {
       "id": 31460000036,
@@ -44,7 +62,8 @@
       "created_at": "2026-08-11T01:59:00Z",
       "run_started_at": "2026-08-11T01:59:06Z",
       "updated_at": "2026-08-11T01:59:23Z",
-      "html_url": "https://github.com/UVE-QA/aws-devops-sdet-demo/actions/runs/31460000036"
+      "html_url": "https://github.com/UVE-QA/aws-devops-sdet-demo/actions/runs/31460000036",
+      "head_branch": "main"
     },
     {
       "id": 31458000022,
@@ -59,7 +78,8 @@
       "created_at": "2026-08-10T21:10:00Z",
       "run_started_at": "2026-08-10T21:10:08Z",
       "updated_at": "2026-08-10T21:38:20Z",
-      "html_url": "https://github.com/UVE-QA/aws-devops-sdet-demo/actions/runs/31458000022"
+      "html_url": "https://github.com/UVE-QA/aws-devops-sdet-demo/actions/runs/31458000022",
+      "head_branch": "main"
     },
     {
       "id": 31459000063,
@@ -74,7 +94,8 @@
       "created_at": "2026-08-10T20:28:00Z",
       "run_started_at": "2026-08-10T20:28:09Z",
       "updated_at": "2026-08-10T20:46:10Z",
-      "html_url": "https://github.com/UVE-QA/aws-devops-sdet-demo/actions/runs/31459000063"
+      "html_url": "https://github.com/UVE-QA/aws-devops-sdet-demo/actions/runs/31459000063",
+      "head_branch": "main"
     },
     {
       "id": 31457000021,
@@ -89,7 +110,8 @@
       "created_at": "2026-08-10T19:40:00Z",
       "run_started_at": "2026-08-10T19:40:07Z",
       "updated_at": "2026-08-10T19:52:30Z",
-      "html_url": "https://github.com/UVE-QA/aws-devops-sdet-demo/actions/runs/31457000021"
+      "html_url": "https://github.com/UVE-QA/aws-devops-sdet-demo/actions/runs/31457000021",
+      "head_branch": "main"
     },
     {
       "id": 31457000045,
@@ -104,7 +126,8 @@
       "created_at": "2026-08-10T19:20:00Z",
       "run_started_at": "2026-08-10T19:20:06Z",
       "updated_at": "2026-08-10T19:31:40Z",
-      "html_url": "https://github.com/UVE-QA/aws-devops-sdet-demo/actions/runs/31457000045"
+      "html_url": "https://github.com/UVE-QA/aws-devops-sdet-demo/actions/runs/31457000045",
+      "head_branch": "main"
     },
     {
       "id": 31456000062,
@@ -119,7 +142,8 @@
       "created_at": "2026-08-10T18:40:00Z",
       "run_started_at": "2026-08-10T18:40:08Z",
       "updated_at": "2026-08-10T18:58:20Z",
-      "html_url": "https://github.com/UVE-QA/aws-devops-sdet-demo/actions/runs/31456000062"
+      "html_url": "https://github.com/UVE-QA/aws-devops-sdet-demo/actions/runs/31456000062",
+      "head_branch": "main"
     },
     {
       "id": 31455000021,
@@ -134,7 +158,8 @@
       "created_at": "2026-08-09T22:10:00Z",
       "run_started_at": "2026-08-09T22:10:07Z",
       "updated_at": "2026-08-09T22:38:00Z",
-      "html_url": "https://github.com/UVE-QA/aws-devops-sdet-demo/actions/runs/31455000021"
+      "html_url": "https://github.com/UVE-QA/aws-devops-sdet-demo/actions/runs/31455000021",
+      "head_branch": "main"
     },
     {
       "id": 31454000013,
@@ -149,7 +174,8 @@
       "created_at": "2026-08-09T21:00:00Z",
       "run_started_at": "2026-08-09T21:00:09Z",
       "updated_at": "2026-08-09T21:44:00Z",
-      "html_url": "https://github.com/UVE-QA/aws-devops-sdet-demo/actions/runs/31454000013"
+      "html_url": "https://github.com/UVE-QA/aws-devops-sdet-demo/actions/runs/31454000013",
+      "head_branch": "main"
     },
     {
       "id": 31453000044,
@@ -164,7 +190,8 @@
       "created_at": "2026-08-09T20:20:00Z",
       "run_started_at": "2026-08-09T20:20:06Z",
       "updated_at": "2026-08-09T20:32:00Z",
-      "html_url": "https://github.com/UVE-QA/aws-devops-sdet-demo/actions/runs/31453000044"
+      "html_url": "https://github.com/UVE-QA/aws-devops-sdet-demo/actions/runs/31453000044",
+      "head_branch": "main"
     },
     {
       "id": 31452000061,
@@ -179,7 +206,8 @@
       "created_at": "2026-08-09T19:40:00Z",
       "run_started_at": "2026-08-09T19:40:08Z",
       "updated_at": "2026-08-09T19:58:00Z",
-      "html_url": "https://github.com/UVE-QA/aws-devops-sdet-demo/actions/runs/31452000061"
+      "html_url": "https://github.com/UVE-QA/aws-devops-sdet-demo/actions/runs/31452000061",
+      "head_branch": "main"
     },
     {
       "id": 31451000020,
@@ -194,7 +222,8 @@
       "created_at": "2026-08-09T18:30:00Z",
       "run_started_at": "2026-08-09T18:30:07Z",
       "updated_at": "2026-08-09T18:42:00Z",
-      "html_url": "https://github.com/UVE-QA/aws-devops-sdet-demo/actions/runs/31451000020"
+      "html_url": "https://github.com/UVE-QA/aws-devops-sdet-demo/actions/runs/31451000020",
+      "head_branch": "main"
     },
     {
       "id": 31450000020,
@@ -209,7 +238,8 @@
       "created_at": "2026-08-09T17:40:00Z",
       "run_started_at": "2026-08-09T17:40:07Z",
       "updated_at": "2026-08-09T18:08:00Z",
-      "html_url": "https://github.com/UVE-QA/aws-devops-sdet-demo/actions/runs/31450000020"
+      "html_url": "https://github.com/UVE-QA/aws-devops-sdet-demo/actions/runs/31450000020",
+      "head_branch": "main"
     }
   ]
 }
