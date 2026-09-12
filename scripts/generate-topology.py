@@ -618,9 +618,32 @@ def build():
         for n in nodes:
             if "tool" not in n and n.get("observer") == "terraform":
                 n["tool"] = "terraform"
-        live, live_findings = live_bindings(f"phase {p['id']}", p)
-        if live_findings:
-            raise Refusal("\n".join(live_findings))
+        # A PHASE THAT CANNOT RUN ANY MORE SAYS SO, AND SAYS WHY (ADR-0086).
+        # `live` is otherwise mandatory - a phase with no binding can never
+        # pulse, and the map would show a cycle running with a hole in it. The
+        # approval is the one phase where the hole is the fact: the reviewer rule
+        # came off the prod environment in ADR-0068 and nothing waits for a human
+        # any more, so a binding there could only be satisfied by a run that
+        # never happens. Watched on 2026-09-11 with the binding still in place:
+        # `when: waiting` fell through to its else-branch and the page said
+        # `Approve - done` and `a human ... finished in this run` in a cycle no
+        # person touched.
+        #
+        # This is EDITORIAL and the generator cannot check it: a reviewer rule is
+        # UI state that git cannot assert (ADR-0068), the same category as the
+        # fork-PR setting. What it can check is that the two are not both there.
+        never = p.get("never_runs")
+        if never and p.get("live"):
+            raise Refusal(
+                f"phase {p['id']} declares both `live` and `never_runs`. A phase that still "
+                "binds a step is one that can still run; delete one of them."
+            )
+        if never:
+            live = []
+        else:
+            live, live_findings = live_bindings(f"phase {p['id']}", p)
+            if live_findings:
+                raise Refusal("\n".join(live_findings))
 
         # THE BINDING, AS A REFERENCE (ADR-0054 D2). A step names the estate
         # nodes it touches, by id, and names the VERB - because the property
@@ -655,6 +678,7 @@ def build():
                 "label": p["label"],
                 "workflow": p["workflow"],
                 "live": live,
+                "never_runs": never,
                 "nodes": nodes,
                 "touches": touches,
             }

@@ -11,7 +11,7 @@
     "modules": 9,
     "suites": 5,
     "workflows": 6,
-    "adrs": 86,
+    "adrs": 87,
     "repeated_blocks": 9
   },
   "measured_cycle": null,
@@ -490,6 +490,7 @@
             ]
           }
         ],
+        "never_runs": null,
         "nodes": [
           {
             "id": "build.ecr",
@@ -534,6 +535,7 @@
             ]
           }
         ],
+        "never_runs": null,
         "nodes": [],
         "touches": [
           {
@@ -593,6 +595,7 @@
             ]
           }
         ],
+        "never_runs": null,
         "nodes": [
           {
             "id": "stage.migrate",
@@ -642,6 +645,7 @@
             ]
           }
         ],
+        "never_runs": null,
         "nodes": [
           {
             "id": "suite.db.stage",
@@ -775,22 +779,8 @@
         "n": 5,
         "label": "Approve",
         "workflow": "promote-prod.yml",
-        "live": [
-          {
-            "workflow": "promote-prod.yml",
-            "path": ".github/workflows/promote-prod.yml",
-            "job": "promote",
-            "when": "waiting",
-            "steps": []
-          },
-          {
-            "workflow": "self-service.yml",
-            "path": ".github/workflows/self-service.yml",
-            "job": "promote / promote",
-            "when": "waiting",
-            "steps": []
-          }
-        ],
+        "live": [],
+        "never_runs": "no workflow waits for approval any more: the reviewer rule was taken off the prod GitHub environment in ADR-0068, on the owner's promotions as well as on the button's. This phase is drawn because the pipeline has a hole where it used to be, and a hole nobody can see is a claim that it was never there.",
         "nodes": [
           {
             "id": "gate.human",
@@ -798,8 +788,8 @@
             "label": "a human, in the prod environment",
             "service": "human",
             "kind": "gate",
-            "observer": "actions",
-            "note": "required reviewer, main only",
+            "observer": "nothing",
+            "note": "the reviewer rule is gone (ADR-0068); a green stage is what gates the promotion now",
             "env": "prod"
           }
         ],
@@ -832,6 +822,7 @@
             ]
           }
         ],
+        "never_runs": null,
         "nodes": [],
         "touches": [
           {
@@ -895,6 +886,7 @@
             ]
           }
         ],
+        "never_runs": null,
         "nodes": [
           {
             "id": "suite.db.prod",
@@ -995,6 +987,7 @@
             ]
           }
         ],
+        "never_runs": null,
         "nodes": [
           {
             "id": "destroy.stage",

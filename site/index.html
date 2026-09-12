@@ -775,6 +775,18 @@
       }
       .phase > header .was + .elapsed { margin-left: 0.4rem; }
       .phase .set { display: grid; gap: 0.3rem; }
+      /* A PHASE THAT NO LONGER RUNS (ADR-0086). Drawn, because the pipeline has
+         a hole where the approval used to be and a hole nobody can see is a
+         claim it was never there - but drawn as a place rather than a step: no
+         clock, no verdict, and a dashed edge that is not any of the six live
+         states. */
+      .phase[data-gone] { border-style: dashed; background: transparent; }
+      .phase > header .gonephase {
+        margin-left: auto; color: var(--muted); font-weight: 700;
+        text-transform: uppercase; font-size: 0.62rem; letter-spacing: 0.04em;
+      }
+      .phase > header .was + .gonephase, .phase > header .elapsed + .gonephase { margin-left: 0.4rem; }
+      .phase .why.phase-gone { margin: 0.15rem 0 0.4rem; color: var(--muted); }
       .phase.live { border-color: var(--state-live); background: color-mix(in srgb, var(--accent) 7%, transparent); }
       /* A phase with six or more nodes takes two columns rather than twice the
          height. The threshold is in the DATA (layout.wide_at), so this rule only
@@ -1405,7 +1417,7 @@
              needed to know where you are. -->
         <div class="ident-mark">
           <b>aws-devops-sdet-demo</b>
-          <span class="ident-what">deploy &rarr; test &rarr; approve &rarr; promote &rarr; destroy on AWS, reporting on itself</span>
+          <span class="ident-what">deploy &rarr; test &rarr; promote &rarr; destroy on AWS, reporting on itself</span>
         </div>
         <nav class="parts" id="parts" role="tablist" aria-label="Which part of the page to show">
           <button type="button" role="tab" data-show="now"    aria-selected="true">Now</button>
@@ -1520,6 +1532,7 @@
             <span><b>not run yet</b> nothing recorded &mdash; carried by the word alone, deliberately quiet</span>
             <span><b>not reached yet</b> a cycle is under way and has not got here &mdash; figures arrive when it ends</span>
             <span><b>not measured here</b> its step is in Actions, not in a timeline &mdash; no cycle will ever carry it</span>
+            <span><b>removed</b> the phase is drawn and does not run &mdash; what took it away is named on it</span>
             <span><b>destroyed</b> dimmed like the above, and the figures beside it are the cycle that ended</span>
             <span><b>running now</b> accent edge and a beating dot &mdash; this node's own step</span>
             <span><b>its phase is running</b> dashed accent edge &mdash; which node is unknown</span>
@@ -1564,7 +1577,7 @@
         <h1>aws-devops-sdet-demo</h1>
         <span class="live-badge">dashboard live</span>
         <p class="claim">
-          A deploy &rarr; test &rarr; approve &rarr; promote &rarr; destroy pipeline on AWS,
+          A deploy &rarr; test &rarr; promote &rarr; destroy pipeline on AWS,
           reporting on itself. There is no manual AWS operation anywhere in that sentence,
           teardown included, and every state it leaves is read back out of AWS afterwards
           rather than taken from the run that claimed it. This page is a permanent state
@@ -1720,7 +1733,13 @@
         rateRemaining: null,
         rateReset: null,
         timer: null,
-        nextGithubAt: 0
+        nextGithubAt: 0,
+        // Which environments the run in flight is TEARING DOWN right now, and
+        // since when. Not derived here: the map owns the binding that knows
+        // which job destroys which environment (ADR-0086), and sends it back
+        // through `cycle:teardown`. Empty until it does, which is the honest
+        // state for a page that has not read the topology yet.
+        teardown: {}
       };
 
       // ---- small helpers -----------------------------------------------------
@@ -1896,10 +1915,28 @@
               "Whatever it did to this environment is not reflected below.";
         }
 
+        // A TEARDOWN OF THIS ENVIRONMENT IS RUNNING (ADR-0086). The staleness
+        // rule above cannot see it: it asks whether the newest run has reported,
+        // and here the newest run IS the one that reported - fifteen minutes ago,
+        // from the job that built the thing this job is now deleting. So the
+        // reading is not stale by that test and was drawn as a live environment
+        // with a working link, for the whole of prod's teardown.
+        var tearing = Boolean(file && state.teardown && state.teardown[env]);
+        if (tearing) {
+          stale = true;
+          reason = "A job of the cycle under way is tearing this environment down now" +
+            (typeof state.teardown[env] === "string"
+              ? ", since " + esc(ago(state.teardown[env])) : "") +
+            ". What is below was observed before that began.";
+        }
+
         var stateName, cls, unverified = false;
         if (entry.missing || !file) {
           stateName = "no observation";
           cls = "unknown";
+        } else if (tearing) {
+          stateName = "being destroyed";
+          cls = "partial";
         } else if (stale) {
           stateName = "unknown";
           cls = "unknown";
@@ -1913,7 +1950,7 @@
         }
         return {
           entry: entry, file: file, newest: newest, stale: stale, reason: reason,
-          stateName: stateName, cls: cls, unverified: unverified
+          stateName: stateName, cls: cls, unverified: unverified, tearing: tearing
         };
       }
 
@@ -2358,7 +2395,7 @@
         return (state.runs || []).filter(function (r) {
           return r.path === ".github/workflows/self-service.yml" &&
                  String(r.created_at || "").slice(0, 10) === today &&
-                 (r.status === "queued" || r.status === "in_progress" || r.status === "waiting");
+                 r.status !== "completed";
         })[0] || null;
       }
 
@@ -2614,7 +2651,12 @@
               acc[env] = {
                 state: o.entry.missing || !o.file ? null : o.file.state,
                 stale: o.stale,
-                unverified: o.unverified
+                unverified: o.unverified,
+                // Handed back so the map reads its own conclusion through the
+                // panel's vocabulary rather than beside it (ADR-0086): the badge
+                // and the row have to agree, and one of them deciding twice is
+                // how they stopped agreeing in the first place.
+                tearing: o.tearing
               };
               return acc;
             }, {}),
@@ -2706,6 +2748,22 @@
       }
 
       function load() { return tick(true); }
+
+      // THE MAP ANSWERS BACK, ONCE, ABOUT ONE THING (ADR-0086): which
+      // environment a job of the run in flight is deleting. The panel cannot ask
+      // it - the binding from job to environment is the map's - and the panel
+      // must not draw an environment as UP with a live link to it while its load
+      // balancer is being deleted, which is what it did on 2026-09-11. Re-render
+      // rather than wait for the next tick: the badge is the most wrong it will
+      // ever be in exactly the seconds after this arrives.
+      document.addEventListener("cycle:teardown", function (e) {
+        var next = e.detail || {};
+        var changed = ENVIRONMENTS.some(function (env) {
+          return Boolean(state.teardown[env]) !== Boolean(next[env]);
+        });
+        state.teardown = next;
+        if (changed) renderEnvironments();
+      });
 
       el("refresh").addEventListener("click", function () { load(); });
       el("launch-button").addEventListener("click", function () { launch(); });
@@ -2972,14 +3030,19 @@
             // the sentence on every tile rather than losing the disagreement.
             const note = shared && shared.note && shared.note === t.note ? "" : t.note;
             body = line(t.word, [note].concat(figs), t.cls);
-            // THE BAR CARRIES NO NUMBER (ADR-0077, narrowing ADR-0076 D4). It
-            // was a proportion of `resources_complete / resources_observed`,
-            // which reads as progress and is not: the denominator is what has
-            // STARTED and it grows. It says `working` now and nothing else,
-            // which is the only thing about a running apply that is knowable
-            // from outside it.
+            // THE BAR CARRIES THE PLAN'S NUMBER, OR NONE AT ALL (ADR-0086,
+            // reversing ADR-0077). It used to be a proportion of
+            // `resources_complete / resources_observed`, which grows as things
+            // start and stood at 100% on a node that was not finished; ADR-0077
+            // took the number away and said no total was knowable. One is:
+            // `terraform apply -json` names every instance of the saved plan
+            // before it starts any of them. Where that is in hand the bar is a
+            // real proportion, and where it is not - a stream with no plan in it
+            // - it stays the travelling sliver that claims nothing.
             if (n.progress && n.progress.live) {
-              body += `<div class="pbar indeterminate"><i></i></div>`;
+              body += n.progress.ratio === null || n.progress.ratio === undefined
+                ? `<div class="pbar indeterminate"><i></i></div>`
+                : `<div class="pbar"><i style="width:${Math.round(n.progress.ratio * 100)}%"></i></div>`;
             }
           }
 
@@ -3253,11 +3316,22 @@
             // question asked of the whole page rather than of one phase: a
             // phase whose turn has not come yet was printing a bare figure too.
             const since = pst && pst.state === "running" ? pst.since : null;
+            const prior = since ? (pst.prior || 0) : 0;
             const was = RUNSTATE.phases[p.id];
+            // WHOSE FIGURE IS THIS (ADR-0086). `last time` was hung on "a run is
+            // in flight", and a phase whose job has already ENDED in that run has
+            // published its figure - so this run's own 7m 43s was labelled as
+            // the previous cycle's, with the tile below it saying `finished in
+            // this run` in the same box. The record carries the run that wrote
+            // it; the label asks that, not the page's weather.
+            const flightId = RUNSTATE.observation && RUNSTATE.observation.run
+              ? String(RUNSTATE.observation.run.id || "") : "";
+            const wasMine = was && was.run && flightId && was.run === flightId;
             const wasText = was && was.duration_s
-              ? `<span class="was" title="measured${was.date ? " on " + was.date : ""}${
-                  was.jobs > 1 ? `, across ${was.jobs} jobs of one cycle - first start to last end, so a wait between them is inside it` : ""}">${
-                  figuresAreOlder(RUNSTATE.observation) ? "last time " : ""}${secs(was.duration_s)}</span>`
+              ? `<span class="was" title="${wasMine ? "published by the cycle under way" : "measured"}${
+                  was.date ? " on " + was.date : ""}${
+                  was.jobs > 1 ? `, ${was.jobs} jobs of one cycle added up - the wait between them is in neither` : ""}">${
+                  figuresAreOlder(RUNSTATE.observation) && !wasMine ? "last time " : ""}${secs(was.duration_s)}</span>`
               : ``;
             // The third thing a phase can be, and the one that was missing:
             // over, in a run that has not published anything yet.
@@ -3278,8 +3352,13 @@
             ph.innerHTML = `<header><span class="pn">${p.n}</span><b>${p.label}</b>${
               tools.length ? `<span class="tool">${tools.join(" &middot; ")}</span>` : ``
             }${wasText}${doneText}${
-              since ? `<span class="elapsed" data-since="${since}">${elapsedText(since)}</span>` : ``
-            }<span class="wf">${p.workflow}</span></header>`;
+              since ? `<span class="elapsed" data-since="${since}" data-prior="${prior}"${
+                prior ? ` title="this phase's jobs in this cycle, added up - the wait between them is in neither"` : ``
+              }>${elapsedText(since, prior)}</span>` : ``
+            }${p.never_runs ? `<span class="gonephase">no longer runs</span>` : ``
+            }<span class="wf">${p.workflow}</span></header>${
+              p.never_runs ? `<p class="why phase-gone">${esc(p.never_runs)}</p>` : ``}`;
+            if (p.never_runs) ph.dataset.gone = "1";
             // A SHARED STATE IS SAID ONCE (ADR-0047 D3). The nodes are drawn,
             // asked what word they carry, and drawn again without it when every
             // one of them carries the same - and the same for the environment
@@ -3505,11 +3584,12 @@
                 // Merged when both documents name the SAME RUN, which is
                 // ADR-0062 D1's predicate again: not `is this the same phase`
                 // but `does this document belong to the same cycle`. The merge
-                // is the UNION - earliest start to latest end - so it measures
-                // what the live clock measures, hold included. A span that
-                // excluded the wait would be a truer description of the work and
-                // a second number that disagrees with the clock beside it, which
-                // is the defect being fixed.
+                // ADDS the two spans (ADR-0086). It was the union - earliest
+                // start to latest end - chosen so that this figure and the live
+                // clock would measure the same thing; they did, and the thing
+                // was wrong, because between phase 8's two teardowns sits a
+                // five-minute hold that is not teardown. Both now count the
+                // WORK, so they still agree.
                 //
                 // From DIFFERENT runs it keeps the one that finished LAST. That
                 // is the owner's path, where each environment is torn down by
@@ -3526,12 +3606,23 @@
                     const a = [had.started_at, span.started_at].filter(Boolean).sort();
                     const b = [had.finished_at, span.finished_at].filter(Boolean).sort();
                     const from = a[0], to = b[b.length - 1];
-                    const secs = from && to ? Math.round((Date.parse(to) - Date.parse(from)) / 1000) : null;
+                    // ADDED, NOT SPANNED (ADR-0086, correcting ADR-0083). The
+                    // union was chosen so this figure would measure what the live
+                    // clock measured - and both of them were measuring the wrong
+                    // thing: phase 8's two teardowns have a five-minute hold
+                    // between them, so eleven minutes of work read 21m 59s at
+                    // rest and 16m 21s live. The owner said it before the page
+                    // did. Both ends of the phase are kept for reference, the
+                    // figure is the WORK, and the clock beside it now adds the
+                    // same way - so the two still agree, over something true.
+                    const both = [had.duration_s, span.duration_s];
+                    const summed = both.every((v) => typeof v === "number" && v >= 0)
+                      ? both[0] + both[1] : null;
                     next.phases[id] = { ...span, started_at: from, finished_at: to,
-                                        // Only when both ends are readable. A merge
-                                        // that guessed a duration would be exactly
-                                        // the plausible number this file refuses.
-                                        duration_s: secs !== null && secs >= 0 ? secs : had.duration_s,
+                                        // Only when both are readable. A merge that
+                                        // guessed a duration would be exactly the
+                                        // plausible number this file refuses.
+                                        duration_s: summed !== null ? summed : had.duration_s,
                                         jobs: (had.jobs || 1) + 1 };
                     return;
                   }
@@ -3768,14 +3859,19 @@
            for the rest of the run it fell back to "nothing recorded yet" - which
            is what a phase that has NEVER run says. */
         function bindingState(observation, bindings) {
-          const none = { state: null, since: null };
+          const none = { state: null, since: null, prior: 0 };
           if (!observation || observation.error || !observation.run) return none;
           const run = observation.run;
           // A COMPLETED run says nothing here on purpose. Its publish step has
           // already run, so the figures and the reports beside each node are the
           // better answer, and "finished in this run" would sit over the top of
           // them until somebody started another cycle - permanently, most days.
-          if (run.status !== "in_progress" && run.status !== "waiting") return none;
+          // Any status but `completed` is a run still going, INCLUDING the
+          // `queued` between two of its own jobs (ADR-0086): a phase whose step
+          // is over stopped saying `finished in this run` for the length of that
+          // gap, and a node that had published went back to `not measured here`
+          // in the middle of the cycle that measured it.
+          if (run.status === "completed") return none;
           const jobs = observation.jobs || [];
           // ONE clock: the EARLIEST start among the bound steps that have
           // started at all, whatever they went on to do. A phase is busy from
@@ -3786,6 +3882,16 @@
           const earlier = (cur, at) => (at && (!cur || at < cur) ? at : cur);
           let since = null;
           let running = false, failed = false, finished = false;
+          // THE WORK, PER JOB, SO THE CLOCK CAN LEAVE THE WAIT OUT (ADR-0086).
+          // One phase can be bound to two jobs of the same cycle - phase 8 is
+          // stage's teardown and prod's, and between them sits the five-minute
+          // hold. Taking the earliest start and ticking from it read 16m 21s at
+          // 20:40 on 2026-09-11 for eleven minutes of teardown; the owner said
+          // it first, and he was right. So each bound job's own span is kept
+          // here, the finished ones are summed, and the clock adds only the
+          // running one's own elapsed on top.
+          const spans = {};
+          const span = (key) => (spans[key] = spans[key] || { start: null, end: null, live: false });
 
           (bindings || []).forEach((b) => {
             if (run.path !== b.path) return; // a different workflow is running
@@ -3797,21 +3903,40 @@
               // to ask, and a run cancelled while waiting never gets here.
               if (run.status === "waiting") {
                 running = true;
-                since = earlier(since, run.run_started_at || run.created_at);
+                const at = run.run_started_at || run.created_at;
+                since = earlier(since, at);
+                const sp = span(b.job); sp.start = earlier(sp.start, at); sp.live = true;
               } else if (job && job.status !== "queued") {
                 finished = true;
-                since = earlier(since, job.started_at || run.run_started_at);
+                const at = job.started_at || run.run_started_at;
+                since = earlier(since, at);
+                const sp = span(b.job);
+                sp.start = earlier(sp.start, at);
+                if (job.started_at && !sp.end) sp.end = job.started_at;
               }
               return;
             }
             if (!job) return;
+            const sp = span(b.job);
             (job.steps || []).forEach((s) => {
               if ((b.steps || []).indexOf(s.name) === -1) return;
               const at = s.started_at || job.started_at;
-              if (s.status === "in_progress") { running = true; since = earlier(since, at); }
-              else if (s.status !== "completed") return;
-              else if (s.conclusion === "failure") { failed = true; since = earlier(since, at); }
+              // A STEP THAT HAS NOT STARTED MOVES NOTHING, the clock included.
+              // Written the other way round first, and the fixtures said so at
+              // once: a queued step has no `started_at`, fell back to the JOB's,
+              // and dragged the phase's start back to the top of a job it had
+              // not reached - five hours, in the case that caught it.
+              if (s.status === "in_progress") {
+                running = true; since = earlier(since, at);
+                sp.start = earlier(sp.start, at); sp.live = true;
+                return;
+              }
+              if (s.status !== "completed") return;
+              if (s.conclusion === "failure") { failed = true; since = earlier(since, at); }
               else if (s.conclusion === "success") { finished = true; since = earlier(since, at); }
+              else return;
+              sp.start = earlier(sp.start, at);
+              if (s.completed_at && (!sp.end || s.completed_at > sp.end)) sp.end = s.completed_at;
               // Queued, skipped and cancelled say NOTHING, and do not move the
               // clock. A step that was skipped did not happen, and calling that
               // finished would put a green outline round a node this run never
@@ -3819,9 +3944,27 @@
             });
           });
 
-          if (running) return { state: "running", since: since };
-          if (failed) return { state: "failed", since: since };
-          if (finished) return { state: "finished", since: since };
+          // WHAT THE CLOCK MAY COUNT (ADR-0086). The finished jobs of this phase
+          // contribute their own spans; the running one contributes from its own
+          // start, not from the phase's first. What falls between two jobs - the
+          // hold, the queue, the runner coming up - belongs to neither and is
+          // counted by neither.
+          let prior = 0;
+          let liveStart = null;
+          Object.keys(spans).forEach((k) => {
+            const sp = spans[k];
+            if (sp.live) {
+              liveStart = earlier(liveStart, sp.start);
+              return;
+            }
+            if (!sp.start || !sp.end) return;
+            const secs = Math.round((Date.parse(sp.end) - Date.parse(sp.start)) / 1000);
+            if (secs > 0) prior += secs;
+          });
+
+          if (running) return { state: "running", since: liveStart || since, prior: prior };
+          if (failed) return { state: "failed", since: since, prior: 0 };
+          if (finished) return { state: "finished", since: since, prior: 0 };
           return none;
         }
 
@@ -3883,11 +4026,12 @@
           const envs = (observation && observation.envs) || [];
           (phases || []).forEach((p) => {
             const ph = bindingState(observation, p.live);
-            if (ph.state) out.phases[p.id] = { state: ph.state, since: ph.since };
+            if (ph.state) out.phases[p.id] = { state: ph.state, since: ph.since, prior: ph.prior || 0 };
             phaseNodes(p).forEach((n) => {
               if (n.live && n.live.length) {
                 const own = bindingState(observation, n.live);
-                if (own.state) out.nodes[n.id] = { state: own.state, since: own.since, via: "own" };
+                if (own.state) out.nodes[n.id] = { state: own.state, since: own.since,
+                                                   prior: own.prior || 0, via: "own" };
                 return;
               }
               if (!ph.state) return;
@@ -3993,10 +4137,25 @@
            the same one bindingState() uses for the opposite purpose, and the
            statuses are named here rather than shared because the two questions
            are not the same question and merging them would hide that. */
+        /* A RUN BETWEEN TWO OF ITS OWN JOBS IS STILL A RUN IN FLIGHT
+           (ADR-0086). This named the two statuses a run has while a job of it is
+           moving, and a cycle is neither of them for the two minutes between one
+           job ending and the next leaving the queue: GitHub reports `queued`,
+           and this page read that as `nothing is happening`. Watched on
+           2026-09-11 at 20:09, between `launch` and `promote / promote`: every
+           qualifier on the map went out at once - `from the previous run` off
+           the suites, `these figures are from the cycle before this one` off
+           both teardowns - and the text above the map dated a cycle that had
+           fifteen minutes left to run as THE LAST ONE THAT FINISHED. The panel
+           two inches away had it right in the same second: *run #20 is queued
+           and has not reported yet*.
+           There are four such gaps in a self-service cycle and the page reads
+           GitHub every 148 s, so the window is most of the gap, four times.
+           The question is not which of two statuses this is. It is whether the
+           run has finished, and only `completed` answers that. */
         function figuresAreOlder(observation) {
           if (!observation || observation.error || !observation.run) return false;
-          const s = observation.run.status;
-          return s === "in_progress" || s === "waiting";
+          return observation.run.status !== "completed";
         }
 
         /* What the BUCKET last observed about an environment, as the panel above
@@ -4029,6 +4188,14 @@
           const seen = observation && observation.environments
             ? observation.environments[env] : null;
           if (!seen || !seen.state) return "unknown";
+          // BEING TORN DOWN RIGHT NOW (ADR-0086). The panel says so because this
+          // map told it (announceTeardown()), and it comes back through the same
+          // door as every other environment word so that there is still one
+          // place deciding what a state word means. Watched on 2026-09-11 at
+          // 20:43: prod's teardown was five minutes in, the panel said UP with a
+          // live link to an application whose load balancer had already been
+          // deleted, and all eight nodes of the row stood at full colour.
+          if (seen.tearing) return "being-destroyed";
           if (seen.stale) {
             return seen.state === "destroyed" ? "destroyed-unverified" : "unknown";
           }
@@ -4143,9 +4310,32 @@
             return { word: "not created yet", note: "the cycle under way has not reached it",
                      cls: "unobserved", paint: "absent", ratio: null, live: false };
           }
-          if (rec.state === "measured") {
+          // TWO THINGS HAVE TO AGREE BEFORE THIS SAYS `created` (ADR-0086). The
+          // word comes from the join, which now asks the plan; this second test
+          // costs one comparison and covers the case the join cannot - a
+          // document written by an older publisher of this page's own bucket,
+          // which said `measured` on the old rule. A page that trusted the word
+          // alone would print `created` over it for as long as it sat there.
+          const planned = typeof rec.resources_planned === "number" ? rec.resources_planned : null;
+          const shortOfPlan = planned !== null && rec.resources_complete < planned;
+          if (rec.state === "measured" && !shortOfPlan) {
             return { word: "created", note: "observed by the cycle under way",
                      cls: "", paint: "measured", ratio: 1, live: false };
+          }
+          // A REAL FRACTION, BECAUSE THE PLAN IS A REAL TOTAL (ADR-0086,
+          // reversing ADR-0077's premise). The stream names every instance it
+          // will create before it creates any of them, so `resources_planned` is
+          // how many there will be - not how many have started, which is what
+          // grew under the old bar. Absent only for a stream that carried no
+          // plan, and there the wording below is unchanged.
+          if (planned !== null && planned > 0) {
+            const done = rec.resources_complete;
+            return {
+              word: "being created",
+              note: `${done} of ${planned} created`,
+              cls: "", paint: "working", live: true,
+              ratio: Math.max(0, Math.min(1, done / planned))
+            };
           }
           // NO FRACTION, BECAUSE THE DENOMINATOR IS NOT A TOTAL (ADR-0077).
           // `resources_observed` counts what has STARTED, not what there is:
@@ -4199,6 +4389,17 @@
           // them was not stale but permanently false. ADR-0043 D4 keeps what a
           // node does not know visible - this says which kind of not-knowing it
           // is.
+          // NOTHING MEASURES THIS ONE BECAUSE IT NO LONGER HAPPENS (ADR-0086).
+          // `observer: "nothing"` is not the same statement as `actions`: that
+          // one says the step runs and no timeline can carry it, this one says
+          // there is no step. The human approval is the only node here that is
+          // gone rather than unmeasurable, and the difference is exactly what
+          // the page got wrong - bound to `when: waiting`, it read `finished in
+          // this run` in cycles no person touched, for six days.
+          if (node.observer === "nothing") {
+            return { word: "removed", note: node.note || "",
+                     cls: "unobserved", gone: true };
+          }
           if (node.observer === "actions") {
             return { word: "not measured here", note: "its step is in Actions, not in a timeline",
                      cls: "unobserved", gone: false };
@@ -4223,6 +4424,17 @@
           // describing resources that are gone. The destroy node itself is the
           // one thing on the map a teardown DID measure, and it keeps its
           // figures.
+          // BEING DELETED WHILE YOU READ IT (ADR-0086). Not `destroyed`, which
+          // is an observation AWS made, and not `up` either: a job of this cycle
+          // is deleting it now and the next observation will say destroyed. The
+          // figures stay - they are this cycle's, the creation is what measured
+          // them - and the tile goes quiet, because what it describes is on its
+          // way out. `destroy.<env>` is exempt for the same reason it is exempt
+          // below: it is the node doing the deleting.
+          if (envs === "being-destroyed" && node.service !== "destroy") {
+            return { word: "being destroyed", note: "a job of the cycle under way is deleting this environment now",
+                     cls: "unobserved", gone: true };
+          }
           if (envs === "destroyed" && node.service !== "destroy") {
             return { word: "destroyed", note: "these figures are from the cycle that ended",
                      cls: "unobserved", gone: true };
@@ -4269,10 +4481,16 @@
         }
         /* ==== PAGE TENSE - end ================================================ */
 
-        const elapsedText = (iso) => {
+        /* `prior` is the work this phase already did in a job that has ENDED
+           (ADR-0086), and it is added rather than the clock being run from that
+           job's start: between phase 8's two teardowns sits a five-minute hold,
+           and a clock that spanned them read 16m 21s over eleven minutes of
+           work. Zero for every phase that runs as one job, which is seven of
+           the eight. */
+        const elapsedText = (iso, prior) => {
           const started = Date.parse(iso);
           if (!started) return "";
-          const s = Math.max(0, Math.round((Date.now() - started) / 1000));
+          const s = Math.max(0, Math.round((Date.now() - started) / 1000)) + (Number(prior) || 0);
           if (s < 60) return s + "s";
           const m = Math.floor(s / 60);
           if (m < 60) return m + "m " + (s % 60) + "s";
@@ -4284,7 +4502,7 @@
            layout work sixty times a minute to change four characters. */
         function tickElapsed() {
           document.querySelectorAll("#rows .phase > header .elapsed").forEach((el) => {
-            el.textContent = elapsedText(el.dataset.since);
+            el.textContent = elapsedText(el.dataset.since, el.dataset.prior);
           });
           // The open cost, for the same reason and at the same price: a few
           // characters, no render(). An environment that is up is spending money
@@ -4457,10 +4675,21 @@
             `The word on each node is what AWS says now, and the number beside a ` +
             `verb is the step on the map below that carries it. ` +
             (date
-              ? `The figures beside it were measured by the cycle that finished ${date}` +
-                (figuresAreOlder(RUNSTATE.observation)
-                  ? `, and something has run since &mdash; so they are the previous cycle's, whatever the words say.`
-                  : `.`)
+              // A CYCLE THAT PUBLISHED IS NOT A CYCLE THAT FINISHED (ADR-0086).
+              // `date` is the newest record's date, and a run publishes its
+              // records as each job ends - so mid-cycle this sentence dated the
+              // running cycle as the last one that FINISHED, and then said the
+              // figures were the previous cycle's, which the row header three
+              // lines below contradicted in the same second: `these figures are
+              // from the cycle under way`. Read together they were a page
+              // arguing with itself. So while a run is in flight the date is
+              // attached to the publishing, which is what it is a date of, and
+              // the rows keep the job of saying which cycle each figure belongs
+              // to - they have the record to answer from and this sentence does
+              // not.
+              ? (figuresAreOlder(RUNSTATE.observation)
+                  ? `A cycle is under way. The newest figures below were published ${date}, and each row says whether what it carries is this cycle's or the one before it.`
+                  : `The figures beside it were measured by the cycle that finished ${date}.`)
               : `Nothing has measured these resources yet, so there are no figures beside them.`);
         }
 
@@ -4527,6 +4756,7 @@
           const states = runLayerStates(RUNSTATE.observation, DATA.cycle.phases);
           RUNSTATE.phase = states.phases;
           RUNSTATE.node = states.nodes;
+          announceTeardown();
           // THE ESTATE IS PAINTED FIRST, AND WITHOUT THE RUN LAYER (ADR-0054
           // D3). A noun's word comes from the observation and its figures come
           // from the last cycle that measured it; the run layer is not
@@ -4645,7 +4875,12 @@
           sub.innerHTML =
           `Generated from <code>infra/</code> and <code>tests/</code>. ` +
           (date
-            ? `At rest it shows the last cycle that finished, dated ${date}; `
+            // The same correction as the estate's opening line (ADR-0086): a
+            // record is published when a JOB ends, so `the last cycle that
+            // finished` dated the one still running.
+            ? (figuresAreOlder(RUNSTATE.observation)
+                ? `A cycle is under way; what is drawn below is what has published so far, the newest of it ${date}, and every node says which cycle it is speaking for. `
+                : `At rest it shows the last cycle that finished, dated ${date}; `)
             : `Nothing has been measured into it yet, so every node below is unobserved; `) +
           `the map is on the page whether or not anything is running.` +
           (stalled
@@ -4776,6 +5011,27 @@
             .catch(() => {})
             .then(() => { rereading = false; redraw(); });
         });
+
+        /* THE ONE THING THIS MAP TELLS THE DASHBOARD (ADR-0086), and it is the
+           answer to a question only this half can ask. `destroy.<env>` carries
+           its own live binding (ADR-0081), so the map knows WHICH JOB OF THE RUN
+           IN FLIGHT is tearing which environment down; the panel knows what a
+           state word means and owns the badge. Neither learns the other's
+           internals - this carries an environment and a timestamp, the way
+           `cycle:observed` carries a run and a job list, and nothing else.
+
+           Sent on every paint, including the paint where nothing is being torn
+           down: the panel has to be told when a teardown ENDS, and an event that
+           only ever announced bad news would leave `being destroyed` on the
+           badge until something unrelated re-rendered it. */
+        function announceTeardown() {
+          const detail = {};
+          ENVS.forEach((env) => {
+            const n = RUNSTATE.node["destroy." + env];
+            detail[env] = n && n.state === "running" ? (n.since || true) : null;
+          });
+          document.dispatchEvent(new CustomEvent("cycle:teardown", { detail: detail }));
+        }
 
         function redraw() {
           paint();

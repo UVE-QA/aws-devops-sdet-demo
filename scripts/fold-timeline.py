@@ -133,6 +133,17 @@ class Operation:
         self.saw_terminal_summary = False
         self.resources: dict[str, dict] = {}
         self.order_seen: list[str] = []
+        # WHAT THE RUN SAID IT WOULD DO, BEFORE IT DID ANY OF IT (ADR-0086).
+        # `terraform apply -json <saved plan>` emits one `planned_change` per
+        # resource INSTANCE - count and for_each already expanded - and it emits
+        # every one of them before the first `apply_start`. That is the
+        # denominator ADR-0077 said did not exist: it said nothing knows how many
+        # there will be until the apply is over, which is true of
+        # `resources_observed` and false of the stream. Kept separate from
+        # `resources`, which is what HAPPENED: a planned instance that never
+        # started is not an observation of anything.
+        self.planned: dict[str, str | None] = {}
+        self.planned_order: list[str] = []
         self.diagnostics: list[dict] = []
         self.event_types: dict[str, int] = {}
         self.unparsed_lines = 0
@@ -243,6 +254,19 @@ class Operation:
             )
             return
 
+        if etype == "planned_change":
+            change = event.get("change") or {}
+            resource = change.get("resource") or {}
+            address = resource.get("addr")
+            if not address:
+                return
+            # The LAST word wins, the same rule the hooks follow: a stream that
+            # names an address twice is describing one instance, not two.
+            if address not in self.planned:
+                self.planned_order.append(address)
+            self.planned[address] = change.get("action")
+            return
+
         if etype in ("apply_start", "apply_progress", "apply_complete", "apply_errored"):
             self.consume_hook(etype, event, ts)
             return
@@ -336,6 +360,12 @@ class Operation:
             "finished_at": iso(self.last_ts),
             "duration_seconds": seconds_between(self.first_ts, self.last_ts),
             "counts": self.counts,
+            # Empty for a stream that carried no plan - an `apply` over an
+            # already-current state, or a capture that started late. `null` and
+            # `[]` are different answers here and the join downstream treats them
+            # as such: no plan means no denominator, not a denominator of zero.
+            "planned": [{"address": a, "action": self.planned[a]} for a in self.planned_order]
+            if self.planned_order else None,
             "resources": resources,
             "diagnostics": self.diagnostics,
             "stream": {

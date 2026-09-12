@@ -1,6 +1,6 @@
 # aws-devops-sdet-demo
 
-A deploy → test → approve → promote → destroy pipeline on AWS, which reports on
+A deploy → test → promote → destroy pipeline on AWS, which reports on
 itself and then deletes almost all of itself.
 
 **Live dashboard: https://demo.uveapp.net** — it stays online when every

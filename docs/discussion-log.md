@@ -6,6 +6,40 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
+**As of 2026-09-12 (40 — six things the page said while a cycle ran).** One
+record, **ADR-0086**, six decisions, and one cycle launched to watch the PAGE
+rather than the pipeline. The pipeline did everything it claims: six jobs green,
+prod up behind HTTPS and destroyed after its five visible minutes, both
+environments verified gone. **The page said six things that were not true while
+it did, not one of them caught by a gate, and two of them caught by the owner
+from a screenshot.**
+
+The board said *created* over a database that had not started building — and
+ADR-0077 had examined that exact reading one phase earlier, called it correct,
+and concluded that nothing can know the total until the apply is over. It can:
+`terraform apply -json` names every instance of the saved plan before it creates
+any of them, and this repository has had a fixture folding those events since
+Phase 20b. The tile carries a real fraction now.
+
+Between two jobs of one cycle GitHub reports the run as `queued`, which was in
+neither of the two statuses the page called *in flight* — so for most of each
+read window the map read as though the cycle were over, four times a cycle.
+prod was drawn **UP**, with a live link, five minutes into its own teardown,
+because the run that reported on it is the run that is deleting it; the map now
+sends the dashboard its first message ever to say which environment a job is
+tearing down. Phase 8's clock counted a five-minute hold as teardown, at rest and
+live both, which ADR-0083 had arranged deliberately so the two figures would
+agree — they agreed, over the wrong thing.
+
+And `approve` was still in the verb chain, with phase 5 reading *done* in a cycle
+no person touched. ADR-0068 removed the reviewer rule in Phase 33 and said so
+first, under what it cost. Six days ago ADR-0085's new gate found a copy of that
+chain missing `approve` and put it back: **a check that one fact is stated
+identically in three places cannot tell you the fact is false.** The chain is
+`deploy → test → promote → destroy` now, and phase 5 stays drawn, dashed and
+clockless, saying what took it away — because a pipeline that never had an
+approval gate and one that lost it must not look the same.
+
 **As of 2026-09-10 (39 — what four cycles and a pair of eyes found).** Eleven
 records, **ADR-0075**…**ADR-0085**, four real cycles across three days. The
 subject was a visual — make the estate board light up as a cycle builds it — and

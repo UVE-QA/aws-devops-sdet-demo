@@ -3969,7 +3969,37 @@ Found and fixed in passing, none of it the subject:
   out to be defended three times over.
 - Cost: four cycles, ≈ $0.09 each by the page's own fold. Nothing left behind on
   any of them.
-- Next allowed step: **nothing is queued.** Open and cold-startable: the request
+- Next allowed step: superseded by Phase 40 below.
+
+### Phase 40 — Six things the page said while a cycle ran  ⏳ IN PROGRESS 2026-09-12
+
+One cycle, launched to watch the page rather than the pipeline
+([#34641497290](https://github.com/UVE-QA/aws-devops-sdet-demo/actions/runs/34641497290),
+six jobs green, both environments destroyed, ≈ $0.09). The pipeline did
+everything it claims. **The page said six things that were not true while it did,
+two of them caught by the owner from a screenshot, none of them by a gate.**
+One record, **ADR-0086**, six decisions:
+
+- `created` over a database that had not started building — the denominator was
+  in Terraform's stream all along, as `planned_change`, and ADR-0077 said it did
+  not exist (D2)
+- the map reading as at-rest for most of each gap between two jobs of one cycle,
+  four times a cycle, because `queued` was not in a list of two statuses (D1)
+- prod drawn **UP**, with a live link, five minutes into its own teardown (D3)
+- a teardown clock of 16m over 11m of work, with a five-minute hold inside it,
+  and `last time` on a figure this run published twenty minutes earlier (D4, D5)
+- `approve` in the verb chain, and phase 5 reading **done**, in a pipeline where
+  ADR-0068 removed the reviewer rule six days earlier. ADR-0085's gate had made
+  all three copies of that chain agree — consistency is not truth (D6)
+
+Still to do in this phase: the owner's remaining list (the `Post …` steps in the
+run panel, the suites self-service does not run, the broken `Recent lifecycle
+runs` heading, the ECS wait counted as Provision, `UNKNOWN` while an apply is
+running, the cost box mid-cycle), and the board going dark as a teardown
+proceeds — the mirror of what Phase 39 built for the apply.
+
+- Next allowed step: **a live cycle that watches these six.** Everything above is
+  verified only by fixtures and one at-rest render. Open from before: the request
   path's home (`Details` by the sort, `Cycle` by meaning), a check that every
   `data-part` is one of the five, a check that a live binding ever matched a real
   job, and the phone — 2.2–4.4 screens per part, deferred by the owner. The

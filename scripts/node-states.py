@@ -259,6 +259,29 @@ def join(topology: dict, timeline: dict) -> dict:
     reads: list[str] = []
     unknown: list[str] = []
     matched = 0
+    # WHAT THE PLAN SAID THIS NODE WOULD GET (ADR-0086), classified by the same
+    # four-bucket rule as everything else - a planned instance of a group the map
+    # does not draw is not a member of anything, and must not inflate a
+    # denominator the page then draws a bar against.
+    #
+    # `None` and `0` are different answers: no planned_change events at all means
+    # the stream carried no plan and nothing here may be called a total, while a
+    # node with none of its own genuinely has nothing coming.
+    planned_counts: dict[str, int] | None = None
+
+    for op in timeline.get("operations", []):
+        for change in op.get("planned") or []:
+            if planned_counts is None:
+                planned_counts = {}
+            address = change.get("address") or ""
+            base = base_address(address)
+            action = change.get("action")
+            if action == "read":
+                continue
+            node_id = teardown if action == "delete" else members.get(base)
+            if not node_id:
+                continue
+            planned_counts[node_id] = planned_counts.get(node_id, 0) + 1
 
     for op in timeline.get("operations", []):
         for resource in op.get("resources", []):
@@ -302,18 +325,32 @@ def join(topology: dict, timeline: dict) -> dict:
             ):
                 dominant = resource
 
+        # EVERY MEMBER THAT FINISHED IS NOT EVERY MEMBER (ADR-0086). Against a
+        # COMPLETE timeline the two tests agree, and this file has always been
+        # written from one - but publish-progress.sh folds the same stream while
+        # terraform is still writing it (ADR-0076), and there `len(complete) ==
+        # len(resources)` means only *nothing is in flight at this instant*.
+        # Watched on 2026-09-11: stage.rds read `measured` at 19:57 with two of
+        # its four blocks - the subnet group and the security group - while the
+        # database itself had not started, and the page drew the word `created`
+        # over it. The plan is the answer: a node is done when as many instances
+        # have finished as the run said it would create.
+        planned = None if planned_counts is None else planned_counts.get(node_id, 0)
+        done = len(complete)
+        if planned is None:
+            settled = done == len(resources)
+        else:
+            settled = done == len(resources) and done >= planned
         nodes[node_id] = {
-            # A node is measured only when every member of it finished. The
-            # published file is written from a COMPLETE timeline anyway, so
-            # this is belt as well as braces - but a node quietly reporting a
-            # duration that stops in the middle of itself is exactly the
-            # plausible-looking half-truth 20b.1 was about.
-            "state": "measured" if len(complete) == len(resources) else "incomplete",
+            "state": "measured" if settled else "incomplete",
             "duration_s": seconds_between(min(starts), max(ends)) if starts and ends else None,
             "identifier": dominant.get("id_value") if dominant else None,
             "identifier_from": dominant.get("address") if dominant else None,
             "resources_observed": len(resources),
-            "resources_complete": len(complete),
+            "resources_complete": done,
+            # The denominator, or `null` where there is none. The page draws a
+            # fraction from this and from nothing else.
+            "resources_planned": planned,
         }
 
     # The same span, one level up: a phase is busy from the first apply_start

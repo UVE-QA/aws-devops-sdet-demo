@@ -64,6 +64,13 @@ def summarise(timeline: dict) -> dict:
                 "command": op["command"],
                 "status": op["status"],
                 "exit_code": op["exit_code"],
+                # WHAT THE RUN SAID IT WOULD DO (ADR-0086). Counted, not listed:
+                # the addresses are terraform's and the fixtures already assert
+                # those through `resources`. What this fixes is a number the page
+                # now draws a bar against, so the number is what a case names -
+                # and `null` where a stream carried no plan at all, which is a
+                # different answer from zero and has to stay one.
+                "planned": None if op["planned"] is None else len(op["planned"]),
                 "resources": verdicts,
                 "diagnostics": severities,
                 "stream": {

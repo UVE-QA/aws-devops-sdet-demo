@@ -793,6 +793,47 @@ function claimProgressAttributed({ meta, seen }, index) {
   return out;
 }
 
+/* WHAT THE PLAN SAID, DRAWN AS A FRACTION (ADR-0086). The partial reading now
+   carries `resources_planned` - how many instances the run's own plan named, which
+   is a total and, unlike `resources_observed`, does not grow. A tile painted from a
+   document whose node has finished fewer than that must SAY so and must not say
+   `created`: on 2026-09-11 the page called stage.rds created with its subnet group
+   and its security group built and the database not started.
+
+   Read out of the fixture's own document rather than hard-coded here, so a fixture
+   edited to a different shape moves this claim with it. */
+function claimProgressFraction({ meta, seen }, index) {
+  const out = [];
+  if (!(meta.cycle && meta.cycle.in_flight)) return out;
+  const doc = readJSON(path.join(LAYER, "status", "progress", "stage.json"));
+  const nodes = (doc && doc.nodes) || {};
+  let checked = 0;
+  for (const [id, rec] of Object.entries(nodes)) {
+    if (typeof rec.resources_planned !== "number") continue;
+    if (rec.resources_complete >= rec.resources_planned) continue;
+    checked += 1;
+    const drawn = seen.nodes.filter((n) => n.id === id)[0];
+    if (!drawn) {
+      out.push(`${id} is in the partial reading and is not on the page at all.`);
+      continue;
+    }
+    if (drawn.word === "created") {
+      out.push(`${id} says "created" with ${rec.resources_complete} of the ` +
+               `${rec.resources_planned} instances its own run planned.`);
+    }
+    const want = `${rec.resources_complete} of ${rec.resources_planned} created`;
+    if (!(drawn.state || "").includes(want) && !(drawn.text || "").includes(want)) {
+      out.push(`${id} draws no fraction: expected "${want}", the tile reads "${drawn.state}".`);
+    }
+  }
+  if (!checked) {
+    out.push("no node in the fixture's partial reading has finished fewer instances than " +
+             "its plan named, so this claim would be true of a page that ignores the " +
+             "denominator entirely.");
+  }
+  return out;
+}
+
 /* THE CONTROL THAT MUST DIFFER. Two renderings that agree would make every claim
    above true of a page that draws nothing at all. What must differ is named
    rather than hashed: the verdict, because one state has a run in flight, and at
@@ -866,7 +907,8 @@ async function main() {
     ["the verdict counts only the runs that finished", claimVerdict],
     ["a node nothing can ever measure never promises figures", claimNeverMeasured],
     ["a figure printed while a cycle is in flight says which cycle it is from", claimFiguresDated],
-    ["a partial reading is read only by the run that wrote it", claimProgressAttributed]
+    ["a partial reading is read only by the run that wrote it", claimProgressAttributed],
+    ["a node short of its plan says how many of how many", claimProgressFraction]
   ];
 
   let failed = 0;

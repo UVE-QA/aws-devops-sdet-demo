@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# BREAK TEST for the phase-span merge (Phase 39, ADR-0083).
+# BREAK TEST for the phase-span merge (Phase 39, ADR-0083; the merge became a
+# SUM in ADR-0086).
 #
 #     bash scripts/break-phase-span-merge.sh
 #
@@ -13,7 +14,9 @@
 # Three variants, and the third is the point:
 #
 #   [B] both documents name ONE run - the self-service shape - and the figure
-#       must be their UNION, not either one
+#       must be the two spans ADDED, not either one and not the span between
+#       them: phase 8's two teardowns have a five-minute hold in the middle, and
+#       the union counted it as teardown (ADR-0086)
 #   [C] the same fixture with the merge taken out of the page: the figure falls
 #       back to one job's span, which is what shows the merge did it
 #   [A]/[D] the tree as committed, where the two documents name DIFFERENT runs -
@@ -62,7 +65,9 @@ check() {  # check <label> <expected substring>
 }
 
 # stage 19:20:12 -> 19:31:30 (678s), prod 19:40:15 -> 19:52:20 (725s).
-# Union of the two: 19:20:12 -> 19:52:20 = 1928s = 32m 8s.
+# Added: 678 + 725 = 1403s = 23m 23s. The union of the same two - which is what
+# this asserted until ADR-0086 - would be 1928s, and the 525 seconds of
+# difference are the wait between the jobs, which is not teardown.
 one_cycle() {
   python3 - <<'PY'
 import json
@@ -77,9 +82,9 @@ PY
 echo "=== [A] as committed: two dispatches, two runs, one of them wins ==="
 check "the figure is one teardown's span" "12m 5s"
 
-echo "=== [B] one cycle tore both down: the figure is their union ==="
+echo "=== [B] one cycle tore both down: the figure is the two added ==="
 one_cycle
-check "stage 11m 18s + a wait + prod 12m 5s reads as 32m 8s" "32m 8s"
+check "stage 11m 18s + prod 12m 5s reads as 23m 23s, with the wait in neither" "23m 23s"
 
 echo "=== [C] same fixture, merge removed: it falls back to one job ==="
 python3 - <<'PY'
@@ -90,7 +95,7 @@ new = "                  const sameRun = false;"
 assert s.count(old) == 1, "the anchor moved; this variant would prove nothing"
 open(p, "w").write(s.replace(old, new))
 PY
-check "without the merge the union is not drawn" "12m 5s"
+check "without the merge the sum is not drawn" "12m 5s"
 restore
 
 echo "=== [D] control: restored, and back to one of the two ==="

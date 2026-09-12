@@ -54,6 +54,14 @@ claim.
 
 ## Consequences
 
+- **This gate proves consistency, and consistency is not truth** (ADR-0086). Its
+  first run put `approve` back into a chain that should not have contained it:
+  ADR-0068 had removed the reviewer rule from the `prod` environment six days
+  earlier and said so in its own Context, and this check made all three copies
+  agree on a claim that was already false. It is still worth what it costs — a
+  copy drifting apart within an hour is exactly what it caught — but a green
+  claim-chain says the page repeats itself, and nothing more.
+
 `scripts/break-claim-chain.sh`, six variants, all behaving as written:
 
     [A] control                                       agree

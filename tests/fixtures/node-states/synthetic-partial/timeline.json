@@ -1,0 +1,81 @@
+{
+  "_": "HAND-WRITTEN, and the second of the two that are (see synthetic/timeline.json for why the others are real runs). This one is a PARTIAL fold - what publish-progress.sh writes while terraform is still running - and it holds the exact shape that put the word `created` over a database nobody had started building: stage.alpha's plan names four instances, two have finished, and NOTHING IS IN FLIGHT at the instant of the fold. Under the old rule - every member that started has finished - that node read `measured`. A real run cannot be captured in this state reliably: it lasts as long as the gap between one resource finishing and the next one starting.",
+  "schema": "timeline/1",
+  "environment": "stage",
+  "status": "incomplete",
+  "reason": "the stream has no terminal change_summary",
+  "written_at": "2026-09-11T19:57:55Z",
+  "tool": "1.15.8",
+  "run": { "id": "synthetic-partial", "workflow": "self-service.yml" },
+  "started_at": "2026-09-11T19:56:30Z",
+  "finished_at": "2026-09-11T19:57:50Z",
+  "duration_seconds": 80.0,
+  "totals": {
+    "operations": 1,
+    "resources_observed": 3,
+    "resources_created": 3,
+    "resources_destroyed": 0
+  },
+  "operations": [
+    {
+      "order": 1,
+      "label": "apply",
+      "command": "apply",
+      "reached": "apply",
+      "status": "incomplete",
+      "exit_code": null,
+      "planned": [
+        { "address": "terraform_data.alpha", "action": "create" },
+        { "address": "terraform_data.beta", "action": "create" },
+        { "address": "terraform_data.gamma[0]", "action": "create" },
+        { "address": "terraform_data.gamma[1]", "action": "create" },
+        { "address": "terraform_data.quick", "action": "create" },
+        { "address": "module.pair.terraform_data.many", "action": "create", "_": "a group the map does not draw: planned, and not part of anybody's denominator" }
+      ],
+      "resources": [
+        {
+          "address": "terraform_data.alpha",
+          "module": "",
+          "type": "terraform_data",
+          "name": "alpha",
+          "action": "create",
+          "status": "complete",
+          "started_at": "2026-09-11T19:56:40Z",
+          "finished_at": "2026-09-11T19:56:57Z",
+          "elapsed_seconds": 17,
+          "last_progress_seconds": null,
+          "id_key": "id",
+          "id_value": "alpha-0001"
+        },
+        {
+          "address": "terraform_data.beta",
+          "module": "",
+          "type": "terraform_data",
+          "name": "beta",
+          "action": "create",
+          "status": "complete",
+          "started_at": "2026-09-11T19:56:40Z",
+          "finished_at": "2026-09-11T19:56:43Z",
+          "elapsed_seconds": 3,
+          "last_progress_seconds": null,
+          "id_key": "id",
+          "id_value": "beta-0001"
+        },
+        {
+          "address": "terraform_data.quick",
+          "module": "",
+          "type": "terraform_data",
+          "name": "quick",
+          "action": "create",
+          "status": "incomplete",
+          "started_at": "2026-09-11T19:57:30Z",
+          "finished_at": null,
+          "elapsed_seconds": null,
+          "last_progress_seconds": 20,
+          "id_key": null,
+          "id_value": null
+        }
+      ]
+    }
+  ]
+}

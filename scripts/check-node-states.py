@@ -101,7 +101,7 @@ def summarise(states: dict, expected_nodes: dict) -> dict:
             "resources_complete": node["resources_complete"],
             "identifier_present": node["identifier"] is not None,
         }
-        for key in ("duration_s", "identifier", "identifier_from"):
+        for key in ("duration_s", "identifier", "identifier_from", "resources_planned"):
             if key in want:
                 summary[key] = node[key]
         nodes[node_id] = summary
@@ -150,8 +150,14 @@ def compare(case: str, got: dict, expected: dict) -> list[str]:
 
 def discover() -> list[tuple[str, Path]]:
     cases = [(p.name, p) for p in sorted(CASES.iterdir()) if p.is_dir()]
-    if SYNTHETIC.is_dir():
-        cases.append(("synthetic", SYNTHETIC))
+    # Every HAND-WRITTEN case, not one of them (ADR-0086). There was exactly one
+    # and it was named in the code; the second - a fold taken while the apply is
+    # still running - had nowhere to go. A case is hand-written when it carries
+    # its own timeline.json, which is also what main() decides on, so the two
+    # cannot drift apart.
+    for path in sorted(FIXTURES.glob("synthetic*")):
+        if path.is_dir() and (path / "timeline.json").is_file():
+            cases.append((path.name, path))
     return cases
 
 
@@ -177,7 +183,7 @@ def main(argv: list[str] | None = None) -> int:
     findings: list[str] = []
     for name, path in cases:
         expected = json.loads((path / "expected.json").read_text(encoding="utf-8"))
-        if name == "synthetic":
+        if (path / "timeline.json").is_file():
             timeline = json.loads((path / "timeline.json").read_text(encoding="utf-8"))
         else:
             try:
@@ -195,7 +201,7 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     print(f"node-states: clean — {len(cases)} cases, "
-          f"{sum(1 for n, _ in cases if n != 'synthetic')} folded from real terraform runs")
+          f"{sum(1 for n, _ in cases if not n.startswith('synthetic'))} folded from real terraform runs")
     return 0
 
 

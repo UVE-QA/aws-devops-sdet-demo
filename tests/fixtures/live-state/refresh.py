@@ -20,6 +20,14 @@ does - which is the one thing a gate must never be.
 
 Run it when the bindings change on purpose, and read the diff: a case that goes
 red afterwards is the gate telling you a rename moved something.
+
+READ THIS BEFORE RUNNING IT NOW. The `approve` phase no longer binds anything:
+the reviewer rule came off the prod environment in ADR-0068 and ADR-0086 replaced
+its binding with `never_runs`. The snapshot in phases.json still carries the old
+`when: waiting` binding, deliberately, because two cases test that path and the
+code behind it is one GitHub UI toggle away from being live again. Refreshing
+drops the binding and reddens both. If you refresh, either put the two cases'
+subject back by hand or delete them knowingly — do not let a refresh decide it.
 """
 from __future__ import annotations
 

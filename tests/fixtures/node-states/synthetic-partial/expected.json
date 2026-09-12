@@ -1,0 +1,34 @@
+{
+  "description": "A fold taken WHILE the apply is running (ADR-0086). The plan named four instances for stage.alpha; two of them have finished and nothing is in flight, which under the old rule read `measured` and drew the word `created` over a node three quarters of which did not exist. The denominator comes from the plan and is classified by the same four-bucket rule as everything else: the planned instance of the hidden group inflates nothing.",
+  "environment": "stage",
+  "kind": "apply",
+  "observed": {
+    "resources": 3,
+    "matched": 3,
+    "not_shown": 0,
+    "read": 0,
+    "unknown": 0,
+    "nodes": 2
+  },
+  "not_shown": [],
+  "unknown": [],
+  "nodes": {
+    "stage.alpha": {
+      "state": "incomplete",
+      "resources_observed": 2,
+      "resources_complete": 2,
+      "resources_planned": 4,
+      "identifier_present": true
+    },
+    "stage.slow": {
+      "state": "incomplete",
+      "resources_observed": 1,
+      "resources_complete": 0,
+      "resources_planned": 1,
+      "identifier_present": false
+    }
+  },
+  "phase_ids": [
+    "stage-apply"
+  ]
+}
