@@ -27,11 +27,17 @@ taken off the list is the same defect as *seven state levels* was on
 
 ## Decision
 
-**D1. A band in `Details`: *What comes next*.** Five items in the order they
-will be done, each with a title, what it is and why it is there. The heading
-says what the band is: planned, none of it in `infra/`, the map draws none of
-it. Drawn as a numbered list rather than as cards, because cards on this page
-are for things that exist.
+**D1. A band in `Details`: *What comes next*.** The additional services the
+plan brings - `web`, `api`, the queue, the worker, the lab cluster, the worker's
+own schema - drawn as greyed tiles in the board's own vocabulary, each naming
+the step it arrives in. Written first as a numbered list of the five steps,
+on the argument that cards are for things that exist; the owner chose the
+tiles - *набор значков доп сервисов, пока обесцвеченных* - and he is right
+about what the vocabulary means: `absent` is already what this page draws for
+a noun a cycle has not reached, and a planned service is exactly that. The
+heading says what the band is: planned, none of it in `infra/`, the map draws
+none of it. The five steps stay in the data as the tiles' order and their
+reasons, and are what the plan document is checked against.
 
 **D2. Editorial data, generated onto the page, and refused two ways.** The
 items live in `assets/topology-groups.json` beside `outside` and
@@ -43,7 +49,12 @@ items live in `assets/topology-groups.json` beside `outside` and
   say something the plan does not (ADR-0085's shape: one fact, two copies, one
   check);
 - an id that names a display group or a node the map already draws - an item
-  that was built and never taken off the list.
+  that was built and never taken off the list;
+- a tile whose step is not an item of the plan, or a plan with items and no
+  tiles.
+
+`sqs` and `eks` carry a project glyph until their Architecture Icons are added
+to `assets/aws-icons/`, on the same terms as the eighteen already there.
 
 **D3. The plan itself, in `docs/next-phases.md`,** in the order the owner
 chose after the reasons were argued:

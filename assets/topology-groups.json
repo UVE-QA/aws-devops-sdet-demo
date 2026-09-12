@@ -980,6 +980,51 @@
         "what": "the pipeline, the estate and this page derived from a declared list of services instead of from one container",
         "why": "so the machinery around the application - the observed teardown, the cost fold, the gates - becomes a blueprint another project can declare its way into"
       }
+    ],
+    "_services": "THE TILES (ADR-0094 D1, as the owner chose it): the additional services the plan brings, drawn as greyed marks in the same board vocabulary as the estate - `absent` is what this page already draws for a noun a cycle has not reached, and a planned service is exactly that. Each tile names the step it arrives in, and the step must be an item above; the generator refuses one that is not. `sqs` and `eks` carry a project glyph until their Architecture Icons are added to assets/aws-icons/.",
+    "services": [
+      {
+        "id": "plan.web",
+        "label": "web",
+        "service": "ecs",
+        "step": "web-api-split",
+        "why": "the interface, in a container of its own"
+      },
+      {
+        "id": "plan.api",
+        "label": "api",
+        "service": "ecs",
+        "step": "web-api-split",
+        "why": "the domain, and the only thing that touches its schema"
+      },
+      {
+        "id": "plan.queue",
+        "label": "SQS + dead-letter queue",
+        "service": "sqs",
+        "step": "queue-worker",
+        "why": "the asynchronous seam between api and worker"
+      },
+      {
+        "id": "plan.worker",
+        "label": "worker",
+        "service": "ecs",
+        "step": "queue-worker",
+        "why": "consumes events; idempotent, retried, alarmed"
+      },
+      {
+        "id": "plan.eks",
+        "label": "EKS \u2014 lab",
+        "service": "eks",
+        "step": "same-digests-on-eks",
+        "why": "the same digests on a second runtime, beside stage and prod"
+      },
+      {
+        "id": "plan.workerdb",
+        "label": "worker's own schema",
+        "service": "rds",
+        "step": "data-ownership",
+        "why": "its own migrations; no shared tables"
+      }
     ]
   }
 }

@@ -841,6 +841,19 @@ def build():
             )
         if item.get("id") in {g["id"] for g in spec.get("groups", [])} or item.get("id") in reference_targets:
             findings.append(f"roadmap item {item['id']} names something the map already draws - built, and not taken off the plan")
+    # The tiles: each names the step it arrives in, and that step must be an
+    # item above. A tile without a step is a service with no reason on the page;
+    # a tile whose id is already drawn is a plan that was built.
+    for t in roadmap.get("services", []):
+        for key in ("id", "label", "service", "step", "why"):
+            if not t.get(key):
+                findings.append(f"roadmap tile {t.get('id') or '?'} has no `{key}`")
+        if t.get("step") and t["step"] not in seen_ids:
+            findings.append(f"roadmap tile {t['id']} arrives in step {t['step']!r}, which is not an item of the plan")
+        if t.get("id") in reference_targets:
+            findings.append(f"roadmap tile {t['id']} names something the map already draws - built, and not taken off the plan")
+    if not roadmap.get("services"):
+        findings.append("roadmap has items and no tiles; the page draws the tiles")
     if findings:
         raise Refusal("\n".join(findings))
 

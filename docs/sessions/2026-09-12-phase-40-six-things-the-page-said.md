@@ -287,7 +287,11 @@ the cost accepted, Argo CD and Flux still out.
 **ADR-0094** puts it on the page: a *What comes next* band in `Details`, drawn
 from the same editorial file as the map, refused by the same generator if the
 plan document stops naming an item - proven: a title the plan does not contain
-is `site-data: REFUSED`. Cards are for things that exist, so this is a list.
+is `site-data: REFUSED`. Written first as a numbered list - cards are for
+things that exist - and redrawn on the owner's word as greyed tiles of the
+services the plan brings, each naming its step: `absent` is what the board
+already draws for a noun a cycle has not reached, and a planned service is
+exactly that. `sqs` and `eks` carry a glyph until their icons are added.
 
 And `ci.yml` runs on `next` now. The gates have to run where the work is;
 nothing in CI publishes or touches AWS, so a branch run costs a runner.
