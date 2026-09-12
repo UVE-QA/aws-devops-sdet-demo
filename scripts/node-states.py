@@ -268,6 +268,9 @@ def join(topology: dict, timeline: dict) -> dict:
     # the stream carried no plan and nothing here may be called a total, while a
     # node with none of its own genuinely has nothing coming.
     planned_counts: dict[str, int] | None = None
+    # Per-noun DELETES, for the board (ADR-0090). Empty for an apply.
+    deleting: dict[str, list[dict]] = {}
+    deleting_planned: dict[str, int] | None = None
 
     for op in timeline.get("operations", []):
         for change in op.get("planned") or []:
@@ -279,6 +282,15 @@ def join(topology: dict, timeline: dict) -> dict:
             if action == "read":
                 continue
             node_id = teardown if action == "delete" else members.get(base)
+            if action == "delete":
+                # The same second reading as above, for the denominator: the plan
+                # of a destroy names every instance it will remove before it
+                # removes any, so a tile can say `3 of 4 destroyed` (ADR-0090).
+                member_of = members.get(base)
+                if member_of:
+                    if deleting_planned is None:
+                        deleting_planned = {}
+                    deleting_planned[member_of] = deleting_planned.get(member_of, 0) + 1
             if not node_id:
                 continue
             planned_counts[node_id] = planned_counts.get(node_id, 0) + 1
@@ -295,6 +307,17 @@ def join(topology: dict, timeline: dict) -> dict:
                 continue
             if resource.get("action") == "delete":
                 node_id = teardown
+                # AND WHICH NOUN IT WAS (ADR-0090). The line above is unchanged
+                # and is still the rule: a delete belongs to the destroy node,
+                # which stands for a whole level. But the ADDRESS also names a
+                # tile on the estate board, and without that the board could only
+                # go dark all at once - which is what the owner saw: *прод погас
+                # одновременно*. Recorded beside the four buckets rather than
+                # inside them, so `nodes` and `observed` mean exactly what they
+                # meant before and the record's shape does not move.
+                member_of = members.get(base)
+                if member_of:
+                    deleting.setdefault(member_of, []).append(resource)
             else:
                 node_id = members.get(base)
             if node_id:
@@ -353,6 +376,29 @@ def join(topology: dict, timeline: dict) -> dict:
             "resources_planned": planned,
         }
 
+    # THE BOARD, GOING DARK (ADR-0090). Same arithmetic as a node of an apply and
+    # a different verb: how many instances of this noun the destroy has removed,
+    # against how many its own plan named. `state` is `measured` when the noun is
+    # gone and `incomplete` while it is going; a noun the teardown has not reached
+    # is simply absent, exactly as it is during an apply.
+    deleting_states: dict[str, dict] = {}
+    for node_id, resources in deleting.items():
+        ends = [parse_ts(r.get("finished_at")) for r in resources]
+        starts = [parse_ts(r.get("started_at")) for r in resources]
+        ends = [e for e in ends if e]
+        starts = [s for s in starts if s]
+        complete = [r for r in resources if r.get("status") == "complete"]
+        planned = None if deleting_planned is None else deleting_planned.get(node_id, 0)
+        done = len(complete)
+        settled = done == len(resources) and (planned is None or done >= planned)
+        deleting_states[node_id] = {
+            "state": "measured" if settled else "incomplete",
+            "duration_s": seconds_between(min(starts), max(ends)) if starts and ends else None,
+            "resources_observed": len(resources),
+            "resources_complete": done,
+            "resources_planned": planned,
+        }
+
     # The same span, one level up: a phase is busy from the first apply_start
     # among ALL its nodes to the last apply_complete. Computed here rather than
     # on the page for the reason the whole join is here - and it could not be
@@ -392,6 +438,14 @@ def join(topology: dict, timeline: dict) -> dict:
         "schema": SCHEMA,
         "environment": environment,
         "kind": kind,
+        # Only a destroy has these (ADR-0090), and only the PARTIAL reading of
+        # one is DRAWN from them: at rest the estate reads `destroyed` from the
+        # environment's own observation, which is AWS answering rather than a run
+        # claiming. The record carries them anyway, because it is a record and
+        # they are what happened - the page simply does not consult it for a word
+        # it has a better source for. Absent for an apply rather than empty: the
+        # page tells the two apart and so does a reader of the document.
+        **({"deleting": deleting_states} if deleting_states else {}),
         "written_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "cycle": {
             "status": timeline.get("status"),

@@ -94,6 +94,12 @@ print(json.dumps({
     "kind": nodes.get("kind"),
     "observed": nodes.get("observed"),
     "nodes": nodes.get("nodes", {}),
+    # THE BOARD GOING DARK, ONE NOUN AT A TIME (ADR-0090). `nodes` under a
+    # destroy holds ONE entry - the whole level - because that is what a delete
+    # is matched by; this is the same deletes read a second way, by address, so
+    # the estate tiles can go out as they go rather than all at once. `None`
+    # under an apply, where the join produces none.
+    "deleting": nodes.get("deleting"),
     "unmatched": nodes.get("unmatched"),
 }, indent=2))
 PY

@@ -105,9 +105,17 @@ def summarise(states: dict, expected_nodes: dict) -> dict:
             if key in want:
                 summary[key] = node[key]
         nodes[node_id] = summary
+    out_deleting = {
+        node_id: {k: v for k, v in rec.items() if k != "duration_s"}
+        for node_id, rec in (states.get("deleting") or {}).items()
+    }
     return {
         "environment": states["environment"],
         "kind": states["kind"],
+        # Named only where a case names it, like duration_s and for the same
+        # reason: every apply case would otherwise have to write `null` for a key
+        # that cannot apply to it (ADR-0090).
+        **({"deleting": out_deleting} if out_deleting else {}),
         "observed": states["observed"],
         "not_shown": states["not_shown"],
         "read": states["read"],
@@ -125,8 +133,15 @@ def summarise(states: dict, expected_nodes: dict) -> dict:
 
 def compare(case: str, got: dict, expected: dict) -> list[str]:
     findings = []
-    for key in ("environment", "kind", "observed", "not_shown", "read", "unknown", "phase_ids", "phases"):
+    for key in ("environment", "kind", "observed", "not_shown", "read", "unknown",
+                "phase_ids", "phases", "deleting"):
         if key not in expected:
+            continue
+        if key not in got:
+            # A key the case names and the join stopped producing. It used to be
+            # a KeyError and a traceback, which is a failure that reads like a
+            # broken gate rather than a caught defect (ADR-0090).
+            findings.append(f"{case}: {key} is named by the case and the join produced none")
             continue
         if got[key] != expected[key]:
             findings.append(

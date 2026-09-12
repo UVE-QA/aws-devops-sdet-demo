@@ -3611,6 +3611,12 @@
                 const wroteIt = doc.cycle && doc.cycle.run && doc.cycle.run.id;
                 Object.keys(doc.nodes || {}).forEach((id) => {
                   next.nodes[id] = { ...doc.nodes[id],
+                                     // WHICH DIRECTION the record is of, for the
+                                     // same reason `published_by` is here
+                                     // (ADR-0090): one run publishes an apply's
+                                     // figures and then a teardown's, and the
+                                     // supersede rule has to tell them apart.
+                                     kind: doc.kind || null,
                                      published_by: wroteIt ? String(wroteIt) : null };
                 });
                 // The phase span, measured. Not the sum of its nodes: they
@@ -4355,14 +4361,36 @@
            is not over. */
         function nodeProgress(node, doc) {
           if (!doc || !node || !node.env) return null;
-          // AN APPLY, AND NOTHING ELSE. scripts/node-states.py matches a DELETE
-          // by environment rather than by address, on purpose - the destroy
-          // nodes are whole levels, and `destroy.stage` stands for all thirty
-          // blocks. So a teardown's join names one node and it is not a noun,
-          // and a document from one has nothing to say about any tile on this
-          // board. Read one anyway and every tile would report `the teardown has
-          // not reached it` for the whole teardown, which is inert and says it
-          // seven times.
+          // A TEARDOWN SPEAKS THROUGH A SECOND READING OF ITS OWN DELETES
+          // (ADR-0090). `nodes` under a destroy holds one entry, the whole
+          // level, because that is what a delete is MATCHED by - so this
+          // returned null and the board could only go dark all at once, which
+          // is what the owner saw on 2026-09-12: *прод погас одновременно*.
+          // `deleting` is the same deletes read by ADDRESS, published only in
+          // the partial document, and it is what lets a tile go out when its
+          // own resources go.
+          if (doc.kind === "destroy") {
+            const gone = (doc.deleting || {})[node.id] || null;
+            if (!gone) {
+              // STILL THERE, and that is a statement about AWS rather than about
+              // the run: the teardown has not reached this one, so it stands.
+              return { word: "still standing", note: "the teardown under way has not reached it",
+                       cls: "", paint: "measured", ratio: null, live: false };
+            }
+            const dplanned = typeof gone.resources_planned === "number" ? gone.resources_planned : null;
+            const ddone = gone.resources_complete;
+            if (gone.state === "measured" && !(dplanned !== null && ddone < dplanned)) {
+              return { word: "destroyed", note: "removed by the cycle under way",
+                       cls: "unobserved", paint: "absent", ratio: null, live: false };
+            }
+            return {
+              word: "being destroyed",
+              note: dplanned ? `${ddone} of ${dplanned} destroyed`
+                             : (ddone ? `${ddone} removed so far` : "nothing removed yet"),
+              cls: "", paint: "working", live: true,
+              ratio: dplanned ? Math.max(0, Math.min(1, ddone / dplanned)) : null
+            };
+          }
           if (doc.kind !== "apply") return null;
           const rec = (doc.nodes || {})[node.id] || null;
           // NOT `gone`. A node the apply has not reached was never measured by
@@ -4848,12 +4876,23 @@
             // fifteen seconds earlier over an unfinished stream has nothing to
             // add. Without this the board would keep showing `being created`
             // over an environment the same run had already reported complete.
+            // AND A RECORD OF THE APPLY DOES NOT SUPERSEDE A READING OF THE
+            // TEARDOWN (ADR-0090). In a self-service cycle one run does both:
+            // the launch job publishes this environment's node figures and the
+            // destroy job, forty minutes later, publishes a partial reading of
+            // itself - same run id, opposite direction. The rule above would
+            // have called the second one stale on the strength of the first and
+            // the board would have stayed lit through the teardown, which is the
+            // defect this whole pass exists to remove. What supersedes a partial
+            // reading is a record of the SAME KIND.
             const flight = flightHere(RUNSTATE.observation, n.env);
-            const reported = observed && observed.published_by && flight &&
+            const partial = progressHere(RUNSTATE.observation, n.env);
+            const sameKind = !partial || !observed ||
+                             (partial.kind === "apply" ? observed.kind !== "destroy"
+                                                       : observed.kind === "destroy");
+            const reported = observed && observed.published_by && flight && sameKind &&
                              String(observed.published_by) === String(flight);
-            n.progress = reported
-              ? null
-              : nodeProgress(n, progressHere(RUNSTATE.observation, n.env));
+            n.progress = reported ? null : nodeProgress(n, partial);
             if (observed) {
               n.duration_s = observed.duration_s;
               n.identifier = observed.identifier;

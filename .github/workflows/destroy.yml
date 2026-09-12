@@ -108,6 +108,27 @@ jobs:
           role-to-assume: ${{ steps.role.outputs.arn }}
           aws-region: ${{ vars.AWS_REGION }}
 
+      # WHAT THIS TEARDOWN HAS REMOVED, WHILE IT IS REMOVING IT (ADR-0090). The
+      # same watcher the launch and promote jobs use, on the same terms: it runs
+      # under the PUBLISH role and every step after this one is back on the
+      # deploy role - see .github/actions/watch-progress for why that works.
+      #
+      # It was left out of this workflow when ADR-0076 was written, and the
+      # reason given was that a teardown's join names one node, `destroy.<env>`,
+      # which is not a noun on the estate board. That was true of the join and
+      # is no longer: the same deletes are read a second way, by address, so the
+      # board can go dark one tile at a time instead of all at once - which is
+      # what the owner saw and said.
+      - name: Start the progress watcher
+        uses: ./.github/actions/watch-progress
+        with:
+          environment: ${{ inputs.environment }}
+          aws-region: ${{ vars.AWS_REGION }}
+          publish-role: ${{ vars.SITE_PUBLISH_ROLE_ARN }}
+          deploy-role: ${{ steps.role.outputs.arn }}
+          site-bucket: ${{ vars.SITE_BUCKET }}
+          stream-dir: ${{ env.TF_STREAM_DIR }}
+
       - name: Terraform init
         working-directory: infra/envs/${{ inputs.environment }}
         run: terraform init -input=false
@@ -389,6 +410,19 @@ jobs:
         with:
           role-to-assume: ${{ vars.SITE_PUBLISH_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
+
+      # AFTER the swap to the publish role, never before it: the removal is an
+      # `aws s3 rm` on the site bucket, and the deploy role holds nothing there.
+      # Put before the swap - which is where self-service.yml had it on
+      # 2026-09-08 - the step warns in yellow, the job stays green, and the
+      # document sits in the bucket describing an environment that no longer
+      # exists.
+      - name: Stop the progress watcher
+        if: always()
+        uses: ./.github/actions/stop-progress
+        with:
+          environment: ${{ inputs.environment }}
+          site-bucket: ${{ vars.SITE_BUCKET }}
 
       - name: Publish status to the dashboard
         if: always()

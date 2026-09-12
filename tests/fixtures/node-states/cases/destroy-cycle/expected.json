@@ -1,5 +1,5 @@
 {
-  "description": "Two destroy invocations, four deletes, one node. The destroy nodes stand for a whole state level rather than a group, so a delete is matched by ENVIRONMENT and never by address — which is also why the stub topology gives destroy.stage no members at all. Nothing carries an identifier: terraform's apply_complete for a delete has no id_key, and the page shows nothing rather than inventing one.",
+  "description": "Two destroy invocations, four deletes, one node. The destroy nodes stand for a whole state level rather than a group, so a delete is matched by ENVIRONMENT and never by address \u2014 which is also why the stub topology gives destroy.stage no members at all. Nothing carries an identifier: terraform's apply_complete for a delete has no id_key, and the page shows nothing rather than inventing one. Since ADR-0090 the same deletes are read a second way, by ADDRESS, so the estate tiles can go dark one at a time: `deleting` carries the noun, `nodes` still carries the level.",
   "environment": "stage",
   "kind": "destroy",
   "observed": {
@@ -22,5 +22,13 @@
   },
   "phase_ids": [
     "destroy"
-  ]
+  ],
+  "deleting": {
+    "stage.alpha": {
+      "state": "measured",
+      "resources_observed": 4,
+      "resources_complete": 4,
+      "resources_planned": 4
+    }
+  }
 }
