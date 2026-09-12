@@ -42,6 +42,14 @@ else: it still refuses when a copy cannot be found, still refuses when a copy ha
 no chain in it, and still fails when they disagree. Removing a copy removes a way
 for them to drift; it does not make the remaining two agree by themselves.
 
+**D4. The ways out go with it.** `repository →`, `N decision records →`,
+`Actions →` move to the right end of the same header line, opposite the name. They
+were in the identity bar, which lives in `Details` — so the source of a page whose
+whole argument is *go and check for yourself* was three clicks away from four of
+the five parts. What this is at one end of the line, where to verify it at the
+other, and the count of decision records still comes from `topology.json` rather
+than from the markup.
+
 ## Consequences
 
 - One fewer place to forget. ADR-0085's finding — a copy that dropped `approve`
@@ -51,6 +59,8 @@ for them to drift; it does not make the remaining two agree by themselves.
 - `Details` opens mid-argument by design. Read on its own it is a paragraph about
   a sentence that is on the screen; read from the top of the page it is the
   second half of one thought.
+- `Details` keeps the name, the live badge and the paragraph. It is a smaller
+  card than it was, and nothing that was on it is gone from the page.
 - The header row now carries a full sentence at 1280px and below without
   wrapping, because the name has a line of its own since ADR-0089 D6. If it ever
   does wrap, the clause is the part that should give ground — and the way to make

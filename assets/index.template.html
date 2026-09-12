@@ -280,9 +280,16 @@
          past its floor it ends in an ellipsis. The claim it states in full is
          three lines down in `Details`, and the gate that keeps the three copies
          identical reads the DOM, which an ellipsis does not touch. */
+      .identrow {
+        display: flex; align-items: baseline; gap: 0.75rem; flex-wrap: wrap;
+        justify-content: space-between; margin: 0 0 0.5rem;
+      }
       .ident-mark {
         display: flex; align-items: baseline; gap: 0.5rem; flex-wrap: wrap;
-        font-size: 0.95rem; margin: 0 0 0.5rem;
+        font-size: 0.95rem;
+      }
+      .identrow .links {
+        display: flex; flex-wrap: wrap; gap: 0.35rem 1rem; font-size: 0.84rem;
       }
       .ident-mark b { font-weight: 700; }
       /* THE NAME IS AN IDENTIFIER; THIS IS THE STATEMENT. `aws-devops-sdet-demo`
@@ -1341,9 +1348,21 @@
              above, and the line below is the tabs at one end and the control at
              the other, which is the arrangement the owner asked for and the one
              that stops competing for the same pixels. -->
-        <div class="ident-mark">
-          <b>aws-devops-sdet-demo</b>
-          <span class="ident-what">A deploy &rarr; test &rarr; promote &rarr; destroy pipeline on AWS, reporting on itself.</span>
+        <div class="identrow">
+          <div class="ident-mark">
+            <b>aws-devops-sdet-demo</b>
+            <span class="ident-what">A deploy &rarr; test &rarr; promote &rarr; destroy pipeline on AWS, reporting on itself.</span>
+          </div>
+          <!-- THE WAYS OUT, ON EVERY PART (ADR-0091 D4). They were in the
+               identity bar, which lives in `Details`, so the source of a page
+               whose whole argument is *go and check* was three clicks from every
+               part except one. Opposite the name on the same line: what this is
+               at one end, where to verify it at the other. -->
+          <nav class="links" id="idlinks">
+            <a href="https://github.com/UVE-QA/aws-devops-sdet-demo">repository &rarr;</a>
+            <a href="https://github.com/UVE-QA/aws-devops-sdet-demo/tree/main/docs/decisions"><b id="adr-count">&hellip;</b> decision records &rarr;</a>
+            <a href="https://github.com/UVE-QA/aws-devops-sdet-demo/actions">Actions &rarr;</a>
+          </nav>
         </div>
         <div class="controls">
         <nav class="parts" id="parts" role="tablist" aria-label="Which part of the page to show">
@@ -1531,11 +1550,6 @@
           level of its own, so it stays online when every workload environment is gone
           &mdash; which is most of the time, and is the point of it.
         </p>
-        <nav class="links">
-          <a href="https://github.com/UVE-QA/aws-devops-sdet-demo">repository &rarr;</a>
-          <a href="https://github.com/UVE-QA/aws-devops-sdet-demo/tree/main/docs/decisions"><b id="adr-count">&hellip;</b> decision records &rarr;</a>
-          <a href="https://github.com/UVE-QA/aws-devops-sdet-demo/actions">Actions &rarr;</a>
-        </nav>
       </div>
 
       <section data-part="detail" class="panel p-arch">
