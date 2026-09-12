@@ -103,6 +103,40 @@ an approval gate and one that lost it look identical on a map that draws neither
   seconds, so the fixture is what holds it.
 - `make gates` 13/13, the three browser gates green, contrast unchanged.
 
+## The verification cycle
+
+[#34661102791](https://github.com/UVE-QA/aws-devops-sdet-demo/actions/runs/34661102791),
+2026-09-12, six jobs green, both environments verified `destroyed`, ≈ $0.09.
+Watched against the published page, all five parts every 75 s. What it showed,
+in the order it happened:
+
+```text
+00:20  stage.rds   being created · 2 of 4 created     (would have read `created`)
+       stage.secrets                1 of 2 created
+       stage.alb                    2 of 4 created    - four, not five: stage has
+                                                        no HTTPS listener, and the
+                                                        plan knows that
+00:25  all seven stage nodes `created`, once the plan and the fact agreed
+00:33  prod.alb    2 of 5 created                     - five here, same code
+00:47  stage       BEING DESTROYED, no link, `observed before that began`
+01:00  prod        the row and all eight tiles grey, on a FRESH load
+01:01  phase 8     9m 42s                             (the old clock: 17m 01s)
+       phase 2     7m 39s, with no `last time` on it  - this run's own figure
+```
+
+One defect found by the cycle and fixed inside it: the panel's badge went to
+BEING DESTROYED while the seven tiles under it stayed at full colour, because
+the map's copy of the environment list was the one built before it answered.
+Thirty seconds of that on every fresh load; the dashboard now hands the map its
+own answer back on the same render.
+
+One left open, and it is the same shape one layer up: for one read window after a
+cycle ENDS, the sentence over the map and the estate's caption can disagree —
+*at rest* against *a cycle is under way*. Both are generated from
+`figuresAreOlder()`, both are in the redraw signature, and they still came apart
+once, for about ninety seconds. Not reproduced since; named rather than guessed
+at.
+
 ## Still open, from the same cycle
 
 The owner's list, not yet done: the run panel showing `Post …`/`Complete job` for

@@ -4005,8 +4005,17 @@ proceeds — the mirror of what Phase 39 built for the apply.
   it still carries the previous cycle's figures, which is what those variants
   need. Queued, named in ADR-0086.
 
-- Next allowed step: **a live cycle that watches these six.** Everything above is
-  verified only by fixtures and one at-rest render. Open from before: the request
+- **Verified by a live cycle**: #34661102791, six jobs green, both environments
+  destroyed, ≈ $0.09. `2 of 4 created` under a half-filled bar, `created` only
+  once the plan and the fact agreed, prod's row and all eight tiles grey on a
+  fresh load with the badge reading BEING DESTROYED, phase 8 at 9m 42s where the
+  old clock would have said 17m 01s, and no `last time` on this run's own figure.
+  Two things came out of it: the map now answers the panel on the same render
+  rather than the next tick (fixed), and after a cycle ENDS the map's sentence
+  and the estate's caption can disagree for one read window (open, named in the
+  session record).
+- Next allowed step: **the owner's remaining list** — items 7-13 of the review
+  and the board going dark through a teardown. Open from before: the request
   path's home (`Details` by the sort, `Cycle` by meaning), a check that every
   `data-part` is one of the five, a check that a live binding ever matched a real
   job, and the phone — 2.2–4.4 screens per part, deferred by the owner. The
