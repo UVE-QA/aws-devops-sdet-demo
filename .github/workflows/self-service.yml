@@ -114,6 +114,13 @@ jobs:
       # id: one self-service run creates an environment and destroys it again, so
       # a key of run id alone would have the second timeline overwrite the first.
       TF_STREAM_DIR: /tmp/tf-streams
+      # THE TWO PROBE NAMES, written through the browser by the regression suite
+      # and read out of RDS by an ECS task afterwards (ADR-0088 brings that pair
+      # onto the public path). Job level for the reason deploy-stage.yml gives:
+      # three steps use them and a value repeated in three places is a value that
+      # can disagree with itself.
+      UI_PROBE_NAME: ui-probe-${{ github.run_id }}-${{ github.run_attempt }}
+      UI_EDIT_PROBE_NAME: ui-edit-probe-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - name: Compute the deadline this environment carries
         id: deadline
@@ -255,19 +262,95 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Playwright smoke against the ALB
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+
+      # THE SAME SUITES THE OWNER'S PATH RUNS (ADR-0088). This was smoke alone,
+      # so that a visitor got a working environment rather than one a test suite
+      # had been writing to - and the cost of that was hidden in the promotion:
+      # `promote` is conditioned on `needs.launch.result == 'success'`, and with
+      # four tests behind that word the public path promoted a digest on a
+      # weaker proof than the owner's does with sixty-six. The environment is
+      # given back at the end of this job instead: the probes are removed and the
+      # seed is re-asserted, which is a cheaper thing to buy than a promotion
+      # gate.
+      - name: API contract tests against the ALB
+        env:
+          BASE_URL: ${{ steps.tf.outputs.alb_url }}
+        run: make test-api BASE_URL="$BASE_URL" API_JUNIT=/tmp/junit-api.xml
+
+      - name: Playwright smoke + regression against the ALB
         working-directory: tests/playwright
         env:
           BASE_URL: ${{ steps.tf.outputs.alb_url }}
         run: |
-          # SMOKE ONLY, and the project is named explicitly. The destructive
-          # regression suite belongs on stage and is deliberately left out here:
-          # a public launch is a demonstration under a deadline, and the visitor
-          # gets a working environment rather than one a test suite has been
-          # writing to. A bare `playwright test` would silently adopt both.
+          # Both projects named EXPLICITLY, exactly as in deploy-stage.yml: a
+          # bare `playwright test` would silently adopt any future project, which
+          # is how prod nearly inherited the destructive suite. One invocation,
+          # so the report that gets folded onto the map carries both.
           npm install
           npx playwright install --with-deps chromium
-          npx playwright test --project=smoke
+          npx playwright test --project=smoke --project=regression
+
+      - name: Assert the UI write reached RDS
+        env:
+          CLUSTER: ${{ steps.tf.outputs.cluster }}
+          TASK_DEF: ${{ steps.tf.outputs.task_def }}
+          CONTAINER: ${{ steps.tf.outputs.container }}
+          SUBNETS: ${{ steps.tf.outputs.subnets }}
+          SG: ${{ steps.tf.outputs.sg }}
+        run: |
+          # The browser created one row and renamed another. This reads the
+          # database directly, from a different process inside the VPC, which is
+          # the whole point of the pair and the half a public cycle never had.
+          scripts/ecs-run-task.sh ui-write-assert \
+            '["python","scripts/assert_ui_write.py"]' \
+            "$(jq -nc --arg v "$UI_PROBE_NAME" --arg e "$UI_EDIT_PROBE_NAME" \
+               '[{name:"UI_PROBE_NAME",value:$v},{name:"UI_EDIT_PROBE_NAME",value:$e}]')"
+
+      # GIVE THE ENVIRONMENT BACK (ADR-0088). The destructive suites clean up
+      # after themselves except for the two probes, which items.spec.ts leaves
+      # on purpose for the assertion above. They are removed here, through the
+      # application's own API - the same door the browser used - and then the
+      # seed is re-asserted, so what a visitor opens is the seeded demo and not
+      # the wreckage of a test run.
+      #
+      # Not `if: always()`: a failed suite leaves its evidence standing. This is
+      # tidying, and tidying up after a failure is how a failure gets lost.
+      - name: Remove the probes and re-assert the seed
+        env:
+          BASE_URL: ${{ steps.tf.outputs.alb_url }}
+          CLUSTER: ${{ steps.tf.outputs.cluster }}
+          TASK_DEF: ${{ steps.tf.outputs.task_def }}
+          CONTAINER: ${{ steps.tf.outputs.container }}
+          SUBNETS: ${{ steps.tf.outputs.subnets }}
+          SG: ${{ steps.tf.outputs.sg }}
+          TASK_LOG_DIR: /tmp/task-logs
+        run: |
+          set -euo pipefail
+          # One page is the whole table here: this environment is minutes old and
+          # holds the seed row, the probes, and whatever pagination.spec.ts
+          # created and then deleted in its own afterAll. 100 is the API's own
+          # ceiling. If a row ever did fall past it the seed assertion below
+          # still passes and a probe outlives the cycle by twenty minutes, which
+          # is the whole of the damage.
+          for name in "$UI_PROBE_NAME" "$UI_EDIT_PROBE_NAME"; do
+            id="$(curl -sf "$BASE_URL/api/items?limit=100" \
+                  | jq -r --arg n "$name" '.items[] | select(.name == $n) | .id' | head -1)"
+            if [ -n "$id" ]; then
+              curl -sf -X DELETE "$BASE_URL/api/items/$id" > /dev/null
+              echo "removed $name (id=$id)"
+            else
+              # Not a failure: the edit probe is a RENAME, so one of the two
+              # names is the row the other one became, and a suite that failed
+              # before creating them leaves neither.
+              echo "no row named $name"
+            fi
+          done
+          scripts/ecs-run-task.sh seed      '["python","scripts/seed.py"]'
+          scripts/ecs-run-task.sh db-assert '["python","scripts/assert_seed.py"]'
 
       - name: Observe what stage has in AWS
         if: always()

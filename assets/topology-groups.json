@@ -499,7 +499,9 @@
           "workflow": "self-service.yml",
           "job": "launch",
           "steps": [
-            "Playwright smoke against the ALB"
+            "API contract tests against the ALB",
+            "Playwright smoke + regression against the ALB",
+            "Assert the UI write reached RDS"
           ]
         }
       ],
@@ -538,7 +540,8 @@
               "workflow": "self-service.yml",
               "job": "launch",
               "steps": [
-                "Run one-off tasks (migrate, seed, db-assert)"
+                "Run one-off tasks (migrate, seed, db-assert)",
+                "Remove the probes and re-assert the seed"
               ]
             }
           ]
@@ -557,6 +560,13 @@
               "steps": [
                 "API contract tests against the ALB"
               ]
+            },
+            {
+              "workflow": "self-service.yml",
+              "job": "launch",
+              "steps": [
+                "API contract tests against the ALB"
+              ]
             }
           ]
         },
@@ -571,6 +581,14 @@
             {
               "workflow": "deploy-stage.yml",
               "job": "deploy",
+              "steps": [
+                "Playwright smoke + regression against the ALB",
+                "Assert the UI write reached RDS"
+              ]
+            },
+            {
+              "workflow": "self-service.yml",
+              "job": "launch",
               "steps": [
                 "Playwright smoke + regression against the ALB",
                 "Assert the UI write reached RDS"
@@ -597,7 +615,7 @@
               "workflow": "self-service.yml",
               "job": "launch",
               "steps": [
-                "Playwright smoke against the ALB"
+                "Playwright smoke + regression against the ALB"
               ]
             }
           ]
