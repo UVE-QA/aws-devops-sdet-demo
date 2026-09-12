@@ -253,6 +253,23 @@ than with the tag. Scan green locally with only *no fix yet* findings left,
 which the gate deliberately does not act on; the app brought up and smoked on
 the rebuilt image before anything was pushed.
 
+## The versioning that was never applied had been applied for a month
+
+Phase 28 recorded the dashboard bucket's versioning as *declared and not
+applied, not diagnosed*: the bucket answered empty on 2026-08-11 and the state
+object returned 403. Read again under `demo-admin`, once the owner had logged
+in: the bucket says `Enabled`, the resource is in the state with `Enabled`,
+`terraform plan` is *No changes*, and the state object reads without complaint
+- last written 2026-08-12 at 03:01, the morning after the finding, when the
+level was last applied. The oldest non-current version in the bucket is from
+2026-07-27. So the 08-11 reading was wrong about the bucket, and the item sat
+open for a month over a fact that was already true.
+
+What is genuinely missing is the rule that makes versioning sustainable: a
+lifecycle for non-current versions. Every fifteen-second progress write is a
+version and every removal a delete marker, and they are kept forever - the
+numbers are in the cursor. Proposed, not applied: it is a permanent level.
+
 ## Still open, from the same cycle
 
 The owner's list, not yet done: the run panel showing `Post …`/`Complete job` for

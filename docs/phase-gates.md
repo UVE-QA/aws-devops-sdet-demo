@@ -4035,12 +4035,24 @@ proceeds — the mirror of what Phase 39 built for the apply.
   tagged `demo-2026-09-12`; the work is on `next`; the page filters runs to
   `main` at the source, and the in-flight gate plants a failed `next` run that
   must be shown nowhere.
-- Next allowed step: **on `next`, first the bucket versioning of Phase 28** - it
-  is the rollback for a bad publish now. The countdown's red full-width banner
+- **The Phase 28 versioning item is closed, and it was closed on 2026-08-12
+  without anyone noticing.** Read under `demo-admin` on 2026-09-13: the site
+  bucket answers `Status: Enabled`, `aws_s3_bucket_versioning.site` is in the
+  level's state with `Enabled`, `terraform plan` says *No changes*, and the state
+  object that returned 403 on 08-11 reads fine - last written 2026-08-12 03:01,
+  which is when the level was last applied. The oldest non-current version is
+  from 2026-07-27, so the empty answer of 08-11 was wrong about the bucket, not
+  early. What versioning lacks is a lifecycle rule: every fifteen-second
+  progress write is a version, and they are kept forever: 3,445 versions and
+  127 delete markers on 2026-09-13, 70 MB of non-current data, 1,709 of them
+  under `reports/`, 1,129 under `status/`, and 48 versions of `index.html` -
+  which is the rollback stock, and the reason to keep them for a while.
+- Next allowed step: **a lifecycle rule for non-current versions on the site
+  bucket** (owner's yes needed - it is a permanent level). The countdown's red full-width banner
   is the owner's call. Open from before: the request path's home, a check that
   every `data-part` is one of the five, a check that a live binding ever matched
   a real job, the phone, the two break tests that stopped biting, the bucket
-  versioning of Phase 28 and the release-tag 403 of 2026-09-05. Open from before: the request
+  release-tag 403 of 2026-09-05. Open from before: the request
   path's home (`Details` by the sort, `Cycle` by meaning), a check that every
   `data-part` is one of the five, a check that a live binding ever matched a real
   job, and the phone — 2.2–4.4 screens per part, deferred by the owner. The
