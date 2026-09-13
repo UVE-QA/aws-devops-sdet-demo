@@ -95,12 +95,6 @@
     "note": "Planned, and deliberately not built yet. Nothing below is in infra/, the map draws none of it, and the order is the order it will be done in.",
     "items": [
       {
-        "id": "queue-worker",
-        "title": "A queue and a worker",
-        "what": "api publishes an event to SQS, a worker consumes it, with a dead-letter queue and an alarm on it",
-        "why": "asynchronous decoupling, idempotency and retries - the questions every interview asks - for pennies"
-      },
-      {
         "id": "data-ownership",
         "title": "Each service owns its data",
         "what": "the worker gets its own schema and its own migrations; services meet only through the queue and the API contract, and contract tests stand between them",
