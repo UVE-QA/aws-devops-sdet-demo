@@ -6,6 +6,35 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
+**As of 2026-09-13 (41 — the container is two, and a release is a set).** One
+record, **ADR-0095**, built on `next` the day before and run for real twice.
+The application is two containers — nginx serving the interface, FastAPI
+serving `/api/*` and `/health`, one load balancer routing by path, nothing
+calling anything; the ECS module is a cluster and a per-service module, the
+api alone holds the database secret; one registry per service; and a release
+is a set — the rollback pointer holds `{api, web}` written in one put, and a
+pre-split pointer is reported *not armed* rather than used.
+
+**The first cycle from `next` failed three ways, none of them the split.** A
+target-group name one character over the API's cap; the deploy role still
+naming the two ECS roles the phase had turned into four, which the teardown's
+sweep reported as four roles it *could not ask about* — red, correctly, one
+layer from the cause; and `destroy-prod` refused in two seconds with zero
+steps by the prod environment's `main`-only branch policy, which nothing in
+git could have shown. All three fixed with the owner's yes on the two that
+touch permanent state. **The second cycle was green end to end in 57 minutes**,
+every promise of the record read back from the account, and `main` is `next`
+now.
+
+**And the page said `unknown` over a file the cycle had just written.**
+ADR-0093's filter to the released line had reached the two questions that are
+about the environments rather than the cycle — is this reading current, is
+anything using stage now — and there is one stage, whichever branch's cycle
+touched it last. Those two are asked of every run now, and a foreign run is
+named with its branch; the cycle's views still see `main` alone. Two fixture
+states carry it, each shown to fail against the old rule before passing. Found
+by the owner from a screenshot, again.
+
 **As of 2026-09-12 (40 — six things the page said while a cycle ran).** One
 record, **ADR-0086**, six decisions, and one cycle launched to watch the PAGE
 rather than the pipeline. The pipeline did everything it claims: six jobs green,
