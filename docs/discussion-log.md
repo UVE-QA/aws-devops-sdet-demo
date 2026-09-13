@@ -6,6 +6,31 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
+**As of 2026-09-13 (44 — each service owns its data).** One record,
+**ADR-0098**, and the sentence the plan was written around made true in the
+smallest way that is still true. The worker stops writing the api's table: it
+gets a schema of its own, `worker.receipts`, with its own Alembic and its own
+version table; the api keeps `item_processing`, a projection of what the
+worker reported, and the client's two fields come from there through the same
+response - the API contract did not move, the ownership did. The two meet only
+through queues, in both directions: `item.created` out through an outbox
+written in the same transaction as the item and sent by a relay in the api's
+own process, `item.processed` back through a second queue, the worker deleting
+its message only after the report is sent so the message is its outbox.
+At-least-once on both sides, idempotent on both sides, said so on both. The
+contracts are files, JSON Schema with their own examples and counter-examples,
+and the unit suite holds both builders and both parsers to them.
+
+**One cycle proved it on three runtimes at once** - ECS task roles, IRSA, spot
+nodes - with the worker's migration as a one-off task and as a Helm hook.
+**And the owner's screen said three things while it ran**, each fixed and
+gated the same evening: the anonymous GitHub budget spent by a second list per
+poll; the button open over a running cycle when the history could not be
+read - it closes on the bucket's own pulse now, and closes when it cannot
+tell; and a report link to a `latest` that had never existed. The plan band
+lost the items that were built and gained the next one: the estate as a
+schema, decided before the manifest.
+
 **As of 2026-09-13 (43 — the same digests on EKS).** One record, **ADR-0097**,
 decided in one line of the owner's and built in four slices. A third
 environment beside stage and prod — its own VPC, database, secret and queue —
