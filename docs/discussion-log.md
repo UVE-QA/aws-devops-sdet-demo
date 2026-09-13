@@ -6,6 +6,32 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
+**As of 2026-09-13 (42 — a queue and a worker).** One record, **ADR-0096**,
+decided with the owner before a line was written and proven by one cycle the
+same day. The api publishes `item.created` after the commit; a worker in its
+own image — none of the api's code, one shared message contract — consumes it
+and stamps `processed_at` on the row. The statement is idempotent by
+construction, so at-least-once delivery costs nothing; a message the worker
+can never process is left, not deleted, so the dead-letter queue can fill and
+the alarm on it can fire — an alarm with no action, because there is nobody to
+page. Locally ElasticMQ stands in for SQS with the same redrive, and a break
+test walks a poison message into the dead-letter queue. Two debts taken
+knowingly and named: the worker writes the api's table until item 4 gives it
+data of its own, and the publish after the commit can be lost until an outbox
+has a home.
+
+**The first run found four things and the cycle found none.** Two contract
+tests raced the worker's stamp and now compare the fields the api owns; a
+helper named `queue.py` shadowed the standard library under boto3; SQS ARNs
+carry no kind and the sweep would have matched no rule; and the plan band was
+still showing tiles for services the board already drew. Cycle #26, 62
+minutes, green: three digests, a pointer of three names over a two-name one
+reported *not armed*, the worker consuming in Fargate, both queues and the
+alarm observed while up and gone afterwards. The owner, watching, asked what
+happens if a visitor presses the button during a cycle that did not come
+through it — and the answer, recorded as open, is that the endpoint's lock
+does not know, and GitHub's queue is what keeps it harmless.
+
 **As of 2026-09-13 (41 — the container is two, and a release is a set).** One
 record, **ADR-0095**, built on `next` the day before and run for real twice.
 The application is two containers — nginx serving the interface, FastAPI
