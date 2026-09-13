@@ -245,6 +245,26 @@ confirm_exists() {
       # By NAME: a deleted queue answers get-queue-url with NonExistentQueue
       # for up to a minute, which is the same "not there" the arms above read.
       aws sqs get-queue-url --region "$region" --queue-name "$id" >/dev/null 2>&1 ;;
+    # THE LAB'S KINDS (ADR-0097). A deleted cluster answers describe for a
+    # while with status DELETING, like an ECS cluster does with INACTIVE; the
+    # node group the same; an instance the node group started answers
+    # describe-instances as `terminated` for an hour after it is gone.
+    eks:cluster)
+      [ "$(aws eks describe-cluster --region "$region" --name "$id" \
+             --query "cluster.status" --output text 2>/dev/null)" = "ACTIVE" ] ;;
+    eks:nodegroup)
+      # `<cluster>/<nodegroup>/<uuid>` in the ARN.
+      [ "$(aws eks describe-nodegroup --region "$region" --cluster-name "${id%%/*}" \
+             --nodegroup-name "$(echo "$id" | cut -d/ -f2)" \
+             --query "nodegroup.status" --output text 2>/dev/null)" = "ACTIVE" ] ;;
+    ec2:instance)
+      [ "$(aws ec2 describe-instances --region "$region" --instance-ids "$id" \
+             --query "Reservations[0].Instances[0].State.Name" --output text 2>/dev/null)" = "running" ] ;;
+    ec2:launch-template)
+      aws ec2 describe-launch-templates --region "$region" --launch-template-ids "$id" >/dev/null 2>&1 ;;
+    iam:oidc-provider)
+      # IAM is global; no --region, as for iam:role.
+      aws iam get-open-id-connect-provider --open-id-connect-provider-arn "$arn" >/dev/null 2>&1 ;;
     iam:role)
       # THE ONLY ARM THAT SEPARATES "it is gone" FROM "I could not ask", and the
       # only one that has to (ADR-0041 D4). Every arm above returns non-zero for

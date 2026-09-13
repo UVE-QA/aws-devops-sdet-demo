@@ -193,7 +193,19 @@ jobs:
       # cancelled mid-apply. The LB alone releases the ENIs, which is all
       # this step is for; the SG leaves with the full destroy, together
       # with the rule that points at it.
+      # THE LAB'S BALANCER IS THE CHART'S, NOT TERRAFORM'S (ADR-0097 D6): the
+      # controller built it for the Ingress and only the controller deletes
+      # it, when the Ingress goes. So the chart is uninstalled here, and the
+      # script waits for the balancer to be GONE from AWS - not for helm to
+      # return - before the destroy below reaches the subnets it sits in. A
+      # lab whose cluster never came up has nothing to uninstall; the script
+      # says so and exits 0.
+      - name: Uninstall the application chart (the lab's balancer goes with it)
+        if: inputs.environment == 'lab'
+        run: scripts/lab-install.sh --uninstall
+
       - name: Destroy ALB first (release ENIs before the IGW)
+        if: inputs.environment != 'lab'
         working-directory: infra/envs/${{ inputs.environment }}
         run: >
           $GITHUB_WORKSPACE/scripts/tf-stream.sh destroy-alb
@@ -265,10 +277,24 @@ jobs:
           [ -n "$nat" ] && leftovers=$((leftovers+1))
           echo "::endgroup::"
 
-          echo "::group::EKS clusters (must be none in v0)"
-          eks=$(aws eks list-clusters --region "$REGION" --query "clusters" --output text)
+          # Scoped like the rest since the lab has one (ADR-0097): tearing
+          # stage down while the lab is up must not count the lab's cluster.
+          echo "::group::EKS clusters"
+          eks=$(aws eks list-clusters --region "$REGION" \
+            --query "clusters[?starts_with(@, '$PREFIX')]" --output text)
           echo "${eks:-<none>}"
           [ -n "$eks" ] && leftovers=$((leftovers+1))
+          echo "::endgroup::"
+          # The lab's nodes are instances the node group started; a node group
+          # that failed to delete leaves them running and billing.
+          echo "::group::EC2 instances tagged for this environment"
+          ec2=$(aws ec2 describe-instances --region "$REGION" \
+            --filters "Name=tag:Environment,Values=${{ inputs.environment }}" \
+                      "Name=tag:Project,Values=aws-devops-sdet-demo" \
+                      "Name=instance-state-name,Values=pending,running,stopping,stopped" \
+            --query "Reservations[].Instances[].InstanceId" --output text)
+          echo "${ec2:-<none>}"
+          [ -n "$ec2" ] && leftovers=$((leftovers+1))
           echo "::endgroup::"
 
           echo "::group::Unattached Elastic IPs"

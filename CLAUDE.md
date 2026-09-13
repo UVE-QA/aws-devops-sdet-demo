@@ -18,7 +18,8 @@ Key infra invariants (full detail in `docs/decisions/`):
   permanent and never destroyed by CI; only `infra/envs/*` are torn down.
   A fourth permanent level `infra/public-site` arrives in Phase 11.
 - DB password via Secrets Manager, never in repo.
-- No NAT Gateway, no EKS in v0.
+- No NAT Gateway. EKS only in the `lab` environment (ADR-0097), never in
+  stage or prod.
 
 ## Start of every session (do this first)
 

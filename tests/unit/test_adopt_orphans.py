@@ -203,16 +203,22 @@ def test_a_whole_cancelled_launch_maps_the_way_the_teardown_needs():
 def module_sources() -> dict[str, pathlib.Path]:
     """`module "rds" { source = "../../modules/rds" }` -> {rds: infra/modules/rds}.
 
-    Read from the environment that is actually wired up, not assumed from the
+    Read from the environments that are actually wired up, not assumed from the
     directory listing: a module present on disk and not referenced would pass a
-    check that only looked at `infra/modules`.
+    check that only looked at `infra/modules`. Every environment, since the
+    lab (ADR-0097) wires modules stage does not - the map is keyed by name
+    and one name resolves to one address wherever it exists.
     """
-    text = (REPO / "infra/envs/stage/main.tf").read_text(encoding="utf-8")
     found = {}
-    for name, source in re.findall(
-        r'module\s+"([^"]+)"\s*\{[^}]*?source\s*=\s*"([^"]+)"', text, re.S
-    ):
-        found[name] = (REPO / "infra/envs/stage" / source).resolve()
+    for env_dir in sorted((REPO / "infra/envs").iterdir()):
+        main = env_dir / "main.tf"
+        if not main.is_file():
+            continue
+        text = main.read_text(encoding="utf-8")
+        for name, source in re.findall(
+            r'module\s+"([^"]+)"\s*\{[^}]*?source\s*=\s*"([^"]+)"', text, re.S
+        ):
+            found[name] = (env_dir / source).resolve()
     return found
 
 
@@ -248,7 +254,7 @@ def test_every_address_exists_in_the_configuration():
         _, module, kind, name = address.split(".")
         directory = sources.get(module)
         if directory is None:
-            missing.append(f"{address}: no module '{module}' in infra/envs/stage")
+            missing.append(f"{address}: no module '{module}' in any infra/envs/*")
         elif resource_block(directory, kind, name) is None:
             missing.append(f'{address}: no resource "{kind}" "{name}" in {directory.name}')
     assert not missing, "\n".join(missing)
@@ -325,14 +331,21 @@ def test_the_permanent_deploy_role_is_not_adoptable():
 
 def test_the_names_to_probe_come_from_the_map():
     names = adopt_orphans.unindexed_names(PREFIX, ACCOUNT)
-    # Six since the worker (ADR-0095, ADR-0096): two roles per service.
+    # Six ECS roles (ADR-0095, ADR-0096) and the lab's five (ADR-0097), probed
+    # by every environment's teardown: a name with the wrong environment in
+    # it does not exist, and asking costs one NoSuchEntity.
     assert [entry["name"] for entry in names] == [
+        f"{PREFIX}-alb-controller",
         f"{PREFIX}-api-ecs-execution",
         f"{PREFIX}-api-ecs-task",
+        f"{PREFIX}-api-irsa",
+        f"{PREFIX}-eks-cluster",
+        f"{PREFIX}-eks-node",
         f"{PREFIX}-web-ecs-execution",
         f"{PREFIX}-web-ecs-task",
         f"{PREFIX}-worker-ecs-execution",
         f"{PREFIX}-worker-ecs-task",
+        f"{PREFIX}-worker-irsa",
     ]
     assert all(entry["kind"] == "iam:role" for entry in names)
 
@@ -500,8 +513,11 @@ def test_every_policy_on_a_mapped_role_is_declared_a_dependent():
     here is a DeleteConflict waiting for the next cancelled apply."""
     sources = module_sources()
     roles = adopt_orphans.RULES["iam:role"].addresses.values()
+    # Instance keys stripped: the node role's three attachments are one
+    # for_each block in the configuration and three addresses in the map.
     declared = {
-        address for entries in adopt_orphans.DEPENDENTS.values() for address, _ in entries
+        re.sub(r"\[.*\]$", "", address)
+        for entries in adopt_orphans.DEPENDENTS.values() for address, _ in entries
     }
     undeclared = []
     for module, directory in sorted(sources.items()):
@@ -524,3 +540,36 @@ def test_every_policy_on_a_mapped_role_is_declared_a_dependent():
     assert not undeclared, (
         "attached to an adoptable role and never adopted with it:\n" + "\n".join(undeclared)
     )
+
+
+# ---------------------------------------------------------------- the lab
+LAB = "aws-devops-sdet-demo-lab"
+
+
+def test_the_lab_cluster_and_node_group_import_by_their_own_ids():
+    """A cluster imports by name; a node group by `<cluster>:<nodegroup>`, which
+    is not the ARN's `<cluster>/<nodegroup>/<uuid>` (ADR-0097)."""
+    result = adopt_orphans.plan(
+        [f"arn:aws:eks:us-west-2:{ACCOUNT}:cluster/{LAB}-eks",
+         f"arn:aws:eks:us-west-2:{ACCOUNT}:nodegroup/{LAB}-eks/{LAB}-nodes/1a2b3c4d-0000"], {}, LAB
+    )
+    by_address = {e["address"]: e for e in result["adopt"]}
+    assert by_address["module.eks.aws_eks_cluster.this"]["import_id"] == f"{LAB}-eks"
+    assert by_address["module.eks.aws_eks_node_group.this"]["import_id"] == f"{LAB}-eks:{LAB}-nodes"
+
+
+def test_the_lab_roles_drag_their_policies():
+    """The node role carries three managed policies, each IRSA role one inline
+    policy (ADR-0097 D4); every one is declared, so DeleteRole cannot refuse."""
+    node = adopt_orphans.plan([f"arn:aws:iam::{ACCOUNT}:role/{LAB}-eks-node"], {}, LAB)
+    assert sorted(e["address"] for e in node["adopt"]) == [
+        "module.eks.aws_iam_role.node",
+        'module.eks.aws_iam_role_policy_attachment.node["AmazonEC2ContainerRegistryReadOnly"]',
+        'module.eks.aws_iam_role_policy_attachment.node["AmazonEKSWorkerNodePolicy"]',
+        'module.eks.aws_iam_role_policy_attachment.node["AmazonEKS_CNI_Policy"]',
+    ]
+    api = adopt_orphans.plan([f"arn:aws:iam::{ACCOUNT}:role/{LAB}-api-irsa"], {}, LAB)
+    assert {e["address"]: e["import_id"] for e in api["adopt"]} == {
+        "module.eks.aws_iam_role.api": f"{LAB}-api-irsa",
+        "module.eks.aws_iam_role_policy.api_publish_items": f"{LAB}-api-irsa:{LAB}-api-publish-items",
+    }

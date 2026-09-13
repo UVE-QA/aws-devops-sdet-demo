@@ -47,6 +47,12 @@ SAMPLES = {
     "rds:subgrp": f"arn:aws:rds:us-west-2:{ACCOUNT}:subgrp:demo-db-subnet-group",
     # The bare-name ARN, the one kind with no separator at all (ADR-0096).
     "sqs:queue": f"arn:aws:sqs:us-west-2:{ACCOUNT}:demo-stage-items",
+    # The lab's kinds (ADR-0097).
+    "eks:cluster": f"arn:aws:eks:us-west-2:{ACCOUNT}:cluster/demo-lab-eks",
+    "eks:nodegroup": f"arn:aws:eks:us-west-2:{ACCOUNT}:nodegroup/demo-lab-eks/demo-lab-nodes/1a2b3c4d-0000",
+    "ec2:instance": f"arn:aws:ec2:us-west-2:{ACCOUNT}:instance/i-0abc",
+    "ec2:launch-template": f"arn:aws:ec2:us-west-2:{ACCOUNT}:launch-template/lt-0abc",
+    "iam:oidc-provider": f"arn:aws:iam::{ACCOUNT}:oidc-provider/oidc.eks.us-west-2.amazonaws.com/id/ABCDEF",
     "elasticloadbalancing:loadbalancer": (
         f"arn:aws:elasticloadbalancing:us-west-2:{ACCOUNT}:loadbalancer/app/demo-alb/50dc6c49"
     ),

@@ -149,6 +149,18 @@ def _arn_itself(arn: Arn) -> str:
     return arn.raw
 
 
+def _nodegroup_name(arn: Arn) -> str:
+    """`<cluster>/<nodegroup>/<uuid>` -> the node group's name."""
+    parts = arn.tail.split("/")
+    return parts[1] if len(parts) > 1 else ""
+
+
+def _nodegroup_id(arn: Arn) -> str:
+    """Terraform imports a node group as `<cluster>:<nodegroup>`."""
+    parts = arn.tail.split("/")
+    return f"{parts[0]}:{parts[1]}" if len(parts) > 1 else ""
+
+
 def _sqs_url(arn: Arn) -> str:
     """`arn:aws:sqs:<region>:<account>:<name>` -> the queue URL Terraform imports."""
     parts = arn.raw.split(":")
@@ -258,8 +270,33 @@ RULES: dict[str, Rule] = {
             "web-ecs-execution": "module.web.aws_iam_role.execution",
             "worker-ecs-task": "module.worker.aws_iam_role.task",
             "worker-ecs-execution": "module.worker.aws_iam_role.execution",
+            # The lab's five (ADR-0097): the cluster's, the nodes', and the
+            # three IRSA roles. Their addresses exist in infra/envs/lab and
+            # nowhere else, which is fine for a map keyed by name: a stage
+            # teardown never meets a name with `-lab-` in it.
+            "eks-cluster": "module.eks.aws_iam_role.cluster",
+            "eks-node": "module.eks.aws_iam_role.node",
+            "api-irsa": "module.eks.aws_iam_role.api",
+            "worker-irsa": "module.eks.aws_iam_role.worker",
+            "alb-controller": "module.eks.aws_iam_role.controller",
         },
         import_id=_tail,
+    ),
+    # The lab's own kinds (ADR-0097). The cluster imports by name, the node
+    # group by `<cluster>:<nodegroup>`, the OIDC provider by ARN. What the
+    # node group starts - instances, a launch template - is the node group's
+    # to remove and is not adopted: an orphaned instance is reported by the
+    # sweep and terminated with its group.
+    "eks:cluster": Rule({"eks": "module.eks.aws_eks_cluster.this"}, import_id=_tail),
+    "eks:nodegroup": Rule(
+        {"nodes": "module.eks.aws_eks_node_group.this"},
+        import_id=_nodegroup_id,
+        name_from=_nodegroup_name,
+    ),
+    "iam:oidc-provider": Rule(
+        {"eks": "module.eks.aws_iam_openid_connect_provider.this"},
+        import_id=_arn_itself,
+        from_tag=True,
     ),
     # The two queues (ADR-0096). The ARN is the bare name (scripts/arns.py
     # calls the kind `queue`) and Terraform imports a queue by its URL, which
@@ -368,6 +405,39 @@ DEPENDENTS: dict[str, list[tuple[str, Callable[[str, str], str]]]] = {
         (
             "aws_iam_role_policy.worker_consume_items",
             lambda prefix, role: f"{role}:{prefix}-worker-consume-items",
+        ),
+    ],
+    # The lab's roles (ADR-0097): the cluster's carries one managed policy,
+    # the nodes' three, and each IRSA role its one inline policy.
+    "module.eks.aws_iam_role.cluster": [
+        (
+            "module.eks.aws_iam_role_policy_attachment.cluster",
+            lambda prefix, role: f"{role}/arn:aws:iam::aws:policy/AmazonEKSClusterPolicy",
+        ),
+    ],
+    "module.eks.aws_iam_role.node": [
+        (
+            f'module.eks.aws_iam_role_policy_attachment.node["{policy}"]',
+            (lambda p: (lambda prefix, role: f"{role}/arn:aws:iam::aws:policy/{p}"))(policy),
+        )
+        for policy in ("AmazonEKSWorkerNodePolicy", "AmazonEKS_CNI_Policy", "AmazonEC2ContainerRegistryReadOnly")
+    ],
+    "module.eks.aws_iam_role.api": [
+        (
+            "module.eks.aws_iam_role_policy.api_publish_items",
+            lambda prefix, role: f"{role}:{prefix}-api-publish-items",
+        ),
+    ],
+    "module.eks.aws_iam_role.worker": [
+        (
+            "module.eks.aws_iam_role_policy.worker_consume_items",
+            lambda prefix, role: f"{role}:{prefix}-worker-consume-items",
+        ),
+    ],
+    "module.eks.aws_iam_role.controller": [
+        (
+            "module.eks.aws_iam_role_policy.controller",
+            lambda prefix, role: f"{role}:{prefix}-alb-controller",
         ),
     ],
 }

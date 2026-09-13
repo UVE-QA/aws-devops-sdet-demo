@@ -4204,10 +4204,16 @@ now and the application through kubectl later.
   through the Ingress, the worker consuming through IRSA; uninstall and
   balancer gone in 38 s, destroy 38 resources in 11m53s (the node group
   8m10s of it). `chart-check` is a gate.
-- Next allowed step: **slice three** - the `lab` job in the cycle beside
-  `promote`, its teardown through destroy.yml with the uninstall first, the
-  GitHub Environment `lab` and its `OIDC_ROLE_ARN`, the sweep and the
-  adoption taught the lab's kinds. Then the first cycle with a lab.
+- **Slice three (the cycle) 2026-09-13**, written: `lab` and `destroy-lab`
+  jobs in `self-service.yml`, the lab's uninstall-then-destroy and scoped
+  checks in `destroy.yml`, five sweep arms, the adoption map's lab entries
+  (131 unit tests, drift gates over every environment's modules), the
+  observation's `eks` block. `CLAUDE.md`'s "no EKS" invariant is now "EKS
+  only in the lab". Gates 13/13. The GitHub Environment `lab` is created by
+  the first job that names it; the deploy role is resolved by name.
+- Next allowed step: **the first cycle with a lab**, from `next`, on the
+  owner's word - with the button pressed during it for ADR-0035's amended
+  refusal; what it shows goes here. Then slice four, the page.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

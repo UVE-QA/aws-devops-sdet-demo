@@ -53,7 +53,7 @@ nodes_json="${2:?usage: publish-progress.sh <environment> <nodes-json>}"
 : "${SITE_BUCKET:?SITE_BUCKET is not set}"
 
 case "$env_name" in
-  stage|prod) ;;
+  stage|prod|lab) ;;
   *) echo "publish-progress: unknown environment '$env_name'" >&2; exit 2 ;;
 esac
 

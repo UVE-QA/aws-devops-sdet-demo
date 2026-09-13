@@ -3,7 +3,7 @@
   "schema": 1,
   "counts": {
     "suites": 5,
-    "tests": 199
+    "tests": 201
   },
   "suites": {
     "api": {
@@ -326,7 +326,7 @@
     "unit": {
       "dir": "tests/unit",
       "collector": "pytest",
-      "count": 129,
+      "count": 131,
       "tests": [
         {
           "file": "tests/unit/test_access_log.py",
@@ -487,6 +487,14 @@
         {
           "file": "tests/unit/test_adopt_orphans.py",
           "name": "test_every_policy_on_a_mapped_role_is_declared_a_dependent"
+        },
+        {
+          "file": "tests/unit/test_adopt_orphans.py",
+          "name": "test_the_lab_cluster_and_node_group_import_by_their_own_ids"
+        },
+        {
+          "file": "tests/unit/test_adopt_orphans.py",
+          "name": "test_the_lab_roles_drag_their_policies"
         },
         {
           "file": "tests/unit/test_arns.py",

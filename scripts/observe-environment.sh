@@ -130,6 +130,42 @@ if [ -n "$queue_url" ] && [ "$queue_url" != "None" ]; then
     '{name: $name, visible: $visible, dead_letter_visible: $dlq_visible, dead_letter_alarm: $alarm}')"
 fi
 
+# ---- the lab's cluster (ADR-0097) -------------------------------------------
+#
+# Where an ECS environment has a cluster and services, the lab has a control
+# plane, a node group, and Deployments only kubectl can see. Read the same
+# way as everything above: what the API says now, null where it cannot. The
+# kubectl read needs a kubeconfig the cluster itself provides; a cluster that
+# is gone or not yet ACTIVE gives none, and the deployments are null rather
+# than an empty list - "could not ask" is not "nothing there".
+eks='null'
+eks_arn="$(aws eks list-clusters --region "$AWS_REGION" \
+  --query "clusters[?starts_with(@, '${prefix}')] | [0]" --output text 2>/dev/null || true)"
+if [ -n "$eks_arn" ] && [ "$eks_arn" != "None" ]; then
+  cluster_json="$(aws eks describe-cluster --region "$AWS_REGION" --name "$eks_arn" \
+    --query "cluster.{name:name,status:status,version:version}" --output json 2>/dev/null || echo null)"
+  nodegroup='null'
+  ng_name="$(aws eks list-nodegroups --region "$AWS_REGION" --cluster-name "$eks_arn" \
+    --query "nodegroups[0]" --output text 2>/dev/null || true)"
+  if [ -n "$ng_name" ] && [ "$ng_name" != "None" ]; then
+    nodegroup="$(aws eks describe-nodegroup --region "$AWS_REGION" --cluster-name "$eks_arn" \
+      --nodegroup-name "$ng_name" \
+      --query "nodegroup.{name:nodegroupName,status:status,desired:scalingConfig.desiredSize,instance_types:instanceTypes}" \
+      --output json 2>/dev/null || echo null)"
+  fi
+  deployments='null'
+  if [ "$(jq -r '.status // ""' <<<"$cluster_json")" = "ACTIVE" ] && command -v kubectl >/dev/null 2>&1; then
+    export KUBECONFIG="$(mktemp)"
+    if aws eks update-kubeconfig --region "$AWS_REGION" --name "$eks_arn" >/dev/null 2>&1; then
+      deployments="$(kubectl get deployments -n demo -o json 2>/dev/null \
+        | jq -c '[.items[] | {name: .metadata.name, ready: (.status.readyReplicas // 0), desired: (.spec.replicas // 0)}]' 2>/dev/null || echo null)"
+    fi
+    rm -f "$KUBECONFIG"; unset KUBECONFIG
+  fi
+  eks="$(jq -n --argjson cluster "$cluster_json" --argjson nodegroup "$nodegroup" --argjson deployments "$deployments" \
+    '{cluster: $cluster, node_group: $nodegroup, deployments: $deployments}')"
+fi
+
 # ---- database -------------------------------------------------------------
 rds="$(aws rds describe-db-instances --region "$AWS_REGION" \
   --query "DBInstances[?starts_with(DBInstanceIdentifier, '${prefix}')] | [0].{identifier:DBInstanceIdentifier,status:DBInstanceStatus}" \
@@ -147,7 +183,15 @@ rds="$(aws rds describe-db-instances --region "$AWS_REGION" \
 # was run against a torn-down environment - the one state the dashboard most
 # needs to report.
 present=0
-for observation in "$alb" "$service" "$rds"; do
+# THE THREE NOUNS THAT MAKE AN ENVIRONMENT `up`: its balancer, its runtime
+# and its database. The runtime is the api's ECS service everywhere but the
+# lab, where it is the cluster (ADR-0097) - and the balancer there is the
+# controller's, found by the same prefix because the chart names it so.
+runtime="$service"
+case "$env_name" in
+  lab) runtime="$eks" ;;
+esac
+for observation in "$alb" "$runtime" "$rds"; do
   if [ "$(jq -r 'if . == null then "0" else "1" end' <<<"$observation")" = "1" ]; then
     present=$((present + 1))
   fi
@@ -171,6 +215,7 @@ jq -n \
   --argjson ecs_web_service "$web_service" \
   --argjson ecs_worker_service "$worker_service" \
   --argjson queue "$queue" \
+  --argjson eks "$eks" \
   --argjson db_instance "$rds" \
   --argjson image "$image" \
   '{
@@ -188,6 +233,7 @@ jq -n \
        ecs_web_service: $ecs_web_service,
        ecs_worker_service: $ecs_worker_service,
        queue: $queue,
+       eks: $eks,
        db_instance: $db_instance
      }
    }'

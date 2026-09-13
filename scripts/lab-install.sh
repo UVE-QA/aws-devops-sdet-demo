@@ -24,7 +24,15 @@ REPOS=(api:aws-devops-sdet-demo-app web:aws-devops-sdet-demo-web worker:aws-devo
 
 out() { terraform -chdir="$ENV_DIR" output -raw "$1"; }
 
-cluster="$(out cluster_name)"
+cluster="$(out cluster_name 2>/dev/null || true)"
+if [ -z "$cluster" ]; then
+  if [ "${1:-}" = "--uninstall" ]; then
+    echo "no cluster in the lab's state - nothing to uninstall, and no balancer to wait for"
+    exit 0
+  fi
+  echo "::error::the lab's state has no cluster - apply infra/envs/lab first" >&2
+  exit 1
+fi
 namespace="$(out namespace)"
 aws eks update-kubeconfig --region "$REGION" --name "$cluster" >/dev/null
 

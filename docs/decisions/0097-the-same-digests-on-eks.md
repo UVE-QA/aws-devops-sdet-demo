@@ -137,7 +137,18 @@ not counted; they are observed, with the Ingress and its balancer, by a
   internet gateway waiting 6m44s on the nodes' interfaces - the lab's
   teardown is a node-group teardown. Afterwards the account holds the lab's
   deploy role and nothing else of the lab.
-- The adoption map and the sweep know nothing of the lab's kinds yet (cluster,
-  node group, OIDC provider, launch template, the controller's balancer); both
-  read stage's module map. Slice three, with the lab's teardown.
+- Slice three, 2026-09-13, written and not yet run: the `lab` job beside
+  `promote` in `self-service.yml` (its own deploy role by name, the watcher,
+  the apply, `lab-install.sh`, api contract and smoke against the Ingress,
+  the observation, the timeline, the results, the publish) and `destroy-lab`
+  after it; `destroy.yml` uninstalls the chart and waits for the balancer
+  before the destroy when the environment is the lab, skips the ECS-only
+  balancer step, scopes the EKS check to the environment and checks for
+  instances tagged with it. The sweep confirms clusters, node groups,
+  instances, launch templates and OIDC providers; the adoption map knows the
+  lab's five roles with their policies, the cluster, the node group and the
+  provider, and its drift gates now read every environment's modules. The
+  observation carries an `eks` block - cluster, node group, and the
+  Deployments through kubectl - and counts the cluster as the lab's runtime.
+  **The first cycle with a lab is the proof.**
 - Three lists of service names became four with the IRSA roles; plan item 5.
