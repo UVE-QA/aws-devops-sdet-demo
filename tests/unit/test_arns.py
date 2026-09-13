@@ -53,6 +53,10 @@ SAMPLES = {
     "ec2:instance": f"arn:aws:ec2:us-west-2:{ACCOUNT}:instance/i-0abc",
     "ec2:launch-template": f"arn:aws:ec2:us-west-2:{ACCOUNT}:launch-template/lt-0abc",
     "iam:oidc-provider": f"arn:aws:iam::{ACCOUNT}:oidc-provider/oidc.eks.us-west-2.amazonaws.com/id/ABCDEF",
+    "eks:access-entry": f"arn:aws:eks:us-west-2:{ACCOUNT}:access-entry/demo-lab-eks/role/{ACCOUNT}/AWSReservedSSO_Admin_abc/1a2b3c4d-0000",
+    "elasticloadbalancing:listener-rule": (
+        f"arn:aws:elasticloadbalancing:us-west-2:{ACCOUNT}:listener-rule/app/demo-lab-alb/fa18/b30f/2e6e"
+    ),
     "elasticloadbalancing:loadbalancer": (
         f"arn:aws:elasticloadbalancing:us-west-2:{ACCOUNT}:loadbalancer/app/demo-alb/50dc6c49"
     ),

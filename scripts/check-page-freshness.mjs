@@ -123,7 +123,8 @@ function loadSources() {
     jobs: readJSON(path.join(dir, "jobs.json")),
     status: {
       stage: readJSON(path.join(dir, "status-stage.json")),
-      prod: readJSON(path.join(dir, "status-prod.json"))
+      prod: readJSON(path.join(dir, "status-prod.json")),
+      lab: readJSON(path.join(dir, "status-lab.json"))
     },
     quota: readJSON(path.join(dir, "quota.json"))
   };
@@ -207,8 +208,8 @@ async function openPage(browser, origin, sources, layerRef, now) {
     const url = route.request().url();
     if (url.startsWith(origin)) {
       const rel = url.slice(origin.length).split("?")[0].replace(/^\/+/, "");
-      if (/^status\/(stage|prod)\.json$/.test(rel)) {
-        const env = rel.includes("stage") ? "stage" : "prod";
+      if (/^status\/(stage|prod|lab)\.json$/.test(rel)) {
+        const env = rel.match(/^status\/(stage|prod|lab)\.json$/)[1];
         return route.fulfill({ status: 200, contentType: "application/json",
                                body: JSON.stringify(sources.status[env]) });
       }

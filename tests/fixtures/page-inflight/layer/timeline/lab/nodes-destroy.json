@@ -1,0 +1,127 @@
+{
+  "schema": "node-states/1",
+  "environment": "lab",
+  "kind": "destroy",
+  "written_at": "2026-08-11T04:51:01Z",
+  "cycle": {
+    "status": "complete",
+    "date": "2026-08-11",
+    "started_at": "2026-08-11T04:39:02Z",
+    "finished_at": "2026-08-11T04:50:31Z",
+    "duration_seconds": 689.0,
+    "tool": {
+      "name": "terraform",
+      "version": "1.15.5",
+      "message": "Terraform 1.15.5"
+    },
+    "run": {
+      "id": "31461000098",
+      "number": "98",
+      "attempt": "1",
+      "workflow": "self-service",
+      "url": "https://github.com/UVE-QA/aws-devops-sdet-demo/actions/runs/31461000098"
+    }
+  },
+  "observed": {
+    "resources": 47,
+    "matched": 39,
+    "not_shown": 1,
+    "read": 7,
+    "unknown": 0,
+    "nodes": 7
+  },
+  "not_shown": [
+    "module.network.aws_default_security_group.this"
+  ],
+  "read": [
+    "data.aws_secretsmanager_secret_version.db",
+    "module.eks.data.aws_iam_policy_document.api_publish_items",
+    "module.eks.data.aws_iam_policy_document.irsa_trust[\"api\"]",
+    "module.eks.data.aws_iam_policy_document.irsa_trust[\"controller\"]",
+    "module.eks.data.aws_iam_policy_document.irsa_trust[\"worker\"]",
+    "module.eks.data.aws_iam_policy_document.worker_consume_items",
+    "module.eks.data.tls_certificate.oidc"
+  ],
+  "unknown": [],
+  "phases": {
+    "destroy": {
+      "duration_s": 689.0,
+      "started_at": "2026-08-11T04:39:02Z",
+      "finished_at": "2026-08-11T04:50:31Z"
+    }
+  },
+  "nodes": {
+    "lab.eks": {
+      "state": "measured",
+      "duration_s": 683.4,
+      "identifier": "aws-devops-sdet-demo-lab-eks",
+      "identifier_from": "module.eks.aws_eks_cluster.this",
+      "resources_observed": 16,
+      "resources_complete": 16,
+      "resources_planned": 16
+    },
+    "lab.k8s_api": {
+      "state": "measured",
+      "duration_s": 0.6,
+      "identifier": "aws-devops-sdet-demo-lab-api-irsa:aws-devops-sdet-demo-lab-api-publish-items",
+      "identifier_from": "module.eks.aws_iam_role_policy.api_publish_items",
+      "resources_observed": 2,
+      "resources_complete": 2,
+      "resources_planned": 2
+    },
+    "lab.k8s_worker": {
+      "state": "measured",
+      "duration_s": 0.6,
+      "identifier": "aws-devops-sdet-demo-lab-worker-irsa:aws-devops-sdet-demo-lab-worker-consume-items",
+      "identifier_from": "module.eks.aws_iam_role_policy.worker_consume_items",
+      "resources_observed": 2,
+      "resources_complete": 2,
+      "resources_planned": 2
+    },
+    "lab.queue": {
+      "state": "measured",
+      "duration_s": 45.6,
+      "identifier": "https://sqs.us-west-2.amazonaws.com/993912191738/aws-devops-sdet-demo-lab-items-dlq",
+      "identifier_from": "module.queue.aws_sqs_queue.dead_letter",
+      "resources_observed": 4,
+      "resources_complete": 4,
+      "resources_planned": 4
+    },
+    "lab.rds": {
+      "state": "measured",
+      "duration_s": 682.8,
+      "identifier": "db-BQVYLPV6PYJJD24W57UAZ4HYDE",
+      "identifier_from": "module.rds.aws_db_instance.this",
+      "resources_observed": 4,
+      "resources_complete": 4,
+      "resources_planned": 4
+    },
+    "lab.secrets": {
+      "state": "measured",
+      "duration_s": 683.4,
+      "identifier": "arn:aws:secretsmanager:us-west-2:993912191738:secret:aws-devops-sdet-demo-lab-db-credentials-cJnl8A",
+      "identifier_from": "module.rds.aws_secretsmanager_secret.db",
+      "resources_observed": 2,
+      "resources_complete": 2,
+      "resources_planned": 2
+    },
+    "lab.vpc": {
+      "state": "measured",
+      "duration_s": 14.4,
+      "identifier": "subnet-0979b5299ffcfdf88",
+      "identifier_from": "module.network.aws_subnet.public[0]",
+      "resources_observed": 9,
+      "resources_complete": 9,
+      "resources_planned": 9
+    },
+    "destroy.lab": {
+      "state": "measured",
+      "duration_s": 689.0,
+      "identifier": "lab",
+      "identifier_from": "the destroy run itself",
+      "resources_observed": 47,
+      "resources_complete": 47
+    }
+  },
+  "_": "SYNTHETIC from the lab's own documents of cycle #29 (34777285974, 2026-09-13), the first cycle with a lab (ADR-0097): timestamps shifted onto this fixture's clock and the run renamed to the fixture's newest self-service run, which is the run that writes the lab here. Shapes are the publishers' own. The destroy half: the apply's nouns at 0.6 of their time, plus destroy.lab at the 689 s cycle #29's teardown measured."
+}

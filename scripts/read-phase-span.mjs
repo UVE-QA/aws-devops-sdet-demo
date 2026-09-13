@@ -51,7 +51,7 @@ await p.clock.setFixedTime(new Date(meta.now));
 await p.route("**/*", async (route) => {
   const u = route.request().url();
   if (u.startsWith(origin)) {
-    const m = u.match(/\/status\/(stage|prod)\.json/);
+    const m = u.match(/\/status\/(stage|prod|lab)\.json/);
     if (m) return route.fulfill({ status: 200, contentType: "application/json",
       body: fs.readFileSync(path.join(STATE, `status-${m[1]}.json`)) });
     return route.continue();

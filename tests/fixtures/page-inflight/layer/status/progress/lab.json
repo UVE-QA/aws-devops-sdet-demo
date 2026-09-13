@@ -1,0 +1,50 @@
+{
+  "_": "SYNTHETIC from the lab's own documents of cycle #29 (34777285974, 2026-09-13), the first cycle with a lab (ADR-0097): timestamps shifted onto this fixture's clock and the run renamed to the fixture's newest self-service run, which is the run that writes the lab here. Shapes are the publishers' own. A partial reading naming a run that is NOT in flight in any state here, so the page must ignore it (ADR-0076).",
+  "partial": true,
+  "environment": "lab",
+  "taken_at": "2026-08-11T04:11:46Z",
+  "run": {
+    "id": "31461000098",
+    "number": "98",
+    "workflow": "self-service"
+  },
+  "kind": "apply",
+  "observed": {
+    "resources": 17,
+    "matched": 17,
+    "not_shown": 0,
+    "read": 0,
+    "unknown": 0,
+    "nodes": 4
+  },
+  "nodes": {
+    "lab.vpc": {
+      "state": "measured",
+      "duration_s": 24,
+      "identifier": "vpc-0af31c2b7e9d4a615",
+      "identifier_from": "module.network.aws_vpc.this",
+      "resources_observed": 6,
+      "resources_complete": 6,
+      "resources_planned": 6
+    },
+    "lab.secrets": {
+      "state": "measured",
+      "duration_s": 6,
+      "identifier": null,
+      "identifier_from": null,
+      "resources_observed": 2,
+      "resources_complete": 2,
+      "resources_planned": 2
+    },
+    "lab.rds": {
+      "state": "measured",
+      "duration_s": 281,
+      "identifier": "demo-stage-db",
+      "identifier_from": "module.rds.aws_db_instance.this",
+      "resources_observed": 4,
+      "resources_complete": 4,
+      "resources_planned": 4
+    }
+  },
+  "unmatched": null
+}

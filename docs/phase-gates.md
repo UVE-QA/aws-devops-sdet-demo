@@ -4228,8 +4228,24 @@ now and the application through kubectl later.
   matter of days; if it runs into the working week, the run in flight is to
   be shown from any branch, named with its branch, with only what FINISHED
   kept to the released line.
-- Next allowed step: **cycle #28 (34774107150)** with all three fixes; what
-  it shows goes here. Then slice four, the page.
+- **#28 (34774107150)**: sweeps green per environment, `destroy-lab` green
+  over a half-built lab; the lab fell at the node group - EKS validates its
+  service-linked role with the caller's `iam:GetRole` (`bootstrap-oidc` 1
+  changed, under the owner's standing yes for the day). **#29 (34777285974):
+  the lab end to end in CI** - apply 1146 s, chart 148 s, api contract and
+  smoke through the Ingress, the `eks` observation, teardown 13 m with the
+  balancer gone before the destroy, sweep clean, $0.040..$0.076. Red only on
+  the results fold: no `suite.api.lab` on the map.
+- **Slice four (the page) 2026-09-13**: three lab phases and `destroy.lab`
+  on the map; three environments everywhere the page listed two; the lab's
+  panel rows; 27 lab documents across every fixture family from cycle #29's
+  own; the in-flight gate's dated-figures claim narrowed for a destroyed
+  environment at rest; the teardown uninstalls before the revocation and the
+  sweep; two more sweep arms. page-inflight, page-freshness, contrast,
+  page-tense, live-state all green.
+- Next allowed step: **cycle #30** with the map that knows the lab - the
+  results fold, the destroy join and the page over real lab documents are
+  what it proves. Then merge.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

@@ -18,7 +18,7 @@
   "layout": {
     "wide_at": 6,
     "wide": [],
-    "columns": 8
+    "columns": 11
   },
   "request_path": {
     "note": "the request path to prod, and the tool behind each hop",
@@ -1364,8 +1364,196 @@
         ]
       },
       {
-        "id": "destroy",
+        "id": "lab-apply",
         "n": 8,
+        "label": "Apply — lab",
+        "workflow": "self-service.yml",
+        "live": [
+          {
+            "workflow": "self-service.yml",
+            "path": ".github/workflows/self-service.yml",
+            "job": "lab",
+            "when": "step",
+            "steps": [
+              "Terraform apply"
+            ]
+          }
+        ],
+        "never_runs": null,
+        "nodes": [],
+        "touches": [
+          {
+            "node": "lab.vpc",
+            "verb": "creates"
+          },
+          {
+            "node": "lab.secrets",
+            "verb": "creates"
+          },
+          {
+            "node": "lab.rds",
+            "verb": "creates"
+          },
+          {
+            "node": "lab.queue",
+            "verb": "creates"
+          },
+          {
+            "node": "lab.eks",
+            "verb": "creates"
+          },
+          {
+            "node": "lab.k8s_api",
+            "verb": "creates"
+          },
+          {
+            "node": "lab.k8s_worker",
+            "verb": "creates"
+          }
+        ]
+      },
+      {
+        "id": "lab-install",
+        "n": 9,
+        "label": "Install — lab",
+        "workflow": "self-service.yml",
+        "live": [
+          {
+            "workflow": "self-service.yml",
+            "path": ".github/workflows/self-service.yml",
+            "job": "lab",
+            "when": "step",
+            "steps": [
+              "Install the chart with the digests stage tested"
+            ]
+          }
+        ],
+        "never_runs": null,
+        "nodes": [
+          {
+            "id": "lab.chart",
+            "tool": "helm",
+            "label": "chart + migrate + seed",
+            "service": "eks",
+            "kind": "task",
+            "observer": "actions",
+            "live": [
+              {
+                "workflow": "self-service.yml",
+                "path": ".github/workflows/self-service.yml",
+                "job": "lab",
+                "when": "step",
+                "steps": [
+                  "Install the chart with the digests stage tested"
+                ]
+              }
+            ],
+            "env": "lab"
+          }
+        ],
+        "touches": [
+          {
+            "node": "lab.eks",
+            "verb": "provisions"
+          },
+          {
+            "node": "lab.k8s_api",
+            "verb": "provisions"
+          },
+          {
+            "node": "lab.k8s_worker",
+            "verb": "provisions"
+          },
+          {
+            "node": "lab.rds",
+            "verb": "provisions"
+          }
+        ]
+      },
+      {
+        "id": "lab-gate",
+        "n": 10,
+        "label": "Quality gate — lab",
+        "workflow": "self-service.yml",
+        "live": [
+          {
+            "workflow": "self-service.yml",
+            "path": ".github/workflows/self-service.yml",
+            "job": "lab",
+            "when": "step",
+            "steps": [
+              "API contract tests against the Ingress",
+              "Playwright smoke against the Ingress"
+            ]
+          }
+        ],
+        "never_runs": null,
+        "nodes": [
+          {
+            "id": "suite.api.lab",
+            "label": "API contract",
+            "service": "suite",
+            "kind": "suite",
+            "env": "lab",
+            "observer": "report",
+            "suite": "api",
+            "suite_dir": "tests/api",
+            "asserts": "the paginated envelope, partial update, request id — DESTRUCTIVE",
+            "spec_files": 3,
+            "live": [
+              {
+                "workflow": "self-service.yml",
+                "path": ".github/workflows/self-service.yml",
+                "job": "lab",
+                "when": "step",
+                "steps": [
+                  "API contract tests against the Ingress"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "suite.smoke.lab",
+            "label": "smoke",
+            "service": "suite",
+            "kind": "suite",
+            "env": "lab",
+            "observer": "report",
+            "suite": "smoke",
+            "suite_dir": "tests/playwright/tests/smoke",
+            "asserts": "the page loads and the app reaches its database — read-only",
+            "spec_files": 1,
+            "live": [
+              {
+                "workflow": "self-service.yml",
+                "path": ".github/workflows/self-service.yml",
+                "job": "lab",
+                "when": "step",
+                "steps": [
+                  "Playwright smoke against the Ingress"
+                ]
+              }
+            ]
+          }
+        ],
+        "touches": [
+          {
+            "node": "lab.eks",
+            "verb": "asserts"
+          },
+          {
+            "node": "lab.k8s_api",
+            "verb": "asserts"
+          },
+          {
+            "node": "lab.rds",
+            "verb": "asserts"
+          }
+        ]
+      },
+      {
+        "id": "destroy",
+        "n": 11,
         "label": "Destroy",
         "workflow": "destroy.yml",
         "live": [
@@ -1396,6 +1584,16 @@
             "when": "step",
             "steps": [
               "Destroy ALB first (release ENIs before the IGW)",
+              "Terraform destroy"
+            ]
+          },
+          {
+            "workflow": "self-service.yml",
+            "path": ".github/workflows/self-service.yml",
+            "job": "destroy-lab / destroy",
+            "when": "step",
+            "steps": [
+              "Uninstall the application chart (the lab's balancer goes with it)",
               "Terraform destroy"
             ]
           }
@@ -1446,6 +1644,29 @@
             ],
             "resources": 52,
             "level": "infra/envs/prod",
+            "tool": "terraform"
+          },
+          {
+            "id": "destroy.lab",
+            "label": "lab — everything above",
+            "service": "destroy",
+            "kind": "service",
+            "env": "lab",
+            "observer": "terraform",
+            "live": [
+              {
+                "workflow": "self-service.yml",
+                "path": ".github/workflows/self-service.yml",
+                "job": "destroy-lab / destroy",
+                "when": "step",
+                "steps": [
+                  "Uninstall the application chart (the lab's balancer goes with it)",
+                  "Terraform destroy"
+                ]
+              }
+            ],
+            "resources": 35,
+            "level": "infra/envs/lab",
             "tool": "terraform"
           }
         ],
@@ -1517,6 +1738,34 @@
           {
             "node": "prod.budgets",
             "verb": "destroys"
+          },
+          {
+            "node": "lab.vpc",
+            "verb": "destroys"
+          },
+          {
+            "node": "lab.secrets",
+            "verb": "destroys"
+          },
+          {
+            "node": "lab.rds",
+            "verb": "destroys"
+          },
+          {
+            "node": "lab.queue",
+            "verb": "destroys"
+          },
+          {
+            "node": "lab.eks",
+            "verb": "destroys"
+          },
+          {
+            "node": "lab.k8s_api",
+            "verb": "destroys"
+          },
+          {
+            "node": "lab.k8s_worker",
+            "verb": "destroys"
           }
         ]
       }
@@ -1555,6 +1804,7 @@
         "asserts": "the paginated envelope, partial update, request id — DESTRUCTIVE",
         "spec_files": 3,
         "run_by": [
+          "suite.api.lab",
           "suite.api.stage"
         ],
         "not_in_cycle": null
@@ -1579,6 +1829,7 @@
         "asserts": "the page loads and the app reaches its database — read-only",
         "spec_files": 1,
         "run_by": [
+          "suite.smoke.lab",
           "suite.smoke.prod",
           "suite.smoke.stage"
         ],

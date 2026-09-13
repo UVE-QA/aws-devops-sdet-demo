@@ -310,7 +310,8 @@ function readState(state) {
     jobs: readJSON(path.join(dir, "jobs.json"), "the current run's steps"),
     status: {
       stage: readJSON(path.join(dir, "status-stage.json"), "what the bucket last observed of stage"),
-      prod: readJSON(path.join(dir, "status-prod.json"), "what the bucket last observed of prod")
+      prod: readJSON(path.join(dir, "status-prod.json"), "what the bucket last observed of prod"),
+      lab: readJSON(path.join(dir, "status-lab.json"), "what the bucket last observed of the lab")
     },
     quota: readJSON(path.join(dir, "quota.json"), "what the endpoint says the day's cap has left")
   };
@@ -327,8 +328,8 @@ async function installRoutes(page, origin, src, unmocked) {
     const { runs, jobs, status, meta } = src.current;
     if (url.startsWith("https://api.github.com/")) src.githubReads += 1;
     if (url.startsWith(origin)) {
-      if (/\/status\/(stage|prod)\.json/.test(url)) {
-        const env = url.includes("stage") ? "stage" : "prod";
+      if (/\/status\/(stage|prod|lab)\.json/.test(url)) {
+        const env = url.match(/\/status\/(stage|prod|lab)\.json/)[1];
         return route.fulfill({ status: 200, contentType: "application/json",
                                body: JSON.stringify(status[env]) });
       }
@@ -648,7 +649,7 @@ function auditFixture({ state, meta, runs }) {
   const WRITERS = {
     ".github/workflows/deploy-stage.yml": ["stage"],
     ".github/workflows/promote-prod.yml": ["prod"],
-    ".github/workflows/self-service.yml": ["stage"],
+    ".github/workflows/self-service.yml": ["stage", "lab"],
     ".github/workflows/destroy.yml": null
   };
   // The audit describes the runs the PAGE reports, and the page reports the
@@ -762,7 +763,14 @@ function claimFiguresDated({ meta, seen }, index) {
       out.push(`${node.id} (${known.env}) prints a figure from the cycle before this one ` +
         `and does not say so: "${state}"`);
     }
-    if (!under.has(known.env) && qualified) {
+    // The other direction counts two of the three qualifiers. "The cycle that
+    // ended" is the DESTROYED branch's sentence, and at rest over a destroyed
+    // environment it is simply true - the lab is left destroyed by every
+    // self-service cycle, and its row said so the day it joined the fixture.
+    // What must not appear without a run in flight is the claim that a cycle
+    // is UNDER WAY: the other two.
+    const earlier = QUALIFIERS.slice(1).some((q) => said.includes(q));
+    if (!under.has(known.env) && earlier) {
       out.push(`${node.id} (${known.env}) calls its figure earlier, and no run is touching ` +
         `${known.env}: "${state}"`);
     }

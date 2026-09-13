@@ -169,7 +169,7 @@ function readFixture(name) {
     meta,
     runs: read("runs.json"),
     jobs: read("jobs.json"),
-    status: { stage: read("status-stage.json"), prod: read("status-prod.json") },
+    status: { stage: read("status-stage.json"), prod: read("status-prod.json"), lab: read("status-lab.json") },
     quota: read("quota.json")
   };
 }
@@ -536,8 +536,8 @@ async function main() {
         await page.route("**/*", async (route) => {
           const url = route.request().url();
           if (url.startsWith(origin)) {
-            if (/\/status\/(stage|prod)\.json/.test(url)) {
-              const env = url.includes("stage") ? "stage" : "prod";
+            if (/\/status\/(stage|prod|lab)\.json/.test(url)) {
+              const env = url.match(/\/status\/(stage|prod|lab)\.json/)[1];
               return route.fulfill({
                 status: 200,
                 contentType: "application/json",

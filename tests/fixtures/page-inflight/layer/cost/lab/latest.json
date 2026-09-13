@@ -1,0 +1,63 @@
+{
+  "schema": 1,
+  "environment": "lab",
+  "written_at": "2026-08-10T20:46:00Z",
+  "cycle": {
+    "status": "closed",
+    "usd": {
+      "low": 0.0403,
+      "high": 0.0756
+    },
+    "started_at": "2026-08-10T20:29:40Z",
+    "finished_at": "2026-08-10T20:38:10Z"
+  },
+  "counts": {
+    "created": 32,
+    "priced": 3,
+    "free": 25,
+    "not_metered": 4,
+    "unpriced": 0,
+    "orphan_deletes": 0
+  },
+  "unpriced": [],
+  "orphan_deletes": [],
+  "resources": {
+    "module.rds.aws_db_instance.this": {
+      "bucket": "priced",
+      "state": "closed",
+      "seconds": {
+        "low": 1780.0,
+        "high": 1960.0
+      },
+      "usd": {
+        "low": 0.0247,
+        "high": 0.0272
+      }
+    },
+    "module.alb.aws_lb.this": {
+      "bucket": "priced",
+      "state": "closed",
+      "seconds": {
+        "low": 1780.0,
+        "high": 1960.0
+      },
+      "usd": {
+        "low": 0.0223,
+        "high": 0.0246
+      }
+    },
+    "module.ecs.aws_ecs_service.app": {
+      "bucket": "priced",
+      "state": "closed",
+      "seconds": {
+        "low": 1780.0,
+        "high": 1960.0
+      },
+      "usd": {
+        "low": 0.0056,
+        "high": 0.0063
+      }
+    }
+  },
+  "_": "SYNTHETIC from the lab's own documents of cycle #29 (34777285974, 2026-09-13), the first cycle with a lab (ADR-0097): timestamps shifted onto this fixture's clock and the run renamed to the fixture's newest self-service run, which is the run that writes the lab here. Shapes are the publishers' own. The band is cycle #29's own ($0.0403..$0.0756: the control plane by the cluster-hour, two t3.small nodes, RDS); the resources map is stage's shape and not re-derived."
+}

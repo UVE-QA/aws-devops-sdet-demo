@@ -150,5 +150,31 @@ not counted; they are observed, with the Ingress and its balancer, by a
   provider, and its drift gates now read every environment's modules. The
   observation carries an `eks` block - cluster, node group, and the
   Deployments through kubectl - and counts the cluster as the lab's runtime.
-  **The first cycle with a lab is the proof.**
+  Three cycles were the proof: #27 fell at the publish role's trust (`lab`
+  added to `publish_environments`), and its stage and prod sweeps went red
+  asking their roles about the lab's five names (`unindexed_names` is per
+  environment now); #28 fell at the node group - EKS validates its
+  service-linked role with the caller's `iam:GetRole` (a read on the two EKS
+  service-linked roles); **#29 (34777285974) ran the lab end to end in CI**:
+  apply 1146 s, chart 148 s, api contract 16 s and smoke 30 s through the
+  Ingress, the observation with `eks: cluster ACTIVE 1.35, node group ACTIVE
+  2 × t3.small, deployments api 1/1 · web 1/1 · worker 1/1`, timeline and
+  node states published; the teardown - uninstall, the balancer gone,
+  `Destroy complete! 40 destroyed`, *no billable lab resources remain*, the
+  sweep `clean` - in 13 minutes; the cost fold priced the lab at
+  $0.040..$0.076 for a 36-minute life. The one red step was the results fold
+  refusing a suite result for `lab` over a map that had no `suite.api.lab`,
+  which is slice four.
+- Slice four, 2026-09-13: the map gains `Apply — lab`, `Install — lab` (the
+  chart with its hooks) and `Quality gate — lab` (api contract, smoke), and
+  `Destroy` a `lab — everything above` node bound to `destroy-lab`; the page
+  lists three environments everywhere it listed two, the lab's panel shows
+  the cluster, the node group and the Deployments in place of three services,
+  and the run layer reads the lab's documents. Every fixture family carries
+  the lab's documents, synthesised from cycle #29's own with the clock
+  shifted; the in-flight gate's *figures dated* claim learned that "the cycle
+  that ended" over a destroyed environment at rest is true rather than
+  premature. The teardown uninstalls the chart before the revocation and the
+  sweep, so neither meets the controller's objects; the sweep confirms
+  access entries and listener rules.
 - Three lists of service names became four with the IRSA roles; plan item 5.

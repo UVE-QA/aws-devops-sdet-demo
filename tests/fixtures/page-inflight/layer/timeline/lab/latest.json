@@ -1,0 +1,915 @@
+{
+  "schema": "timeline/1",
+  "environment": "lab",
+  "status": "complete",
+  "written_at": "2026-08-11T04:02:34Z",
+  "tool": {
+    "name": "terraform",
+    "version": "1.15.5",
+    "message": "Terraform 1.15.5"
+  },
+  "run": {
+    "id": "31461000098",
+    "number": "98",
+    "attempt": "1",
+    "workflow": "self-service",
+    "url": "https://github.com/UVE-QA/aws-devops-sdet-demo/actions/runs/31461000098"
+  },
+  "started_at": "2026-08-11T03:40:00Z",
+  "finished_at": "2026-08-11T03:59:02Z",
+  "duration_seconds": 1142.0,
+  "totals": {
+    "operations": 1,
+    "resources_observed": 47,
+    "resources_created": 40,
+    "resources_destroyed": 0
+  },
+  "operations": [
+    {
+      "order": 1,
+      "label": "apply",
+      "command": "apply",
+      "reached": "apply",
+      "argv": "apply -input=false -auto-approve -json tfplan",
+      "status": "complete",
+      "reason": null,
+      "exit_code": 0,
+      "started_at": "2026-08-11T03:40:00Z",
+      "finished_at": "2026-08-11T03:59:02Z",
+      "duration_seconds": 1141.589,
+      "counts": {
+        "add": 40,
+        "change": 0,
+        "remove": 0,
+        "import": 0
+      },
+      "planned": [
+        {
+          "address": "module.rds.random_password.db",
+          "action": "create"
+        },
+        {
+          "address": "module.queue.aws_sqs_queue.dead_letter",
+          "action": "create"
+        },
+        {
+          "address": "module.rds.aws_secretsmanager_secret.db",
+          "action": "create"
+        },
+        {
+          "address": "module.network.aws_vpc.this",
+          "action": "create"
+        },
+        {
+          "address": "module.eks.aws_iam_role.node",
+          "action": "create"
+        },
+        {
+          "address": "module.network.aws_internet_gateway.this",
+          "action": "create"
+        },
+        {
+          "address": "module.queue.aws_sqs_queue.items",
+          "action": "create"
+        },
+        {
+          "address": "module.eks.aws_iam_role.cluster",
+          "action": "create"
+        },
+        {
+          "address": "module.eks.data.aws_iam_policy_document.api_publish_items",
+          "action": "read"
+        },
+        {
+          "address": "module.network.aws_default_security_group.this",
+          "action": "create"
+        },
+        {
+          "address": "module.eks.data.aws_iam_policy_document.worker_consume_items",
+          "action": "read"
+        },
+        {
+          "address": "module.queue.aws_cloudwatch_metric_alarm.dead_letter_not_empty",
+          "action": "create"
+        },
+        {
+          "address": "module.eks.aws_iam_role_policy_attachment.node[\"AmazonEKSWorkerNodePolicy\"]",
+          "action": "create"
+        },
+        {
+          "address": "module.eks.aws_iam_role_policy_attachment.node[\"AmazonEKS_CNI_Policy\"]",
+          "action": "create"
+        },
+        {
+          "address": "module.eks.aws_iam_role_policy_attachment.cluster",
+          "action": "create"
+        },
+        {
+          "address": "module.network.aws_route_table.public",
+          "action": "create"
+        },
+        {
+          "address": "module.eks.aws_iam_role_policy_attachment.node[\"AmazonEC2ContainerRegistryReadOnly\"]",
+          "action": "create"
+        },
+        {
+          "address": "module.queue.aws_sqs_queue_redrive_allow_policy.dead_letter",
+          "action": "create"
+        },
+        {
+          "address": "module.network.aws_subnet.private_db[0]",
+          "action": "create"
+        },
+        {
+          "address": "module.network.aws_subnet.public[1]",
+          "action": "create"
+        },
+        {
+          "address": "module.network.aws_subnet.private_db[1]",
+          "action": "create"
+        },
+        {
+          "address": "module.network.aws_subnet.public[0]",
+          "action": "create"
+        },
+        {
+          "address": "module.network.aws_route_table_association.public[1]",
+          "action": "create"
+        },
+        {
+          "address": "module.rds.aws_db_subnet_group.this",
+          "action": "create"
+        },
+        {
+          "address": "module.network.aws_route_table_association.public[0]",
+          "action": "create"
+        },
+        {
+          "address": "module.eks.aws_eks_cluster.this",
+          "action": "create"
+        },
+        {
+          "address": "module.eks.data.tls_certificate.oidc",
+          "action": "read"
+        },
+        {
+          "address": "module.eks.aws_eks_node_group.this",
+          "action": "create"
+        },
+        {
+          "address": "module.eks.aws_iam_openid_connect_provider.this",
+          "action": "create"
+        },
+        {
+          "address": "module.eks.aws_eks_access_entry.admin[\"arn:aws:iam::993912191738:role/aws-reserved/sso.amazonaws.com/AWSReservedSSO_AdministratorAccess_20369d4460860660\"]",
+          "action": "create"
+        },
+        {
+          "address": "module.rds.aws_security_group.rds",
+          "action": "create"
+        },
+        {
+          "address": "module.eks.data.aws_iam_policy_document.irsa_trust[\"worker\"]",
+          "action": "read"
+        },
+        {
+          "address": "module.eks.data.aws_iam_policy_document.irsa_trust[\"api\"]",
+          "action": "read"
+        },
+        {
+          "address": "module.eks.data.aws_iam_policy_document.irsa_trust[\"controller\"]",
+          "action": "read"
+        },
+        {
+          "address": "module.eks.aws_iam_role.worker",
+          "action": "create"
+        },
+        {
+          "address": "module.eks.aws_iam_role.controller",
+          "action": "create"
+        },
+        {
+          "address": "module.eks.aws_eks_access_policy_association.admin[\"arn:aws:iam::993912191738:role/aws-reserved/sso.amazonaws.com/AWSReservedSSO_AdministratorAccess_20369d4460860660\"]",
+          "action": "create"
+        },
+        {
+          "address": "module.eks.aws_iam_role.api",
+          "action": "create"
+        },
+        {
+          "address": "module.eks.aws_iam_role_policy.worker_consume_items",
+          "action": "create"
+        },
+        {
+          "address": "module.eks.aws_iam_role_policy.api_publish_items",
+          "action": "create"
+        },
+        {
+          "address": "module.eks.aws_iam_role_policy.controller",
+          "action": "create"
+        },
+        {
+          "address": "module.rds.aws_db_instance.this",
+          "action": "create"
+        },
+        {
+          "address": "kubernetes_namespace_v1.demo",
+          "action": "create"
+        },
+        {
+          "address": "module.rds.aws_secretsmanager_secret_version.db",
+          "action": "create"
+        },
+        {
+          "address": "data.aws_secretsmanager_secret_version.db",
+          "action": "read"
+        },
+        {
+          "address": "kubernetes_secret_v1.db",
+          "action": "create"
+        },
+        {
+          "address": "helm_release.alb_controller",
+          "action": "create"
+        }
+      ],
+      "resources": [
+        {
+          "address": "module.rds.random_password.db",
+          "module": "module.rds",
+          "type": "random_password",
+          "name": "db",
+          "action": "create",
+          "status": "complete",
+          "started_at": "2026-08-11T03:40:03Z",
+          "finished_at": "2026-08-11T03:40:03Z",
+          "elapsed_seconds": 0,
+          "last_progress_seconds": null,
+          "id_key": "id",
+          "id_value": "none"
+        },
+        {
+          "address": "module.network.aws_vpc.this",
+          "module": "module.network",
+          "type": "aws_vpc",
+          "name": "this",
+          "action": "create",
+          "status": "complete",
+          "started_at": "2026-08-11T03:40:03Z",
+          "finished_at": "2026-08-11T03:40:15Z",
+          "elapsed_seconds": 11,
+          "last_progress_seconds": 10,
+          "id_key": "id",
+          "id_value": "vpc-0d63ab20db345a7d0"
+        },
+        {
+          "address": "module.eks.aws_iam_role.cluster",
+          "module": "module.eks",
+          "type": "aws_iam_role",
+          "name": "cluster",
+          "action": "create",
+          "status": "complete",
+          "started_at": "2026-08-11T03:40:03Z",
+          "finished_at": "2026-08-11T03:40:04Z",
+          "elapsed_seconds": 0,
+          "last_progress_seconds": null,
+          "id_key": "id",
+          "id_value": "aws-devops-sdet-demo-lab-eks-cluster"
+        },
+        {
+          "address": "module.rds.aws_secretsmanager_secret.db",
+          "module": "module.rds",
+          "type": "aws_secretsmanager_secret",
+          "name": "db",
+          "action": "create",
+          "status": "complete",
+          "started_at": "2026-08-11T03:40:03Z",
+          "finished_at": "2026-08-11T03:40:04Z",
+          "elapsed_seconds": 0,
+          "last_progress_seconds": null,
+          "id_key": "id",
+          "id_value": "arn:aws:secretsmanager:us-west-2:993912191738:secret:aws-devops-sdet-demo-lab-db-credentials-cJnl8A"
+        },
+        {
+          "address": "module.queue.aws_sqs_queue.dead_letter",
+          "module": "module.queue",
+          "type": "aws_sqs_queue",
+          "name": "dead_letter",
+          "action": "create",
+          "status": "complete",
+          "started_at": "2026-08-11T03:40:03Z",
+          "finished_at": "2026-08-11T03:40:29Z",
+          "elapsed_seconds": 25,
+          "last_progress_seconds": 20,
+          "id_key": "id",
+          "id_value": "https://sqs.us-west-2.amazonaws.com/993912191738/aws-devops-sdet-demo-lab-items-dlq"
+        },
+        {
+          "address": "module.eks.aws_iam_role.node",
+          "module": "module.eks",
+          "type": "aws_iam_role",
+          "name": "node",
+          "action": "create",
+          "status": "complete",
+          "started_at": "2026-08-11T03:40:03Z",
+          "finished_at": "2026-08-11T03:40:04Z",
+          "elapsed_seconds": 0,
+          "last_progress_seconds": null,
+          "id_key": "id",
+          "id_value": "aws-devops-sdet-demo-lab-eks-node"
+        },
+        {
+          "address": "module.eks.aws_iam_role_policy_attachment.node[\"AmazonEKSWorkerNodePolicy\"]",
+          "module": "module.eks",
+          "type": "aws_iam_role_policy_attachment",
+          "name": "node",
+          "action": "create",
+          "status": "complete",
+          "started_at": "2026-08-11T03:40:04Z",
+          "finished_at": "2026-08-11T03:40:04Z",
+          "elapsed_seconds": 1,
+          "last_progress_seconds": null,
+          "id_key": "id",
+          "id_value": "aws-devops-sdet-demo-lab-eks-node-20260913193711553900000002"
+        },
+        {
+          "address": "module.eks.aws_iam_role_policy_attachment.node[\"AmazonEC2ContainerRegistryReadOnly\"]",
+          "module": "module.eks",
+          "type": "aws_iam_role_policy_attachment",
+          "name": "node",
+          "action": "create",
+          "status": "complete",
+          "started_at": "2026-08-11T03:40:04Z",
+          "finished_at": "2026-08-11T03:40:04Z",
+          "elapsed_seconds": 1,
+          "last_progress_seconds": null,
+          "id_key": "id",
+          "id_value": "aws-devops-sdet-demo-lab-eks-node-20260913193711580600000003"
+        },
+        {
+          "address": "module.eks.aws_iam_role_policy_attachment.node[\"AmazonEKS_CNI_Policy\"]",
+          "module": "module.eks",
+          "type": "aws_iam_role_policy_attachment",
+          "name": "node",
+          "action": "create",
+          "status": "complete",
+          "started_at": "2026-08-11T03:40:04Z",
+          "finished_at": "2026-08-11T03:40:04Z",
+          "elapsed_seconds": 1,
+          "last_progress_seconds": null,
+          "id_key": "id",
+          "id_value": "aws-devops-sdet-demo-lab-eks-node-20260913193711698000000004"
+        },
+        {
+          "address": "module.eks.aws_iam_role_policy_attachment.cluster",
+          "module": "module.eks",
+          "type": "aws_iam_role_policy_attachment",
+          "name": "cluster",
+          "action": "create",
+          "status": "complete",
+          "started_at": "2026-08-11T03:40:04Z",
+          "finished_at": "2026-08-11T03:40:04Z",
+          "elapsed_seconds": 1,
+          "last_progress_seconds": null,
+          "id_key": "id",
+          "id_value": "aws-devops-sdet-demo-lab-eks-cluster-20260913193711749500000005"
+        },
+        {
+          "address": "module.network.aws_internet_gateway.this",
+          "module": "module.network",
+          "type": "aws_internet_gateway",
+          "name": "this",
+          "action": "create",
+          "status": "complete",
+          "started_at": "2026-08-11T03:40:15Z",
+          "finished_at": "2026-08-11T03:40:15Z",
+          "elapsed_seconds": 1,
+          "last_progress_seconds": null,
+          "id_key": "id",
+          "id_value": "igw-01e1f80d037ae44ef"
+        },
+        {
+          "address": "module.network.aws_subnet.public[0]",
+          "module": "module.network",
+          "type": "aws_subnet",
+          "name": "public",
+          "action": "create",
+          "status": "complete",
+          "started_at": "2026-08-11T03:40:15Z",
+          "finished_at": "2026-08-11T03:40:26Z",
+          "elapsed_seconds": 12,
+          "last_progress_seconds": 10,
+          "id_key": "id",
+          "id_value": "subnet-0979b5299ffcfdf88"
+        },
+        {
+          "address": "module.network.aws_subnet.public[1]",
+          "module": "module.network",
+          "type": "aws_subnet",
+          "name": "public",
+          "action": "create",
+          "status": "complete",
+          "started_at": "2026-08-11T03:40:15Z",
+          "finished_at": "2026-08-11T03:40:26Z",
+          "elapsed_seconds": 12,
+          "last_progress_seconds": 10,
+          "id_key": "id",
+          "id_value": "subnet-08eb5a3b0311babb8"
+        },
+        {
+          "address": "module.network.aws_default_security_group.this",
+          "module": "module.network",
+          "type": "aws_default_security_group",
+          "name": "this",
+          "action": "create",
+          "status": "complete",
+          "started_at": "2026-08-11T03:40:15Z",
+          "finished_at": "2026-08-11T03:40:16Z",
+          "elapsed_seconds": 2,
+          "last_progress_seconds": null,
+          "id_key": "id",
+          "id_value": "sg-08d81a84bd0ae8fb4"
+        },
+        {
+          "address": "module.network.aws_subnet.private_db[1]",
+          "module": "module.network",
+          "type": "aws_subnet",
+          "name": "private_db",
+          "action": "create",
+          "status": "complete",
+          "started_at": "2026-08-11T03:40:15Z",
+          "finished_at": "2026-08-11T03:40:16Z",
+          "elapsed_seconds": 1,
+          "last_progress_seconds": null,
+          "id_key": "id",
+          "id_value": "subnet-065ca6f73969c4b2a"
+        },
+        {
+          "address": "module.network.aws_subnet.private_db[0]",
+          "module": "module.network",
+          "type": "aws_subnet",
+          "name": "private_db",
+          "action": "create",
+          "status": "complete",
+          "started_at": "2026-08-11T03:40:15Z",
+          "finished_at": "2026-08-11T03:40:16Z",
+          "elapsed_seconds": 1,
+          "last_progress_seconds": null,
+          "id_key": "id",
+          "id_value": "subnet-01453a15f7bf122ce"
+        },
+        {
+          "address": "module.network.aws_route_table.public",
+          "module": "module.network",
+          "type": "aws_route_table",
+          "name": "public",
+          "action": "create",
+          "status": "complete",
+          "started_at": "2026-08-11T03:40:15Z",
+          "finished_at": "2026-08-11T03:40:16Z",
+          "elapsed_seconds": 1,
+          "last_progress_seconds": null,
+          "id_key": "id",
+          "id_value": "rtb-0185fa7af22c36b85"
+        },
+        {
+          "address": "module.rds.aws_db_subnet_group.this",
+          "module": "module.rds",
+          "type": "aws_db_subnet_group",
+          "name": "this",
+          "action": "create",
+          "status": "complete",
+          "started_at": "2026-08-11T03:40:16Z",
+          "finished_at": "2026-08-11T03:40:17Z",
+          "elapsed_seconds": 1,
+          "last_progress_seconds": null,
+          "id_key": "id",
+          "id_value": "aws-devops-sdet-demo-lab-db-subnet-group"
+        },
+        {
+          "address": "module.network.aws_route_table_association.public[1]",
+          "module": "module.network",
+          "type": "aws_route_table_association",
+          "name": "public",
+          "action": "create",
+          "status": "complete",
+          "started_at": "2026-08-11T03:40:26Z",
+          "finished_at": "2026-08-11T03:40:27Z",
+          "elapsed_seconds": 0,
+          "last_progress_seconds": null,
+          "id_key": "id",
+          "id_value": "rtbassoc-0c0dc2a8f9e652449"
+        },
+        {
+          "address": "module.network.aws_route_table_association.public[0]",
+          "module": "module.network",
+          "type": "aws_route_table_association",
+          "name": "public",
+          "action": "create",
+          "status": "complete",
+          "started_at": "2026-08-11T03:40:26Z",
+          "finished_at": "2026-08-11T03:40:26Z",
+          "elapsed_seconds": 0,
+          "last_progress_seconds": null,
+          "id_key": "id",
+          "id_value": "rtbassoc-03da44995e267860b"
+        },
+        {
+          "address": "module.eks.aws_eks_cluster.this",
+          "module": "module.eks",
+          "type": "aws_eks_cluster",
+          "name": "this",
+          "action": "create",
+          "status": "complete",
+          "started_at": "2026-08-11T03:40:26Z",
+          "finished_at": "2026-08-11T03:54:03Z",
+          "elapsed_seconds": 817,
+          "last_progress_seconds": 810,
+          "id_key": "id",
+          "id_value": "aws-devops-sdet-demo-lab-eks"
+        },
+        {
+          "address": "module.queue.aws_sqs_queue.items",
+          "module": "module.queue",
+          "type": "aws_sqs_queue",
+          "name": "items",
+          "action": "create",
+          "status": "complete",
+          "started_at": "2026-08-11T03:40:29Z",
+          "finished_at": "2026-08-11T03:40:54Z",
+          "elapsed_seconds": 25,
+          "last_progress_seconds": 20,
+          "id_key": "id",
+          "id_value": "https://sqs.us-west-2.amazonaws.com/993912191738/aws-devops-sdet-demo-lab-items"
+        },
+        {
+          "address": "module.queue.aws_cloudwatch_metric_alarm.dead_letter_not_empty",
+          "module": "module.queue",
+          "type": "aws_cloudwatch_metric_alarm",
+          "name": "dead_letter_not_empty",
+          "action": "create",
+          "status": "complete",
+          "started_at": "2026-08-11T03:40:29Z",
+          "finished_at": "2026-08-11T03:40:29Z",
+          "elapsed_seconds": 0,
+          "last_progress_seconds": null,
+          "id_key": "id",
+          "id_value": "aws-devops-sdet-demo-lab-items-dlq-not-empty"
+        },
+        {
+          "address": "module.eks.data.aws_iam_policy_document.api_publish_items",
+          "module": "module.eks",
+          "type": "aws_iam_policy_document",
+          "name": "api_publish_items",
+          "action": "read",
+          "status": "complete",
+          "started_at": "2026-08-11T03:40:54Z",
+          "finished_at": "2026-08-11T03:40:54Z",
+          "elapsed_seconds": 0,
+          "last_progress_seconds": null,
+          "id_key": "id",
+          "id_value": "2787007784"
+        },
+        {
+          "address": "module.queue.aws_sqs_queue_redrive_allow_policy.dead_letter",
+          "module": "module.queue",
+          "type": "aws_sqs_queue_redrive_allow_policy",
+          "name": "dead_letter",
+          "action": "create",
+          "status": "complete",
+          "started_at": "2026-08-11T03:40:54Z",
+          "finished_at": "2026-08-11T03:41:19Z",
+          "elapsed_seconds": 25,
+          "last_progress_seconds": 20,
+          "id_key": "id",
+          "id_value": "https://sqs.us-west-2.amazonaws.com/993912191738/aws-devops-sdet-demo-lab-items-dlq"
+        },
+        {
+          "address": "module.eks.data.aws_iam_policy_document.worker_consume_items",
+          "module": "module.eks",
+          "type": "aws_iam_policy_document",
+          "name": "worker_consume_items",
+          "action": "read",
+          "status": "complete",
+          "started_at": "2026-08-11T03:40:54Z",
+          "finished_at": "2026-08-11T03:40:54Z",
+          "elapsed_seconds": 0,
+          "last_progress_seconds": null,
+          "id_key": "id",
+          "id_value": "396983512"
+        },
+        {
+          "address": "module.eks.data.tls_certificate.oidc",
+          "module": "module.eks",
+          "type": "tls_certificate",
+          "name": "oidc",
+          "action": "read",
+          "status": "complete",
+          "started_at": "2026-08-11T03:54:04Z",
+          "finished_at": "2026-08-11T03:54:04Z",
+          "elapsed_seconds": 0,
+          "last_progress_seconds": null,
+          "id_key": "id",
+          "id_value": "f97f646c2cd14cc0db0f757f0fccc96abbbe2af5"
+        },
+        {
+          "address": "module.eks.aws_eks_access_entry.admin[\"arn:aws:iam::993912191738:role/aws-reserved/sso.amazonaws.com/AWSReservedSSO_AdministratorAccess_20369d4460860660\"]",
+          "module": "module.eks",
+          "type": "aws_eks_access_entry",
+          "name": "admin",
+          "action": "create",
+          "status": "complete",
+          "started_at": "2026-08-11T03:54:04Z",
+          "finished_at": "2026-08-11T03:54:04Z",
+          "elapsed_seconds": 1,
+          "last_progress_seconds": null,
+          "id_key": "id",
+          "id_value": "aws-devops-sdet-demo-lab-eks:arn:aws:iam::993912191738:role/aws-reserved/sso.amazonaws.com/AWSReservedSSO_AdministratorAccess_20369d4460860660"
+        },
+        {
+          "address": "module.eks.aws_eks_node_group.this",
+          "module": "module.eks",
+          "type": "aws_eks_node_group",
+          "name": "this",
+          "action": "create",
+          "status": "complete",
+          "started_at": "2026-08-11T03:54:04Z",
+          "finished_at": "2026-08-11T03:55:50Z",
+          "elapsed_seconds": 107,
+          "last_progress_seconds": 100,
+          "id_key": "id",
+          "id_value": "aws-devops-sdet-demo-lab-eks:aws-devops-sdet-demo-lab-nodes"
+        },
+        {
+          "address": "module.rds.aws_security_group.rds",
+          "module": "module.rds",
+          "type": "aws_security_group",
+          "name": "rds",
+          "action": "create",
+          "status": "complete",
+          "started_at": "2026-08-11T03:54:04Z",
+          "finished_at": "2026-08-11T03:54:06Z",
+          "elapsed_seconds": 3,
+          "last_progress_seconds": null,
+          "id_key": "id",
+          "id_value": "sg-02e967367d2b8fdc9"
+        },
+        {
+          "address": "module.eks.aws_iam_openid_connect_provider.this",
+          "module": "module.eks",
+          "type": "aws_iam_openid_connect_provider",
+          "name": "this",
+          "action": "create",
+          "status": "complete",
+          "started_at": "2026-08-11T03:54:04Z",
+          "finished_at": "2026-08-11T03:54:04Z",
+          "elapsed_seconds": 1,
+          "last_progress_seconds": null,
+          "id_key": "id",
+          "id_value": "arn:aws:iam::993912191738:oidc-provider/oidc.eks.us-west-2.amazonaws.com/id/CD267102AA3269F864B6181DE92A7DD3"
+        },
+        {
+          "address": "module.eks.data.aws_iam_policy_document.irsa_trust[\"worker\"]",
+          "module": "module.eks",
+          "type": "aws_iam_policy_document",
+          "name": "irsa_trust",
+          "action": "read",
+          "status": "complete",
+          "started_at": "2026-08-11T03:54:04Z",
+          "finished_at": "2026-08-11T03:54:04Z",
+          "elapsed_seconds": 0,
+          "last_progress_seconds": null,
+          "id_key": "id",
+          "id_value": "3781234159"
+        },
+        {
+          "address": "module.eks.data.aws_iam_policy_document.irsa_trust[\"controller\"]",
+          "module": "module.eks",
+          "type": "aws_iam_policy_document",
+          "name": "irsa_trust",
+          "action": "read",
+          "status": "complete",
+          "started_at": "2026-08-11T03:54:04Z",
+          "finished_at": "2026-08-11T03:54:04Z",
+          "elapsed_seconds": 0,
+          "last_progress_seconds": null,
+          "id_key": "id",
+          "id_value": "3102714555"
+        },
+        {
+          "address": "module.eks.data.aws_iam_policy_document.irsa_trust[\"api\"]",
+          "module": "module.eks",
+          "type": "aws_iam_policy_document",
+          "name": "irsa_trust",
+          "action": "read",
+          "status": "complete",
+          "started_at": "2026-08-11T03:54:04Z",
+          "finished_at": "2026-08-11T03:54:04Z",
+          "elapsed_seconds": 0,
+          "last_progress_seconds": null,
+          "id_key": "id",
+          "id_value": "3550442703"
+        },
+        {
+          "address": "module.eks.aws_iam_role.worker",
+          "module": "module.eks",
+          "type": "aws_iam_role",
+          "name": "worker",
+          "action": "create",
+          "status": "complete",
+          "started_at": "2026-08-11T03:54:04Z",
+          "finished_at": "2026-08-11T03:54:05Z",
+          "elapsed_seconds": 0,
+          "last_progress_seconds": null,
+          "id_key": "id",
+          "id_value": "aws-devops-sdet-demo-lab-worker-irsa"
+        },
+        {
+          "address": "module.eks.aws_iam_role.controller",
+          "module": "module.eks",
+          "type": "aws_iam_role",
+          "name": "controller",
+          "action": "create",
+          "status": "complete",
+          "started_at": "2026-08-11T03:54:04Z",
+          "finished_at": "2026-08-11T03:54:05Z",
+          "elapsed_seconds": 0,
+          "last_progress_seconds": null,
+          "id_key": "id",
+          "id_value": "aws-devops-sdet-demo-lab-alb-controller"
+        },
+        {
+          "address": "module.eks.aws_iam_role.api",
+          "module": "module.eks",
+          "type": "aws_iam_role",
+          "name": "api",
+          "action": "create",
+          "status": "complete",
+          "started_at": "2026-08-11T03:54:04Z",
+          "finished_at": "2026-08-11T03:54:05Z",
+          "elapsed_seconds": 0,
+          "last_progress_seconds": null,
+          "id_key": "id",
+          "id_value": "aws-devops-sdet-demo-lab-api-irsa"
+        },
+        {
+          "address": "module.eks.aws_eks_access_policy_association.admin[\"arn:aws:iam::993912191738:role/aws-reserved/sso.amazonaws.com/AWSReservedSSO_AdministratorAccess_20369d4460860660\"]",
+          "module": "module.eks",
+          "type": "aws_eks_access_policy_association",
+          "name": "admin",
+          "action": "create",
+          "status": "complete",
+          "started_at": "2026-08-11T03:54:04Z",
+          "finished_at": "2026-08-11T03:54:05Z",
+          "elapsed_seconds": 0,
+          "last_progress_seconds": null,
+          "id_key": "id",
+          "id_value": "aws-devops-sdet-demo-lab-eks#arn:aws:iam::993912191738:role/aws-reserved/sso.amazonaws.com/AWSReservedSSO_AdministratorAccess_20369d4460860660#arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+        },
+        {
+          "address": "module.eks.aws_iam_role_policy.worker_consume_items",
+          "module": "module.eks",
+          "type": "aws_iam_role_policy",
+          "name": "worker_consume_items",
+          "action": "create",
+          "status": "complete",
+          "started_at": "2026-08-11T03:54:05Z",
+          "finished_at": "2026-08-11T03:54:05Z",
+          "elapsed_seconds": 1,
+          "last_progress_seconds": null,
+          "id_key": "id",
+          "id_value": "aws-devops-sdet-demo-lab-worker-irsa:aws-devops-sdet-demo-lab-worker-consume-items"
+        },
+        {
+          "address": "module.eks.aws_iam_role_policy.controller",
+          "module": "module.eks",
+          "type": "aws_iam_role_policy",
+          "name": "controller",
+          "action": "create",
+          "status": "complete",
+          "started_at": "2026-08-11T03:54:05Z",
+          "finished_at": "2026-08-11T03:54:05Z",
+          "elapsed_seconds": 1,
+          "last_progress_seconds": null,
+          "id_key": "id",
+          "id_value": "aws-devops-sdet-demo-lab-alb-controller:aws-devops-sdet-demo-lab-alb-controller"
+        },
+        {
+          "address": "module.eks.aws_iam_role_policy.api_publish_items",
+          "module": "module.eks",
+          "type": "aws_iam_role_policy",
+          "name": "api_publish_items",
+          "action": "create",
+          "status": "complete",
+          "started_at": "2026-08-11T03:54:05Z",
+          "finished_at": "2026-08-11T03:54:05Z",
+          "elapsed_seconds": 1,
+          "last_progress_seconds": null,
+          "id_key": "id",
+          "id_value": "aws-devops-sdet-demo-lab-api-irsa:aws-devops-sdet-demo-lab-api-publish-items"
+        },
+        {
+          "address": "module.rds.aws_db_instance.this",
+          "module": "module.rds",
+          "type": "aws_db_instance",
+          "name": "this",
+          "action": "create",
+          "status": "complete",
+          "started_at": "2026-08-11T03:54:06Z",
+          "finished_at": "2026-08-11T03:59:01Z",
+          "elapsed_seconds": 295,
+          "last_progress_seconds": 290,
+          "id_key": "id",
+          "id_value": "db-BQVYLPV6PYJJD24W57UAZ4HYDE"
+        },
+        {
+          "address": "kubernetes_namespace_v1.demo",
+          "module": "",
+          "type": "kubernetes_namespace_v1",
+          "name": "demo",
+          "action": "create",
+          "status": "complete",
+          "started_at": "2026-08-11T03:55:51Z",
+          "finished_at": "2026-08-11T03:55:52Z",
+          "elapsed_seconds": 1,
+          "last_progress_seconds": null,
+          "id_key": "id",
+          "id_value": "demo"
+        },
+        {
+          "address": "helm_release.alb_controller",
+          "module": "",
+          "type": "helm_release",
+          "name": "alb_controller",
+          "action": "create",
+          "status": "complete",
+          "started_at": "2026-08-11T03:55:51Z",
+          "finished_at": "2026-08-11T03:56:10Z",
+          "elapsed_seconds": 20,
+          "last_progress_seconds": 10,
+          "id_key": "id",
+          "id_value": "aws-load-balancer-controller"
+        },
+        {
+          "address": "module.rds.aws_secretsmanager_secret_version.db",
+          "module": "module.rds",
+          "type": "aws_secretsmanager_secret_version",
+          "name": "db",
+          "action": "create",
+          "status": "complete",
+          "started_at": "2026-08-11T03:59:01Z",
+          "finished_at": "2026-08-11T03:59:02Z",
+          "elapsed_seconds": 0,
+          "last_progress_seconds": null,
+          "id_key": "id",
+          "id_value": "arn:aws:secretsmanager:us-west-2:993912191738:secret:aws-devops-sdet-demo-lab-db-credentials-cJnl8A|terraform-20260913195608831600000008"
+        },
+        {
+          "address": "data.aws_secretsmanager_secret_version.db",
+          "module": "",
+          "type": "aws_secretsmanager_secret_version",
+          "name": "db",
+          "action": "read",
+          "status": "complete",
+          "started_at": "2026-08-11T03:59:02Z",
+          "finished_at": "2026-08-11T03:59:02Z",
+          "elapsed_seconds": 0,
+          "last_progress_seconds": null,
+          "id_key": "id",
+          "id_value": "arn:aws:secretsmanager:us-west-2:993912191738:secret:aws-devops-sdet-demo-lab-db-credentials-cJnl8A|AWSCURRENT"
+        },
+        {
+          "address": "kubernetes_secret_v1.db",
+          "module": "",
+          "type": "kubernetes_secret_v1",
+          "name": "db",
+          "action": "create",
+          "status": "complete",
+          "started_at": "2026-08-11T03:59:02Z",
+          "finished_at": "2026-08-11T03:59:02Z",
+          "elapsed_seconds": 0,
+          "last_progress_seconds": null,
+          "id_key": "id",
+          "id_value": "demo/db-credentials"
+        }
+      ],
+      "diagnostics": [],
+      "stream": {
+        "file": "01-apply.jsonl",
+        "events": 274,
+        "unparsed_lines": 0,
+        "unknown_types": {},
+        "event_types": {
+          "apply_complete": 47,
+          "apply_progress": 130,
+          "apply_start": 47,
+          "change_summary": 1,
+          "outputs": 1,
+          "planned_change": 47,
+          "version": 1
+        }
+      }
+    }
+  ],
+  "_": "SYNTHETIC from the lab's own documents of cycle #29 (34777285974, 2026-09-13), the first cycle with a lab (ADR-0097): timestamps shifted onto this fixture's clock and the run renamed to the fixture's newest self-service run, which is the run that writes the lab here. Shapes are the publishers' own."
+}

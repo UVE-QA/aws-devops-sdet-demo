@@ -1779,7 +1779,9 @@
 
       var REPO = "UVE-QA/aws-devops-sdet-demo";
       var API = "https://api.github.com/repos/" + REPO;
-      var ENVIRONMENTS = ["stage", "prod"];
+      // Three since the lab (ADR-0097): the third has a cluster where the
+      // other two have services, and its status file says so in `eks`.
+      var ENVIRONMENTS = ["stage", "prod", "lab"];
       // The branch this page describes (ADR-0093). It is also the branch that
       // publishes the page and the one the button dispatches, and those three
       // being the same branch is the whole arrangement.
@@ -1803,7 +1805,7 @@
         // unattended run was bringing prod up underneath it. The map is written
         // from what a workflow WRITES, so a workflow that started writing a
         // second status file has to say so here.
-        ".github/workflows/self-service.yml": ["stage", "prod"],
+        ".github/workflows/self-service.yml": ["stage", "prod", "lab"],
         ".github/workflows/destroy.yml": null // resolved from the run name, see below
       };
 
@@ -2018,7 +2020,7 @@
         // observable anonymously. If it ever is not, the honest answer is that the
         // run could have targeted either environment - so it makes both stale
         // rather than neither.
-        var m = /destroy\s+(stage|prod)/i.exec(run.name || run.display_title || "");
+        var m = /destroy\s+(stage|prod|lab)/i.exec(run.name || run.display_title || "");
         return m ? [m[1].toLowerCase()] : ENVIRONMENTS.slice();
       }
 
@@ -2222,20 +2224,36 @@
         h += '<dt>load balancer</dt><dd>' + (r.load_balancer
           ? esc(r.load_balancer.state) + ' <span class="mono">' + esc(r.load_balancer.name) + '</span>'
           : '<span class="off">absent</span>') + '</dd>';
-        h += '<dt>api service</dt><dd>' + (r.ecs_service
+        // THE LAB'S RUNTIME (ADR-0097): a cluster, a node group and the
+        // Deployments kubectl reported, in place of the three services. An
+        // observation that carries `eks` is the lab's; one that does not is
+        // an ECS environment's, and its rows are the ones below.
+        if (r.eks) {
+          var k = r.eks;
+          h += '<dt>cluster</dt><dd>' + (k.cluster
+            ? esc(k.cluster.status) + ' <span class="mono">' + esc(k.cluster.name) + '</span> · Kubernetes ' + esc(k.cluster.version)
+            : '<span class="off">absent</span>') + '</dd>';
+          h += '<dt>node group</dt><dd>' + (k.node_group
+            ? esc(k.node_group.status) + ", " + esc(k.node_group.desired) + " × " + esc((k.node_group.instance_types || []).join(", "))
+            : '<span class="off">absent</span>') + '</dd>';
+          h += '<dt>deployments</dt><dd>' + (Array.isArray(k.deployments) && k.deployments.length
+            ? k.deployments.map(function (dep) { return esc(dep.name) + " " + esc(dep.ready) + "/" + esc(dep.desired); }).join(" · ")
+            : Array.isArray(k.deployments) ? '<span class="off">none</span>' : '<span class="off">not asked</span>') + '</dd>';
+        }
+        if (!r.eks) h += '<dt>api service</dt><dd>' + (r.ecs_service
           ? esc(r.ecs_service.status) + ", " + esc(r.ecs_service.running) + "/" + esc(r.ecs_service.desired) + " running"
           : '<span class="off">absent</span>') + '</dd>';
         // The second service (ADR-0095). Absent from a document written before
         // the split, which is drawn as absent rather than hidden: an old
         // observation saying nothing about web is an observation of a page
         // that had no web.
-        h += '<dt>web service</dt><dd>' + (r.ecs_web_service
+        if (!r.eks) h += '<dt>web service</dt><dd>' + (r.ecs_web_service
           ? esc(r.ecs_web_service.status) + ", " + esc(r.ecs_web_service.running) + "/" + esc(r.ecs_web_service.desired) + " running"
           : '<span class="off">absent</span>') + '</dd>';
         // The third service and the queue it reads (ADR-0096), by the same
         // rule: an observation from before the worker says nothing about it,
         // and is drawn as absent rather than hidden.
-        h += '<dt>worker service</dt><dd>' + (r.ecs_worker_service
+        if (!r.eks) h += '<dt>worker service</dt><dd>' + (r.ecs_worker_service
           ? esc(r.ecs_worker_service.status) + ", " + esc(r.ecs_worker_service.running) + "/" + esc(r.ecs_worker_service.desired) + " running"
           : '<span class="off">absent</span>') + '</dd>';
         // Three facts off the queue, and the alarm's own word for the third:
@@ -3762,7 +3780,7 @@
 
            Nothing is joined here. Which resource belongs to which node is decided
            once, in Python, on the runner - see scripts/node-states.py for why. */
-        const ENVS = ["stage", "prod"];
+        const ENVS = ["stage", "prod", "lab"];
         const RUNSTATE = {
           nodes: {}, cycles: [], unfinished: [], unknown: [], hidden: [],
           phase: {}, node: {}, envs: [], phases: {}, observation: null,

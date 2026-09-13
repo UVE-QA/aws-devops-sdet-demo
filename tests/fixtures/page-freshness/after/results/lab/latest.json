@@ -1,0 +1,28 @@
+{
+  "schema": 1,
+  "environment": "lab",
+  "written_at": "2026-08-09T05:26:00Z",
+  "run": {
+    "id": "31277104558",
+    "number": "12",
+    "workflow": "self-service",
+    "url": "https://github.com/UVE-QA/aws-devops-sdet-demo/actions/runs/31277104558"
+  },
+  "suites": {
+    "api": {
+      "outcome": "passed",
+      "passed": 54,
+      "failed": 0,
+      "skipped": 0,
+      "duration_s": 16.0
+    },
+    "smoke": {
+      "outcome": "passed",
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0,
+      "duration_s": 1.5
+    }
+  },
+  "_": "SYNTHETIC from the lab's own documents of cycle #29 (34777285974, 2026-09-13), the first cycle with a lab (ADR-0097): timestamps shifted onto this fixture's clock and the run renamed to the fixture's newest self-service run, which is the run that writes the lab here. Shapes are the publishers' own. Two suites run against the lab's Ingress: api contract and smoke."
+}

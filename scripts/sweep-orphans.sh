@@ -265,6 +265,13 @@ confirm_exists() {
     iam:oidc-provider)
       # IAM is global; no --region, as for iam:role.
       aws iam get-open-id-connect-provider --open-id-connect-provider-arn "$arn" >/dev/null 2>&1 ;;
+    eks:access-entry)
+      # `<cluster>/<type>/<account>/<name>/<uuid>`: an entry leaves with its
+      # cluster, and one that answers describe is one whose cluster is there.
+      aws eks describe-access-entry --region "$region" --cluster-name "${id%%/*}" \
+        --principal-arn "arn:aws:iam::$(echo "$id" | cut -d/ -f3):$(echo "$id" | cut -d/ -f2)/$(echo "$id" | cut -d/ -f4)" >/dev/null 2>&1 ;;
+    elasticloadbalancing:listener-rule)
+      aws elbv2 describe-rules --region "$region" --rule-arns "$arn" >/dev/null 2>&1 ;;
     iam:role)
       # THE ONLY ARM THAT SEPARATES "it is gone" FROM "I could not ask", and the
       # only one that has to (ADR-0041 D4). Every arm above returns non-zero for
