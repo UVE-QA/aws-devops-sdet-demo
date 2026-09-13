@@ -153,12 +153,50 @@ data "aws_iam_policy_document" "deploy" {
     # and scripts/adopt_orphans.py that knows the services by name; the first
     # cycle after the split found it still holding the old pair, and the sweep
     # answered `unconfirmed` for four roles it was not allowed to ask about.
-    resources = flatten([
-      for service in ["api", "web", "worker"] : [
-        "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.name_prefix}-${service}-ecs-execution",
-        "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.name_prefix}-${service}-ecs-task",
+    resources = concat(
+      flatten([
+        for service in ["api", "web", "worker"] : [
+          "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.name_prefix}-${service}-ecs-execution",
+          "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.name_prefix}-${service}-ecs-task",
+        ]
+      ]),
+      # The lab's roles (ADR-0097): the cluster's, the nodes', and the three
+      # IRSA roles. Named by the environment that has them; empty elsewhere.
+      [for suffix in var.extra_managed_role_names :
+      "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.name_prefix}-${suffix}"],
+    )
+  }
+
+  # THE CLUSTER (ADR-0097), for the one environment that has one. `eks:*` is
+  # as unscoped as `ecs:*` above and for the same reason; the OIDC provider
+  # the cluster registers is scoped to the EKS issuer pattern, so this role
+  # can never touch the GitHub provider it authenticates with (ADR-0015).
+  dynamic "statement" {
+    for_each = var.eks ? [1] : []
+    content {
+      sid = "EksManage"
+      actions = [
+        "eks:*",
+        "iam:CreateServiceLinkedRole",
       ]
-    ])
+      resources = ["*"]
+    }
+  }
+
+  dynamic "statement" {
+    for_each = var.eks ? [1] : []
+    content {
+      sid = "EksOidcProvider"
+      actions = [
+        "iam:CreateOpenIDConnectProvider",
+        "iam:DeleteOpenIDConnectProvider",
+        "iam:GetOpenIDConnectProvider",
+        "iam:TagOpenIDConnectProvider",
+        "iam:UntagOpenIDConnectProvider",
+        "iam:ListOpenIDConnectProviderTags",
+      ]
+      resources = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:oidc-provider/oidc.eks.*.amazonaws.com/id/*"]
+    }
   }
 
   statement {

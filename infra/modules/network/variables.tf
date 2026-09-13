@@ -20,3 +20,9 @@ variable "private_db_subnet_cidrs" {
   type        = list(string)
   default     = ["10.0.10.0/24", "10.0.11.0/24"]
 }
+
+variable "public_subnet_extra_tags" {
+  description = "Further tags on the public subnets. The lab sets kubernetes.io/role/elb = 1 so the AWS Load Balancer Controller can find them (ADR-0097); ECS environments set nothing."
+  type        = map(string)
+  default     = {}
+}

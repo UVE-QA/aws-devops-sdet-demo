@@ -39,6 +39,21 @@
       ],
       "minimum_seconds": 60,
       "note": "Fargate bills TASKS, and a task is not a Terraform resource — nothing in the event stream has ever seen one start. The service's lifetime is used as a proxy for the task's, which overstates slightly (the service exists before its first task is running) and is labelled as a proxy wherever it renders."
+    },
+    "aws_eks_cluster": {
+      "meter": "lifetime",
+      "components": [
+        { "unit_price": "eks_cluster_hour", "quantity": 1 }
+      ],
+      "note": "The control plane bills per cluster-hour from the moment the cluster is ACTIVE. Prorated by the cluster's lifetime like everything here; AWS's own rounding of the first and last hour is not modelled (ADR-0097)."
+    },
+    "aws_eks_node_group": {
+      "meter": "lifetime",
+      "components": [
+        { "unit_price": "ec2_instance_hour", "quantity_from": ["node_count"] }
+      ],
+      "minimum_seconds": 60,
+      "note": "The nodes are EC2 instances the node group starts, and an instance is not a Terraform resource - the node group's lifetime stands in for the instances', as the service's does for Fargate tasks. Linux instances bill per second with a one-minute minimum. The nodes' root volumes (gp3, 20 GB each) are omitted: a few thousandths of a dollar per hour, under the width of the band."
     }
   },
 
@@ -55,6 +70,9 @@
     "aws_iam_role_policy_attachment": "IAM is free",
     "aws_ecs_cluster": "no charge for the cluster itself; the capacity under it is the aws_ecs_service line",
     "aws_ecs_task_definition": "no charge to register a revision, and deregistered revisions are free for ever — which is why they are the documented exception to the leftover sweep (ADR-0041)",
+    "aws_eks_access_entry": "no charge (ADR-0097).",
+    "aws_eks_access_policy_association": "no charge (ADR-0097).",
+    "aws_iam_openid_connect_provider": "no charge (ADR-0097).",
     "aws_db_subnet_group": "no charge",
     "aws_lb_listener": "no charge; the load balancer hour is the aws_lb line",
     "aws_lb_target_group": "no charge",
@@ -70,6 +88,9 @@
     "aws_cloudwatch_log_metric_filter": "no charge for the filter; what it produces is a metric, and the alarm below is what is billable.",
     "aws_sqs_queue": "billed per million requests, and a cycle makes a few hundred: the api's sends, the worker's long polls, the observation's attribute reads. Not a lifetime and nowhere near the width of the band (ADR-0096).",
     "aws_sqs_queue_redrive_allow_policy": "an attribute of the dead-letter queue, not a thing that bills.",
+    "helm_release": "a Helm release is Kubernetes objects, and the one billable thing one of them makes - the load balancer the controller builds for an Ingress - is not a Terraform resource and never enters the event stream: observed through kubectl and the tagging API (ADR-0097), priced nowhere, and said so.",
+    "kubernetes_namespace_v1": "a Kubernetes object; nothing to bill.",
+    "kubernetes_secret_v1": "a Kubernetes object; nothing to bill.",
     "aws_cloudwatch_metric_alarm": "billed per alarm-month, which IS a lifetime this fold could price. Left out of v1 on purpose and named here rather than dropped: one alarm over half an hour is far below the width of the band the estimate already reports, and adding it would mean a fourth price lookup for a figure that cannot change the answer.",
     "aws_secretsmanager_secret": "billed per secret-month plus API calls. Same shape and same reasoning as the alarm."
   },

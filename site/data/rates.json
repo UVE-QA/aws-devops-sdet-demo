@@ -3,10 +3,11 @@
   "schema": "rates/1",
   "region": "us-west-2",
   "currency": "USD",
-  "captured_at": "2026-08-08T23:13:42Z",
+  "captured_at": "2026-09-13T16:09:33Z",
   "source": "AWS Price List Query API (pricing:GetProducts, endpoint us-east-1)",
   "priced_for": {
-    "db_instance_class": "db.t4g.micro"
+    "db_instance_class": "db.t4g.micro",
+    "node_instance_type": "t3.small"
   },
   "unit_prices": {
     "alb_hour": {
@@ -20,6 +21,33 @@
         "usagetype": "USW2-LoadBalancerUsage"
       },
       "service_code": "AWSELB"
+    },
+    "ec2_instance_hour": {
+      "usd": 0.0208,
+      "unit": "Hrs",
+      "sku": "8UZJBKH62FYWW5EG",
+      "description": "$0.0208 per On Demand Linux t3.small Instance Hour",
+      "filters": {
+        "regionCode": "us-west-2",
+        "instanceType": "t3.small",
+        "operatingSystem": "Linux",
+        "tenancy": "Shared",
+        "preInstalledSw": "NA",
+        "capacitystatus": "Used",
+        "operation": "RunInstances"
+      },
+      "service_code": "AmazonEC2"
+    },
+    "eks_cluster_hour": {
+      "usd": 0.1,
+      "unit": "Hours",
+      "sku": "DYQZA4NFAQKBU6H4",
+      "description": "Amazon EKS cluster usage in US West (Oregon)",
+      "filters": {
+        "regionCode": "us-west-2",
+        "usagetype": "USW2-AmazonEKS-Hours:perCluster"
+      },
+      "service_code": "AmazonEKS"
     },
     "fargate_gb_hour": {
       "usd": 0.004445,

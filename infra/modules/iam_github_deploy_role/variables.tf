@@ -51,3 +51,15 @@ variable "release_pointer_parameter_arns" {
   type        = list(string)
   default     = []
 }
+
+variable "extra_managed_role_names" {
+  description = "Further role name suffixes (after name_prefix and a dash) this role may create, read, pass and delete - the lab's cluster, node and IRSA roles (ADR-0097). Empty for the ECS environments."
+  type        = list(string)
+  default     = []
+}
+
+variable "eks" {
+  description = "Whether this role manages an EKS cluster: eks:* and the cluster's OIDC provider (ADR-0097). false for the ECS environments."
+  type        = bool
+  default     = false
+}

@@ -52,10 +52,13 @@ resource "aws_subnet" "public" {
   availability_zone       = local.az_names[count.index]
   map_public_ip_on_launch = true
 
-  tags = {
+  # `public_subnet_extra_tags` is how the lab tells the AWS Load Balancer
+  # Controller which subnets an Ingress may put an ALB in (ADR-0097); empty
+  # everywhere else.
+  tags = merge({
     Name = "${var.name_prefix}-public-${local.az_names[count.index]}"
     Tier = "public"
-  }
+  }, var.public_subnet_extra_tags)
 }
 
 resource "aws_subnet" "private_db" {

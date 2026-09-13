@@ -205,3 +205,18 @@ skip-check:
   - CKV_AWS_116   # Lambda dead letter queue
   - CKV_AWS_117   # Lambda inside a VPC
   - CKV_AWS_272   # Lambda code signing
+
+  # -- the lab cluster (ADR-0097) ---------------------------------------------
+  # The API server is reached from GitHub-hosted runners and from the devbox,
+  # and there is no private path to it - no NAT, no VPN, no runner in the VPC
+  # (ADR-0006). A private-only endpoint would make the lab something nothing
+  # here can deploy to; a CIDR allow-list would name runner addresses GitHub
+  # does not publish per job. What stands in front of it instead is EKS's own
+  # authentication (access entries, mode API) and an environment that lives
+  # for about an hour. Secrets encryption: every EKS cluster of 1.28 or newer
+  # already envelope-encrypts Kubernetes secrets with an AWS-owned KMS key; the
+  # check wants a CUSTOMER key, which would leave one key pending deletion per
+  # cycle for a database URL that is also in Secrets Manager.
+  - CKV_AWS_39    # EKS public endpoint disabled
+  - CKV_AWS_38    # EKS public endpoint open to 0.0.0.0/0
+  - CKV_AWS_58    # EKS secrets encryption with a customer KMS key

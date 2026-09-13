@@ -45,6 +45,7 @@ locals {
   project_name      = "aws-devops-sdet-demo"
   stage_name_prefix = "${local.project_name}-stage"
   prod_name_prefix  = "${local.project_name}-prod"
+  lab_name_prefix   = "${local.project_name}-lab"
 
   # Wildcard suffix: the DB secret carries a per-cycle random suffix
   # (recovery_window=0), so a deploy role must be scoped to the pattern, not a
@@ -108,6 +109,30 @@ module "deploy_role_prod" {
 
   # Only prod rolls back, so only prod's role can read or write the pointer.
   release_pointer_parameter_arns = [local.prod_release_pointer_arn]
+}
+
+# The lab's role (ADR-0097): stage's trust shape - the branch and the GitHub
+# Environment `lab` - plus the cluster, its OIDC provider and its five roles.
+# Same repository, same OIDC provider, its own name prefix, so it grants
+# nothing over stage or prod.
+module "deploy_role_lab" {
+  source = "../modules/iam_github_deploy_role"
+
+  name_prefix       = local.lab_name_prefix
+  oidc_provider_arn = module.oidc_provider.arn
+
+  github_owner = var.github_owner
+  github_repo  = var.github_repo
+
+  trust_branch_ref    = true
+  github_branch       = var.github_branch
+  github_environments = ["lab"]
+
+  state_bucket_arn      = "arn:aws:s3:::${var.state_bucket_name}"
+  db_secret_arn_pattern = "${local.secret_arn_prefix}:${local.lab_name_prefix}-db-credentials-*"
+
+  eks                      = true
+  extra_managed_role_names = ["eks-cluster", "eks-node", "api-irsa", "worker-irsa", "alb-controller"]
 }
 
 # ADR-0021 refactor: the provider and the stage role already exist in this

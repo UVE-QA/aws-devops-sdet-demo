@@ -101,6 +101,27 @@ QUERIES = {
             "usagetype": "{prefix}-RDS:GP3-Storage",
         },
     },
+    # The lab (ADR-0097): the control plane by the cluster-hour, and the
+    # nodes by the instance-hour of the one type the node group declares.
+    "eks_cluster_hour": {
+        "service": "AmazonEKS",
+        "filters": {
+            "regionCode": "{region}",
+            "usagetype": "{prefix}-AmazonEKS-Hours:perCluster",
+        },
+    },
+    "ec2_instance_hour": {
+        "service": "AmazonEC2",
+        "filters": {
+            "regionCode": "{region}",
+            "instanceType": "{node_type}",
+            "operatingSystem": "Linux",
+            "tenancy": "Shared",
+            "preInstalledSw": "NA",
+            "capacitystatus": "Used",
+            "operation": "RunInstances",
+        },
+    },
 }
 
 
@@ -169,16 +190,26 @@ def one_price(key: str, service: str, filters: dict) -> dict:
     return price
 
 
+def shapes() -> list[dict]:
+    return [environment_shape(d) for d in sorted((ROOT / "infra/envs").iterdir()) if d.is_dir()]
+
+
 def db_classes() -> list[str]:
     """Every distinct RDS class the per-cycle levels declare, from infra/."""
     classes = []
-    for env_dir in sorted((ROOT / "infra/envs").iterdir()):
-        if not env_dir.is_dir():
-            continue
-        shape = environment_shape(env_dir)
+    for shape in shapes():
         if shape["db_instance_class"] not in classes:
             classes.append(shape["db_instance_class"])
     return classes
+
+
+def node_types() -> list[str]:
+    """Every distinct node instance type the per-cycle levels declare."""
+    types = []
+    for shape in shapes():
+        if shape.get("node_instance_type") and shape["node_instance_type"] not in types:
+            types.append(shape["node_instance_type"])
+    return types
 
 
 def main() -> int:
@@ -203,7 +234,18 @@ def main() -> int:
               f"({', '.join(classes)}); this table prices one.", file=sys.stderr)
         return 2
 
-    substitutions = {"region": args.region, "prefix": prefix, "db_class": classes[0]}
+    try:
+        nodes = node_types()
+    except Refusal as exc:
+        print(f"refused: {exc}", file=sys.stderr)
+        return 2
+    if len(nodes) != 1:
+        print(f"refused: the per-cycle levels declare {len(nodes)} node instance types "
+              f"({', '.join(nodes)}); this table prices one.", file=sys.stderr)
+        return 2
+
+    substitutions = {"region": args.region, "prefix": prefix, "db_class": classes[0],
+                     "node_type": nodes[0]}
     unit_prices: dict[str, dict] = {}
     failures: list[str] = []
     for key, query in QUERIES.items():
@@ -232,7 +274,7 @@ def main() -> int:
         "currency": "USD",
         "captured_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "source": "AWS Price List Query API (pricing:GetProducts, endpoint us-east-1)",
-        "priced_for": {"db_instance_class": classes[0]},
+        "priced_for": {"db_instance_class": classes[0], "node_instance_type": nodes[0]},
         "unit_prices": dict(sorted(unit_prices.items())),
     }
     args.out.parent.mkdir(parents=True, exist_ok=True)

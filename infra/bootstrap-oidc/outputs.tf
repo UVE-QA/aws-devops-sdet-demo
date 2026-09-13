@@ -12,3 +12,8 @@ output "prod_deploy_role_arn" {
   description = "Deploy role for prod. Set as the OIDC_ROLE_ARN variable on the GitHub Environment 'prod'. Assumable ONLY through that environment, so it cannot be used without reviewer approval."
   value       = module.deploy_role_prod.deploy_role_arn
 }
+
+output "lab_deploy_role_arn" {
+  description = "ARN of the lab deploy role (ADR-0097); goes into the GitHub Environment `lab` as OIDC_ROLE_ARN."
+  value       = module.deploy_role_lab.deploy_role_arn
+}

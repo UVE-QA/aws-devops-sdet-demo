@@ -122,8 +122,20 @@ def environment_shape(env_dir: pathlib.Path) -> dict:
         )
 
     defaults = variable_defaults(env_dir)
-    missing = [k for k in ("task_cpu", "task_memory", "desired_count", "db_instance_class")
-               if k not in defaults]
+    # TWO RUNTIMES, TWO SHAPES (ADR-0097). An ECS environment is sized by its
+    # task; the lab is sized by its node group. Which one an environment is
+    # comes from which knobs it declares, and an environment that declares
+    # neither set is refused rather than shaped as nothing.
+    if "task_cpu" in defaults or "task_memory" in defaults or "desired_count" in defaults:
+        runtime = "ecs"
+        required = ("task_cpu", "task_memory", "desired_count", "db_instance_class")
+    elif "node_count" in defaults or "node_instance_types" in defaults:
+        runtime = "eks"
+        required = ("node_count", "node_instance_types", "db_instance_class")
+    else:
+        raise Refusal(f"{shown}: declares neither an ECS task (task_cpu, task_memory, "
+                      "desired_count) nor a node group (node_count, node_instance_types)")
+    missing = [k for k in required if k not in defaults]
     if missing:
         raise Refusal(f"{shown}: no default for {', '.join(missing)}")
 
@@ -143,21 +155,47 @@ def environment_shape(env_dir: pathlib.Path) -> dict:
         storage = module_defaults["allocated_storage"]
         storage_from = str(RDS_MODULE.relative_to(ROOT))
 
+    variables_tf = f"{env_dir.relative_to(ROOT)}/variables.tf"
+    if runtime == "eks":
+        if not isinstance(defaults["node_count"], int):
+            raise Refusal(f"{shown}: node_count is not a plain number ({defaults['node_count']!r})")
+        # One instance type, so one price. A list of several is a node group
+        # whose hourly cost depends on which type the group picked, which this
+        # fold cannot know from the configuration.
+        types = re.fullmatch(r'\[\s*"([^"]+)"\s*\]', str(defaults["node_instance_types"]))
+        if not types:
+            raise Refusal(f"{shown}: node_instance_types is not a list of exactly one type "
+                          f"({defaults['node_instance_types']!r})")
+        return {
+            "runtime": "eks",
+            "node_count": defaults["node_count"],
+            "node_instance_type": types.group(1),
+            "db_instance_class": defaults["db_instance_class"],
+            "db_allocated_gb": storage,
+            "from": {
+                "node_count": variables_tf,
+                "node_instance_type": variables_tf,
+                "db_instance_class": variables_tf,
+                "db_allocated_gb": storage_from,
+            },
+        }
+
     for key in ("task_cpu", "task_memory", "desired_count"):
         if not isinstance(defaults[key], int):
             raise Refusal(f"{shown}: {key} is not a plain number ({defaults[key]!r})")
 
     return {
+        "runtime": "ecs",
         "task_vcpu": defaults["task_cpu"] / 1024.0,
         "task_gb": defaults["task_memory"] / 1024.0,
         "task_count": defaults["desired_count"],
         "db_instance_class": defaults["db_instance_class"],
         "db_allocated_gb": storage,
         "from": {
-            "task_cpu": f"{env_dir.relative_to(ROOT)}/variables.tf",
-            "task_memory": f"{env_dir.relative_to(ROOT)}/variables.tf",
-            "desired_count": f"{env_dir.relative_to(ROOT)}/variables.tf",
-            "db_instance_class": f"{env_dir.relative_to(ROOT)}/variables.tf",
+            "task_cpu": variables_tf,
+            "task_memory": variables_tf,
+            "desired_count": variables_tf,
+            "db_instance_class": variables_tf,
             "db_allocated_gb": storage_from,
         },
     }

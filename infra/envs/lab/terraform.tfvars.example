@@ -1,0 +1,9 @@
+# Copy to terraform.tfvars (gitignored) for a local apply under demo-admin.
+# In CI every value comes from TF_VAR_* in the workflow.
+
+owner = "UVE"
+
+# The owner's SSO role, WITHOUT its path, so kubectl works from the devbox
+# after a cycle created the cluster (EKS access entries require the path
+# stripped: arn:aws:iam::<account>:role/AWSReservedSSO_AdministratorAccess_<hash>).
+# admin_principal_arns = ["arn:aws:iam::993912191738:role/AWSReservedSSO_AdministratorAccess_20369d4460860660"]
