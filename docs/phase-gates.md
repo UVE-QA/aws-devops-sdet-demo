@@ -4278,8 +4278,21 @@ both queues.
   migration as a one-off task in three workflows and a Helm hook, both
   queues observed, adopted and drawn on the one tile. Validate 9/9, checkov
   544/0, chart 11 objects, gates 13/13.
-- Next allowed step: **a cycle from `next`** on the owner's word - the spot
-  nodes and the second queue in one cycle; what it shows goes here.
+- **Cycle #31 (34787213122), in flight as this is written**: launch green
+  with the worker's migration as a one-off task and the async suite through
+  two real queues; lab green in 20 m on spot nodes (`capacity_type = "SPOT"`
+  in the apply stream, 921 s), three hooks, both queues observed `0/0 OK`.
+  Meanwhile, from the owner's screen: the anonymous GitHub budget ran out
+  (two lists per poll left no headroom - the by-name list is read once per
+  ten minutes now, merged with each poll's `main` runs), the button stood
+  open with no run history (closed now on the bucket's pulse and when
+  GitHub cannot be read; a `blind` fixture state holds it), and the lab
+  panel's *latest published* report link was an S3 AccessDenied (the
+  self-service publishes pass the report directory now, and the publisher
+  asks the bucket - by listing - whether a `latest` exists before the page
+  links it).
+- Next allowed step: the rest of #31, then **merge** on the owner's word and
+  the session record.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

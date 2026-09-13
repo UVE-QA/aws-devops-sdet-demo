@@ -2321,7 +2321,15 @@
           h += '<a href="' + esc(file.report_url) + '">Playwright report from run #' +
             esc(file.run && file.run.number) + '</a> &middot; ';
         }
-        h += '<a href="reports/' + esc(env) + '/latest/index.html">latest published</a>' +
+        // LINKED ONLY WHEN IT EXISTS. The publisher asks the bucket whether a
+        // `latest` report is there and says so in `latest_report_url`; a file
+        // written before it learned to (or by a run with nothing to link) has
+        // the field missing, and that is drawn as "none published", not as a
+        // link to an AccessDenied - which is what the lab's row was on
+        // 2026-09-13.
+        h += (file.latest_report_url
+          ? '<a href="' + esc(file.latest_report_url) + '">latest published</a>'
+          : '<span class="off">none published yet</span>') +
           (file.report_url ? "" : ' <span class="off">&mdash; the run that wrote this file produced no report</span>') +
           '</dd>';
         if (file.run) {

@@ -59,6 +59,19 @@ base_url="${SITE_BASE_URL:-https://demo.uveapp.net}"
 
 run_id="${GITHUB_RUN_ID:-local}"
 report_url='null'
+# WHETHER A `latest` REPORT EXISTS AT ALL. The page used to link
+# reports/<env>/latest/ whatever this run published, and for an environment
+# that had never published one - the lab, on 2026-09-13 - the link was an
+# S3 AccessDenied. Asked of the bucket rather than assumed: a run that
+# publishes no report still says whether an earlier one is there to link.
+# By LISTING, not head-object: the publish role may list the bucket and
+# write to it, and reads nothing (infra/public-site), so a head would be
+# refused and read exactly like "not there".
+latest_report_url='null'
+if [ "$(aws s3api list-objects-v2 --bucket "$SITE_BUCKET" --prefix "reports/${env_name}/latest/index.html" \
+          --max-keys 1 --query 'KeyCount' --output text 2>/dev/null)" = "1" ]; then
+  latest_report_url="\"${base_url}/reports/${env_name}/latest/index.html\""
+fi
 invalidate=("/status/${env_name}.json")
 
 # ---- the report, if this workflow produced one -----------------------------
@@ -73,6 +86,7 @@ if [ -n "$report_dir" ] && [ -d "$report_dir" ] && [ -n "$(ls -A "$report_dir" 2
   report_url="\"${base_url}/reports/${env_name}/${run_id}/index.html\""
   invalidate+=("/reports/${env_name}/latest/*")
   echo "published report: ${base_url}/reports/${env_name}/${run_id}/index.html"
+  latest_report_url="\"${base_url}/reports/${env_name}/latest/index.html\""
 else
   echo "no report directory to publish (looked at: '${report_dir:-<none>}')"
 fi
@@ -263,8 +277,10 @@ status_json="$(jq \
   --arg url "${GITHUB_SERVER_URL:-https://github.com}/${GITHUB_REPOSITORY:-UVE-QA/aws-devops-sdet-demo}/actions/runs/${run_id}" \
   --arg written_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
   --argjson report_url "$report_url" \
+  --argjson latest_report_url "$latest_report_url" \
   '. + {
      report_url: $report_url,
+     latest_report_url: $latest_report_url,
      written_at: $written_at,
      run: {
        id: $run_id,

@@ -523,7 +523,7 @@ jobs:
           TIMELINE_JSON: /tmp/timeline-stage.json
           NODE_STATES_JSON: /tmp/nodes-stage.json
           RESULTS_JSON: /tmp/results-stage.json
-        run: scripts/publish-status.sh stage /tmp/observation.json
+        run: scripts/publish-status.sh stage /tmp/observation.json tests/playwright/playwright-report
 
   # ---------------------------------------------------------------------------
   # THE PROMOTION. Calls .github/workflows/promote-prod.yml rather than copying
@@ -877,7 +877,7 @@ jobs:
           TIMELINE_JSON: /tmp/timeline-lab.json
           NODE_STATES_JSON: /tmp/nodes-lab.json
           RESULTS_JSON: /tmp/results-lab.json
-        run: scripts/publish-status.sh lab /tmp/observation.json
+        run: scripts/publish-status.sh lab /tmp/observation.json tests/playwright/playwright-report
 
   # The lab's teardown: the chart first, then the level (ADR-0097 D6) - both
   # inside destroy.yml, which knows the lab by its input. Runs whenever the
