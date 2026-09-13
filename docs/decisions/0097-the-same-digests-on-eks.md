@@ -1,0 +1,125 @@
+# ADR-0097: The same digests on EKS
+
+## Status
+Accepted (Phase 43, 2026-09-13), in slices; each slice's verification is
+recorded under Consequences as it happens. Item 3 of the plan in **ADR-0094**.
+Builds on ADR-0095 (three images, a release of digests) and ADR-0096 (the
+queue, the task roles' permissions). Reverses the *EKS / Helm — out* entry
+of `docs/next-phases.md`, as ADR-0094 said it would.
+
+## Context
+
+Two runtimes for the same containers is the comparison; one runtime is a
+deployment. The plan put Kubernetes third on purpose: on one container it
+would have shown what ECS already shows at a control-plane price, and after
+the split and the queue there are three services, a per-service identity and
+an asynchronous seam for a second runtime to carry. The owner accepted the
+cost for hands-on value and asked that the principle of a large project be
+kept: Terraform for the cluster, Helm for the application, no GitOps
+controller, and the page observing the cluster rather than trusting the run.
+
+The owner's decisions, taken before a line was written:
+
+> по всем пунктам как рекомендуешь
+
+on: a complete third environment; managed nodes rather than Fargate; the
+Terraform/Helm boundary; the lab beside promote in the cycle.
+
+## Decision
+
+**D1. The lab is a whole environment, beside stage and prod.** `infra/envs/lab`
+has its own VPC, RDS instance, secret, queue and dead-letter alarm — the
+modules the ECS environments use, unchanged — and its own state key, tags and
+deploy role. It shares nothing with stage; an environment that reached into
+another's database would make the comparison a lie about isolation. It is
+beside prod, not instead of stage: replacing stage would lose the thing being
+compared.
+
+**D2. Managed nodes, in the public subnets.** Two `t3.small` on-demand
+instances in one managed node group, public IPs and no NAT (ADR-0006), AL2023.
+EKS on Fargate is closer to the project's no-servers posture and further from
+the Kubernetes a reader expects — no DaemonSets, a CoreDNS patch, IP-mode
+targets only, slow pod starts — and the story here is the second runtime, not
+the absence of nodes. One instance type, so one price: the sizing reader
+refuses a list of several.
+
+**D3. Terraform owns the cluster and the platform; Helm owns the
+application.** Terraform makes the control plane, the node group, the
+cluster's OIDC provider, the access entries, three IRSA roles, the namespace,
+the Kubernetes Secret carrying `DATABASE_URL` (the same Secrets Manager value
+the task definitions inject, passing through a state that already holds the
+password), and the AWS Load Balancer Controller as a `helm_release`. The
+application — three Deployments, two Services, one Ingress, two ServiceAccounts
+— is a chart in this repository installed by the workflow with `--atomic
+--wait` and the digests stage tested. Argo CD and Flux stay out: one more
+system to run, and a paragraph explaining their absence is worth more here
+than the controller.
+
+**D4. IRSA is the task role.** ADR-0096 D6 gave the api and the worker one
+permission each on their task roles; here each gets an IAM role that trusts
+exactly one service account in exactly one namespace, holding exactly that
+permission. The controller gets the policy its own project publishes, vendored
+beside the module from the same release as the chart and bumped with it — the
+one wide policy in the lab, held by the one service account that needs it.
+
+**D5. Authentication mode API, and the creator is the first admin.** No
+`aws-auth` ConfigMap: the principal that applies the configuration — the
+deploy role in CI, `demo-admin` on the devbox — is cluster-admin by EKS's own
+bootstrap, and any further admin is an access entry a reader can list. The
+owner's SSO role goes in `terraform.tfvars`, path stripped, so kubectl works
+from the devbox after a cycle created the cluster.
+
+**D6. The teardown trap is met with tags.** An Ingress makes the controller
+build a load balancer Terraform does not own. Two things follow: the chart is
+uninstalled — and the balancer's deletion waited for — before `terraform
+destroy` reaches the VPC, and the controller runs with `defaultTags` of
+`Project` and `Environment`, because `sweep-orphans.sh` asks the tagging API
+for exactly those and would otherwise be blind to the one resource in the
+environment nothing declared. The first is the workflow's (slice three); the
+second is here.
+
+**D7. The public endpoint stays public, and Kubernetes secrets stay under
+AWS's key.** Checkov's three findings on the cluster are decisions: the API
+server is reached from GitHub-hosted runners and the devbox and there is no
+private path (no NAT, no VPN, no runner in the VPC); a CIDR allow-list would
+name addresses GitHub does not publish per job; what stands in front of it is
+EKS's authentication and an hour of life. Every cluster of 1.28 or newer
+already envelope-encrypts secrets with an AWS-owned key; a customer key would
+leave one key pending deletion per cycle for a database URL that is also in
+Secrets Manager.
+
+**D8. The cost model learns two lifetimes and a proxy.** The control plane by
+the cluster-hour, the nodes by the instance-hour times `node_count`, both from
+the Price List API like every other rate; the node group's lifetime stands in
+for the instances' as the service's does for Fargate tasks. Kubernetes objects
+and the Helm release are named as not metered, with the sentence that the
+balancer the controller builds is billable and enters no event stream. Sizing
+reads a node-group shape beside the task shape and refuses an environment
+that declares neither.
+
+**D9. In the cycle, beside promote.** (Slice three.) A `lab` job after a green
+stage, in parallel with `promote`, both taking the digests stage tested; its
+own destroy; api contract and smoke against the Ingress hostname. Wall-clock
+barely moves; the cost is the cluster's hour.
+
+**D10. The board draws the cluster and two service roles now, and the
+application through kubectl later.** (Slice four for the second half.) *EKS
+cluster* holds the control plane, the nodes, the OIDC provider, the roles the
+cluster and the nodes assume, and the platform Terraform put inside;
+*Kubernetes — api* and *— worker* hold the IRSA roles and their policies, the
+way the ECS tiles hold task roles. The Deployments are not Terraform's and are
+not counted; they are observed, with the Ingress and its balancer, by a
+`kubectl` read beside `observe-environment.sh`.
+
+## Consequences
+
+- Slice one, 2026-09-13: `terraform validate` on all nine levels; checkov 501
+  passed after D7; every checkout gate green over a topology of 9 levels and
+  200 blocks; sizing reads the lab as `node_count 2, t3.small`; the rate table
+  carries `eks_cluster_hour` ($0.10) and `ec2_instance_hour` ($0.0208) from
+  the Price List API. **Not yet applied anywhere**: the lab deploy role plans
+  2 to add on `bootstrap-oidc`, and the lab itself has never been created.
+- The adoption map and the sweep know nothing of the lab's kinds yet (cluster,
+  node group, OIDC provider, launch template, the controller's balancer); both
+  read stage's module map. Slice three, with the lab's teardown.
+- Three lists of service names became four with the IRSA roles; plan item 5.

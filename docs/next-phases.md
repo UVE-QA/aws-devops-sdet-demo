@@ -1580,7 +1580,7 @@ of it and the largest that a home project can carry without noise.
    promotion by digest mean something across services. Proven by the second
    cycle from `next` (#25) and merged.
 
-2. A queue and a worker                         [IN PROGRESS 2026-09-13, ADR-0096]
+2. A queue and a worker                         [DONE 2026-09-13, ADR-0096]
    api publishes an event to SQS, a worker consumes it; a dead-letter queue
    with an alarm on it. Asynchronous decoupling, idempotency, retries - for
    pennies. Decided with the owner: the worker stamps `processed_at` on the
@@ -1588,7 +1588,7 @@ of it and the largest that a home project can carry without noise.
    directly after the commit and the gap is named rather than closed by an
    outbox, the alarm has no action, and ElasticMQ stands in for SQS locally.
 
-3. The same digests on EKS
+3. The same digests on EKS                      [IN PROGRESS 2026-09-13, ADR-0097]
    Terraform brings up the cluster and the platform (including the load
    balancer controller, as a helm_release); Helm installs the APPLICATION with
    --atomic --wait and the same digests stage tested. A lab environment beside

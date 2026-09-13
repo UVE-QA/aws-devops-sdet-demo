@@ -4173,8 +4173,31 @@ cycle).
   press during a cycle that did not come through the button, answered `busy`
   by run and branch - is taken on the next cycle rather than on one of its
   own, on the owner's word; the merge into `main` goes with plan item 3.
-- Next allowed step: **plan item 3**, the same digests on EKS - discussed
-  before written.
+- Plan item 3 discussed and decided (the owner: *по всем пунктам как
+  рекомендуешь*); Phase 43 below.
+
+
+### Phase 43 — The same digests on EKS  ⏳ IN PROGRESS 2026-09-13
+
+Item 3 of the plan (ADR-0094), on `next`, in four slices. **ADR-0097**: a
+whole third environment with its own VPC, database, secret and queue; managed
+nodes in the public subnets; Terraform for the cluster and the platform
+(control plane, node group, OIDC provider, three IRSA roles, namespace,
+database secret, the load balancer controller with default tags for the
+sweep), Helm for the application; authentication mode API; the lab beside
+promote in the cycle; the board drawing the cluster and two service roles
+now and the application through kubectl later.
+
+- **Slice one (infra) 2026-09-13**: `infra/modules/eks`, `infra/envs/lab`, the
+  deploy-role module's extra names and EKS statements, the lab role in
+  `bootstrap-oidc`, subnet tags for the controller, three checkov decisions,
+  the cost model's two new lifetimes and the sizing reader's second shape,
+  two rates captured. Validated on all nine levels; checkov 501/0; gates
+  13/13. **Nothing applied yet.**
+- Next allowed step: apply `bootstrap-oidc` (the lab role: 2 to add) with the
+  owner's yes, then prove the cluster the cheap way - a local `apply` and
+  `destroy` of `infra/envs/lab` under `demo-admin`, about twenty minutes and
+  a few tens of cents - before the chart (slice two) has anywhere to go.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,
