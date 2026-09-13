@@ -89,6 +89,18 @@ week ago is still in the history. The per-poll cost is what it was before
 (one list, and a jobs read while something runs), the pacer divides as it
 did, and the in-flight gate's first-news window is back at (45 s, 60 s].
 
+*And the same evening, what the 403 showed.* With no run history the button
+read *Launch a full cycle* over a cycle twenty minutes in — the endpoint would
+have refused the press (ADR-0035, amended), but the page invited it. Two
+things now: the bucket's own pulse counts as busy — the watcher writes
+`status/progress/<env>.json` every fifteen seconds while its job runs and
+removes it at the end (ADR-0076), so a reading younger than three minutes
+closes the button whatever GitHub says; and when GitHub cannot be read and
+the bucket shows no pulse, the button closes and says *run history
+unavailable*: a question without an answer is a refusal, not a permission.
+A `blind` fixture state answers 403 to every GitHub request and holds the
+button closed, and was shown to fail with the button reopened.
+
 **D3. Experiments on the shared environments do not run while the demo is out.**
 This is the part no code enforces, and it is written here so that it is a rule
 rather than a habit. Page work needs no AWS at all — the browser gates render

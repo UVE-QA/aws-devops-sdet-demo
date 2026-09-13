@@ -1,0 +1,17 @@
+{
+  "label": "blind",
+  "description": "at-rest with the GitHub API answering 403 - the anonymous budget spent, as the owner's tab met it on 2026-09-13. The page must draw its banner, keep the environment panels from the bucket, and CLOSE the button: with no run history and no pulse in the bucket it cannot tell whether a cycle is running, and a question without an answer is a refusal, not a permission (ADR-0035).",
+  "now": "2026-08-11T04:25:00Z",
+  "provenance": {
+    "runs.json": "SYNTHETIC. at-rest's file, never served: the mock answers 403 to every GitHub request in this state.",
+    "jobs.json": "SYNTHETIC. The same job with every step finished.",
+    "status-stage.json": "SYNTHETIC. Written by #64 itself, so stage reads `up`.",
+    "status-prod.json": "SYNTHETIC. Byte-identical to the in-flight one."
+  },
+  "cycle": {
+    "_": "DECLARED, not re-derived. Which environments the run in flight is about is a fact this fixture already fixed when it chose the workflow; making the gate work it out again from runs.json would put the page's WRITERS table in a second place (one definition, two hosts).",
+    "in_flight": false,
+    "environments": []
+  },
+  "github_status": 403
+}

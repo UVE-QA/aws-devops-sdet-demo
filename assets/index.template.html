@@ -2610,6 +2610,18 @@
         return anySelfServiceInFlight();
       }
 
+      // The bucket's pulse (announceCycle): a progress document younger than
+      // three minutes in any environment. Returned in the shape of a run so
+      // the control's clock can start from it.
+      function bucketSaysInFlight() {
+        var envs = Object.keys(state.envwork || {});
+        for (var i = 0; i < envs.length; i++) {
+          var alive = (state.envwork[envs[i]] || {}).alive;
+          if (alive) return { bucket: true, environment: envs[i], run_started_at: null };
+        }
+        return null;
+      }
+
       // Set when THIS browser starts a launch, and honoured for as long as it
       // takes the run to appear in a GitHub read. Not a second source of truth:
       // it only ever CLOSES the button, never opens one the runs say is busy.
@@ -2637,7 +2649,16 @@
         var used = QUOTA.used !== null ? QUOTA.used : selfServiceRunsToday().length;
         var left = QUOTA.used !== null ? QUOTA.left
                  : Math.max(0, SELF_SERVICE.dailyCap - used);
-        var busy = selfServiceInFlight() || launchedButNotYetSeen();
+        // THREE SOURCES FOR BUSY, AND A FOURTH STATE. The Actions API (any
+        // branch, ADR-0093), this browser's own press, and the bucket's pulse
+        // (announceCycle): any one of them closes the button. And when the
+        // API could not be read at all and the bucket shows no pulse, the
+        // question "is anything running" has no answer - and a question
+        // without an answer is a refusal, not a permission (ADR-0035): the
+        // button closes and says why, rather than inviting a press the
+        // endpoint would refuse anyway.
+        var busy = selfServiceInFlight() || launchedButNotYetSeen() || bucketSaysInFlight();
+        var blind = !busy && Boolean(state.githubError) && !state.allRuns;
 
         // THE QUOTA, BESIDE THE CONTROL IT LIMITS. A visitor could not tell a
         // button that will work from one that will be refused until they pressed
@@ -2694,10 +2715,12 @@
         if (button) {
           var running = busy && busy !== true ? busy : null;
           var startedAt = running && (running.run_started_at || running.created_at) || "";
-          button.disabled = !!busy || left === 0;
+          button.disabled = !!busy || blind || left === 0;
           button.dataset.since = startedAt;
           button.textContent = busy
-            ? "A cycle is running" + (startedAt ? " \u00b7 " + dur(startedAt) : "")
+            ? "A cycle is running" + (startedAt ? " \u00b7 " + dur(startedAt)
+                : (busy.bucket ? " \u00b7 " + esc(busy.environment) + " reports in" : ""))
+            : blind ? "Closed: run history unavailable"
             : left === 0 ? "No launches left today"
             : "Launch a full cycle";
         }
@@ -2725,10 +2748,17 @@
         // button had started it. The page asserting a provenance it cannot
         // observe is the defect this project keeps finding in itself.
         el("launch-why").textContent = (busy
-          ? "A cycle is running now: stage, then prod, then a five-minute hold, then " +
-            "both destroyed. One at a time, so this button is closed until it " +
+          ? "A cycle is running now: stage, then prod and the lab, then a five-minute hold, " +
+            "then everything destroyed. One at a time, so this button is closed until it " +
             "finishes - whoever started it. Everything below is reported by the " +
-            "Actions API and by the environment itself, not by the button."
+            "Actions API and by the environment itself, not by the button." +
+            (busy.bucket ? " The Actions API could not be read; the bucket says a job is " +
+              "reporting from " + esc(busy.environment) + " right now, and that is enough to close it." : "")
+          : blind
+          ? "Closed, because this page could not read the run history and so cannot tell " +
+            "whether a cycle is running. A question without an answer is a refusal, not a " +
+            "permission: the endpoint behind this button would refuse a press during a cycle " +
+            "anyway, and the button says so first. It reopens when the API answers."
           : "Starts one stage environment, promotes the tested image to prod, holds prod " +
             "for five minutes, then destroys both - and destroys them after " +
             SELF_SERVICE.ttlMinutes + " minutes whatever happens. " +
@@ -3008,7 +3038,8 @@
         var changed = ENVIRONMENTS.some(function (env) {
           var now = next[env] || {};
           return was(env, "tearing") !== Boolean(now.tearing) ||
-                 was(env, "building") !== Boolean(now.building);
+                 was(env, "building") !== Boolean(now.building) ||
+                 was(env, "alive") !== Boolean(now.alive);
         });
         state.envwork = next;
         if (!changed) return;
@@ -5424,9 +5455,20 @@
             // on UNKNOWN, in the yellow it uses for *this could not be checked*,
             // three inches above a board drawing the thing being built.
             const doc = progressHere(RUNSTATE.observation, env);
+            // ALIVE, FROM THE BUCKET ALONE. The watcher writes this document
+            // every fifteen seconds while its job runs and removes it at the
+            // end (ADR-0076), so a reading younger than three minutes is proof
+            // that a job is running now - whatever GitHub says, and when
+            // GitHub says nothing: the evening the anonymous budget ran out
+            // (ADR-0093), the button read `Launch a full cycle` over a cycle
+            // that was twenty minutes in. Unattributed on purpose: this is
+            // not a figure to paint, it is a pulse.
+            const raw = RUNSTATE.progress ? RUNSTATE.progress[env] : null;
+            const taken = raw ? Date.parse(raw.taken_at || "") : NaN;
             detail[env] = {
               tearing: n && n.state === "running" ? (n.since || true) : null,
-              building: doc && doc.kind === "apply" ? (doc.taken_at || true) : null
+              building: doc && doc.kind === "apply" ? (doc.taken_at || true) : null,
+              alive: taken && (Date.now() - taken) < 180000 ? raw.taken_at : null
             };
           });
           document.dispatchEvent(new CustomEvent("cycle:environment", { detail: detail }));

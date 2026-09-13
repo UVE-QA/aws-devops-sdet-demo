@@ -1,0 +1,25 @@
+{
+  "schema": 1,
+  "environment": "prod",
+  "state": "up",
+  "observed_at": "2026-08-10T21:37:41Z",
+  "account": "993912191738",
+  "region": "us-west-2",
+  "app_url": "https://app.demo.uveapp.net",
+  "image": "sha256:4c7e1a90b6d38f2e5710c94ab2d7f0836e519c4d0a7b3e6f8129d5c0a4b7e312",
+  "resources": {
+    "load_balancer": "demo-prod-alb",
+    "ecs_service": "demo-prod",
+    "db_instance": "aws-devops-sdet-demo-prod"
+  },
+  "report_url": "https://demo.uveapp.net/reports/prod/22/index.html",
+  "written_at": "2026-08-10T21:38:00Z",
+  "run": {
+    "id": "31458000022",
+    "number": "22",
+    "attempt": "1",
+    "workflow": "promote-prod",
+    "status": "success",
+    "url": "https://github.com/UVE-QA/aws-devops-sdet-demo/actions/runs/31458000022"
+  }
+}

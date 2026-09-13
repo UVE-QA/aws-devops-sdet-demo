@@ -348,6 +348,12 @@ async function installRoutes(page, origin, src, unmocked) {
                              body: JSON.stringify(src.current.quota) });
     }
     if (url.startsWith("https://api.github.com/")) {
+      // A state may declare the API DOWN (`github_status` in meta.json):
+      // every request gets that status and no body, which is what the
+      // anonymous budget running out looks like from a browser.
+      if (meta.github_status) {
+        return route.fulfill({ status: meta.github_status, contentType: "application/json", body: "{}" });
+      }
       const body = /\/jobs(\?|$)/.test(url) ? jobs : runs;
       return route.fulfill({
         status: 200, contentType: "application/json",
@@ -403,7 +409,7 @@ async function render(browser, origin, state, notFound) {
       "state every one of these claims would then be measured in:\n  " +
       [...new Set(notFound)].join("\n  "));
   }
-  if (seen.banner) {
+  if (seen.banner && !meta.github_status) {
     refuse(`the page drew a source-failure banner - "${seen.banner}".`);
   }
   return { state, meta, runs, seen };
@@ -951,6 +957,25 @@ function claimEnvironmentsAnyBranch({ state, seen }) {
   return out;
 }
 
+/* THE API IS DOWN AND THE BUTTON IS CLOSED (ADR-0035, ADR-0093). The `blind`
+   state answers 403 to every GitHub request: the page must say so in its
+   banner, keep the environment panels from the bucket, and close the button -
+   it cannot tell whether a cycle is running, and the evening the owner's tab
+   met this the button read "Launch a full cycle" over a cycle twenty minutes
+   in. The endpoint would have refused the press; the page must not invite it. */
+function claimBlindButtonClosed({ seen }) {
+  const out = [];
+  if (!seen.banner || !/403/.test(seen.banner)) out.push("no banner names the failed read");
+  if (!seen.launch) out.push("no launch button was rendered");
+  else {
+    if (!seen.launch.disabled) out.push(`the button is open with no run history: "${seen.launch.text}"`);
+    if (!/unavailable/i.test(seen.launch.text)) out.push(`the button does not say why it is closed: "${seen.launch.text}"`);
+  }
+  const stage = (seen.envs || []).find((e) => e.name === "stage");
+  if (!stage || !/up/i.test(stage.badge || "")) out.push("stage's panel did not come from the bucket");
+  return out;
+}
+
 /* THE CONTROL THAT MUST DIFFER. Two renderings that agree would make every claim
    above true of a page that draws nothing at all. What must differ is named
    rather than hashed: the verdict, because one state has a run in flight, and at
@@ -980,7 +1005,7 @@ async function main() {
   if (!Object.keys(index).length) refuse("site/data/topology.json indexed no nodes at all.");
 
   const wanted = arg("--state");
-  const FOREIGN = ["foreign-writer", "foreign-in-flight"];
+  const FOREIGN = ["foreign-writer", "foreign-in-flight", "blind"];
   const states = wanted ? [wanted] : ["in-flight", "at-rest"];
   // The foreign-* states answer two claims and not the six: they are at-rest
   // with one run the cycle's views must not see, so every map claim would be
@@ -1047,10 +1072,13 @@ async function main() {
     ["a run from another branch is shown nowhere", claimReleasedLineOnly],
     ["the environments are asked about every branch", claimEnvironmentsAnyBranch]
   ];
+  const BLIND_CLAIMS = [
+    ["the API is down and the button is closed", claimBlindButtonClosed]
+  ];
 
   let failed = 0;
   for (const r of readings) {
-    for (const [name, fn] of (r.foreign ? FOREIGN_CLAIMS : CLAIMS)) {
+    for (const [name, fn] of (r.state === "blind" ? BLIND_CLAIMS : r.foreign ? FOREIGN_CLAIMS : CLAIMS)) {
       const findings = fn(r, fn === claimVerdict ? r.audit : index, r.dir);
       if (findings.length) {
         failed += 1;
