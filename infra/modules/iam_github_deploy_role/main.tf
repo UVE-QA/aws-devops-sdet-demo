@@ -183,6 +183,27 @@ data "aws_iam_policy_document" "deploy" {
     }
   }
 
+  # EKS VALIDATES ITS OWN SERVICE-LINKED ROLES WITH THE CALLER'S PERMISSIONS.
+  # `CreateNodegroup` first asks whether AWSServiceRoleForAmazonEKSNodegroup
+  # exists - as the caller, with iam:GetRole - and the second cycle with a
+  # lab (#28) died on exactly that: "Failed to validate if SLR … already
+  # exists due to missing permissions for 'iam:GetRole'". The role existed;
+  # the deploy role was not allowed to look. A read on the two EKS
+  # service-linked roles, and nothing else on them: creating one is
+  # `iam:CreateServiceLinkedRole` above, and neither is ever this role's to
+  # change.
+  dynamic "statement" {
+    for_each = var.eks ? [1] : []
+    content {
+      sid     = "EksServiceLinkedRolesRead"
+      actions = ["iam:GetRole"]
+      resources = [
+        "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/aws-service-role/eks.amazonaws.com/AWSServiceRoleForAmazonEKS",
+        "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/aws-service-role/eks-nodegroup.amazonaws.com/AWSServiceRoleForAmazonEKSNodegroup",
+      ]
+    }
+  }
+
   dynamic "statement" {
     for_each = var.eks ? [1] : []
     content {

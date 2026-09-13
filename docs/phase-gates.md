@@ -4211,9 +4211,25 @@ now and the application through kubectl later.
   observation's `eks` block. `CLAUDE.md`'s "no EKS" invariant is now "EKS
   only in the lab". Gates 13/13. The GitHub Environment `lab` is created by
   the first job that names it; the deploy role is resolved by name.
-- Next allowed step: **the first cycle with a lab**, from `next`, on the
-  owner's word - with the button pressed during it for ADR-0035's amended
-  refusal; what it shows goes here. Then slice four, the page.
+- **Cycle #27 (34770893807), the first with a lab, failed three ways, none
+  of them the cluster**: the site-publish role trusted `stage` and `prod`
+  only, so `lab` fell at the progress watcher before `terraform init`
+  (`infra/public-site` applied with the owner's yes, 1 changed); the sweep
+  probed every environment about all eleven role names and stage's and prod's
+  deploy roles cannot ask about the lab's five - AccessDenied read as
+  `unconfirmed`, both teardowns red on that step alone, both environments
+  gone in fact (`unindexed_names` is per environment now); and the page's
+  forty-run window held no `main` run at all (ADR-0093 D2 amended again: the
+  released line is asked for by name). ADR-0035's amended refusal was proven
+  live during the cycle: `409 busy`, run #27 from `next`, the counter at zero.
+- **Open, conditional (owner, 2026-09-13):** the Cycle map and the *Current
+  cycle* panel follow `main` alone, so a cycle from `next` runs under a
+  closed button over a map at rest. Acceptable while the work on `next` is a
+  matter of days; if it runs into the working week, the run in flight is to
+  be shown from any branch, named with its branch, with only what FINISHED
+  kept to the released line.
+- Next allowed step: **cycle #28 (34774107150)** with all three fixes; what
+  it shows goes here. Then slice four, the page.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,
