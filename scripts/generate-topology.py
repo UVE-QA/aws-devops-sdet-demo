@@ -422,26 +422,52 @@ def build():
     for addr in sorted(acknowledged - set(repeated)):
         findings.append(f"stale repetition: {addr} is listed as repeated and no longer is")
 
+    # ONE MODULE, TWO INSTANCES, TWO TILES (ADR-0095). modules/ecs-service is
+    # called as `api` and as `web`, and the same block has to land on a
+    # different tile per call - so an assignment table may be keyed by
+    # `<dir>@<call>` as well as by `<dir>`. The instance table wins where it
+    # names a block; the directory table covers what is the same in every
+    # instance. A block is assigned when the directory table names it or every
+    # instance table does; an instance key naming a call nobody makes is stale.
+    instances: dict[str, set[str]] = {}
+    for d in lv:
+        for name, target in module_calls(d):
+            instances.setdefault(str(target.relative_to(ROOT)), set()).add(name)
+
     for site, decls in sorted(declared.items()):
         table = assign.get(site, {})
+        inst_tables = {c: assign.get(f"{site}@{c}", {}) for c in sorted(instances.get(site, ()))}
+        inst_present = [t for t in inst_tables.values() if t]
         for decl in sorted(decls):
-            if decl not in table:
+            covered = decl in table or (bool(inst_present) and all(decl in t for t in inst_present))
+            if not covered:
                 findings.append(f"unassigned: {site} :: {decl} belongs to no display group")
-            elif table[decl] not in groups:
-                findings.append(f"unknown group: {site} :: {decl} -> {table[decl]}")
+                continue
+            for t in [table] + inst_present:
+                if decl in t and t[decl] not in groups:
+                    findings.append(f"unknown group: {site} :: {decl} -> {t[decl]}")
         for decl in sorted(set(table) - decls):
             findings.append(f"stale assignment: {site} :: {decl} is assigned but no longer declared")
-    for site in sorted(set(assign) - set(declared)):
-        findings.append(f"stale assignment: {site} declares nothing under infra/")
+        for c, t in inst_tables.items():
+            for decl in sorted(set(t) - decls):
+                findings.append(f"stale assignment: {site}@{c} :: {decl} is assigned but no longer declared")
+    known_keys = set(declared) | {f"{site}@{c}" for site, cs in instances.items() for c in cs}
+    for site in sorted(set(assign) - known_keys):
+        findings.append(f"stale assignment: {site} declares nothing under infra/, or names a module call nobody makes")
 
-    def group_of(site_rel, decl):
+    def group_of(site_rel, decl, addr=""):
+        call = addr.split(".")[1] if addr.startswith("module.") else None
+        if call is not None:
+            hit = assign.get(f"{site_rel}@{call}", {}).get(decl)
+            if hit:
+                return hit
         return assign.get(site_rel, {}).get(decl)
 
     def members_in(level_dir, group_id):
         return [
             addr
             for addr, site, decl in owned[level_dir]
-            if group_of(str(site.relative_to(ROOT)), decl) == group_id
+            if group_of(str(site.relative_to(ROOT)), decl, addr) == group_id
         ]
 
     def count_in(level_dir, group_id):
@@ -605,6 +631,17 @@ def build():
             else:
                 node = dict(n)
                 node.setdefault("env", p.get("env"))
+                # A VERB NODE MAY BIND ITS OWN STEP TOO (ADR-0095): the two image
+                # pushes are two steps of one phase, and each tile answers for
+                # its own. Resolved and checked exactly as a phase's binding is,
+                # so the page receives `path` and `when` - a binding passed
+                # through raw has no path and matches no run, which is a tile
+                # that quietly never lights.
+                if "live" in n:
+                    node_live, node_findings = live_bindings(f"node {n['id']}", n)
+                    if node_findings:
+                        raise Refusal("\n".join(node_findings))
+                    node["live"] = node_live
                 nodes.append(node)
         # THE TOOL, IN TEXT (ADR-0047 D4). Terraform, Docker, Playwright, pytest
         # and Alembic appear nowhere on the map, and that is the half of the

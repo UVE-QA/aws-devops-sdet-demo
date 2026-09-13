@@ -571,7 +571,10 @@
          `auto-fill` was tried and is wrong here for the same reason `1fr` was
          wrong before it: it gives whatever fits, so a 1512px row becomes
          thirteen columns of which five are empty in both rows. The number of
-         columns is a property of the estate, not of the viewport. */
+         columns is a property of the estate, not of the viewport - CAPPED, since
+         ADR-0095, by how many tiles of 11rem fit, because a ninth noun must not
+         make the other eight narrower. Past the cap both rows wrap at the same
+         column, which keeps them readable by column. */
       .estate-set {
         display: grid; gap: var(--gap);
         grid-template-columns: repeat(var(--estate-cols, 8), minmax(0, 1fr));
@@ -2044,8 +2047,15 @@
         h += '<dt>load balancer</dt><dd>' + (r.load_balancer
           ? esc(r.load_balancer.state) + ' <span class="mono">' + esc(r.load_balancer.name) + '</span>'
           : '<span class="off">absent</span>') + '</dd>';
-        h += '<dt>ecs service</dt><dd>' + (r.ecs_service
+        h += '<dt>api service</dt><dd>' + (r.ecs_service
           ? esc(r.ecs_service.status) + ", " + esc(r.ecs_service.running) + "/" + esc(r.ecs_service.desired) + " running"
+          : '<span class="off">absent</span>') + '</dd>';
+        // The second service (ADR-0095). Absent from a document written before
+        // the split, which is drawn as absent rather than hidden: an old
+        // observation saying nothing about web is an observation of a page
+        // that had no web.
+        h += '<dt>web service</dt><dd>' + (r.ecs_web_service
+          ? esc(r.ecs_web_service.status) + ", " + esc(r.ecs_web_service.running) + "/" + esc(r.ecs_web_service.desired) + " running"
           : '<span class="off">absent</span>') + '</dd>';
         h += '<dt>database</dt><dd>' + (r.db_instance
           ? esc(r.db_instance.status) + ' <span class="mono">' + esc(r.db_instance.identifier) + '</span>'
@@ -4191,7 +4201,19 @@
             const ph = bindingState(observation, p.live);
             if (ph.state) out.phases[p.id] = { state: ph.state, since: ph.since, prior: ph.prior || 0 };
             phaseNodes(p).forEach((n) => {
-              if (n.live && n.live.length) {
+              // A NODE ANSWERS FOR ITSELF WHEN IT HAS A BINDING FOR THIS
+              // WORKFLOW, and inherits its phase when it does not (ADR-0095,
+              // narrowing ADR-0043 D1). `destroy.stage` binds the self-service
+              // jobs by name (ADR-0081); an owner's dispatch of destroy.yml is
+              // a different workflow, and with own bindings that matched
+              // nothing the tile stopped lighting for it entirely - the
+              // refreshed live-state fixture said so. A binding for another
+              // workflow is not an answer of "nothing"; it is no answer, and
+              // the phase's, filtered by environment as below, is the honest
+              // one to fall back on.
+              const runPath = observation && observation.run ? observation.run.path : null;
+              const speaksHere = (n.live || []).some((b) => b.path === runPath);
+              if (n.live && n.live.length && speaksHere) {
                 const own = bindingState(observation, n.live);
                 if (own.state) out.nodes[n.id] = { state: own.state, since: own.since,
                                                    prior: own.prior || 0, via: "own" };
@@ -4759,6 +4781,20 @@
           return el;
         }
 
+        let ESTATE_MOST = 1;
+        function setEstateColumns(host) {
+          const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+          // 10.5rem: what eight tiles measure across the 1512px board today,
+          // so the width the owner approved stays the floor and a ninth noun is
+          // the first thing that wraps.
+          const tileMin = 10.5 * rem;
+          const probe = host.querySelector(".estate-set");
+          const gap = probe ? (parseFloat(getComputedStyle(probe).columnGap) || 0) : 0.5 * rem;
+          const width = host.clientWidth;
+          const fit = width > 0 ? Math.max(1, Math.floor((width + gap) / (tileMin + gap))) : ESTATE_MOST;
+          host.style.setProperty("--estate-cols", String(Math.max(1, Math.min(ESTATE_MOST, fit))));
+        }
+
         function renderEstate(d) {
           const host = $("#estate-envs");
           if (!host || !d) return;
@@ -4770,9 +4806,17 @@
           // here because it is a property of the estate; a number in the
           // stylesheet would be this file's node counts written down a second
           // time, and topology.json is generated from infra/.
-          host.style.setProperty("--estate-cols", String(
-            (d.estate.environments || []).reduce(
-              (most, e) => Math.max(most, (e.nodes || []).length), 1)));
+          // ...AND NO NARROWER THAN A TILE (ADR-0095). Nine nouns in prod would
+          // have squeezed every tile to 160px at 1512; the owner: not narrower,
+          // a next row. So the column count is the estate's, capped by how
+          // many tiles of the minimum width the board is wide - past that a
+          // row wraps, and both rows wrap at the same column, so VPC still
+          // sits over VPC. Recomputed by the observer below when the width
+          // changes; a tab hidden at first paint reports zero and is left at
+          // the data's count until it is shown.
+          ESTATE_MOST = (d.estate.environments || []).reduce(
+            (most, e) => Math.max(most, (e.nodes || []).length), 1);
+          setEstateColumns(host);
           (d.estate.environments || []).forEach((e) => {
             const sec = document.createElement("section");
             sec.className = "estate-env";
@@ -5375,6 +5419,20 @@
           clearTimeout(relayout);
           relayout = setTimeout(render, 120);
         }).observe(rowsHost);
+        // The board's columns are a function of its width too (ADR-0095), and
+        // for the same reason as the map's: a part that was hidden at first
+        // paint has no width to fit tiles into until it is shown.
+        (() => {
+          const estate = $("#estate-envs");
+          if (!estate || typeof ResizeObserver === "undefined") return;
+          let seen = -1;
+          new ResizeObserver(() => {
+            const w = estate.clientWidth;
+            if (w === seen) return;
+            seen = w;
+            setEstateColumns(estate);
+          }).observe(estate);
+        })();
       })();
     </script>
   </body>

@@ -28,7 +28,7 @@
     "not_shown": 1,
     "read": 2,
     "unknown": 0,
-    "nodes": 7
+    "nodes": 8
   },
   "not_shown": [
     "module.network.aws_default_security_group.this"
@@ -55,6 +55,22 @@
       "resources_observed": 4,
       "resources_complete": 4
     },
+    "stage.ecs_api": {
+      "state": "measured",
+      "duration_s": 12.0,
+      "identifier": "arn:aws:ecs:us-west-2:993912191738:cluster/aws-devops-sdet-demo-stage-cluster",
+      "identifier_from": "module.api.aws_ecs_service.this",
+      "resources_observed": 8,
+      "resources_complete": 8
+    },
+    "stage.ecs_web": {
+      "state": "measured",
+      "duration_s": 7,
+      "identifier": "arn:aws:ecs:us-west-2:993912191738:cluster/aws-devops-sdet-demo-stage-cluster-web",
+      "identifier_from": "module.web.aws_ecs_service.this",
+      "resources_observed": 7,
+      "resources_complete": 7
+    },
     "stage.budgets": {
       "state": "measured",
       "duration_s": 7.0,
@@ -70,14 +86,6 @@
       "identifier_from": "module.observability.aws_cloudwatch_log_group.app",
       "resources_observed": 3,
       "resources_complete": 3
-    },
-    "stage.ecs": {
-      "state": "measured",
-      "duration_s": 12.0,
-      "identifier": "arn:aws:ecs:us-west-2:993912191738:cluster/aws-devops-sdet-demo-stage-cluster",
-      "identifier_from": "module.ecs.aws_ecs_cluster.this",
-      "resources_observed": 8,
-      "resources_complete": 8
     },
     "stage.rds": {
       "state": "measured",

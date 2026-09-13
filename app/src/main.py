@@ -20,11 +20,10 @@ health checks and are not wired to any container health check.
 import logging
 import os
 import time
-from pathlib import Path
 from typing import Iterator
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response, status
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import JSONResponse
 from sqlalchemy import func, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -47,7 +46,6 @@ from src.schemas import (
 )
 
 APP_NAME = os.getenv("APP_NAME", "aws-devops-sdet-demo")
-STATIC_DIR = Path(__file__).parent / "static"
 
 app = FastAPI(title=APP_NAME)
 
@@ -283,7 +281,7 @@ def delete_item(item_id: int, db: Session = Depends(get_db)) -> Response:
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-@app.get("/")
-def index():
-    """Serve the static frontend."""
-    return FileResponse(STATIC_DIR / "index.html")
+# `/` IS NOT HERE ANY MORE (ADR-0095). The static interface this served moved to
+# the web service - web/static/index.html behind nginx - and the load balancer
+# sends `/` there and `/api/*` here. The api is the domain and its health, and
+# nothing that a browser renders.

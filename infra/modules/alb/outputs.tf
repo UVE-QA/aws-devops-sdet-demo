@@ -14,8 +14,13 @@ output "alb_security_group_id" {
 }
 
 output "target_group_arn" {
-  description = "ARN of the app target group (referenced by the ECS service load_balancer block)."
+  description = "ARN of the api's target group (the ECS api service registers in it)."
   value       = aws_lb_target_group.app.arn
+}
+
+output "web_target_group_arn" {
+  description = "ARN of the web target group (the ECS web service registers in it), ADR-0095."
+  value       = aws_lb_target_group.web.arn
 }
 
 output "listener_arn" {

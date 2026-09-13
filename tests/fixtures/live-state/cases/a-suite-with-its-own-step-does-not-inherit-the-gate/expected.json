@@ -6,7 +6,7 @@
     },
     "stage-provision": {
       "state": "finished",
-      "since": "2026-08-08T13:00:00Z"
+      "since": "2026-08-08T14:00:00Z"
     },
     "stage-gate": {
       "state": "running",
@@ -16,7 +16,7 @@
   "nodes": {
     "stage.migrate": {
       "state": "finished",
-      "since": "2026-08-08T13:00:00Z",
+      "since": "2026-08-08T14:00:00Z",
       "via": "phase"
     },
     "suite.db.stage": {

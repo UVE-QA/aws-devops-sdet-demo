@@ -78,7 +78,7 @@
       "fn": "nodeTense",
       "args": [
         {
-          "id": "stage.ecs",
+          "id": "stage.ecs_api",
           "kind": "service",
           "service": "ecs",
           "observer": "terraform",

@@ -20,3 +20,9 @@ variable "max_image_count" {
   type        = number
   default     = 30
 }
+
+variable "web_repository_name" {
+  description = "Name of the web image's repository (ADR-0095). Deterministic and duplicated in the workflows on purpose, like repository_name: a workflow derives it without reading Terraform state."
+  type        = string
+  default     = "aws-devops-sdet-demo-web"
+}

@@ -14,7 +14,13 @@
       "started_at": "2026-08-08T10:00:00Z",
       "steps": [
         {
-          "name": "Build, tag, and push image",
+          "name": "Build, tag, and push the api image",
+          "status": "completed",
+          "conclusion": "skipped",
+          "started_at": "2026-08-08T10:00:00Z"
+        },
+        {
+          "name": "Build, tag, and push the web image",
           "status": "completed",
           "conclusion": "skipped",
           "started_at": "2026-08-08T10:00:00Z"

@@ -28,7 +28,7 @@
     "not_shown": 1,
     "read": 2,
     "unknown": 0,
-    "nodes": 8
+    "nodes": 9
   },
   "not_shown": [
     "module.network.aws_default_security_group.this"
@@ -55,6 +55,22 @@
       "resources_observed": 5,
       "resources_complete": 5
     },
+    "prod.ecs_api": {
+      "state": "measured",
+      "duration_s": 12.0,
+      "identifier": "arn:aws:ecs:us-west-2:993912191738:cluster/aws-devops-sdet-demo-prod-cluster",
+      "identifier_from": "module.api.aws_ecs_service.this",
+      "resources_observed": 8,
+      "resources_complete": 8
+    },
+    "prod.ecs_web": {
+      "state": "measured",
+      "duration_s": 7,
+      "identifier": "arn:aws:ecs:us-west-2:993912191738:cluster/aws-devops-sdet-demo-prod-cluster-web",
+      "identifier_from": "module.web.aws_ecs_service.this",
+      "resources_observed": 7,
+      "resources_complete": 7
+    },
     "prod.budgets": {
       "state": "measured",
       "duration_s": 8.0,
@@ -78,14 +94,6 @@
       "identifier_from": "aws_route53_record.app",
       "resources_observed": 1,
       "resources_complete": 1
-    },
-    "prod.ecs": {
-      "state": "measured",
-      "duration_s": 12.0,
-      "identifier": "arn:aws:ecs:us-west-2:993912191738:cluster/aws-devops-sdet-demo-prod-cluster",
-      "identifier_from": "module.ecs.aws_ecs_cluster.this",
-      "resources_observed": 8,
-      "resources_complete": 8
     },
     "prod.rds": {
       "state": "measured",

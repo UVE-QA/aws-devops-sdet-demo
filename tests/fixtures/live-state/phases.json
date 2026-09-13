@@ -1,5 +1,5 @@
 {
-  "_": "A FROZEN snapshot of what the run-layer state machine needs out of site/data/topology.json: the phase bindings, each node's id, environment and own binding, each phase's touches, and the estate nodes those touches name — the machine resolves them through phaseNodes(). Frozen on purpose, exactly like the inventory in tests/fixtures/results/: this gate is about the state machine, and if it read the live map then adding a node would redden it and teach the person who added it that the fixture is stale. Refresh it deliberately, with tests/fixtures/live-state/refresh.py, when the bindings themselves change.",
+  "_": "A FROZEN snapshot of what the run-layer state machine needs out of site/data/topology.json: the phase bindings, each node's id, environment and own binding, each phase's touches, and the estate nodes those touches name \u2014 the machine resolves them through phaseNodes(). Frozen on purpose, exactly like the inventory in tests/fixtures/results/: this gate is about the state machine, and if it read the live map then adding a node would redden it and teach the person who added it that the fixture is stale. Refresh it deliberately, with tests/fixtures/live-state/refresh.py, when the bindings themselves change.",
   "captured_from": "site/data/topology.json",
   "estate": {
     "environments": [
@@ -23,7 +23,11 @@
             "env": "stage"
           },
           {
-            "id": "stage.ecs",
+            "id": "stage.ecs_api",
+            "env": "stage"
+          },
+          {
+            "id": "stage.ecs_web",
             "env": "stage"
           },
           {
@@ -56,7 +60,11 @@
             "env": "prod"
           },
           {
-            "id": "prod.ecs",
+            "id": "prod.ecs_api",
+            "env": "prod"
+          },
+          {
+            "id": "prod.ecs_web",
             "env": "prod"
           },
           {
@@ -85,7 +93,8 @@
           "job": "deploy",
           "when": "step",
           "steps": [
-            "Build, tag, and push image"
+            "Build, tag, and push the api image",
+            "Build, tag, and push the web image"
           ]
         },
         {
@@ -94,13 +103,58 @@
           "job": "launch",
           "when": "step",
           "steps": [
-            "Build, tag, and push image"
+            "Build, tag, and push the api image",
+            "Build, tag, and push the web image"
           ]
         }
       ],
       "nodes": [
         {
-          "id": "build.ecr",
+          "id": "build.api",
+          "live": [
+            {
+              "workflow": "deploy-stage.yml",
+              "path": ".github/workflows/deploy-stage.yml",
+              "job": "deploy",
+              "when": "step",
+              "steps": [
+                "Build, tag, and push the api image"
+              ]
+            },
+            {
+              "workflow": "self-service.yml",
+              "path": ".github/workflows/self-service.yml",
+              "job": "launch",
+              "when": "step",
+              "steps": [
+                "Build, tag, and push the api image"
+              ]
+            }
+          ],
+          "env": "stage"
+        },
+        {
+          "id": "build.web",
+          "live": [
+            {
+              "workflow": "deploy-stage.yml",
+              "path": ".github/workflows/deploy-stage.yml",
+              "job": "deploy",
+              "when": "step",
+              "steps": [
+                "Build, tag, and push the web image"
+              ]
+            },
+            {
+              "workflow": "self-service.yml",
+              "path": ".github/workflows/self-service.yml",
+              "job": "launch",
+              "when": "step",
+              "steps": [
+                "Build, tag, and push the web image"
+              ]
+            }
+          ],
           "env": "stage"
         }
       ],
@@ -121,7 +175,8 @@
           "when": "step",
           "steps": [
             "Terraform plan",
-            "Terraform apply"
+            "Terraform apply",
+            "Wait for ECS service to be stable"
           ]
         },
         {
@@ -130,7 +185,8 @@
           "job": "launch",
           "when": "step",
           "steps": [
-            "Terraform apply"
+            "Terraform apply",
+            "Wait for ECS service to be stable"
           ]
         }
       ],
@@ -153,7 +209,11 @@
           "verb": "creates"
         },
         {
-          "node": "stage.ecs",
+          "node": "stage.ecs_api",
+          "verb": "creates"
+        },
+        {
+          "node": "stage.ecs_web",
           "verb": "creates"
         },
         {
@@ -175,7 +235,6 @@
           "job": "deploy",
           "when": "step",
           "steps": [
-            "Wait for ECS service to be stable",
             "Run one-off tasks (migrate, seed, db-assert)"
           ]
         },
@@ -185,7 +244,6 @@
           "job": "launch",
           "when": "step",
           "steps": [
-            "Wait for ECS service to be stable",
             "Run one-off tasks (migrate, seed, db-assert)"
           ]
         }
@@ -198,7 +256,7 @@
       ],
       "touches": [
         {
-          "node": "stage.ecs",
+          "node": "stage.ecs_api",
           "verb": "provisions"
         },
         {
@@ -227,7 +285,9 @@
           "job": "launch",
           "when": "step",
           "steps": [
-            "Playwright smoke against the ALB"
+            "API contract tests against the ALB",
+            "Playwright smoke + regression against the ALB",
+            "Assert the UI write reached RDS"
           ]
         }
       ],
@@ -251,7 +311,8 @@
               "job": "launch",
               "when": "step",
               "steps": [
-                "Run one-off tasks (migrate, seed, db-assert)"
+                "Run one-off tasks (migrate, seed, db-assert)",
+                "Remove the probes and re-assert the seed"
               ]
             }
           ]
@@ -268,6 +329,15 @@
               "steps": [
                 "API contract tests against the ALB"
               ]
+            },
+            {
+              "workflow": "self-service.yml",
+              "path": ".github/workflows/self-service.yml",
+              "job": "launch",
+              "when": "step",
+              "steps": [
+                "API contract tests against the ALB"
+              ]
             }
           ]
         },
@@ -279,6 +349,16 @@
               "workflow": "deploy-stage.yml",
               "path": ".github/workflows/deploy-stage.yml",
               "job": "deploy",
+              "when": "step",
+              "steps": [
+                "Playwright smoke + regression against the ALB",
+                "Assert the UI write reached RDS"
+              ]
+            },
+            {
+              "workflow": "self-service.yml",
+              "path": ".github/workflows/self-service.yml",
+              "job": "launch",
               "when": "step",
               "steps": [
                 "Playwright smoke + regression against the ALB",
@@ -306,7 +386,7 @@
               "job": "launch",
               "when": "step",
               "steps": [
-                "Playwright smoke against the ALB"
+                "Playwright smoke + regression against the ALB"
               ]
             }
           ]
@@ -318,7 +398,11 @@
           "verb": "asserts"
         },
         {
-          "node": "stage.ecs",
+          "node": "stage.ecs_api",
+          "verb": "asserts"
+        },
+        {
+          "node": "stage.ecs_web",
           "verb": "asserts"
         },
         {
@@ -356,7 +440,21 @@
           "when": "step",
           "steps": [
             "Terraform plan",
-            "Terraform apply"
+            "Terraform apply",
+            "Wait for ECS service to be stable",
+            "Wait for the public HTTPS name to answer"
+          ]
+        },
+        {
+          "workflow": "self-service.yml",
+          "path": ".github/workflows/self-service.yml",
+          "job": "promote / promote",
+          "when": "step",
+          "steps": [
+            "Terraform plan",
+            "Terraform apply",
+            "Wait for ECS service to be stable",
+            "Wait for the public HTTPS name to answer"
           ]
         }
       ],
@@ -379,7 +477,11 @@
           "verb": "creates"
         },
         {
-          "node": "prod.ecs",
+          "node": "prod.ecs_api",
+          "verb": "creates"
+        },
+        {
+          "node": "prod.ecs_web",
           "verb": "creates"
         },
         {
@@ -403,6 +505,16 @@
           "workflow": "promote-prod.yml",
           "path": ".github/workflows/promote-prod.yml",
           "job": "promote",
+          "when": "step",
+          "steps": [
+            "Provision the prod database (migrate, seed, db-assert)",
+            "Read-only smoke against prod"
+          ]
+        },
+        {
+          "workflow": "self-service.yml",
+          "path": ".github/workflows/self-service.yml",
+          "job": "promote / promote",
           "when": "step",
           "steps": [
             "Provision the prod database (migrate, seed, db-assert)",
@@ -448,7 +560,11 @@
           "verb": "asserts"
         },
         {
-          "node": "prod.ecs",
+          "node": "prod.ecs_api",
+          "verb": "asserts"
+        },
+        {
+          "node": "prod.ecs_web",
           "verb": "asserts"
         },
         {
@@ -473,7 +589,17 @@
         {
           "workflow": "self-service.yml",
           "path": ".github/workflows/self-service.yml",
-          "job": "destroy",
+          "job": "destroy / destroy",
+          "when": "step",
+          "steps": [
+            "Destroy ALB first (release ENIs before the IGW)",
+            "Terraform destroy"
+          ]
+        },
+        {
+          "workflow": "self-service.yml",
+          "path": ".github/workflows/self-service.yml",
+          "job": "destroy-prod / destroy",
           "when": "step",
           "steps": [
             "Destroy ALB first (release ENIs before the IGW)",
@@ -484,11 +610,35 @@
       "nodes": [
         {
           "id": "destroy.stage",
-          "env": "stage"
+          "env": "stage",
+          "live": [
+            {
+              "workflow": "self-service.yml",
+              "path": ".github/workflows/self-service.yml",
+              "job": "destroy / destroy",
+              "when": "step",
+              "steps": [
+                "Destroy ALB first (release ENIs before the IGW)",
+                "Terraform destroy"
+              ]
+            }
+          ]
         },
         {
           "id": "destroy.prod",
-          "env": "prod"
+          "env": "prod",
+          "live": [
+            {
+              "workflow": "self-service.yml",
+              "path": ".github/workflows/self-service.yml",
+              "job": "destroy-prod / destroy",
+              "when": "step",
+              "steps": [
+                "Destroy ALB first (release ENIs before the IGW)",
+                "Terraform destroy"
+              ]
+            }
+          ]
         }
       ],
       "touches": [
@@ -509,7 +659,11 @@
           "verb": "destroys"
         },
         {
-          "node": "stage.ecs",
+          "node": "stage.ecs_api",
+          "verb": "destroys"
+        },
+        {
+          "node": "stage.ecs_web",
           "verb": "destroys"
         },
         {
@@ -537,7 +691,11 @@
           "verb": "destroys"
         },
         {
-          "node": "prod.ecs",
+          "node": "prod.ecs_api",
+          "verb": "destroys"
+        },
+        {
+          "node": "prod.ecs_web",
           "verb": "destroys"
         },
         {

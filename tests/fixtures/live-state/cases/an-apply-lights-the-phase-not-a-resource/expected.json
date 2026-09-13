@@ -10,10 +10,15 @@
     }
   },
   "nodes": {
-    "build.ecr": {
+    "build.api": {
       "state": "finished",
       "since": "2026-08-08T10:00:00Z",
-      "via": "phase"
+      "via": "own"
+    },
+    "build.web": {
+      "state": "finished",
+      "since": "2026-08-08T10:00:00Z",
+      "via": "own"
     }
   }
 }

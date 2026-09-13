@@ -61,7 +61,8 @@
     "aws_secretsmanager_secret_version": "a version is part of its secret and is not billed separately",
     "aws_route53_record": "no charge for records inside a hosted zone; the zone is permanent and outside a cycle",
     "aws_budgets_budget": "the first two budgets per account are free and this project has fewer than two per account at any time",
-    "random_password": "not an AWS resource"
+    "random_password": "not an AWS resource",
+    "aws_lb_listener_rule": "a listener rule is evaluated inside the load balancer's own LCU accounting and has no price of its own (ADR-0095)"
   },
 
   "not_metered": {

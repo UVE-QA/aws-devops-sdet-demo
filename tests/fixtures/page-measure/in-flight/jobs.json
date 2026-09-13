@@ -60,7 +60,7 @@
         },
         {
           "number": 7,
-          "name": "Build, tag, and push image",
+          "name": "Build, tag, and push the api image",
           "status": "completed",
           "conclusion": "success",
           "started_at": "2026-08-09T03:47:57Z",
@@ -68,6 +68,14 @@
         },
         {
           "number": 8,
+          "name": "Build, tag, and push the web image",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-08-09T03:47:57Z",
+          "completed_at": "2026-08-09T03:51:31Z"
+        },
+        {
+          "number": 9,
           "name": "Terraform plan",
           "status": "completed",
           "conclusion": "success",
@@ -75,7 +83,7 @@
           "completed_at": "2026-08-09T03:52:12Z"
         },
         {
-          "number": 9,
+          "number": 10,
           "name": "Terraform apply",
           "status": "in_progress",
           "conclusion": null,
@@ -83,7 +91,7 @@
           "completed_at": null
         },
         {
-          "number": 10,
+          "number": 11,
           "name": "Read stage outputs",
           "status": "queued",
           "conclusion": null,
@@ -91,7 +99,7 @@
           "completed_at": null
         },
         {
-          "number": 11,
+          "number": 12,
           "name": "Wait for ECS service to be stable",
           "status": "queued",
           "conclusion": null,
@@ -99,7 +107,7 @@
           "completed_at": null
         },
         {
-          "number": 12,
+          "number": 13,
           "name": "Run one-off tasks (migrate, seed, db-assert)",
           "status": "queued",
           "conclusion": null,
@@ -107,7 +115,7 @@
           "completed_at": null
         },
         {
-          "number": 13,
+          "number": 14,
           "name": "Set up Node.js",
           "status": "queued",
           "conclusion": null,
@@ -115,7 +123,7 @@
           "completed_at": null
         },
         {
-          "number": 14,
+          "number": 15,
           "name": "Set up Python",
           "status": "queued",
           "conclusion": null,
@@ -123,7 +131,7 @@
           "completed_at": null
         },
         {
-          "number": 15,
+          "number": 16,
           "name": "Every spec belongs to a project",
           "status": "queued",
           "conclusion": null,
@@ -131,7 +139,7 @@
           "completed_at": null
         },
         {
-          "number": 16,
+          "number": 17,
           "name": "API contract tests against the ALB",
           "status": "queued",
           "conclusion": null,
@@ -139,7 +147,7 @@
           "completed_at": null
         },
         {
-          "number": 17,
+          "number": 18,
           "name": "Playwright smoke + regression against the ALB",
           "status": "queued",
           "conclusion": null,
@@ -147,7 +155,7 @@
           "completed_at": null
         },
         {
-          "number": 18,
+          "number": 19,
           "name": "Assert the UI write reached RDS",
           "status": "queued",
           "conclusion": null,
@@ -155,7 +163,7 @@
           "completed_at": null
         },
         {
-          "number": 19,
+          "number": 20,
           "name": "Upload Playwright report",
           "status": "queued",
           "conclusion": null,
@@ -163,7 +171,7 @@
           "completed_at": null
         },
         {
-          "number": 20,
+          "number": 21,
           "name": "Observe what stage has in AWS",
           "status": "queued",
           "conclusion": null,
@@ -171,7 +179,7 @@
           "completed_at": null
         },
         {
-          "number": 21,
+          "number": 22,
           "name": "Fold the terraform event stream into a timeline",
           "status": "queued",
           "conclusion": null,
@@ -179,7 +187,7 @@
           "completed_at": null
         },
         {
-          "number": 22,
+          "number": 23,
           "name": "Join the timeline onto the map's nodes",
           "status": "queued",
           "conclusion": null,
@@ -187,7 +195,7 @@
           "completed_at": null
         },
         {
-          "number": 23,
+          "number": 24,
           "name": "Fold the test reports onto the map's suite nodes",
           "status": "queued",
           "conclusion": null,
@@ -195,7 +203,7 @@
           "completed_at": null
         },
         {
-          "number": 24,
+          "number": 25,
           "name": "Configure AWS credentials (OIDC, publish role)",
           "status": "queued",
           "conclusion": null,
@@ -203,7 +211,7 @@
           "completed_at": null
         },
         {
-          "number": 25,
+          "number": 26,
           "name": "Publish status and report to the dashboard",
           "status": "queued",
           "conclusion": null,

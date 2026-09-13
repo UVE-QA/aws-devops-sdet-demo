@@ -69,6 +69,11 @@ resource "aws_lb" "this" {
   }
 }
 
+# TWO TARGET GROUPS, ONE LOAD BALANCER (ADR-0095). `app` is the api's - the
+# resource keeps its name so nothing that indexes the map by address moves -
+# and `web` is the interface's. The listener forwards to web by default and to
+# the api by path, so the browser sees one origin and never learns there are two
+# services behind it.
 resource "aws_lb_target_group" "app" {
   name        = "${var.name_prefix}-tg"
   port        = var.app_port
@@ -91,6 +96,28 @@ resource "aws_lb_target_group" "app" {
   }
 }
 
+resource "aws_lb_target_group" "web" {
+  name        = "${var.name_prefix}-web-tg"
+  port        = var.web_port
+  protocol    = "HTTP"
+  vpc_id      = var.vpc_id
+  target_type = "ip"
+
+  health_check {
+    path                = "/healthz"
+    protocol            = "HTTP"
+    matcher             = "200"
+    interval            = 30
+    timeout             = 5
+    healthy_threshold   = 2
+    unhealthy_threshold = 3
+  }
+
+  tags = {
+    Name = "${var.name_prefix}-web-tg"
+  }
+}
+
 # Port 80 always exists. What it DOES depends on whether TLS is configured:
 # it forwards when there is no certificate, and redirects when there is. Two
 # dynamic blocks rather than two resources, so the listener is never destroyed
@@ -104,7 +131,7 @@ resource "aws_lb_listener" "http" {
     for_each = local.https_enabled ? [] : [1]
     content {
       type             = "forward"
-      target_group_arn = aws_lb_target_group.app.arn
+      target_group_arn = aws_lb_target_group.web.arn
     }
   }
 
@@ -137,6 +164,35 @@ resource "aws_lb_listener" "https" {
 
   default_action {
     type             = "forward"
+    target_group_arn = aws_lb_target_group.web.arn
+  }
+}
+
+# THE PATH RULE (ADR-0095): what the api answers goes to the api, everything
+# else is the page. On the listener that forwards - :443 when TLS is on, :80
+# when it is not - because a rule on a listener that only redirects would
+# never be consulted. `/health` is the api's own probe and is routed so that a
+# human can ask it through the load balancer; the web service answers /healthz.
+locals {
+  forwarding_listener_arn = local.https_enabled ? aws_lb_listener.https[0].arn : aws_lb_listener.http.arn
+}
+
+resource "aws_lb_listener_rule" "api" {
+  listener_arn = local.forwarding_listener_arn
+  priority     = 10
+
+  action {
+    type             = "forward"
     target_group_arn = aws_lb_target_group.app.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/api/*", "/health"]
+    }
+  }
+
+  tags = {
+    Name = "${var.name_prefix}-api-rule"
   }
 }

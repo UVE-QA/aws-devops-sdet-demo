@@ -22,3 +22,13 @@ output "prod_last_good_digest_parameter_arn" {
   description = "ARN of that parameter, for the prod deploy role's least-privilege statement."
   value       = aws_ssm_parameter.prod_last_good_digest.arn
 }
+
+output "web_repository_url" {
+  description = "URL of the web image's repository (ADR-0095)."
+  value       = module.ecr_web.repository_url
+}
+
+output "web_repository_name" {
+  description = "Name of the web image's repository."
+  value       = module.ecr_web.repository_name
+}

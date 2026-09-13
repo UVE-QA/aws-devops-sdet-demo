@@ -70,43 +70,53 @@ jobs:
         working-directory: infra/envs/stage
         run: terraform init -input=false
 
-      - name: Resolve shared ECR repository URL
+      - name: Resolve the shared ECR repositories
         id: repo
         shell: bash
         env:
+          # Deterministic names, duplicated from infra/shared-ecr deliberately:
+          # a workflow derives them without reading Terraform state (ADR-0018).
+          # One repository per service since ADR-0095.
           ECR_REPOSITORY: aws-devops-sdet-demo-app
+          WEB_ECR_REPOSITORY: aws-devops-sdet-demo-web
         run: |
           set -euo pipefail
           # `|| true` so a missing repository reaches the check below and gets
           # the actionable message, instead of dying on the raw AWS exception.
-          url="$(aws ecr describe-repositories \
-                   --region "$AWS_REGION" \
-                   --repository-names "$ECR_REPOSITORY" \
-                   --query 'repositories[0].repositoryUri' --output text 2>/dev/null || true)"
-          if [ -z "$url" ] || [ "$url" = "None" ]; then
-            echo "::error::shared ECR repository $ECR_REPOSITORY not found — apply infra/shared-ecr first (ADR-0018)"
-            exit 1
-          fi
-          echo "ecr_url=$url" >> "$GITHUB_OUTPUT"
+          resolve() {
+            local url
+            url="$(aws ecr describe-repositories \
+                     --region "$AWS_REGION" \
+                     --repository-names "$1" \
+                     --query 'repositories[0].repositoryUri' --output text 2>/dev/null || true)"
+            if [ -z "$url" ] || [ "$url" = "None" ]; then
+              echo "::error::shared ECR repository $1 not found — apply infra/shared-ecr first (ADR-0018, ADR-0095)"
+              exit 1
+            fi
+            echo "$url"
+          }
+          echo "ecr_url=$(resolve "$ECR_REPOSITORY")" >> "$GITHUB_OUTPUT"
+          echo "web_ecr_url=$(resolve "$WEB_ECR_REPOSITORY")" >> "$GITHUB_OUTPUT"
 
-      - name: Build, tag, and push image
+      # ONE RELEASE, TWO IMAGES (ADR-0095), built one after the other under
+      # the same tag. A matrix would build them in parallel and pass their
+      # digests to the next job through artifacts; that plumbing belongs with
+      # the services manifest of plan item 5, which is where the list of
+      # services it needs will live.
+      - name: Build, tag, and push the api image
         env:
           ECR_URL: ${{ steps.repo.outputs.ecr_url }}
           ECR_REPOSITORY: aws-devops-sdet-demo-app
           IMAGE_TAG: ${{ github.sha }}
         run: |
           set -euo pipefail
-          # The `:latest` tag is gone (ADR-0029). Nothing ever read it — no
-          # workflow, module, script or make target — and a mutable tag inside
-          # an immutable registry is a pointer that can start lying.
-          #
-          # Because the registry is now IMMUTABLE, re-pushing an existing tag is
-          # an ERROR rather than a no-op, and re-running this workflow on the
-          # same commit is an ordinary thing to do after a flaky failure. When
-          # the tag is already present the bytes for this commit already exist,
-          # so reuse them: rebuilding would produce a different artifact under
-          # the same name, which is the exact confusion immutability exists to
-          # prevent.
+          # The `:latest` tag is gone (ADR-0029). The registry is IMMUTABLE, so
+          # re-pushing an existing tag is an ERROR rather than a no-op, and
+          # re-running this workflow on the same commit is an ordinary thing to
+          # do after a flaky failure. When the tag is already present the bytes
+          # for this commit already exist, so reuse them: rebuilding would
+          # produce a different artifact under the same name, which is the
+          # exact confusion immutability exists to prevent.
           if aws ecr describe-images --region "$AWS_REGION" \
                --repository-name "$ECR_REPOSITORY" \
                --image-ids imageTag="$IMAGE_TAG" >/dev/null 2>&1; then
@@ -117,10 +127,35 @@ jobs:
           docker build -t "$ECR_URL:$IMAGE_TAG" ./app
           docker push "$ECR_URL:$IMAGE_TAG"
 
+      - name: Build, tag, and push the web image
+        env:
+          ECR_URL: ${{ steps.repo.outputs.web_ecr_url }}
+          ECR_REPOSITORY: aws-devops-sdet-demo-web
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          # The `:latest` tag is gone (ADR-0029). The registry is IMMUTABLE, so
+          # re-pushing an existing tag is an ERROR rather than a no-op, and
+          # re-running this workflow on the same commit is an ordinary thing to
+          # do after a flaky failure. When the tag is already present the bytes
+          # for this commit already exist, so reuse them: rebuilding would
+          # produce a different artifact under the same name, which is the
+          # exact confusion immutability exists to prevent.
+          if aws ecr describe-images --region "$AWS_REGION" \
+               --repository-name "$ECR_REPOSITORY" \
+               --image-ids imageTag="$IMAGE_TAG" >/dev/null 2>&1; then
+            echo "$IMAGE_TAG is already in $ECR_REPOSITORY - reusing it, not rebuilding"
+            exit 0
+          fi
+
+          docker build -t "$ECR_URL:$IMAGE_TAG" ./web
+          docker push "$ECR_URL:$IMAGE_TAG"
+
       - name: Terraform plan
         working-directory: infra/envs/stage
         env:
-          TF_VAR_app_image: ${{ steps.repo.outputs.ecr_url }}:${{ github.sha }}
+          TF_VAR_api_image: ${{ steps.repo.outputs.ecr_url }}:${{ github.sha }}
+          TF_VAR_web_image: ${{ steps.repo.outputs.web_ecr_url }}:${{ github.sha }}
         run: terraform plan -input=false -out=tfplan
 
       # `-json` replaces terraform's human-readable output with an event stream,
@@ -140,6 +175,7 @@ jobs:
           {
             echo "cluster=$(terraform output -raw ecs_cluster_name)"
             echo "service=$(terraform output -raw ecs_service_name)"
+            echo "web_service=$(terraform output -raw ecs_web_service_name)"
             echo "task_def=$(terraform output -raw task_definition_arn)"
             echo "container=$(terraform output -raw container_name)"
             echo "sg=$(terraform output -raw ecs_app_security_group_id)"
@@ -149,9 +185,11 @@ jobs:
 
       - name: Wait for ECS service to be stable
         run: |
+          # Both services, one wait (ADR-0095): the page is not up until both
+          # halves of it answer, and the step's name is what the map binds.
           aws ecs wait services-stable \
             --cluster "${{ steps.tf.outputs.cluster }}" \
-            --services "${{ steps.tf.outputs.service }}"
+            --services "${{ steps.tf.outputs.service }}" "${{ steps.tf.outputs.web_service }}"
 
       - name: Run one-off tasks (migrate, seed, db-assert)
         env:

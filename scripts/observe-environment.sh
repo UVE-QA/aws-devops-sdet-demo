@@ -49,10 +49,23 @@ cluster_arn="$(aws ecs list-clusters --region "$AWS_REGION" \
   --query "clusterArns[?contains(@, '${prefix}')] | [0]" --output text)"
 
 service='null'
+web_service='null'
 image='null'
 if [ "$cluster_arn" != "None" ] && [ -n "$cluster_arn" ]; then
+  # TWO SERVICES IN THE CLUSTER (ADR-0095), and `serviceArns[0]` was whichever
+  # one the API listed first. The api is the one whose image is the promoted
+  # digest and whose task definition the one-off tasks run, so it is picked by
+  # NAME; the web service is observed beside it rather than instead of it.
   service_arn="$(aws ecs list-services --region "$AWS_REGION" --cluster "$cluster_arn" \
-    --query "serviceArns[0]" --output text)"
+    --query "serviceArns[?ends_with(@, '-api')] | [0]" --output text)"
+  web_service_arn="$(aws ecs list-services --region "$AWS_REGION" --cluster "$cluster_arn" \
+    --query "serviceArns[?ends_with(@, '-web')] | [0]" --output text)"
+  if [ "$web_service_arn" != "None" ] && [ -n "$web_service_arn" ]; then
+    web_service="$(aws ecs describe-services --region "$AWS_REGION" \
+      --cluster "$cluster_arn" --services "$web_service_arn" \
+      --query "services[0].{name:serviceName,status:status,desired:desiredCount,running:runningCount}" \
+      --output json)"
+  fi
   if [ "$service_arn" != "None" ] && [ -n "$service_arn" ]; then
     service="$(aws ecs describe-services --region "$AWS_REGION" \
       --cluster "$cluster_arn" --services "$service_arn" \
@@ -111,6 +124,7 @@ jq -n \
   --arg app_url "$app_url" \
   --argjson load_balancer "$alb" \
   --argjson ecs_service "$service" \
+  --argjson ecs_web_service "$web_service" \
   --argjson db_instance "$rds" \
   --argjson image "$image" \
   '{
@@ -125,6 +139,7 @@ jq -n \
      resources: {
        load_balancer: $load_balancer,
        ecs_service: $ecs_service,
+       ecs_web_service: $ecs_web_service,
        db_instance: $db_instance
      }
    }'

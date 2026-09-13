@@ -49,7 +49,7 @@
     {
       "fn": "nodeTense",
       "args": [
-        { "id": "prod.ecs", "kind": "service", "service": "ecs", "observer": "terraform", "env": "prod" },
+        { "id": "prod.ecs_api", "kind": "service", "service": "ecs", "observer": "terraform", "env": "prod" },
         { "state": "measured", "duration_s": 94, "published_by": "31461000064" },
         "unknown",
         true

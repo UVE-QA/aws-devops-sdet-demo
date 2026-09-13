@@ -23,7 +23,7 @@
     "not_shown": 2,
     "read": 0,
     "unknown": 1,
-    "nodes": 8
+    "nodes": 9
   },
   "not_shown": [
     "module.network.aws_route_table_association.public[0]",
@@ -65,13 +65,21 @@
       "resources_observed": 5,
       "resources_complete": 5
     },
-    "prod.ecs": {
+    "prod.ecs_api": {
       "state": "measured",
       "duration_s": 89,
       "identifier": "demo-prod",
-      "identifier_from": "module.ecs.aws_ecs_service.app",
+      "identifier_from": "module.api.aws_ecs_service.this",
       "resources_observed": 8,
       "resources_complete": 8
+    },
+    "prod.ecs_web": {
+      "state": "measured",
+      "duration_s": 53,
+      "identifier": "demo-prod-web",
+      "identifier_from": "module.web.aws_ecs_service.this",
+      "resources_observed": 7,
+      "resources_complete": 7
     },
     "prod.cloudwatch": {
       "state": "measured",

@@ -47,7 +47,7 @@
       "fn": "nodeTense",
       "args": [
         {
-          "id": "build.ecr",
+          "id": "build.api",
           "kind": "service",
           "service": "ecr",
           "observer": "actions",

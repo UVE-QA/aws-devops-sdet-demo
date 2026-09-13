@@ -4056,9 +4056,7 @@ proceeds — the mirror of what Phase 39 built for the apply.
   `docs/next-phases.md` stops naming one. The plan itself is there, with the
   reasons; EKS is back in as item 3, Argo CD and Flux stay out. CI runs on
   `next` as well as `main`.
-- Next allowed step: **item 1 of the plan - split the container into `web` and
-  `api`** - on `next`, with a `lab` environment for any cycle it needs while the
-  demo is out (ADR-0093 D3). The countdown's red full-width banner
+- Next allowed step: superseded by Phase 41 below. The countdown's red full-width banner
   is the owner's call. Open from before: the request path's home, a check that
   every `data-part` is one of the five, a check that a live binding ever matched
   a real job, the phone, the two break tests that stopped biting, the bucket
@@ -4068,6 +4066,25 @@ proceeds — the mirror of what Phase 39 built for the apply.
   job, and the phone — 2.2–4.4 screens per part, deferred by the owner. The
   dashboard bucket's declared-and-not-applied versioning (Phase 28) and the
   release-tag 403 of 2026-09-05 are both still open and still undiagnosed.
+
+
+### Phase 41 — The container is two, and a release is a set  ⏳ IN PROGRESS 2026-09-13
+
+Item 1 of the plan (ADR-0094), on `next`. **ADR-0095**: `web` is nginx serving
+the interface the api used to serve from `/`; `api` is FastAPI without `/`; one
+load balancer routes by path, and nothing calls anything. The ECS module is a
+cluster and a per-service module; the api alone holds the database secret. One
+ECR repository per service; the rollback pointer is a release - `{api, web}` in
+one put - and a rollback rolls back the set or nothing. The board splits the
+tile and wraps the row rather than narrowing it, on the owner's word.
+
+Verified so far: `terraform validate` on every changed level; the local stack
+through the web container - 52 api contract, 2 smoke, 12 regression, both
+images scanning clean; every gate green over rewritten fixtures.
+
+- Next allowed step: **apply `infra/shared-ecr` for the web repository (owner's
+  yes), then one cycle from `next`** - while the demo is out, that means the
+  owner's call on timing (ADR-0093 D3).
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

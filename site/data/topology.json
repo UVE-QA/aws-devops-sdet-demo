@@ -5,14 +5,14 @@
     "levels": 8,
     "permanent_levels": 6,
     "cycle_levels": 2,
-    "resources": 117,
-    "resources_permanent": 56,
-    "resources_per_cycle": 61,
-    "modules": 9,
+    "resources": 137,
+    "resources_permanent": 58,
+    "resources_per_cycle": 79,
+    "modules": 10,
     "suites": 5,
     "workflows": 6,
-    "adrs": 95,
-    "repeated_blocks": 9
+    "adrs": 96,
+    "repeated_blocks": 10
   },
   "measured_cycle": null,
   "layout": {
@@ -22,7 +22,7 @@
   },
   "request_path": {
     "note": "the request path to prod, and the tool behind each hop",
-    "editorial": "the order and the tool names are editorial; every hop cites a node this map already draws",
+    "editorial": "the order and the tool names are editorial; every hop cites a node this map already draws; the page itself comes from the web service on the same load balancer, and the path drawn is the request that reaches the database (ADR-0095)",
     "hops": [
       {
         "id": "browser",
@@ -49,9 +49,9 @@
         ]
       },
       {
-        "id": "ecs",
-        "cites": "prod.ecs",
-        "label": "ECS Fargate",
+        "id": "api",
+        "cites": "prod.ecs_api",
+        "label": "ECS — api",
         "service": "ecs",
         "tools": [
           "docker",
@@ -207,11 +207,13 @@
         "label": "ECR — the registry",
         "service": "ecr",
         "level": "infra/shared-ecr",
-        "resources": 3,
+        "resources": 5,
         "members": [
           "infra/shared-ecr :: aws_ssm_parameter.prod_last_good_digest",
           "infra/shared-ecr :: module.ecr.aws_ecr_repository.app",
-          "infra/shared-ecr :: module.ecr.aws_ecr_lifecycle_policy.app"
+          "infra/shared-ecr :: module.ecr.aws_ecr_lifecycle_policy.app",
+          "infra/shared-ecr :: module.ecr_web.aws_ecr_repository.app",
+          "infra/shared-ecr :: module.ecr_web.aws_ecr_lifecycle_policy.app"
         ],
         "why": "prod promotes the digest stage tested; a teardown must not delete it"
       },
@@ -351,33 +353,53 @@
             "env": "stage",
             "observer": "terraform",
             "tool": "terraform",
-            "resources": 5,
+            "resources": 7,
             "members": [
               "module.alb.aws_security_group.alb",
               "module.alb.aws_lb.this",
               "module.alb.aws_lb_target_group.app",
+              "module.alb.aws_lb_target_group.web",
               "module.alb.aws_lb_listener.http",
-              "module.alb.aws_lb_listener.https"
+              "module.alb.aws_lb_listener.https",
+              "module.alb.aws_lb_listener_rule.api"
             ]
           },
           {
-            "id": "stage.ecs",
-            "label": "ECS Fargate",
+            "id": "stage.ecs_api",
+            "label": "ECS — api",
             "service": "ecs",
             "kind": "service",
             "env": "stage",
             "observer": "terraform",
             "tool": "terraform",
-            "resources": 8,
+            "resources": 7,
             "members": [
-              "module.ecs.aws_ecs_cluster.this",
-              "module.ecs.aws_security_group.app",
-              "module.ecs.aws_iam_role.execution",
-              "module.ecs.aws_iam_role_policy_attachment.execution_managed",
-              "module.ecs.aws_iam_role_policy.execution_read_secret",
-              "module.ecs.aws_iam_role.task",
-              "module.ecs.aws_ecs_task_definition.app",
-              "module.ecs.aws_ecs_service.app"
+              "module.api.aws_security_group.this",
+              "module.api.aws_iam_role.execution",
+              "module.api.aws_iam_role_policy_attachment.execution_managed",
+              "module.api.aws_iam_role_policy.execution_read_secret",
+              "module.api.aws_iam_role.task",
+              "module.api.aws_ecs_task_definition.this",
+              "module.api.aws_ecs_service.this"
+            ]
+          },
+          {
+            "id": "stage.ecs_web",
+            "label": "ECS — web",
+            "service": "ecs",
+            "kind": "service",
+            "env": "stage",
+            "observer": "terraform",
+            "tool": "terraform",
+            "resources": 7,
+            "members": [
+              "module.web.aws_security_group.this",
+              "module.web.aws_iam_role.execution",
+              "module.web.aws_iam_role_policy_attachment.execution_managed",
+              "module.web.aws_iam_role_policy.execution_read_secret",
+              "module.web.aws_iam_role.task",
+              "module.web.aws_ecs_task_definition.this",
+              "module.web.aws_ecs_service.this"
             ]
           },
           {
@@ -470,33 +492,53 @@
             "env": "prod",
             "observer": "terraform",
             "tool": "terraform",
-            "resources": 5,
+            "resources": 7,
             "members": [
               "module.alb.aws_security_group.alb",
               "module.alb.aws_lb.this",
               "module.alb.aws_lb_target_group.app",
+              "module.alb.aws_lb_target_group.web",
               "module.alb.aws_lb_listener.http",
-              "module.alb.aws_lb_listener.https"
+              "module.alb.aws_lb_listener.https",
+              "module.alb.aws_lb_listener_rule.api"
             ]
           },
           {
-            "id": "prod.ecs",
-            "label": "ECS Fargate",
+            "id": "prod.ecs_api",
+            "label": "ECS — api",
             "service": "ecs",
             "kind": "service",
             "env": "prod",
             "observer": "terraform",
             "tool": "terraform",
-            "resources": 8,
+            "resources": 7,
             "members": [
-              "module.ecs.aws_ecs_cluster.this",
-              "module.ecs.aws_security_group.app",
-              "module.ecs.aws_iam_role.execution",
-              "module.ecs.aws_iam_role_policy_attachment.execution_managed",
-              "module.ecs.aws_iam_role_policy.execution_read_secret",
-              "module.ecs.aws_iam_role.task",
-              "module.ecs.aws_ecs_task_definition.app",
-              "module.ecs.aws_ecs_service.app"
+              "module.api.aws_security_group.this",
+              "module.api.aws_iam_role.execution",
+              "module.api.aws_iam_role_policy_attachment.execution_managed",
+              "module.api.aws_iam_role_policy.execution_read_secret",
+              "module.api.aws_iam_role.task",
+              "module.api.aws_ecs_task_definition.this",
+              "module.api.aws_ecs_service.this"
+            ]
+          },
+          {
+            "id": "prod.ecs_web",
+            "label": "ECS — web",
+            "service": "ecs",
+            "kind": "service",
+            "env": "prod",
+            "observer": "terraform",
+            "tool": "terraform",
+            "resources": 7,
+            "members": [
+              "module.web.aws_security_group.this",
+              "module.web.aws_iam_role.execution",
+              "module.web.aws_iam_role_policy_attachment.execution_managed",
+              "module.web.aws_iam_role_policy.execution_read_secret",
+              "module.web.aws_iam_role.task",
+              "module.web.aws_ecs_task_definition.this",
+              "module.web.aws_ecs_service.this"
             ]
           },
           {
@@ -558,7 +600,8 @@
             "job": "deploy",
             "when": "step",
             "steps": [
-              "Build, tag, and push image"
+              "Build, tag, and push the api image",
+              "Build, tag, and push the web image"
             ]
           },
           {
@@ -567,19 +610,69 @@
             "job": "launch",
             "when": "step",
             "steps": [
-              "Build, tag, and push image"
+              "Build, tag, and push the api image",
+              "Build, tag, and push the web image"
             ]
           }
         ],
         "never_runs": null,
         "nodes": [
           {
-            "id": "build.ecr",
+            "id": "build.api",
             "tool": "docker",
-            "label": "ECR push",
+            "label": "ECR push — api",
             "service": "ecr",
             "kind": "service",
             "observer": "actions",
+            "live": [
+              {
+                "workflow": "deploy-stage.yml",
+                "path": ".github/workflows/deploy-stage.yml",
+                "job": "deploy",
+                "when": "step",
+                "steps": [
+                  "Build, tag, and push the api image"
+                ]
+              },
+              {
+                "workflow": "self-service.yml",
+                "path": ".github/workflows/self-service.yml",
+                "job": "launch",
+                "when": "step",
+                "steps": [
+                  "Build, tag, and push the api image"
+                ]
+              }
+            ],
+            "env": "stage"
+          },
+          {
+            "id": "build.web",
+            "tool": "docker",
+            "label": "ECR push — web",
+            "service": "ecr",
+            "kind": "service",
+            "observer": "actions",
+            "live": [
+              {
+                "workflow": "deploy-stage.yml",
+                "path": ".github/workflows/deploy-stage.yml",
+                "job": "deploy",
+                "when": "step",
+                "steps": [
+                  "Build, tag, and push the web image"
+                ]
+              },
+              {
+                "workflow": "self-service.yml",
+                "path": ".github/workflows/self-service.yml",
+                "job": "launch",
+                "when": "step",
+                "steps": [
+                  "Build, tag, and push the web image"
+                ]
+              }
+            ],
             "env": "stage"
           }
         ],
@@ -638,7 +731,11 @@
             "verb": "creates"
           },
           {
-            "node": "stage.ecs",
+            "node": "stage.ecs_api",
+            "verb": "creates"
+          },
+          {
+            "node": "stage.ecs_web",
             "verb": "creates"
           },
           {
@@ -690,7 +787,7 @@
         ],
         "touches": [
           {
-            "node": "stage.ecs",
+            "node": "stage.ecs_api",
             "verb": "provisions"
           },
           {
@@ -868,7 +965,11 @@
             "verb": "asserts"
           },
           {
-            "node": "stage.ecs",
+            "node": "stage.ecs_api",
+            "verb": "asserts"
+          },
+          {
+            "node": "stage.ecs_web",
             "verb": "asserts"
           },
           {
@@ -949,7 +1050,11 @@
             "verb": "creates"
           },
           {
-            "node": "prod.ecs",
+            "node": "prod.ecs_api",
+            "verb": "creates"
+          },
+          {
+            "node": "prod.ecs_web",
             "verb": "creates"
           },
           {
@@ -1048,7 +1153,11 @@
             "verb": "asserts"
           },
           {
-            "node": "prod.ecs",
+            "node": "prod.ecs_api",
+            "verb": "asserts"
+          },
+          {
+            "node": "prod.ecs_web",
             "verb": "asserts"
           },
           {
@@ -1115,7 +1224,7 @@
                 ]
               }
             ],
-            "resources": 30,
+            "resources": 39,
             "level": "infra/envs/stage",
             "tool": "terraform"
           },
@@ -1138,7 +1247,7 @@
                 ]
               }
             ],
-            "resources": 31,
+            "resources": 40,
             "level": "infra/envs/prod",
             "tool": "terraform"
           }
@@ -1161,7 +1270,11 @@
             "verb": "destroys"
           },
           {
-            "node": "stage.ecs",
+            "node": "stage.ecs_api",
+            "verb": "destroys"
+          },
+          {
+            "node": "stage.ecs_web",
             "verb": "destroys"
           },
           {
@@ -1189,7 +1302,11 @@
             "verb": "destroys"
           },
           {
-            "node": "prod.ecs",
+            "node": "prod.ecs_api",
+            "verb": "destroys"
+          },
+          {
+            "node": "prod.ecs_web",
             "verb": "destroys"
           },
           {
@@ -1274,6 +1391,15 @@
   },
   "not_shown": [
     {
+      "group": "ecs_cluster",
+      "label": "the ECS cluster",
+      "resources": 2,
+      "why": "the room both services run in and a property of neither; drawing it as a third tile would put a container beside its contents (ADR-0095)",
+      "members": [
+        "module.ecs_cluster.aws_ecs_cluster.this"
+      ]
+    },
+    {
       "group": "adopted-not-created",
       "label": "adopted, not created",
       "resources": 2,
@@ -1295,6 +1421,10 @@
     {
       "address": "infra/modules/budgets::aws_budgets_budget.monthly",
       "why": "count 0 or 1 — the module is instantiated with enabled = false in an environment that does not want its own budget"
+    },
+    {
+      "address": "infra/modules/ecs-service::aws_iam_role_policy.execution_read_secret",
+      "why": "count = 1 for the service that is given the database secret and 0 for the one that is not (ADR-0095): the api's execution role may read the credential, the web's may not, and the block that grants it exists once per instance that has a secret. Counted as one block; two instances make it one policy in total."
     },
     {
       "address": "infra/modules/network::aws_route_table_association.public",

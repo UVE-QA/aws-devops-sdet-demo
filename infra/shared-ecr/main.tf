@@ -46,6 +46,19 @@ module "ecr" {
   force_delete = false
 }
 
+# THE SECOND REPOSITORY (ADR-0095). One repository per service is the shape a
+# release of several images needs: a tag names one image in each, and the
+# digests are what the task definitions pin. The existing repository keeps its
+# name and stays the api's - renaming an ECR repository is creating a new one,
+# and the api's history is in this one.
+module "ecr_web" {
+  source = "../modules/ecr"
+
+  repository_name = var.web_repository_name
+  max_image_count = var.max_image_count
+  force_delete    = false
+}
+
 # ------------------------------------------------------------------------------
 # Release pointer (ADR-0029): the digest of the last image whose prod smoke
 # passed. It lives HERE, at a permanent level, for the same reason the registry

@@ -26,7 +26,7 @@
   "_request_path": "EDITORIAL, and the panel on the page says so. WHERE THE REQUEST GOES is not stated anywhere under infra/ - a listener rule and a security group imply a hop, they never assert it - so the ORDER is written here, once. Everything else about a hop is derived: each one except the browser CITES a node or a permanent card by id, and the generator refuses when the citation names something the map does not have, so deleting the load balancer cannot leave this panel drawing one. The label and the service come from what is cited and are never written here again. THE TOOL NAMES ARE EDITORIAL TOO (ADR-0047 D4): `terraform` is derivable from a node's observer, `docker` and `alembic` are not, and a panel naming only the derivable ones would be quietly wrong about what builds the image and what migrates the database. The hops cite prod because prod is the environment a visitor's request reaches; stage is the same shape behind a name nobody is given.",
   "request_path": {
     "note": "the request path to prod, and the tool behind each hop",
-    "editorial": "the order and the tool names are editorial; every hop cites a node this map already draws",
+    "editorial": "the order and the tool names are editorial; every hop cites a node this map already draws; the page itself comes from the web service on the same load balancer, and the path drawn is the request that reaches the database (ADR-0095)",
     "hops": [
       {
         "id": "browser",
@@ -49,8 +49,8 @@
         ]
       },
       {
-        "id": "ecs",
-        "cites": "prod.ecs",
+        "id": "api",
+        "cites": "prod.ecs_api",
         "tools": [
           "docker",
           "terraform"
@@ -77,7 +77,8 @@
           "secrets",
           "rds",
           "alb",
-          "ecs",
+          "ecs_api",
+          "ecs_web",
           "cloudwatch",
           "budgets"
         ]
@@ -90,7 +91,8 @@
           "secrets",
           "rds",
           "alb",
-          "ecs",
+          "ecs_api",
+          "ecs_web",
           "cloudwatch",
           "dnsrec",
           "budgets"
@@ -176,11 +178,25 @@
       "service": "elb"
     },
     {
-      "id": "ecs",
+      "id": "ecs_api",
       "kind": "node",
       "shown": true,
-      "label": "ECS Fargate",
+      "label": "ECS \u2014 api",
       "service": "ecs"
+    },
+    {
+      "id": "ecs_web",
+      "kind": "node",
+      "shown": true,
+      "label": "ECS \u2014 web",
+      "service": "ecs"
+    },
+    {
+      "id": "ecs_cluster",
+      "kind": "hidden",
+      "shown": false,
+      "label": "the ECS cluster",
+      "why": "the room both services run in and a property of neither; drawing it as a third tile would put a container beside its contents (ADR-0095)"
     },
     {
       "id": "cloudwatch",
@@ -221,7 +237,8 @@
     "infra/modules/budgets::aws_budgets_budget.monthly": "count 0 or 1 \u2014 the module is instantiated with enabled = false in an environment that does not want its own budget",
     "infra/modules/network::aws_subnet.public": "count = 2 \u2014 one public subnet per availability zone",
     "infra/modules/network::aws_subnet.private_db": "count = 2 \u2014 the RDS subnet group needs two AZs whether or not anything runs in the second",
-    "infra/modules/network::aws_route_table_association.public": "count = 2 \u2014 one per public subnet"
+    "infra/modules/network::aws_route_table_association.public": "count = 2 \u2014 one per public subnet",
+    "infra/modules/ecs-service::aws_iam_role_policy.execution_read_secret": "count = 1 for the service that is given the database secret and 0 for the one that is not (ADR-0095): the api's execution role may read the credential, the web's may not, and the block that grants it exists once per instance that has a secret. Counted as one block; two instances make it one policy in total."
   },
   "assign": {
     "infra/bootstrap": {
@@ -316,17 +333,9 @@
       "aws_lb.this": "alb",
       "aws_lb_target_group.app": "alb",
       "aws_lb_listener.http": "alb",
-      "aws_lb_listener.https": "alb"
-    },
-    "infra/modules/ecs": {
-      "aws_ecs_cluster.this": "ecs",
-      "aws_security_group.app": "ecs",
-      "aws_iam_role.execution": "ecs",
-      "aws_iam_role_policy_attachment.execution_managed": "ecs",
-      "aws_iam_role_policy.execution_read_secret": "ecs",
-      "aws_iam_role.task": "ecs",
-      "aws_ecs_task_definition.app": "ecs",
-      "aws_ecs_service.app": "ecs"
+      "aws_lb_listener.https": "alb",
+      "aws_lb_target_group.web": "alb",
+      "aws_lb_listener_rule.api": "alb"
     },
     "infra/modules/observability": {
       "aws_cloudwatch_log_group.app": "cloudwatch",
@@ -338,6 +347,27 @@
     },
     "infra/envs/prod": {
       "aws_route53_record.app": "dnsrec"
+    },
+    "infra/modules/ecs-cluster": {
+      "aws_ecs_cluster.this": "ecs_cluster"
+    },
+    "infra/modules/ecs-service@api": {
+      "aws_security_group.this": "ecs_api",
+      "aws_iam_role.execution": "ecs_api",
+      "aws_iam_role_policy_attachment.execution_managed": "ecs_api",
+      "aws_iam_role_policy.execution_read_secret": "ecs_api",
+      "aws_iam_role.task": "ecs_api",
+      "aws_ecs_task_definition.this": "ecs_api",
+      "aws_ecs_service.this": "ecs_api"
+    },
+    "infra/modules/ecs-service@web": {
+      "aws_security_group.this": "ecs_web",
+      "aws_iam_role.execution": "ecs_web",
+      "aws_iam_role_policy_attachment.execution_managed": "ecs_web",
+      "aws_iam_role_policy.execution_read_secret": "ecs_web",
+      "aws_iam_role.task": "ecs_web",
+      "aws_ecs_task_definition.this": "ecs_web",
+      "aws_ecs_service.this": "ecs_web"
     }
   },
   "_phases": "The order the cycle happens in, and - in `live` - how each phase is recognised WHILE IT RUNS. Every workflow here holds one job, so a job name cannot tell Build from Apply; the binding names a STEP, and scripts/generate-topology.py refuses if that step does not exist in that job of that workflow. A renamed step would otherwise break the pulse silently, which no other gate in this repository can see. `when: waiting` is the approval, which is not a step at all: it is the gap before the job starts, and the runs API reports it as a run in the waiting state. A SUITE NODE carries its own `live` in exactly the same shape, and must: which phase box a suite is drawn in is a layout decision, and on 2026-08-08 the two disagreed - suite.db.stage sits in the quality gate while its step runs in Provision, and prod's copy of the same suite sat in a phase that does bind that step. A node bound to its own step cannot inherit a phase's answer about a different one.",
@@ -352,14 +382,16 @@
           "workflow": "deploy-stage.yml",
           "job": "deploy",
           "steps": [
-            "Build, tag, and push image"
+            "Build, tag, and push the api image",
+            "Build, tag, and push the web image"
           ]
         },
         {
           "workflow": "self-service.yml",
           "job": "launch",
           "steps": [
-            "Build, tag, and push image"
+            "Build, tag, and push the api image",
+            "Build, tag, and push the web image"
           ]
         }
       ],
@@ -372,12 +404,52 @@
       ],
       "nodes": [
         {
-          "id": "build.ecr",
+          "id": "build.api",
           "tool": "docker",
-          "label": "ECR push",
+          "label": "ECR push \u2014 api",
           "service": "ecr",
           "kind": "service",
-          "observer": "actions"
+          "observer": "actions",
+          "live": [
+            {
+              "workflow": "deploy-stage.yml",
+              "job": "deploy",
+              "steps": [
+                "Build, tag, and push the api image"
+              ]
+            },
+            {
+              "workflow": "self-service.yml",
+              "job": "launch",
+              "steps": [
+                "Build, tag, and push the api image"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "build.web",
+          "tool": "docker",
+          "label": "ECR push \u2014 web",
+          "service": "ecr",
+          "kind": "service",
+          "observer": "actions",
+          "live": [
+            {
+              "workflow": "deploy-stage.yml",
+              "job": "deploy",
+              "steps": [
+                "Build, tag, and push the web image"
+              ]
+            },
+            {
+              "workflow": "self-service.yml",
+              "job": "launch",
+              "steps": [
+                "Build, tag, and push the web image"
+              ]
+            }
+          ]
         }
       ]
     },
@@ -424,7 +496,11 @@
           "verb": "creates"
         },
         {
-          "node": "stage.ecs",
+          "node": "stage.ecs_api",
+          "verb": "creates"
+        },
+        {
+          "node": "stage.ecs_web",
           "verb": "creates"
         },
         {
@@ -462,7 +538,7 @@
       "env": "stage",
       "touches": [
         {
-          "node": "stage.ecs",
+          "node": "stage.ecs_api",
           "verb": "provisions"
         },
         {
@@ -513,7 +589,11 @@
           "verb": "asserts"
         },
         {
-          "node": "stage.ecs",
+          "node": "stage.ecs_api",
+          "verb": "asserts"
+        },
+        {
+          "node": "stage.ecs_web",
           "verb": "asserts"
         },
         {
@@ -689,7 +769,11 @@
           "verb": "creates"
         },
         {
-          "node": "prod.ecs",
+          "node": "prod.ecs_api",
+          "verb": "creates"
+        },
+        {
+          "node": "prod.ecs_web",
           "verb": "creates"
         },
         {
@@ -737,7 +821,11 @@
           "verb": "asserts"
         },
         {
-          "node": "prod.ecs",
+          "node": "prod.ecs_api",
+          "verb": "asserts"
+        },
+        {
+          "node": "prod.ecs_web",
           "verb": "asserts"
         },
         {
@@ -805,7 +893,11 @@
           "verb": "destroys"
         },
         {
-          "node": "stage.ecs",
+          "node": "stage.ecs_api",
+          "verb": "destroys"
+        },
+        {
+          "node": "stage.ecs_web",
           "verb": "destroys"
         },
         {
@@ -833,7 +925,11 @@
           "verb": "destroys"
         },
         {
-          "node": "prod.ecs",
+          "node": "prod.ecs_api",
+          "verb": "destroys"
+        },
+        {
+          "node": "prod.ecs_web",
           "verb": "destroys"
         },
         {

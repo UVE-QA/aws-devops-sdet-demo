@@ -10,23 +10,28 @@
     },
     "stage-provision": {
       "state": "running",
-      "since": "2026-08-08T13:00:00Z"
+      "since": "2026-08-08T14:00:00Z"
     }
   },
   "nodes": {
-    "build.ecr": {
-      "state": "finished",
-      "since": "2026-08-08T10:00:00Z",
-      "via": "phase"
-    },
     "stage.migrate": {
       "state": "running",
-      "since": "2026-08-08T13:00:00Z",
+      "since": "2026-08-08T14:00:00Z",
       "via": "phase"
     },
     "suite.db.stage": {
       "state": "running",
       "since": "2026-08-08T14:00:00Z",
+      "via": "own"
+    },
+    "build.api": {
+      "state": "finished",
+      "since": "2026-08-08T10:00:00Z",
+      "via": "own"
+    },
+    "build.web": {
+      "state": "finished",
+      "since": "2026-08-08T10:00:00Z",
       "via": "own"
     }
   }

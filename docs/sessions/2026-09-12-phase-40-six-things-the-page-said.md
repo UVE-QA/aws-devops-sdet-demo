@@ -297,6 +297,31 @@ with the owner's word on the download.
 And `ci.yml` runs on `next` now. The gates have to run where the work is;
 nothing in CI publishes or touches AWS, so a branch run costs a runner.
 
+## Phase 41 begins: the container is two
+
+Item 1 of the plan, built on `next` in this same session (**ADR-0095**). The cut
+is at the origin: `web` is nginx serving the interface the api used to serve
+from `/`, `api` is FastAPI without `/`, one load balancer routes `/api/*` and
+`/health` to the api and everything else to web, and nothing calls anything.
+Locally the web container stands in for the load balancer's rule through one
+mounted include. The ECS module became a cluster and a per-service module; the
+api alone holds the database secret. One ECR repository per service, the api
+keeping the old one; the rollback pointer is a release - `{api, web}` in one
+put - and a rollback rolls back the set or nothing. The board splits the tile
+and wraps the row on the owner's word: not narrower, a next row.
+
+Proven locally: every suite through the web container - 52 api contract, 2
+smoke, 12 regression - and both images scanning clean; `terraform validate` on
+every changed level; every gate green over rewritten fixtures. Two things the
+fixtures found on the way: a verb node's own binding was passed to the page
+unresolved and matched no run, and a node with own bindings for one workflow
+went dark on another - the owner's `destroy.yml` dispatch would have stopped
+lighting the teardown tile. Both fixed and under gate.
+
+Not yet proven by a cycle: the web repository has to be applied first, and a
+cycle from `next` on the shared environments is the owner's call while the demo
+is out.
+
 ## Still open, from the same cycle
 
 The owner's list, not yet done: the run panel showing `Post …`/`Complete job` for

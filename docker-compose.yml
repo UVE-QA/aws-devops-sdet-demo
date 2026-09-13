@@ -1,6 +1,7 @@
 # Local development stack for v0 (Lightsail devbox).
 # postgres is NOT published to the host — it stays on the internal network.
-# Only the app port 8000 is exposed locally (reach it via SSH tunnel).
+# Only port 8000 is exposed locally (reach it via SSH tunnel), and since
+# ADR-0095 it is the web container's: the page from nginx, /api proxied to app.
 services:
   postgres:
     image: postgres:16
@@ -39,11 +40,27 @@ services:
       # environments pass "stage"/"prod" through the task definition, so a line
       # can never be mistaken for one from another environment.
       APP_ENV: local
-    ports:
-      - "8000:8000"
+    # NOT published any more (ADR-0095): the web service is the one origin on
+    # 8000, and it proxies /api to this container - see web/local/api-proxy.conf.
     depends_on:
       postgres:
         condition: service_healthy
+
+  web:
+    # The interface, in a container of its own (ADR-0095). Named for the same
+    # reason `app` is: the image scan looks for it by this name.
+    image: aws-devops-sdet-demo-web:local
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    ports:
+      - "8000:80"
+    volumes:
+      # The stand-in for the load balancer's path rules, locally only. The AWS
+      # image never carries this file; the ALB does what it does here.
+      - ./web/local:/etc/nginx/conf.d/local:ro
+    depends_on:
+      - app
 
 volumes:
   pgdata:

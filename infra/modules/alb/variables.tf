@@ -14,9 +14,15 @@ variable "public_subnet_ids" {
 }
 
 variable "app_port" {
-  description = "Port the app container listens on (target group port)."
+  description = "Port the api container listens on (its target group's port)."
   type        = number
   default     = 8000
+}
+
+variable "web_port" {
+  description = "Port the web container listens on (its target group's port), ADR-0095."
+  type        = number
+  default     = 80
 }
 
 variable "certificate_arn" {

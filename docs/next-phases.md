@@ -1574,10 +1574,11 @@ components, each with a reason to exist, is the smallest shape that shows all
 of it and the largest that a home project can carry without noise.
 
 ```text
-1. Split the container into web and api
+1. Split the container into web and api        [IN PROGRESS 2026-09-13, ADR-0095]
    Two images behind one load balancer, routed by path; a release becomes a
    SET of digests rather than one. The first boundary, and the one that makes
-   promotion by digest mean something across services.
+   promotion by digest mean something across services. Built on `next`; the
+   web repository and a cycle from the branch are what remain.
 
 2. A queue and a worker
    api publishes an event to SQS, a worker consumes it; a dead-letter queue

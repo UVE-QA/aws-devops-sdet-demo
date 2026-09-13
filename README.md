@@ -6,7 +6,8 @@ itself and then deletes almost all of itself.
 **Live dashboard: https://demo.uveapp.net** — it stays online when every
 workload environment is gone, which is most of the time and is the point of it.
 
-One FastAPI container behind an ALB on ECS Fargate, with PostgreSQL on RDS,
+Two containers behind one ALB on ECS Fargate - `web`, the interface, and `api`,
+the domain - with PostgreSQL on RDS,
 built and deployed entirely by GitHub Actions using short-lived OIDC
 credentials. There are no static AWS keys anywhere in this repository or in its
 GitHub configuration.
@@ -70,8 +71,12 @@ GET    /api/items        one page: {items, count, total, limit, offset}
 GET    /api/items/{id}   200, 404 when absent
 PATCH  /api/items/{id}   200, 404, 409 on a taken name, 422 on an empty patch
 DELETE /api/items/{id}   204, 404 when absent
-GET    /                 a static page that drives the API from the browser
 ```
+
+Everything above is the `api` container. The page a browser opens at `/` is
+the `web` container - nginx serving a static file whose JavaScript drives the
+API on the same origin - and the load balancer is what puts the two behind one
+name (ADR-0095).
 
 ## Run it locally
 

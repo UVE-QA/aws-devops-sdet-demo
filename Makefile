@@ -562,15 +562,23 @@ iac-scan:
 # that job; where it is, a scan of the wrong image reads exactly like a clean
 # one.
 APP_IMAGE ?= aws-devops-sdet-demo-app:local
+# Every image this repository builds, and the scan runs over all of them
+# (ADR-0095). A scan over one of two images is the vacuous green this project
+# keeps finding one layer down.
+IMAGES ?= $(APP_IMAGE) aws-devops-sdet-demo-web:local
 TRIVY_REPORT ?= trivy-report.json
 image-scan:
 	@command -v trivy >/dev/null 2>&1 || { echo "image-scan: trivy is not on PATH. Refusing to pass without scanning anything."; exit 1; }
-	@grep -q "image: $(APP_IMAGE)" docker-compose.yml || { echo "image-scan: docker-compose.yml does not build $(APP_IMAGE). The two names have drifted, so this would scan an image nothing here produces. Refusing."; exit 1; }
-	@docker image inspect "$(APP_IMAGE)" >/dev/null 2>&1 || { echo "image-scan: $(APP_IMAGE) has not been built - run make docker-build first. Refusing to scan nothing."; exit 1; }
-	@echo "image-scan: trivy $$(trivy --version | head -1 | awk '{print $$2}'), image $(APP_IMAGE)"
-	trivy image --scanners vuln --severity HIGH,CRITICAL --exit-code 0 \
-	  --format json --output $(TRIVY_REPORT) "$(APP_IMAGE)"
-	@python3 scripts/summarise-trivy.py $(TRIVY_REPORT)
+	@for img in $(IMAGES); do \
+	  grep -q "image: $$img" docker-compose.yml || { echo "image-scan: docker-compose.yml does not build $$img. The two names have drifted, so this would scan an image nothing here produces. Refusing."; exit 1; }; \
+	  docker image inspect "$$img" >/dev/null 2>&1 || { echo "image-scan: $$img has not been built - run make docker-build first. Refusing to scan nothing."; exit 1; }; \
+	done
+	@echo "image-scan: trivy $$(trivy --version | head -1 | awk '{print $$2}'), images: $(IMAGES)"
+	@rc=0; for img in $(IMAGES); do \
+	  report="$(TRIVY_REPORT).$$(echo $$img | tr '/:' '__')"; \
+	  trivy image --scanners vuln --severity HIGH,CRITICAL --exit-code 0 --format json --output "$$report" "$$img" || exit 1; \
+	  echo "--- $$img"; python3 scripts/summarise-trivy.py "$$report" || rc=1; \
+	done; exit $$rc
 
 # Every third-party action is pinned to a commit SHA, and stays that way.
 # A tag is mutable and several jobs here hold id-token: write, so the code

@@ -21,10 +21,22 @@ variable "app_port" {
   default     = 8000
 }
 
-variable "app_image" {
-  description = "Full ECR image reference for the app. Placeholder until the first image is pushed in Phase 6."
+variable "api_image" {
+  description = "Full ECR image reference for the api (ADR-0095). A tag on stage, a digest on prod (ADR-0029)."
   type        = string
   default     = "aws-devops-sdet-demo-app:bootstrap"
+}
+
+variable "web_image" {
+  description = "Full ECR image reference for the web service (ADR-0095). Same rule as the api's."
+  type        = string
+  default     = "aws-devops-sdet-demo-web:bootstrap"
+}
+
+variable "web_port" {
+  description = "Port the web container listens on."
+  type        = number
+  default     = 80
 }
 
 variable "task_cpu" {

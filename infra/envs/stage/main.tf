@@ -70,24 +70,62 @@ module "alb" {
   app_port          = var.app_port
 }
 
-module "ecs" {
-  source = "../../modules/ecs"
+# THE CLUSTER, THEN ONE MODULE PER SERVICE (ADR-0095). `api` is what the one
+# container used to be minus the page; `web` is the page. The api alone is
+# handed the database secret and the api's security group alone is what RDS
+# allows 5432 from - web has no business with either, and a role that could
+# read the secret anyway would be the kind of thing this project draws.
+module "ecs_cluster" {
+  source = "../../modules/ecs-cluster"
+
+  name_prefix = local.name_prefix
+}
+
+module "api" {
+  source = "../../modules/ecs-service"
 
   name_prefix           = local.name_prefix
+  service               = "api"
   app_env               = var.environment
   region                = var.region
   vpc_id                = module.network.vpc_id
   public_subnet_ids     = module.network.public_subnet_ids
   alb_security_group_id = module.alb.alb_security_group_id
   target_group_arn      = module.alb.target_group_arn
-  image                 = var.app_image
-  app_port              = var.app_port
+  cluster_id            = module.ecs_cluster.cluster_id
+  image                 = var.api_image
+  port                  = var.app_port
   db_secret_arn         = module.rds.db_secret_arn
   log_group_name        = module.observability.log_group_name
   task_cpu              = var.task_cpu
   task_memory           = var.task_memory
   desired_count         = var.desired_count
-  depends_on            = [module.alb]
+  # The image asks itself, the way it always has: python is what it carries.
+  health_check_command = ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:${var.app_port}/health').status==200 else 1)\""]
+  depends_on           = [module.alb]
+}
+
+module "web" {
+  source = "../../modules/ecs-service"
+
+  name_prefix           = local.name_prefix
+  service               = "web"
+  app_env               = var.environment
+  region                = var.region
+  vpc_id                = module.network.vpc_id
+  public_subnet_ids     = module.network.public_subnet_ids
+  alb_security_group_id = module.alb.alb_security_group_id
+  target_group_arn      = module.alb.web_target_group_arn
+  cluster_id            = module.ecs_cluster.cluster_id
+  image                 = var.web_image
+  port                  = var.web_port
+  log_group_name        = module.observability.log_group_name
+  task_cpu              = var.task_cpu
+  task_memory           = var.task_memory
+  desired_count         = var.desired_count
+  # nginx:alpine carries wget and not python.
+  health_check_command = ["CMD-SHELL", "wget -qO- http://127.0.0.1:${var.web_port}/healthz >/dev/null 2>&1 || exit 1"]
+  depends_on           = [module.alb]
 }
 
 module "rds" {
@@ -96,7 +134,7 @@ module "rds" {
   name_prefix               = local.name_prefix
   vpc_id                    = module.network.vpc_id
   private_db_subnet_ids     = module.network.private_db_subnet_ids
-  ecs_app_security_group_id = module.ecs.app_security_group_id
+  ecs_app_security_group_id = module.api.security_group_id
   engine_version            = var.db_engine_version
   instance_class            = var.db_instance_class
 }

@@ -15,12 +15,17 @@ output "app_fqdn" {
 
 output "ecs_cluster_name" {
   description = "Name of the ECS cluster."
-  value       = module.ecs.cluster_name
+  value       = module.ecs_cluster.cluster_name
 }
 
 output "ecs_service_name" {
-  description = "Name of the ECS app service."
-  value       = module.ecs.service_name
+  description = "Name of the ECS api service (what the waits and the one-off tasks address)."
+  value       = module.api.service_name
+}
+
+output "ecs_web_service_name" {
+  description = "Name of the ECS web service (ADR-0095); the deploy waits for it too."
+  value       = module.web.service_name
 }
 
 output "rds_endpoint" {
@@ -35,12 +40,12 @@ output "db_secret_arn" {
 
 output "task_definition_arn" {
   description = "ECS task definition ARN (reused for one-off migrate/seed/db-assert via run-task)."
-  value       = module.ecs.task_definition_arn
+  value       = module.api.task_definition_arn
 }
 
 output "ecs_app_security_group_id" {
   description = "Security group of the app/one-off tasks (run-task network config)."
-  value       = module.ecs.app_security_group_id
+  value       = module.api.security_group_id
 }
 
 output "public_subnet_ids" {
@@ -50,5 +55,5 @@ output "public_subnet_ids" {
 
 output "container_name" {
   description = "App container name for run-task containerOverrides."
-  value       = module.ecs.container_name
+  value       = module.api.container_name
 }
