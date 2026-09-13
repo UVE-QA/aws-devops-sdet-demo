@@ -140,6 +140,25 @@ The environment panel gains a `worker service` row and a `queue` row.
   rule like every other noun; the outbox is item 4's; a second worker would
   need nothing here changed and is not run, because one is what the story
   needs.
-- **Not yet verified by a cycle.** The worker's repository and the deploy
-  role's six names are permanent levels applied by hand under `demo-admin`
-  with the owner's word; the first cycle from `next` is the proof.
+- **Verified by the first cycle from `next`** (#26, 34762487475, 2026-09-13,
+  62 minutes, every job green) after `infra/shared-ecr` (2 added) and
+  `infra/bootstrap-oidc` (2 changed) were applied under `demo-admin` with the
+  owner's word. The worker image built in 12 s; three services stable in 62 s;
+  the two asynchronous contract tests green against the ALB — a Fargate task
+  consumed the events and stamped the rows; stage and prod both observed with
+  `worker ACTIVE 1/1` and `queue: 0 waiting, 0 dead-lettered, alarm OK`;
+  promotion pinned three digests, the pointer went from ADR-0095's two names —
+  reported *not armed*, as D7 says — to `{api, web, worker}` in one put; both
+  teardowns green with a sweep that confirmed six roles and asked the queues
+  by name; afterwards the account holds no cluster, instance, balancer,
+  queue, alarm or role.
+- **Open, found by the owner watching the page:** the endpoint's lock sees
+  only launches that came through the button. A cycle dispatched from
+  Actions — the owner's, or one from `next` — holds no lock, so a visitor's
+  press during it is accepted, spends one of the day's three, and queues
+  behind it on the workflow's `concurrency` group. Nothing runs twice and
+  nothing breaks; but the button's *one at a time* is enforced by GitHub's
+  queue rather than by the refusal ADR-0036 wrote, and the page's *busy* now
+  answers about every branch while the endpoint's does not. The fix is the
+  endpoint asking the Actions API for in-flight runs of `self-service.yml`
+  before it dispatches; not taken in this phase.

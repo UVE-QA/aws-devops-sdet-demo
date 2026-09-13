@@ -4140,11 +4140,27 @@ cycle).
 - The worker's queue helper, first named queue.py, shadowed the standard
   library's `queue` for urllib3 under boto3 on its first run; it is
   `worker/scripts/sqs_tool.py`.
-- Next allowed step: apply the two permanent levels with the owner's yes -
-  `infra/shared-ecr` (worker repository: 2 to add) and `infra/bootstrap-oidc`
-  (six ECS roles and `sqs:*` on both deploy policies: 2 to change) - then
-  **the first cycle from `next`**, on the owner's word; what it shows goes
-  here.
+- **Both permanent levels applied 2026-09-13** under `demo-admin` with the
+  owner's yes, after one expired SSO session refused both: `shared-ecr` 2
+  added (the worker repository, IMMUTABLE), `bootstrap-oidc` 2 changed (six
+  ECS roles and `sqs:*` on both deploy policies).
+- **The first cycle from `next` (#26, 34762487475) went green end to end**:
+  launch 17 m (worker image 12 s, apply 473 s, three services stable in 62 s,
+  the two asynchronous tests green against the ALB), promote 13 m (three
+  digests, the two-name pointer reported *not armed*, then `{api, web,
+  worker}` written), destroy 11 m, hold 5 m, destroy-prod 12 m, release-lock.
+  62 minutes. Both environments observed with `worker ACTIVE 1/1` and `queue:
+  0 waiting, 0 dead-lettered, alarm OK` while up; both status files say
+  `destroyed` and name #26; the account holds no cluster, instance, balancer,
+  queue, alarm or role.
+- **Open, from the owner watching the page during the cycle:** the endpoint's
+  lock sees only launches through the button, so a visitor's press during an
+  owner-run or `next` cycle is accepted and queues behind it on the workflow's
+  `concurrency` group (ADR-0096, consequences). Harmless and not the refusal
+  ADR-0036 wrote; the fix is the endpoint asking Actions for in-flight runs.
+- Next allowed step: **merge `next` → `main`** on the owner's word (ADR-0093
+  D1: the green cycle from `next` is the precondition, and #26 is it). Then
+  the session record for this stretch.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,
