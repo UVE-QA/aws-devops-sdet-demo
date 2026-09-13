@@ -3,7 +3,7 @@
   "schema": 1,
   "counts": {
     "suites": 5,
-    "tests": 180
+    "tests": 181
   },
   "suites": {
     "api": {
@@ -318,7 +318,7 @@
     "unit": {
       "dir": "tests/unit",
       "collector": "pytest",
-      "count": 112,
+      "count": 113,
       "tests": [
         {
           "file": "tests/unit/test_access_log.py",
@@ -455,6 +455,10 @@
         {
           "file": "tests/unit/test_adopt_orphans.py",
           "name": "test_the_task_role_has_nothing_hanging_off_it"
+        },
+        {
+          "file": "tests/unit/test_adopt_orphans.py",
+          "name": "test_the_web_execution_role_drags_only_the_managed_policy"
         },
         {
           "file": "tests/unit/test_adopt_orphans.py",
