@@ -6,6 +6,32 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
+**As of 2026-09-13 (43 — the same digests on EKS).** One record, **ADR-0097**,
+decided in one line of the owner's and built in four slices. A third
+environment beside stage and prod — its own VPC, database, secret and queue —
+runs the three images stage tested on a managed-node EKS cluster: Terraform
+for the cluster, the node group, the OIDC provider and the platform inside
+(the namespace, the database Secret, the load balancer controller); a chart
+in the repository for the application, installed by digest and refusing a
+tag; IRSA as the task role. The balancer an Ingress makes is the one thing in
+the lab Terraform does not own, and the plan had named that trap: the
+controller tags it so the sweep can see it, and the teardown uninstalls the
+chart and waits for the balancer to be gone before the destroy.
+
+**Three applies by hand and four cycles were the proof, and each found what
+the one before could not.** Locally: a secret read racing the RDS create, an
+access entry wanting the SSO role's full ARN, the creator refused a second
+entry. In the cycle: a publish role that trusted two environments, a sweep
+asking every deploy role about every role name, EKS validating its
+service-linked role with the caller's permissions, and a results fold landing
+on a map that had no lab. Cycle #30 was green in 63 minutes with three
+environments, and the page draws the lab now — three phases, a destroy node,
+a third column, the cluster and the node group and the Deployments where the
+other panels show services. On the way: the endpoint's lock learned to ask
+Actions about cycles that did not come through the button, proven live with
+a press during one; the released line is asked for by name after a day of
+`next` emptied the page's window of `main`.
+
 **As of 2026-09-13 (42 — a queue and a worker).** One record, **ADR-0096**,
 decided with the owner before a line was written and proven by one cycle the
 same day. The api publishes `item.created` after the commit; a worker in its
