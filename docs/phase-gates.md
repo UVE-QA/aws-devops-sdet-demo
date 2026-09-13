@@ -4103,8 +4103,18 @@ images scanning clean; every gate green over rewritten fixtures.
   environment questions are asked of every branch, the cycle's of `main`; two
   new fixture states (`foreign-writer`, `foreign-in-flight`) in the in-flight
   gate, each proven to fail against the filtered rule before passing.
-- Next allowed step: **the second cycle from `next`**, on the owner's standing
-  word; what it shows goes here.
+- **The second cycle from `next` (#25, 34732345301) went green end to end**:
+  launch 17 m (both builds, apply 477 s, both services stable, tests through
+  web), promote 13 m (two digests pinned, pointer `{api, web}` written over a
+  bare pre-split digest the workflow reported as *not armed*, release tag in
+  both registries, `/` from web and `/health` from the api through the listener
+  rule), destroy 10 m with a green sweep over four confirmed roles, hold 5 m,
+  destroy-prod 10 m, release-lock. 57 minutes. Both status files say
+  `destroyed` and name #25; the account holds the default VPC and nothing else.
+- Next allowed step: **merge `next` → `main`** on the owner's word (ADR-0093
+  D1: a green cycle from `next` is the precondition, and this is it); the
+  published page then gets the amended D2 and stops calling a `next` cycle's
+  file `unknown`. Then the session record for 2026-09-13.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

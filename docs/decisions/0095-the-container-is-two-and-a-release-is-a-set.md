@@ -135,6 +135,15 @@ branches may bind to it. Recorded in the primer as UI state git cannot assert.
 - The observation of an environment names the api service by name rather than
   taking whichever the API listed first, and carries the web service beside it;
   the panel's disclosure shows both.
-- **Not yet verified by a cycle.** Validated by `terraform validate` on every
-  changed level and by the local stack; the first cycle from `next` is the
-  proof, and needs the web repository applied first.
+- **Verified by the second cycle from `next`** (#25, 34732345301, 2026-09-13,
+  57 minutes, every job green) after the first (#24) failed on the three things
+  D9 and D10 record and on a target-group name. Both images built and pushed
+  in one job (29 s and 9 s); `terraform apply` 477 s; both services stable;
+  the tests through the web container on stage; promotion pinned
+  `api@sha256:6453b8…` and `web@sha256:030f46…`, the pointer went from a bare
+  pre-split digest — reported *not armed*, as D5 says — to `{api, web}` in one
+  put, and `release-20260913-0240-0931b2f` went into both registries;
+  `app.demo.uveapp.net/` answered 200 `text/html` from web and `/health` 200
+  from the api through the listener rule; both teardowns green, the sweep
+  confirming the four roles rather than failing to ask; the account afterwards
+  holds the default VPC and nothing else billable.
