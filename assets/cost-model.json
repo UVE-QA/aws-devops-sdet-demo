@@ -53,7 +53,7 @@
         { "unit_price": "ec2_instance_hour", "quantity_from": ["node_count"] }
       ],
       "minimum_seconds": 60,
-      "note": "The nodes are EC2 instances the node group starts, and an instance is not a Terraform resource - the node group's lifetime stands in for the instances', as the service's does for Fargate tasks. Linux instances bill per second with a one-minute minimum. The nodes' root volumes (gp3, 20 GB each) are omitted: a few thousandths of a dollar per hour, under the width of the band."
+      "note": "The nodes are EC2 instances the node group starts, and an instance is not a Terraform resource - the node group's lifetime stands in for the instances', as the service's does for Fargate tasks. Linux instances bill per second with a one-minute minimum. The node group asks for SPOT capacity, which bills at the spot price of the moment - a figure this table does not capture; the on-demand rate here is the CEILING, and the band says so by being a band. The nodes' root volumes (gp3, 20 GB each) are omitted: a few thousandths of a dollar per hour, under the width of the band."
     }
   },
 

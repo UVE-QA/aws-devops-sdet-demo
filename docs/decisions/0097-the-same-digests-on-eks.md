@@ -43,6 +43,20 @@ targets only, slow pod starts — and the story here is the second runtime, not
 the absence of nodes. One instance type, so one price: the sizing reader
 refuses a list of several.
 
+*Amended 2026-09-13, evening.* **Spot.** The owner asked whether a smaller
+node would do and whether spot is a real practice; the answer to the first is
+no — EKS caps pods per instance by ENI, `t3.micro` carries four and the
+system pods alone are eight across two nodes — and to the second is yes, for
+exactly this shape: stateless pods, a managed control plane, the database on
+RDS, an environment that lives twenty minutes. An interruption with its
+two-minute notice is a reschedule, not an outage, and a lab that survives
+one is a test nobody had to write. `capacity_type = SPOT` by default, 60–90 %
+off the nodes, which were a third of the lab's hour. Still one instance
+type: the cost fold prices what the configuration declares, and it prices it
+at the on-demand rate as a ceiling, said so in the model. A wider pool
+(`t3a.small` beside `t3.small`) and ARM (`t4g.small`, which needs multi-arch
+images from every build) are noted and not taken.
+
 **D3. Terraform owns the cluster and the platform; Helm owns the
 application.** Terraform makes the control plane, the node group, the
 cluster's OIDC provider, the access entries, three IRSA roles, the namespace,

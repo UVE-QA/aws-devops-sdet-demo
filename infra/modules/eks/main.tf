@@ -142,7 +142,7 @@ resource "aws_eks_node_group" "this" {
   node_role_arn   = aws_iam_role.node.arn
   subnet_ids      = var.subnet_ids
   instance_types  = var.node_instance_types
-  capacity_type   = "ON_DEMAND"
+  capacity_type   = var.capacity_type
   ami_type        = "AL2023_x86_64_STANDARD"
 
   scaling_config {

@@ -24,6 +24,17 @@ variable "node_instance_types" {
   default     = ["t3.small"]
 }
 
+variable "capacity_type" {
+  description = "ON_DEMAND or SPOT. SPOT by default (ADR-0097 D2, amended): the nodes carry stateless pods for the twenty minutes a lab lives, the database is on RDS and the control plane is managed, so an interruption with its two-minute notice is a reschedule and not an outage - the case spot is for, at 60-90% less. The one type in node_instance_types is what the cost fold prices, at the on-demand rate, as a ceiling."
+  type        = string
+  default     = "SPOT"
+
+  validation {
+    condition     = contains(["ON_DEMAND", "SPOT"], var.capacity_type)
+    error_message = "capacity_type is ON_DEMAND or SPOT."
+  }
+}
+
 variable "node_count" {
   description = "Desired nodes. Two, so a Deployment with two replicas has somewhere to go when one node is draining."
   type        = number
