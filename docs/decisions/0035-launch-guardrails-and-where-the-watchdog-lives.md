@@ -81,6 +81,11 @@ moment later anyway. The lock stays beside it: a run takes seconds to appear in
 the API after its dispatch, and two presses in that window meet the lock and
 not the API. `actions: write` (ADR-0034) covers the read.
 
+Proven live the same day, against the deployed endpoint, during cycle #27
+(dispatched from `next`, through Actions, holding no lock): a nonce issued,
+a press posted, `409 busy` — *run #27, from branch next* — and afterwards the
+day's counter still at zero and one run in the workflow's list, not two.
+
 ### 2. A per-day cap, and it fails CLOSED
 
 A counter at the permanent level, keyed by UTC date, incremented by a

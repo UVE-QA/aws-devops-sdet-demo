@@ -33,7 +33,7 @@ variable "github_repo" {
 }
 
 variable "publish_environments" {
-  description = "GitHub Environments whose workflows may assume the publish role. There is deliberately NO branch subject (ADR-0021 reasoning): every workflow that publishes already declares an environment, so a branch subject would only widen the trust for nothing."
+  description = "GitHub Environments whose workflows may assume the publish role. There is deliberately NO branch subject (ADR-0021 reasoning): every workflow that publishes already declares an environment, so a branch subject would only widen the trust for nothing. The lab (ADR-0097) publishes too - the first cycle with one failed on exactly this list."
   type        = list(string)
-  default     = ["stage", "prod"]
+  default     = ["stage", "prod", "lab"]
 }

@@ -21,4 +21,4 @@ site_bucket_name = "aws-devops-sdet-demo-site-993912191738"
 # zone_name            = "demo.uveapp.net"
 # github_owner         = "UVE-QA"
 # github_repo          = "aws-devops-sdet-demo"
-# publish_environments = ["stage", "prod"]
+# publish_environments = ["stage", "prod", "lab"]
