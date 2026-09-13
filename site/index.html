@@ -1904,16 +1904,29 @@
 
       // ---- reading the two sources -------------------------------------------
       function readGitHub() {
-        // One list call, and one jobs call for the newest lifecycle run. Anonymous
-        // GitHub allows 60 requests per hour per IP, so the page is deliberately
-        // frugal: no polling unless something is actually in flight.
-        return fetch(API + "/actions/runs?per_page=40", {
-          headers: { Accept: "application/vnd.github+json" }
-        }).then(function (r) {
+        // TWO LIST CALLS, and one jobs call for the newest lifecycle run of the
+        // released line. Anonymous GitHub allows 60 requests per hour per IP,
+        // so the page is deliberately frugal and paces itself by the budget.
+        //
+        // WHY TWO. The released line is asked for BY NAME (`branch=main`):
+        // its history is a fact about `main` and must not depend on how much
+        // work happens beside it. On 2026-09-13, after three cycles from
+        // `next` and a day of pushes, the forty newest runs held no lifecycle
+        // run of `main` at all, and the panel read "No lifecycle run found in
+        // the 40 most recent runs" - true of the window, and to a stranger a
+        // pipeline that had never run. The unfiltered list stays for the
+        // questions about the ENVIRONMENTS (below), which any branch answers.
+        var headers = { headers: { Accept: "application/vnd.github+json" } };
+        var read = function (r) {
           readBudget(r);
           if (!r.ok) throw new Error("HTTP " + r.status);
           return r.json();
-        }).then(function (data) {
+        };
+        return Promise.all([
+          fetch(API + "/actions/runs?per_page=40", headers).then(read),
+          fetch(API + "/actions/runs?branch=" + RELEASED_BRANCH + "&per_page=40", headers).then(read)
+        ]).then(function (both) {
+          var data = both[0], released = both[1];
           // THE PAGE REPORTS THE RELEASED LINE (ADR-0093). Every workflow here
           // can be dispatched from any branch, and from 2026-09-12 the work
           // happens on `next` while `main` is what the page publishes and what
@@ -1942,7 +1955,10 @@
           // asked of the released line. Where an off-line run is named by the
           // first kind of question, it is named with its branch.
           state.allRuns = data.workflow_runs || [];
-          state.runs = state.allRuns.filter(function (r) {
+          // Filtered again by field, deliberately: the API answered the
+          // question, and a fixture that serves one file to both calls is
+          // still held to the rule.
+          state.runs = (released.workflow_runs || []).filter(function (r) {
             return r.head_branch === RELEASED_BRANCH;
           });
           state.githubError = null;
@@ -2995,18 +3011,18 @@
       // a human, in the prod environment`, the one node the map addresses to a
       // person, and the person is needed at the START of a run.
       //
-      // Nothing here polls harder per hour. The idle poll now costs ONE request
-      // instead of two - the jobs read for a finished run is skipped above - so
-      // a sixty-second floor is exactly the sustainable rate at 60 requests an
-      // hour, and the same budget arithmetic that paces the live case slows this
-      // one down by itself when the budget is short. With eight requests left it
-      // returns to 300000 on its own.
+      // Nothing here polls harder per hour than the budget allows. An idle poll
+      // costs TWO requests since the released line is asked for by name
+      // (readGitHub) and a live one three, so the spread below divides by that;
+      // the floors stay, and the arithmetic slows the page down by itself when
+      // the budget is short. With eight requests left it returns to 300000 on
+      // its own.
       function githubIntervalMs() {
         var run = currentRun();
         var live = !state.githubError && run && run.status !== "completed";
         if (!state.rateRemaining || !state.rateReset) return live ? 90000 : 120000;
         var msLeft = Math.max(1000, state.rateReset - Date.now());
-        var polls = Math.max(1, (state.rateRemaining - 6) / (live ? 2 : 1));
+        var polls = Math.max(1, (state.rateRemaining - 6) / (live ? 3 : 2));
         var spread = msLeft / polls;
         return live
           ? Math.min(180000, Math.max(30000, spread))

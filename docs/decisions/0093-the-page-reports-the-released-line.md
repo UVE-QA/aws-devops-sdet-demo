@@ -71,6 +71,18 @@ file, so the two claims do not pull one fixture in two directions. Not covered:
 the *being torn down* tense of ADR-0086, which reads the steps of the released
 line's current run — a `next` teardown shows as `unknown`, not as a teardown.
 
+*Amended again the same day, after the third cycle from `next`.* The released
+line is now asked for **by name**: `GET …/actions/runs?branch=main`, beside the
+unfiltered list the environment questions read. Filtering the forty newest
+runs client-side was a window, and by the evening of 2026-09-13 — three
+cycles from `next`, a day of pushes to both branches — the window held no
+lifecycle run of `main` at all; the panel read *No lifecycle run found in the
+40 most recent runs*, true of the window and, to a stranger, a pipeline that
+had never run. Two list requests per poll instead of one; the pacer of
+ADR-0062 D2 divides the budget by two idle and three live, so the page slows
+itself rather than exhausting the hour, and the in-flight gate's first-news
+window moved from (45 s, 60 s] to (75 s, 90 s] against a 300 s ceiling.
+
 **D3. Experiments on the shared environments do not run while the demo is out.**
 This is the part no code enforces, and it is written here so that it is a rule
 rather than a habit. Page work needs no AWS at all — the browser gates render
