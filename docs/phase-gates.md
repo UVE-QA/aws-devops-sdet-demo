@@ -4248,9 +4248,34 @@ now and the application through kubectl later.
   the lab's suite nodes, `destroy.lab` in the destroy join at 684 s, three
   status files saying `destroyed` from #30, the lab at $0.043..$0.073, the
   account empty afterwards. Phase 43 is proven.
-- Next allowed step: **merge `next` → `main`** on the owner's word (ADR-0093
-  D1: a green cycle from `next`, and #30 is it); the published page then
-  draws the lab. Then the session record.
+- **Merged 2026-09-13** on the owner's word; publish-site and CI green; the
+  page draws three environments and eleven phases. Session record written.
+  Phase 43 is DONE. Afterwards, on `next`: the lab's nodes are spot
+  (ADR-0097 D2 amended), unproven by a cycle until the next one.
+
+
+### Phase 44 — Each service owns its data  ⏳ IN PROGRESS 2026-09-13
+
+Item 4 of the plan (ADR-0094), on `next`. **ADR-0098**, decided with the
+owner before a line was written: the worker gets its own schema and its own
+migrations, the api keeps a projection of what the worker reported, the two
+meet only through two queues - `item.created` out, `item.processed` back -
+the outbox with its relay in the api's process closes ADR-0096 D2's gap, the
+contracts are JSON Schema held by unit tests on both sides, one tile for
+both queues.
+
+- **Slice one (local) 2026-09-13**: `contracts/`, the api's migration 0005
+  (projection + outbox, the lent columns gone), the relay and the results
+  consumer as threads of the api, the worker's own Alembic and `receipts`,
+  its report published before the delete, ElasticMQ with two queue pairs.
+  54 contract tests unchanged and green through the projection; 143 unit
+  (contracts both ways, the relay's branches); the poison path green. One
+  finding beside the seam: nginx resolved `app` once at startup - the local
+  proxy resolves per request now.
+- Next allowed step: **slice two** - the second queue in AWS, the task-role
+  and IRSA permissions on both sides, the worker's migration as a one-off
+  task and a Helm hook, the observation's second queue. Then the board and a
+  cycle.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

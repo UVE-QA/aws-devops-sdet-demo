@@ -1,12 +1,14 @@
-"""SQLAlchemy models for v0.
+"""SQLAlchemy models.
 
-Single table: demo_items.
+demo_items is the api's own; item_processing is its projection of the
+worker's fact; outbox is what it has yet to say (ADR-0098).
 """
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import BigInteger, DateTime, Text, func
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import BigInteger, DateTime, ForeignKey, Integer, Text, func
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.db import Base
 
@@ -38,12 +40,56 @@ class DemoItem(Base):
         server_default=func.now(),
         onupdate=func.now(),
     )
-    # Added by Alembic revision 0004 (Phase 42). WRITTEN BY THE WORKER, never
-    # by this application: the api publishes `item.created` after the commit
-    # and the worker stamps the row once it has consumed the event. NULL is a
-    # real state - "no worker has been here yet" - and the contract suite waits
-    # for it to change rather than asserting it does not exist.
-    processed_at: Mapped[Optional[datetime]] = mapped_column(
-        DateTime(timezone=True), nullable=True
+    # THE WORKER'S FACT, AS THIS SERVICE HEARD IT (ADR-0098). Revision 0004
+    # had the worker stamp two columns on this row; revision 0005 moved them
+    # into `item_processing`, a projection this service writes when it
+    # consumes `item.processed`. The client sees the same two fields through
+    # the properties below: the API contract did not move, the ownership did.
+    # Loaded with the item (joined), so a page of items is one query.
+    processing: Mapped[Optional["ItemProcessing"]] = relationship(
+        back_populates="item", uselist=False, lazy="joined", cascade="all, delete-orphan"
     )
-    processed_by: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    @property
+    def processed_at(self) -> Optional[datetime]:
+        return self.processing.processed_at if self.processing else None
+
+    @property
+    def processed_by(self) -> Optional[str]:
+        return self.processing.processed_by if self.processing else None
+
+
+class ItemProcessing(Base):
+    """What the worker reported about an item, recorded by the api on hearing
+    it. One row per item, first report wins; the worker's clock and name."""
+
+    __tablename__ = "item_processing"
+
+    item_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("demo_items.id", ondelete="CASCADE"), primary_key=True
+    )
+    processed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    processed_by: Mapped[str] = mapped_column(Text, nullable=False)
+    request_id: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    received_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+    item: Mapped["DemoItem"] = relationship(back_populates="processing")
+
+
+class OutboxEvent(Base):
+    """A message written in the same transaction as the row it is about, and
+    sent afterwards by the relay (src/outbox.py). `published_at` null is a
+    message not yet sent; `attempts` counts the tries."""
+
+    __tablename__ = "outbox"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    event_type: Mapped[str] = mapped_column(Text, nullable=False)
+    payload: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    published_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    attempts: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")

@@ -1,9 +1,18 @@
-"""The worker's loop (Phase 42, ADR-0096).
+"""The worker's loop (Phase 42, ADR-0096; its own data since ADR-0098).
 
     receive up to 10 messages, waiting up to 20 s for the first
-    for each: parse -> stamp the row -> delete the message
+    for each: parse -> write the receipt (the worker's own table)
+              -> publish item.processed to the results queue
+              -> delete the message
     touch the heartbeat
     repeat until SIGTERM
+
+THE MESSAGE IS THE OUTBOX. The receipt and the report are two writes to two
+systems, and a worker that dies between them has a receipt and no report.
+It does not need an outbox for that: the message is not deleted until the
+report is sent, so the next delivery finds the receipt (first delivery wins)
+and sends the report again, and the api records a report once. At-least-once
+on both sides, idempotent on both sides.
 
 THREE WAYS A MESSAGE IS NOT DELETED, and they are three different things:
 
@@ -38,13 +47,20 @@ import boto3
 import psycopg2
 from botocore.config import Config
 
-from consumer.handler import STAMP_SQL, Poison, parse_item_created
+from consumer.handler import (
+    RECEIPT_READ_SQL,
+    RECEIPT_SQL,
+    Poison,
+    item_processed_message,
+    parse_item_created,
+)
 from consumer.logs import configure_logging
 
 configure_logging()
 log = logging.getLogger("worker")
 
 QUEUE_URL = os.getenv("ITEMS_QUEUE_URL", "")
+RESULTS_QUEUE_URL = os.getenv("RESULTS_QUEUE_URL", "")
 DATABASE_URL = os.getenv("DATABASE_URL", "")
 ENDPOINT_URL = os.getenv("SQS_ENDPOINT_URL") or None
 REGION = os.getenv("AWS_REGION", "us-west-2")
@@ -85,10 +101,17 @@ class Worker:
             self.conn.autocommit = True
         return self.conn
 
-    def stamp(self, item_id: int) -> int:
+    def receipt(self, item_id: int, request_id: str) -> tuple[str, str, bool]:
+        """(processed_at, processed_by, first) - the receipt for this item,
+        written now or read back from an earlier delivery."""
         with self.db().cursor() as cur:
-            cur.execute(STAMP_SQL, (WORKER_ID, item_id))
-            return cur.rowcount
+            cur.execute(RECEIPT_SQL, (item_id, WORKER_ID, request_id))
+            row = cur.fetchone()
+            if row is not None:
+                return row[0].isoformat(), row[1], True
+            cur.execute(RECEIPT_READ_SQL, (item_id,))
+            row = cur.fetchone()
+            return row[0].isoformat(), row[1], False
 
     def handle(self, message: dict) -> None:
         body = message.get("Body", "")
@@ -103,29 +126,44 @@ class Worker:
                              "receive_count": _receive_count(message)})
             return
         try:
-            rows = self.stamp(item_id)
+            processed_at, processed_by, first = self.receipt(item_id, request_id)
         except psycopg2.Error as exc:
-            log.warning("database refused the stamp; message left for redelivery",
+            log.warning("database refused the receipt; message left for redelivery",
                         extra={"message_id": message_id, "item_id": item_id,
                                "request_id": request_id, "error": str(exc)[:300]})
             self.conn = None
             time.sleep(1)
             return
-        if rows == 1:
+        # The report, BEFORE the delete: a report that could not be sent
+        # leaves the message, and the next delivery sends it from the same
+        # receipt (see the header).
+        try:
+            self.sqs.send_message(
+                QueueUrl=RESULTS_QUEUE_URL,
+                MessageBody=item_processed_message(item_id, processed_at, processed_by, request_id),
+                MessageAttributes={"type": {"DataType": "String", "StringValue": "item.processed"}},
+            )
+        except Exception as exc:  # noqa: BLE001
+            log.warning("the report could not be sent; message left for redelivery",
+                        extra={"message_id": message_id, "item_id": item_id,
+                               "request_id": request_id, "error": str(exc)[:300]})
+            time.sleep(1)
+            return
+        if first:
             self.processed += 1
             log.info("processed", extra={"item_id": item_id, "request_id": request_id,
                                           "message_id": message_id})
         else:
             self.skipped += 1
-            log.info("skipped: already processed or gone",
+            log.info("reported again from an earlier receipt",
                      extra={"item_id": item_id, "request_id": request_id,
                             "message_id": message_id,
                             "receive_count": _receive_count(message)})
         self.sqs.delete_message(QueueUrl=QUEUE_URL, ReceiptHandle=receipt)
 
     def run(self) -> int:
-        log.info("worker up", extra={"queue": QUEUE_URL, "worker_id": WORKER_ID,
-                                     "endpoint": ENDPOINT_URL or "aws"})
+        log.info("worker up", extra={"queue": QUEUE_URL, "results": RESULTS_QUEUE_URL,
+                                     "worker_id": WORKER_ID, "endpoint": ENDPOINT_URL or "aws"})
         while not self.stop:
             try:
                 resp = self.sqs.receive_message(
@@ -160,6 +198,7 @@ def _receive_count(message: dict) -> int:
 
 def main() -> int:
     missing = [name for name, value in (("ITEMS_QUEUE_URL", QUEUE_URL),
+                                        ("RESULTS_QUEUE_URL", RESULTS_QUEUE_URL),
                                         ("DATABASE_URL", DATABASE_URL)) if not value]
     if missing:
         log.error("refusing to start", extra={"missing": missing})

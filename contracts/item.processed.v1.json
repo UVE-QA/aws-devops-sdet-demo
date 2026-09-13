@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/UVE-QA/aws-devops-sdet-demo/contracts/item.processed.v1.json",
+  "title": "item.processed v1",
+  "description": "Published by the worker once it holds a receipt for an item; consumed by the api into its projection (ADR-0098). The worker's clock and the worker's name are the facts; the api records when it heard.",
+  "type": "object",
+  "required": ["type", "version", "item", "processed_at", "processed_by", "request_id"],
+  "properties": {
+    "type": { "const": "item.processed" },
+    "version": { "const": 1 },
+    "item": {
+      "type": "object",
+      "required": ["id"],
+      "properties": { "id": { "type": "integer", "minimum": 1 } }
+    },
+    "processed_at": { "type": "string", "minLength": 1 },
+    "processed_by": { "type": "string", "minLength": 1 },
+    "request_id": { "type": "string", "minLength": 1 }
+  },
+  "examples": [
+    { "type": "item.processed", "version": 1, "item": { "id": 42 }, "processed_at": "2026-09-13T02:00:03+00:00", "processed_by": "50cf1b372490", "request_id": "1eaaf7f1de8347fe9c8ee23af0aba894" }
+  ],
+  "counterexamples": [
+    { "why": "not JSON", "body": "[" },
+    { "why": "the wrong type", "body": { "type": "item.created", "version": 1, "item": { "id": 1 }, "processed_at": "t", "processed_by": "w", "request_id": "-" } },
+    { "why": "no processed_by", "body": { "type": "item.processed", "version": 1, "item": { "id": 1 }, "processed_at": "t", "request_id": "-" } },
+    { "why": "an id that is not a positive integer", "body": { "type": "item.processed", "version": 1, "item": { "id": "1" }, "processed_at": "t", "processed_by": "w", "request_id": "-" } }
+  ]
+}

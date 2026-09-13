@@ -20,7 +20,10 @@ COPY requirements.txt ./
 RUN pip install -r requirements.txt
 
 #   /app/consumer   -> the package (python -m consumer.main)
+#   /app/alembic    -> the worker's own migrations (alembic upgrade head)
 #   /app/scripts    -> sqs_tool.py, the break test's hands
+COPY alembic.ini ./
+COPY alembic ./alembic
 COPY consumer ./consumer
 COPY scripts ./scripts
 

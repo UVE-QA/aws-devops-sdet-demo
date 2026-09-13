@@ -3,7 +3,7 @@
   "schema": 1,
   "counts": {
     "suites": 5,
-    "tests": 201
+    "tests": 213
   },
   "suites": {
     "api": {
@@ -326,7 +326,7 @@
     "unit": {
       "dir": "tests/unit",
       "collector": "pytest",
-      "count": 131,
+      "count": 143,
       "tests": [
         {
           "file": "tests/unit/test_access_log.py",
@@ -545,6 +545,38 @@
           "name": "test_every_sample_is_an_arm"
         },
         {
+          "file": "tests/unit/test_contracts.py",
+          "name": "test_the_api_builds_item_created_to_its_contract"
+        },
+        {
+          "file": "tests/unit/test_contracts.py",
+          "name": "test_the_worker_accepts_every_example_of_item_created"
+        },
+        {
+          "file": "tests/unit/test_contracts.py",
+          "name": "test_the_worker_refuses_every_counterexample_of_item_created_as_poison"
+        },
+        {
+          "file": "tests/unit/test_contracts.py",
+          "name": "test_every_counterexample_is_also_invalid_by_the_schema"
+        },
+        {
+          "file": "tests/unit/test_contracts.py",
+          "name": "test_the_worker_builds_item_processed_to_its_contract"
+        },
+        {
+          "file": "tests/unit/test_contracts.py",
+          "name": "test_the_api_accepts_every_example_of_item_processed"
+        },
+        {
+          "file": "tests/unit/test_contracts.py",
+          "name": "test_the_api_refuses_every_counterexample_of_item_processed_as_poison"
+        },
+        {
+          "file": "tests/unit/test_contracts.py",
+          "name": "test_the_round_trip_from_one_end_to_the_other_and_back"
+        },
+        {
           "file": "tests/unit/test_launch_refusals.py",
           "name": "test_a_clean_press_takes_the_lock_and_consumes_one_launch"
         },
@@ -651,6 +683,22 @@
         {
           "file": "tests/unit/test_launch_refusals.py",
           "name": "test_the_in_flight_check_comes_after_the_nonce_and_before_the_lock"
+        },
+        {
+          "file": "tests/unit/test_outbox_relay.py",
+          "name": "test_a_sent_row_is_marked_and_the_body_is_the_payload"
+        },
+        {
+          "file": "tests/unit/test_outbox_relay.py",
+          "name": "test_a_failed_send_leaves_the_row_and_counts_the_attempt"
+        },
+        {
+          "file": "tests/unit/test_outbox_relay.py",
+          "name": "test_one_failure_does_not_stop_the_batch"
+        },
+        {
+          "file": "tests/unit/test_outbox_relay.py",
+          "name": "test_an_unmarked_row_is_sent_again_on_the_next_pass"
         },
         {
           "file": "tests/unit/test_sweep_orphans.py",

@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/UVE-QA/aws-devops-sdet-demo/contracts/item.created.v1.json",
+  "title": "item.created v1",
+  "description": "Published by the api after an item's row is committed; consumed by the worker (ADR-0096, ADR-0098).",
+  "type": "object",
+  "required": ["type", "version", "item", "request_id"],
+  "properties": {
+    "type": { "const": "item.created" },
+    "version": { "const": 1 },
+    "item": {
+      "type": "object",
+      "required": ["id", "name", "created_at"],
+      "properties": {
+        "id": { "type": "integer", "minimum": 1 },
+        "name": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "created_at": { "type": "string" }
+      }
+    },
+    "request_id": { "type": "string", "minLength": 1 }
+  },
+  "examples": [
+    { "type": "item.created", "version": 1, "item": { "id": 42, "name": "contract-abc", "created_at": "2026-09-13T02:00:00+00:00" }, "request_id": "1eaaf7f1de8347fe9c8ee23af0aba894" },
+    { "type": "item.created", "version": 1, "item": { "id": 7, "name": "x", "created_at": "2026-09-13T02:00:00+00:00" }, "request_id": "-" }
+  ],
+  "counterexamples": [
+    { "why": "a tag, not an event", "body": "this is not an event" },
+    { "why": "the wrong type", "body": { "type": "item.deleted", "version": 1, "item": { "id": 1, "name": "x", "created_at": "t" }, "request_id": "-" } },
+    { "why": "a version this consumer does not know", "body": { "type": "item.created", "version": 2, "item": { "id": 1, "name": "x", "created_at": "t" }, "request_id": "-" } },
+    { "why": "no item", "body": { "type": "item.created", "version": 1, "request_id": "-" } },
+    { "why": "an id that is not a positive integer", "body": { "type": "item.created", "version": 1, "item": { "id": 0, "name": "x", "created_at": "t" }, "request_id": "-" } }
+  ]
+}

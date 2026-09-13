@@ -20,6 +20,7 @@ health checks and are not wired to any container health check.
 import logging
 import os
 import time
+from contextlib import asynccontextmanager
 from typing import Iterator
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response, status
@@ -29,14 +30,16 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from src.db import get_sessionmaker
-from src.events import publish_item_created
+from src.events import ITEMS_QUEUE_URL, RESULTS_QUEUE_URL, item_created_event
 from src.logging_config import (
     configure_logging,
     new_request_id,
     request_id_var,
     trace_id_var,
 )
-from src.models import DemoItem
+from src.models import DemoItem, OutboxEvent
+from src.outbox import Relay
+from src.results import Consumer
 from src.schemas import (
     DEFAULT_LIMIT,
     MAX_LIMIT,
@@ -48,7 +51,36 @@ from src.schemas import (
 
 APP_NAME = os.getenv("APP_NAME", "aws-devops-sdet-demo")
 
-app = FastAPI(title=APP_NAME)
+
+# THE API HAS A BACKGROUND SIDE (ADR-0098): the outbox relay, which sends
+# what the request handlers wrote, and the results consumer, which records
+# what the worker reported. Both are threads of this process, started with
+# the application and stopped with it, and both refuse to start without
+# their queue - logged once, at warning, rather than silently absent. The
+# health routes stay independent of them, as they are of the database.
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    threads = []
+    if ITEMS_QUEUE_URL:
+        threads.append(Relay(get_sessionmaker()))
+    else:
+        logging.getLogger("app.outbox").warning("no ITEMS_QUEUE_URL: the outbox relay is not running")
+    if RESULTS_QUEUE_URL:
+        threads.append(Consumer(get_sessionmaker()))
+    else:
+        logging.getLogger("app.results").warning("no RESULTS_QUEUE_URL: the results consumer is not running")
+    for t in threads:
+        t.start()
+    try:
+        yield
+    finally:
+        for t in threads:
+            t.stop()
+        for t in threads:
+            t.join(timeout=5)
+
+
+app = FastAPI(title=APP_NAME, lifespan=lifespan)
 
 configure_logging()
 access_logger = logging.getLogger("app.access")
@@ -169,6 +201,17 @@ def create_item(payload: ItemCreate, db: Session = Depends(get_db)) -> DemoItem:
     item = DemoItem(name=payload.name, description=payload.description)
     db.add(item)
     try:
+        # THE EVENT IS IN THE SAME TRANSACTION AS THE ROW (ADR-0098): the
+        # outbox row is written here and sent by the relay afterwards, so a
+        # row without its event and an event without its row are both
+        # impossible. `flush` gives the item its id before the event names it.
+        db.flush()
+        db.add(OutboxEvent(
+            event_type="item.created",
+            payload=item_created_event(
+                item.id, item.name, item.created_at.isoformat(), request_id_var.get()
+            ),
+        ))
         db.commit()
     except IntegrityError:
         db.rollback()
@@ -177,12 +220,6 @@ def create_item(payload: ItemCreate, db: Session = Depends(get_db)) -> DemoItem:
             detail=f"item with name '{payload.name}' already exists",
         )
     db.refresh(item)
-    # AFTER the commit, never before: an event about a row that may still roll
-    # back is a lie the worker would act on. The gap between the two writes is
-    # named in src/events.py; the response does not wait on the answer.
-    publish_item_created(
-        item.id, item.name, item.created_at.isoformat(), request_id_var.get()
-    )
     return item
 
 

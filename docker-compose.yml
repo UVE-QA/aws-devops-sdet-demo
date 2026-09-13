@@ -44,6 +44,7 @@ services:
       # are the whole difference from AWS, where the endpoint is unset and the
       # credentials are the task role's.
       ITEMS_QUEUE_URL: http://elasticmq:9324/000000000000/items
+      RESULTS_QUEUE_URL: http://elasticmq:9324/000000000000/results
       SQS_ENDPOINT_URL: http://elasticmq:9324
       AWS_ACCESS_KEY_ID: local
       AWS_SECRET_ACCESS_KEY: local
@@ -75,6 +76,7 @@ services:
       DATABASE_URL: postgresql+psycopg2://demo:demo@postgres:5432/demo
       APP_ENV: local
       ITEMS_QUEUE_URL: http://elasticmq:9324/000000000000/items
+      RESULTS_QUEUE_URL: http://elasticmq:9324/000000000000/results
       SQS_ENDPOINT_URL: http://elasticmq:9324
       AWS_ACCESS_KEY_ID: local
       AWS_SECRET_ACCESS_KEY: local

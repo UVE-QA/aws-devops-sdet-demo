@@ -22,6 +22,8 @@ local-down:
 # WORKDIR is /app, so alembic finds alembic.ini and `src` is importable.
 migrate:
 	docker compose run --rm app alembic upgrade head
+	# The worker's own history, in its own schema (ADR-0098).
+	docker compose run --rm worker alembic upgrade head
 
 # Insert the idempotent seed row.
 seed:

@@ -11,7 +11,7 @@
     "modules": 12,
     "suites": 5,
     "workflows": 6,
-    "adrs": 98,
+    "adrs": 99,
     "repeated_blocks": 12
   },
   "measured_cycle": null,
@@ -1779,7 +1779,7 @@
         "dir": "tests/unit",
         "pattern": "test_*.py",
         "asserts": "the shape of the log line the 5xx alarm reads, and the scripts a teardown depends on — in-process, no network",
-        "spec_files": 7,
+        "spec_files": 9,
         "run_by": [],
         "not_in_cycle": "in-process and importing the application, so there is nothing for a cycle to run it against: it runs in ci.yml and locally. Declared rather than inferred - a suite with neither a run node nor this reason is a red build (ADR-0054 D8)."
       },

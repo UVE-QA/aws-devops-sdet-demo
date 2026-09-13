@@ -13,6 +13,8 @@ message is left too, but because the NEXT delivery may succeed. main.py tells
 those apart from this module's Poison by what raised.
 
 Kept free of boto3 and psycopg2 so the unit suite can hold every branch.
+The shape of what this parses is contracts/item.created.v1.json; the shape of
+what it builds is contracts/item.processed.v1.json (ADR-0098).
 """
 import json
 
@@ -52,11 +54,37 @@ def parse_item_created(body: str) -> tuple[int, str]:
     return item_id, request_id if isinstance(request_id, str) and request_id else "-"
 
 
-# THE ONE STATEMENT THE WORKER MAKES, and it is idempotent by construction: a
-# second delivery of the same event finds processed_at already set and updates
-# nothing. `rowcount` 0 also covers an item deleted before its event arrived,
-# which is not an error either - there is nothing left to process.
-STAMP_SQL = (
-    "UPDATE demo_items SET processed_at = now(), processed_by = %s "
-    "WHERE id = %s AND processed_at IS NULL"
+# THE ONE STATEMENT THE WORKER MAKES, into its OWN table (ADR-0098): a
+# receipt per item, in the worker's schema, first delivery wins. A second
+# delivery of the same event conflicts and inserts nothing - `RETURNING`
+# then yields no row, and the receipt already there is read back so the
+# report the worker publishes carries the ORIGINAL time and name, not the
+# redelivery's. No foreign key to the api's table: the item's existence is
+# the api's fact, and a receipt for an item the api has since deleted is a
+# true statement about what this worker did.
+RECEIPT_SQL = (
+    "INSERT INTO worker.receipts (item_id, processed_by, request_id) "
+    "VALUES (%s, %s, %s) ON CONFLICT (item_id) DO NOTHING "
+    "RETURNING processed_at, processed_by"
 )
+RECEIPT_READ_SQL = "SELECT processed_at, processed_by FROM worker.receipts WHERE item_id = %s"
+
+PROCESSED_TYPE = "item.processed"
+PROCESSED_VERSION = 1
+
+
+def item_processed_message(item_id: int, processed_at: str, processed_by: str,
+                           request_id: str) -> str:
+    """The report the worker publishes, shaped by contracts/item.processed.v1.json
+    and held to it by tests/unit/test_contracts.py."""
+    return json.dumps(
+        {
+            "type": PROCESSED_TYPE,
+            "version": PROCESSED_VERSION,
+            "item": {"id": item_id},
+            "processed_at": processed_at,
+            "processed_by": processed_by,
+            "request_id": request_id or "-",
+        },
+        separators=(",", ":"),
+    )

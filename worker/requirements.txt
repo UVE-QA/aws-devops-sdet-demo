@@ -1,2 +1,4 @@
 boto3==1.42.29
 psycopg2-binary==2.9.12
+sqlalchemy==2.0.52
+alembic==1.19.1
