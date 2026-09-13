@@ -222,6 +222,9 @@ jobs:
             echo "service=$(terraform output -raw ecs_service_name)"
             echo "web_service=$(terraform output -raw ecs_web_service_name)"
             echo "worker_service=$(terraform output -raw ecs_worker_service_name)"
+            echo "worker_task_def=$(terraform output -raw worker_task_definition_arn)"
+            echo "worker_container=$(terraform output -raw worker_container_name)"
+            echo "worker_sg=$(terraform output -raw ecs_worker_security_group_id)"
             echo "task_def=$(terraform output -raw task_definition_arn)"
             echo "container=$(terraform output -raw container_name)"
             echo "sg=$(terraform output -raw ecs_app_security_group_id)"
@@ -274,6 +277,9 @@ jobs:
           # between them (ADR-0017 D2a), so migrate and seed are PROVISIONING
           # here, not test fixtures. The seed is idempotent.
           scripts/ecs-run-task.sh migrate   '["alembic","upgrade","head"]'
+          # The worker's own history (ADR-0098 D6), the other task.
+          TASK_DEF="${{ steps.tf.outputs.worker_task_def }}" CONTAINER="${{ steps.tf.outputs.worker_container }}" SG="${{ steps.tf.outputs.worker_sg }}" \
+            scripts/ecs-run-task.sh worker-migrate '["alembic","upgrade","head"]'
           scripts/ecs-run-task.sh seed      '["python","scripts/seed.py"]'
           scripts/ecs-run-task.sh db-assert '["python","scripts/assert_seed.py"]'
 

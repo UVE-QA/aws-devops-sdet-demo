@@ -3,6 +3,12 @@ variable "name_prefix" {
   type        = string
 }
 
+variable "name" {
+  description = "The queue's name after the prefix: `items` (api → worker) or `results` (worker → api), ADR-0098."
+  type        = string
+  default     = "items"
+}
+
 variable "visibility_timeout_seconds" {
   description = "How long a received message is hidden from other consumers. Longer than the worker's one UPDATE needs by a wide margin; short enough that a worker that dies mid-batch costs a redelivery, not an outage."
   type        = number

@@ -540,14 +540,14 @@ CHECKOV_REPORT ?= checkov-report.json
 CHART_PLACEHOLDERS := --set images.api.repository=r --set images.api.digest=sha256:a \
   --set images.web.repository=r --set images.web.digest=sha256:b \
   --set images.worker.repository=r --set images.worker.digest=sha256:c \
-  --set itemsQueueUrl=https://sqs.example/q \
+  --set itemsQueueUrl=https://sqs.example/q --set resultsQueueUrl=https://sqs.example/r \
   --set serviceAccounts.api.roleArn=arn:aws:iam::0:role/a \
   --set serviceAccounts.worker.roleArn=arn:aws:iam::0:role/w
 chart-check:
 	@command -v helm >/dev/null 2>&1 || { echo "chart-check: helm is not on PATH. Refusing to pass without rendering anything."; exit 1; }
 	@helm lint charts/demo $(CHART_PLACEHOLDERS) --quiet
 	@objects=$$(helm template demo charts/demo $(CHART_PLACEHOLDERS) | grep -c '^kind:'); \
-	  [ "$$objects" -ge 10 ] || { echo "chart-check: the chart rendered $$objects objects, fewer than the ten it declares"; exit 1; }; \
+	  [ "$$objects" -ge 11 ] || { echo "chart-check: the chart rendered $$objects objects, fewer than the eleven it declares"; exit 1; }; \
 	  echo "chart-check: helm $$(helm version --template '{{.Version}}'), $$objects objects rendered"
 	@if helm template demo charts/demo >/dev/null 2>&1; then \
 	  echo "chart-check: the chart rendered WITHOUT digests - the refusal in _helpers.tpl is gone"; exit 1; \

@@ -19,6 +19,8 @@ images:
 # wrote there from Secrets Manager.
 appEnv: lab
 itemsQueueUrl: ""
+# The way back (ADR-0098): the worker's reports, the api's projection.
+resultsQueueUrl: ""
 dbSecretName: db-credentials
 
 # The IRSA roles (ADR-0097 D4): one per service account, from Terraform's
@@ -59,3 +61,5 @@ ingress:
 hooks:
   migrate: true
   seed: true
+  # The worker's own history, in its own schema, by its own image (ADR-0098 D6).
+  workerMigrate: true

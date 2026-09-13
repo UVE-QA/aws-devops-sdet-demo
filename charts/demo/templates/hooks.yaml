@@ -37,6 +37,44 @@ spec:
                   name: {{ .Values.dbSecretName }}
                   key: DATABASE_URL
 {{- end }}
+{{- if .Values.hooks.workerMigrate }}
+---
+# The worker's migrations, by the worker's image, into the worker's schema
+# (ADR-0098 D6). Weighted between the api's migrate and its seed only so the
+# log reads in one order; the two histories do not depend on each other.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-worker-migrate
+  labels:
+    {{- include "demo.labels" . | nindent 4 }}
+    app.kubernetes.io/name: worker-migrate
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-8"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 1
+  template:
+    metadata:
+      labels:
+        {{- include "demo.labels" . | nindent 8 }}
+        app.kubernetes.io/name: worker-migrate
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: worker-migrate
+          image: {{ include "demo.image" (dict "Values" .Values "name" "worker") }}
+          command: ["alembic", "upgrade", "head"]
+          env:
+            - name: APP_ENV
+              value: {{ .Values.appEnv | quote }}
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.dbSecretName }}
+                  key: DATABASE_URL
+{{- end }}
 {{- if .Values.hooks.seed }}
 ---
 apiVersion: batch/v1

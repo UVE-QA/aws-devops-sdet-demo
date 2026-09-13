@@ -67,3 +67,18 @@ output "db_secret_arn" {
   description = "ARN of the database credentials secret."
   value       = module.rds.db_secret_arn
 }
+
+output "results_queue_url" {
+  description = "URL of the results queue (ADR-0098); the chart passes it as RESULTS_QUEUE_URL."
+  value       = module.results.queue_url
+}
+
+output "results_queue_name" {
+  description = "Name of the results queue, for the observation."
+  value       = module.results.queue_name
+}
+
+output "results_dead_letter_queue_name" {
+  description = "Name of the results dead-letter queue, for the observation."
+  value       = module.results.dead_letter_queue_name
+}

@@ -5,9 +5,9 @@
     "levels": 9,
     "permanent_levels": 6,
     "cycle_levels": 3,
-    "resources": 200,
+    "resources": 216,
     "resources_permanent": 62,
-    "resources_per_cycle": 138,
+    "resources_per_cycle": 154,
     "modules": 12,
     "suites": 5,
     "workflows": 6,
@@ -342,10 +342,11 @@
             "env": "stage",
             "observer": "terraform",
             "tool": "terraform",
-            "resources": 8,
+            "resources": 9,
             "members": [
               "aws_iam_role_policy.api_read_db_secret",
               "aws_iam_role_policy.api_publish_items",
+              "aws_iam_role_policy.api_consume_results",
               "module.api.aws_security_group.this",
               "module.api.aws_iam_role.execution",
               "module.api.aws_iam_role_policy_attachment.execution_managed",
@@ -374,18 +375,22 @@
           },
           {
             "id": "stage.queue",
-            "label": "SQS + dead-letter queue",
+            "label": "SQS — items and results",
             "service": "sqs",
             "kind": "service",
             "env": "stage",
             "observer": "terraform",
             "tool": "terraform",
-            "resources": 4,
+            "resources": 8,
             "members": [
               "module.queue.aws_sqs_queue.dead_letter",
               "module.queue.aws_sqs_queue.items",
               "module.queue.aws_sqs_queue_redrive_allow_policy.dead_letter",
-              "module.queue.aws_cloudwatch_metric_alarm.dead_letter_not_empty"
+              "module.queue.aws_cloudwatch_metric_alarm.dead_letter_not_empty",
+              "module.results.aws_sqs_queue.dead_letter",
+              "module.results.aws_sqs_queue.items",
+              "module.results.aws_sqs_queue_redrive_allow_policy.dead_letter",
+              "module.results.aws_cloudwatch_metric_alarm.dead_letter_not_empty"
             ]
           },
           {
@@ -396,10 +401,11 @@
             "env": "stage",
             "observer": "terraform",
             "tool": "terraform",
-            "resources": 8,
+            "resources": 9,
             "members": [
               "aws_iam_role_policy.worker_read_db_secret",
               "aws_iam_role_policy.worker_consume_items",
+              "aws_iam_role_policy.worker_publish_results",
               "module.worker.aws_security_group.this",
               "module.worker.aws_iam_role.execution",
               "module.worker.aws_iam_role_policy_attachment.execution_managed",
@@ -517,10 +523,11 @@
             "env": "prod",
             "observer": "terraform",
             "tool": "terraform",
-            "resources": 8,
+            "resources": 9,
             "members": [
               "aws_iam_role_policy.api_read_db_secret",
               "aws_iam_role_policy.api_publish_items",
+              "aws_iam_role_policy.api_consume_results",
               "module.api.aws_security_group.this",
               "module.api.aws_iam_role.execution",
               "module.api.aws_iam_role_policy_attachment.execution_managed",
@@ -549,18 +556,22 @@
           },
           {
             "id": "prod.queue",
-            "label": "SQS + dead-letter queue",
+            "label": "SQS — items and results",
             "service": "sqs",
             "kind": "service",
             "env": "prod",
             "observer": "terraform",
             "tool": "terraform",
-            "resources": 4,
+            "resources": 8,
             "members": [
               "module.queue.aws_sqs_queue.dead_letter",
               "module.queue.aws_sqs_queue.items",
               "module.queue.aws_sqs_queue_redrive_allow_policy.dead_letter",
-              "module.queue.aws_cloudwatch_metric_alarm.dead_letter_not_empty"
+              "module.queue.aws_cloudwatch_metric_alarm.dead_letter_not_empty",
+              "module.results.aws_sqs_queue.dead_letter",
+              "module.results.aws_sqs_queue.items",
+              "module.results.aws_sqs_queue_redrive_allow_policy.dead_letter",
+              "module.results.aws_cloudwatch_metric_alarm.dead_letter_not_empty"
             ]
           },
           {
@@ -571,10 +582,11 @@
             "env": "prod",
             "observer": "terraform",
             "tool": "terraform",
-            "resources": 8,
+            "resources": 9,
             "members": [
               "aws_iam_role_policy.worker_read_db_secret",
               "aws_iam_role_policy.worker_consume_items",
+              "aws_iam_role_policy.worker_publish_results",
               "module.worker.aws_security_group.this",
               "module.worker.aws_iam_role.execution",
               "module.worker.aws_iam_role_policy_attachment.execution_managed",
@@ -680,18 +692,22 @@
           },
           {
             "id": "lab.queue",
-            "label": "SQS + dead-letter queue",
+            "label": "SQS — items and results",
             "service": "sqs",
             "kind": "service",
             "env": "lab",
             "observer": "terraform",
             "tool": "terraform",
-            "resources": 4,
+            "resources": 8,
             "members": [
               "module.queue.aws_sqs_queue.dead_letter",
               "module.queue.aws_sqs_queue.items",
               "module.queue.aws_sqs_queue_redrive_allow_policy.dead_letter",
-              "module.queue.aws_cloudwatch_metric_alarm.dead_letter_not_empty"
+              "module.queue.aws_cloudwatch_metric_alarm.dead_letter_not_empty",
+              "module.results.aws_sqs_queue.dead_letter",
+              "module.results.aws_sqs_queue.items",
+              "module.results.aws_sqs_queue_redrive_allow_policy.dead_letter",
+              "module.results.aws_cloudwatch_metric_alarm.dead_letter_not_empty"
             ]
           },
           {
@@ -1619,7 +1635,7 @@
                 ]
               }
             ],
-            "resources": 51,
+            "resources": 57,
             "level": "infra/envs/stage",
             "tool": "terraform"
           },
@@ -1642,7 +1658,7 @@
                 ]
               }
             ],
-            "resources": 52,
+            "resources": 58,
             "level": "infra/envs/prod",
             "tool": "terraform"
           },
@@ -1665,7 +1681,7 @@
                 ]
               }
             ],
-            "resources": 35,
+            "resources": 39,
             "level": "infra/envs/lab",
             "tool": "terraform"
           }

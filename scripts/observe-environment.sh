@@ -96,21 +96,23 @@ if [ "$cluster_arn" != "None" ] && [ -n "$cluster_arn" ]; then
   fi
 fi
 
-# ---- the queue (ADR-0096) ---------------------------------------------------
+# ---- the queues (ADR-0096, ADR-0098) ----------------------------------------
 #
-# Three facts and nothing derived from them: how many messages the queue holds,
-# how many the dead-letter queue holds, and what the alarm on the dead-letter
-# queue says. A queue that is gone answers get-queue-url with NonExistentQueue,
-# which reads as null here - the same shape as every other absent resource.
-queue='null'
-queue_url="$(aws sqs get-queue-url --region "$AWS_REGION" \
-  --queue-name "${prefix}-items" --query QueueUrl --output text 2>/dev/null || true)"
-if [ -n "$queue_url" ] && [ "$queue_url" != "None" ]; then
-  visible="$(aws sqs get-queue-attributes --region "$AWS_REGION" --queue-url "$queue_url" \
+# Three facts per queue and nothing derived from them: how many messages it
+# holds, how many its dead-letter queue holds, and what the alarm on the
+# dead-letter queue says. A queue that is gone answers get-queue-url with
+# NonExistentQueue, which reads as null here - the same shape as every other
+# absent resource. Two queues since ADR-0098: `items` out, `results` back.
+observe_queue() {
+  local name="$1" url visible dlq_url dlq_visible alarm_state
+  url="$(aws sqs get-queue-url --region "$AWS_REGION" \
+    --queue-name "${prefix}-${name}" --query QueueUrl --output text 2>/dev/null || true)"
+  if [ -z "$url" ] || [ "$url" = "None" ]; then echo null; return; fi
+  visible="$(aws sqs get-queue-attributes --region "$AWS_REGION" --queue-url "$url" \
     --attribute-names ApproximateNumberOfMessages \
     --query 'Attributes.ApproximateNumberOfMessages' --output text 2>/dev/null || echo null)"
   dlq_url="$(aws sqs get-queue-url --region "$AWS_REGION" \
-    --queue-name "${prefix}-items-dlq" --query QueueUrl --output text 2>/dev/null || true)"
+    --queue-name "${prefix}-${name}-dlq" --query QueueUrl --output text 2>/dev/null || true)"
   dlq_visible=null
   if [ -n "$dlq_url" ] && [ "$dlq_url" != "None" ]; then
     dlq_visible="$(aws sqs get-queue-attributes --region "$AWS_REGION" --queue-url "$dlq_url" \
@@ -118,17 +120,19 @@ if [ -n "$queue_url" ] && [ "$queue_url" != "None" ]; then
       --query 'Attributes.ApproximateNumberOfMessages' --output text 2>/dev/null || echo null)"
   fi
   alarm_state="$(aws cloudwatch describe-alarms --region "$AWS_REGION" \
-    --alarm-names "${prefix}-items-dlq-not-empty" \
+    --alarm-names "${prefix}-${name}-dlq-not-empty" \
     --query 'MetricAlarms[0].StateValue' --output text 2>/dev/null || true)"
   if [ -z "$alarm_state" ] || [ "$alarm_state" = "None" ]; then
     alarm_state=null
   else
     alarm_state="\"$alarm_state\""
   fi
-  queue="$(jq -n --arg name "${prefix}-items" --argjson visible "${visible:-null}" \
+  jq -n --arg name "${prefix}-${name}" --argjson visible "${visible:-null}" \
     --argjson dlq_visible "${dlq_visible:-null}" --argjson alarm "$alarm_state" \
-    '{name: $name, visible: $visible, dead_letter_visible: $dlq_visible, dead_letter_alarm: $alarm}')"
-fi
+    '{name: $name, visible: $visible, dead_letter_visible: $dlq_visible, dead_letter_alarm: $alarm}'
+}
+queue="$(observe_queue items)"
+results_queue="$(observe_queue results)"
 
 # ---- the lab's cluster (ADR-0097) -------------------------------------------
 #
@@ -215,6 +219,7 @@ jq -n \
   --argjson ecs_web_service "$web_service" \
   --argjson ecs_worker_service "$worker_service" \
   --argjson queue "$queue" \
+  --argjson results_queue "$results_queue" \
   --argjson eks "$eks" \
   --argjson db_instance "$rds" \
   --argjson image "$image" \
@@ -233,6 +238,7 @@ jq -n \
        ecs_web_service: $ecs_web_service,
        ecs_worker_service: $ecs_worker_service,
        queue: $queue,
+       results_queue: $results_queue,
        eks: $eks,
        db_instance: $db_instance
      }

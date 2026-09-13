@@ -52,6 +52,11 @@ variable "queue_arn" {
   type        = string
 }
 
+variable "results_queue_arn" {
+  description = "ARN of the results queue the worker reports to and the api consumes from (ADR-0098)."
+  type        = string
+}
+
 variable "namespace" {
   description = "Namespace the application runs in; the IRSA trust policies name it."
   type        = string

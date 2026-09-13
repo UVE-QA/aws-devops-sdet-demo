@@ -73,3 +73,28 @@ output "items_dead_letter_alarm_name" {
   description = "Name of the alarm on the dead-letter queue, for the observation."
   value       = module.queue.dead_letter_alarm_name
 }
+
+output "results_queue_name" {
+  description = "Name of the results queue (ADR-0098), for the observation."
+  value       = module.results.queue_name
+}
+
+output "results_dead_letter_queue_name" {
+  description = "Name of the results dead-letter queue, for the observation."
+  value       = module.results.dead_letter_queue_name
+}
+
+output "worker_task_definition_arn" {
+  description = "ARN of the worker's task definition, for its one-off migration (ADR-0098 D6)."
+  value       = module.worker.task_definition_arn
+}
+
+output "worker_container_name" {
+  description = "Name of the worker's container, for run-task overrides."
+  value       = module.worker.container_name
+}
+
+output "ecs_worker_security_group_id" {
+  description = "The worker's security group, for its one-off migration task - the group RDS admits."
+  value       = module.worker.security_group_id
+}

@@ -2135,10 +2135,15 @@
         // `OK` is the alarm saying the dead-letter queue is empty, `ALARM` is
         // it saying a message the worker could never process is sitting there,
         // and `INSUFFICIENT_DATA` is a queue too young to have been measured.
-        h += '<dt>queue</dt><dd>' + (r.queue
-          ? esc(r.queue.visible) + " waiting, " + esc(r.queue.dead_letter_visible) + " dead-lettered" +
-            (r.queue.dead_letter_alarm ? ", alarm <span class=\"mono\">" + esc(r.queue.dead_letter_alarm) + "</span>" : "")
-          : '<span class="off">absent</span>') + '</dd>';
+        var queueRow = function (label, q) {
+          return '<dt>' + label + '</dt><dd>' + (q
+            ? esc(q.visible) + " waiting, " + esc(q.dead_letter_visible) + " dead-lettered" +
+              (q.dead_letter_alarm ? ", alarm <span class=\"mono\">" + esc(q.dead_letter_alarm) + "</span>" : "")
+            : '<span class="off">absent</span>') + '</dd>';
+        };
+        h += queueRow("queue (items)", r.queue);
+        // The way back (ADR-0098): absent from an observation written before it.
+        h += queueRow("queue (results)", r.results_queue);
         h += '<dt>database</dt><dd>' + (r.db_instance
           ? esc(r.db_instance.status) + ' <span class="mono">' + esc(r.db_instance.identifier) + '</span>'
           : '<span class="off">absent</span>') + '</dd>';

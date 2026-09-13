@@ -104,7 +104,13 @@ facts about reasons.
   at startup, so recreating the api container turned every request through
   the local web container into a 502 until nginx was restarted. The local
   proxy include resolves per request now.
-- **Not yet in AWS.** The second queue, the two task-role permissions it
-  needs on each side, the worker's migration as a one-off task and a hook,
-  the lab's IRSA and chart, and the observation's second queue are slice
-  two; the board and the panel are slice three; a cycle is the proof.
+- Slice two, written 2026-09-13: the queue module takes a name and is
+  instantiated twice in every environment; the api's and the worker's task
+  roles and IRSA roles each gain the mirror permission on `results`; both
+  services carry both URLs on ECS and in the chart; the worker's migration
+  runs as a one-off task from the worker's task definition in every
+  workflow that provisions a database, and as a Helm hook on the lab; the
+  observation reads both queues; the adoption map knows the second pair; the
+  board's one tile is *SQS — items and results* and the panel shows both.
+  Validated on nine levels, checkov 544/0, the chart renders eleven objects.
+  **A cycle from `next` is the proof.**

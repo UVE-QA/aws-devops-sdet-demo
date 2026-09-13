@@ -4272,10 +4272,14 @@ both queues.
   (contracts both ways, the relay's branches); the poison path green. One
   finding beside the seam: nginx resolved `app` once at startup - the local
   proxy resolves per request now.
-- Next allowed step: **slice two** - the second queue in AWS, the task-role
-  and IRSA permissions on both sides, the worker's migration as a one-off
-  task and a Helm hook, the observation's second queue. Then the board and a
-  cycle.
+- **Slice two (AWS, written) 2026-09-13**: the queue module named and
+  instantiated twice everywhere, the mirror permissions on both task roles
+  and both IRSA roles, both URLs on ECS and in the chart, the worker's
+  migration as a one-off task in three workflows and a Helm hook, both
+  queues observed, adopted and drawn on the one tile. Validate 9/9, checkov
+  544/0, chart 11 objects, gates 13/13.
+- Next allowed step: **a cycle from `next`** on the owner's word - the spot
+  nodes and the second queue in one cycle; what it shows goes here.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

@@ -102,6 +102,14 @@ module "queue" {
   name_prefix = local.name_prefix
 }
 
+# The way back (ADR-0098): the worker's reports, consumed by the api.
+module "results" {
+  source = "../../modules/queue"
+
+  name_prefix = local.name_prefix
+  name        = "results"
+}
+
 module "eks" {
   source = "../../modules/eks"
 
@@ -113,6 +121,7 @@ module "eks" {
   node_count           = var.node_count
   admin_principal_arns = var.admin_principal_arns
   queue_arn            = module.queue.queue_arn
+  results_queue_arn    = module.results.queue_arn
 }
 
 # The database, reached from the nodes: the managed node group carries the

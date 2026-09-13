@@ -49,6 +49,17 @@ data "aws_iam_policy_document" "api_publish_items" {
     actions   = ["sqs:SendMessage", "sqs:GetQueueUrl"]
     resources = [var.queue_arn]
   }
+  # The way back (ADR-0098): the api takes the worker's reports.
+  statement {
+    sid = "ConsumeResults"
+    actions = [
+      "sqs:ReceiveMessage",
+      "sqs:DeleteMessage",
+      "sqs:GetQueueAttributes",
+      "sqs:ChangeMessageVisibility",
+    ]
+    resources = [var.results_queue_arn]
+  }
 }
 
 resource "aws_iam_role_policy" "api_publish_items" {
@@ -78,6 +89,12 @@ data "aws_iam_policy_document" "worker_consume_items" {
       "sqs:ChangeMessageVisibility",
     ]
     resources = [var.queue_arn]
+  }
+  # The way back (ADR-0098): the worker puts its reports.
+  statement {
+    sid       = "PublishResults"
+    actions   = ["sqs:SendMessage", "sqs:GetQueueUrl"]
+    resources = [var.results_queue_arn]
   }
 }
 

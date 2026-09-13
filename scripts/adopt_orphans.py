@@ -307,6 +307,9 @@ RULES: dict[str, Rule] = {
         {
             "items": "module.queue.aws_sqs_queue.items",
             "items-dlq": "module.queue.aws_sqs_queue.dead_letter",
+            # The way back (ADR-0098): the same module, instantiated as `results`.
+            "results": "module.results.aws_sqs_queue.items",
+            "results-dlq": "module.results.aws_sqs_queue.dead_letter",
         },
         import_id=_sqs_url,
     ),

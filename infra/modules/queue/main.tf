@@ -1,6 +1,7 @@
-# The queue between the api and the worker (Phase 42, ADR-0096): one standard
-# queue, its dead-letter queue, and the alarm that says the dead-letter queue
-# is not empty. Per environment, torn down with it.
+# One queue, its dead-letter queue, and the alarm that says the dead-letter
+# queue is not empty (Phase 42, ADR-0096). Per environment, torn down with
+# it. Instantiated twice since ADR-0098: `items`, the api's events to the
+# worker, and `results`, the worker's reports back.
 #
 # STANDARD, NOT FIFO. At-least-once delivery is the contract the worker is
 # written against - its one statement is idempotent by construction - and a
@@ -17,7 +18,7 @@
 # and that is the one deliberate difference between the two.
 
 resource "aws_sqs_queue" "dead_letter" {
-  name = "${var.name_prefix}-items-dlq"
+  name = "${var.name_prefix}-${var.name}-dlq"
 
   # Kept for the maximum so a poison message from early in a long cycle is
   # still there to look at when the cycle ends; the queue itself is destroyed
@@ -30,12 +31,12 @@ resource "aws_sqs_queue" "dead_letter" {
   sqs_managed_sse_enabled = true
 
   tags = {
-    Name = "${var.name_prefix}-items-dlq"
+    Name = "${var.name_prefix}-${var.name}-dlq"
   }
 }
 
 resource "aws_sqs_queue" "items" {
-  name = "${var.name_prefix}-items"
+  name = "${var.name_prefix}-${var.name}"
 
   visibility_timeout_seconds = var.visibility_timeout_seconds
   # Long polling by default, so a consumer that forgets to ask for it still
@@ -50,7 +51,7 @@ resource "aws_sqs_queue" "items" {
   })
 
   tags = {
-    Name = "${var.name_prefix}-items"
+    Name = "${var.name_prefix}-${var.name}"
   }
 }
 
@@ -66,7 +67,7 @@ resource "aws_sqs_queue_redrive_allow_policy" "dead_letter" {
 }
 
 resource "aws_cloudwatch_metric_alarm" "dead_letter_not_empty" {
-  alarm_name          = "${var.name_prefix}-items-dlq-not-empty"
+  alarm_name          = "${var.name_prefix}-${var.name}-dlq-not-empty"
   alarm_description   = "A message the worker could not process reached the dead-letter queue (ADR-0096)."
   namespace           = "AWS/SQS"
   metric_name         = "ApproximateNumberOfMessagesVisible"
@@ -86,6 +87,6 @@ resource "aws_cloudwatch_metric_alarm" "dead_letter_not_empty" {
   ok_actions    = []
 
   tags = {
-    Name = "${var.name_prefix}-items-dlq-not-empty"
+    Name = "${var.name_prefix}-${var.name}-dlq-not-empty"
   }
 }

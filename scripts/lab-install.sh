@@ -76,6 +76,8 @@ helm upgrade --install "$RELEASE" charts/demo \
   --atomic --wait --timeout 10m \
   "${sets[@]}" \
   --set "itemsQueueUrl=$(out items_queue_url)" \
+  --set "resultsQueueUrl=$(out results_queue_url)" \
+  --set "resultsQueueUrl=$(out results_queue_url)" \
   --set "dbSecretName=$(out db_secret_name)" \
   --set "serviceAccounts.api.roleArn=$(out api_role_arn)" \
   --set "serviceAccounts.worker.roleArn=$(out worker_role_arn)"

@@ -29,6 +29,8 @@ spec:
               value: {{ .Values.appEnv | quote }}
             - name: ITEMS_QUEUE_URL
               value: {{ required "itemsQueueUrl is required (an output of infra/envs/lab)" .Values.itemsQueueUrl | quote }}
+            - name: RESULTS_QUEUE_URL
+              value: {{ required "resultsQueueUrl is required (an output of infra/envs/lab)" .Values.resultsQueueUrl | quote }}
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:

@@ -89,6 +89,15 @@ module "queue" {
   name_prefix = local.name_prefix
 }
 
+# The way back (ADR-0098): the worker's reports, consumed by the api into
+# its projection. The same module, its own dead-letter queue and alarm.
+module "results" {
+  source = "../../modules/queue"
+
+  name_prefix = local.name_prefix
+  name        = "results"
+}
+
 module "api" {
   source = "../../modules/ecs-service"
 
@@ -109,7 +118,10 @@ module "api" {
   task_memory           = var.task_memory
   desired_count         = var.desired_count
   # Where item.created goes (ADR-0096). A URL, not a secret.
-  extra_environment = [{ name = "ITEMS_QUEUE_URL", value = module.queue.queue_url }]
+  extra_environment = [
+    { name = "ITEMS_QUEUE_URL", value = module.queue.queue_url },
+    { name = "RESULTS_QUEUE_URL", value = module.results.queue_url },
+  ]
   # The image asks itself, the way it always has: python is what it carries.
   health_check_command = ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:${var.app_port}/health').status==200 else 1)\""]
   depends_on           = [module.alb]
@@ -158,7 +170,10 @@ module "worker" {
   task_cpu          = var.task_cpu
   task_memory       = var.task_memory
   desired_count     = var.desired_count
-  extra_environment = [{ name = "ITEMS_QUEUE_URL", value = module.queue.queue_url }]
+  extra_environment = [
+    { name = "ITEMS_QUEUE_URL", value = module.queue.queue_url },
+    { name = "RESULTS_QUEUE_URL", value = module.results.queue_url },
+  ]
   # The heartbeat the loop touches on every pass (worker/consumer/main.py):
   # a process that is up and stuck is what this tells apart from one that is
   # up and working.
@@ -231,6 +246,42 @@ resource "aws_iam_role_policy" "worker_consume_items" {
   name   = "${local.name_prefix}-worker-consume-items"
   role   = module.worker.task_role_name
   policy = data.aws_iam_policy_document.worker_consume_items.json
+}
+
+# THE WAY BACK, AS PERMISSIONS (ADR-0098): the worker may put onto the results
+# queue, the api may take from it - the mirror of the two above, and still
+# nothing on `*`.
+data "aws_iam_policy_document" "worker_publish_results" {
+  statement {
+    sid       = "PublishResults"
+    actions   = ["sqs:SendMessage", "sqs:GetQueueUrl"]
+    resources = [module.results.queue_arn]
+  }
+}
+
+resource "aws_iam_role_policy" "worker_publish_results" {
+  name   = "${local.name_prefix}-worker-publish-results"
+  role   = module.worker.task_role_name
+  policy = data.aws_iam_policy_document.worker_publish_results.json
+}
+
+data "aws_iam_policy_document" "api_consume_results" {
+  statement {
+    sid = "ConsumeResults"
+    actions = [
+      "sqs:ReceiveMessage",
+      "sqs:DeleteMessage",
+      "sqs:GetQueueAttributes",
+      "sqs:ChangeMessageVisibility",
+    ]
+    resources = [module.results.queue_arn]
+  }
+}
+
+resource "aws_iam_role_policy" "api_consume_results" {
+  name   = "${local.name_prefix}-api-consume-results"
+  role   = module.api.task_role_name
+  policy = data.aws_iam_policy_document.api_consume_results.json
 }
 
 module "rds" {

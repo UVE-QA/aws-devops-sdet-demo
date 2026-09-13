@@ -476,6 +476,9 @@ def test_a_queue_is_imported_by_its_url():
     assert by_address["module.queue.aws_sqs_queue.dead_letter"]["import_id"] == (
         f"https://sqs.us-west-2.amazonaws.com/{ACCOUNT}/{PREFIX}-items-dlq"
     )
+    # The way back (ADR-0098): the same module under a second name.
+    back = adopt_orphans.plan([f"arn:aws:sqs:us-west-2:{ACCOUNT}:{PREFIX}-results"], {}, PREFIX)
+    assert [e["address"] for e in back["adopt"]] == ["module.results.aws_sqs_queue.items"]
 
 
 def test_the_web_execution_role_drags_only_the_managed_policy():
