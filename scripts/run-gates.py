@@ -110,6 +110,7 @@ PROBES = {
     "terraform":       lambda: shutil.which("terraform") is not None,
     "trivy":           lambda: shutil.which("trivy") is not None,
     "checkov":         lambda: shutil.which("checkov") is not None,
+    "helm":            lambda: shutil.which("helm") is not None,
     "gitleaks":        lambda: shutil.which("gitleaks") is not None,
     "full-history":    _full_history,
     "network":         lambda: _http("https://registry.terraform.io/.well-known/terraform.json"),

@@ -1,0 +1,67 @@
+# The api: FastAPI on 8000, the database URL from the Secret Terraform wrote,
+# the queue URL from the environment. The same image, the same probes, the
+# same two environment variables the ECS task definition carries.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  labels:
+    {{- include "demo.labels" . | nindent 4 }}
+    app.kubernetes.io/name: api
+spec:
+  replicas: {{ .Values.replicas.api }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: api
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        {{- include "demo.labels" . | nindent 8 }}
+        app.kubernetes.io/name: api
+    spec:
+      serviceAccountName: {{ .Values.serviceAccounts.api.name }}
+      containers:
+        - name: api
+          image: {{ include "demo.image" (dict "Values" .Values "name" "api") }}
+          ports:
+            - name: http
+              containerPort: 8000
+          env:
+            - name: APP_ENV
+              value: {{ .Values.appEnv | quote }}
+            - name: ITEMS_QUEUE_URL
+              value: {{ required "itemsQueueUrl is required (an output of infra/envs/lab)" .Values.itemsQueueUrl | quote }}
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.dbSecretName }}
+                  key: DATABASE_URL
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 30
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api
+  labels:
+    {{- include "demo.labels" . | nindent 4 }}
+    app.kubernetes.io/name: api
+spec:
+  selector:
+    app.kubernetes.io/name: api
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http

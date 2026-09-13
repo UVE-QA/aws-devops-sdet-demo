@@ -24,6 +24,12 @@ resource "kubernetes_namespace_v1" "demo" {
 # was not in state before.
 data "aws_secretsmanager_secret_version" "db" {
   secret_id = module.rds.db_secret_arn
+
+  # The secret's VALUE is written after the instance exists - the URL holds
+  # its address - while its ARN is known at once. Without this the read
+  # starts beside the RDS create and retries for the eight minutes it takes,
+  # which the first local apply showed as `Still reading… [02m20s]`.
+  depends_on = [module.rds]
 }
 
 resource "kubernetes_secret_v1" "db" {

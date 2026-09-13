@@ -1,0 +1,43 @@
+# The worker: no port, no Service, an exec probe on the heartbeat file the
+# loop touches on every pass (ADR-0096 D5) - the same check the ECS task
+# definition runs.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+  labels:
+    {{- include "demo.labels" . | nindent 4 }}
+    app.kubernetes.io/name: worker
+spec:
+  replicas: {{ .Values.replicas.worker }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: worker
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        {{- include "demo.labels" . | nindent 8 }}
+        app.kubernetes.io/name: worker
+    spec:
+      serviceAccountName: {{ .Values.serviceAccounts.worker.name }}
+      containers:
+        - name: worker
+          image: {{ include "demo.image" (dict "Values" .Values "name" "worker") }}
+          env:
+            - name: APP_ENV
+              value: {{ .Values.appEnv | quote }}
+            - name: ITEMS_QUEUE_URL
+              value: {{ required "itemsQueueUrl is required (an output of infra/envs/lab)" .Values.itemsQueueUrl | quote }}
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.dbSecretName }}
+                  key: DATABASE_URL
+          livenessProbe:
+            exec:
+              command: ["sh", "-c", "find /tmp/heartbeat -mmin -1 | grep -q ."]
+            initialDelaySeconds: 15
+            periodSeconds: 30
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}

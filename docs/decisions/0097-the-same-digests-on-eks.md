@@ -66,8 +66,12 @@ one wide policy in the lab, held by the one service account that needs it.
 `aws-auth` ConfigMap: the principal that applies the configuration — the
 deploy role in CI, `demo-admin` on the devbox — is cluster-admin by EKS's own
 bootstrap, and any further admin is an access entry a reader can list. The
-owner's SSO role goes in `terraform.tfvars`, path stripped, so kubectl works
-from the devbox after a cycle created the cluster.
+owner's SSO role is passed as `TF_VAR_admin_principal_arns` by the workflow —
+its full ARN, path included; the first apply tried the path-stripped form and
+EKS refused it as an invalid principal — so kubectl works from the devbox
+after a cycle created the cluster. Never the creator itself: the creator's
+entry is EKS's own, and the second apply learned that a second one for the
+same role is a 409, so a local apply under the SSO role passes nothing.
 
 **D6. The teardown trap is met with tags.** An Ingress makes the controller
 build a load balancer Terraform does not own. Two things follow: the chart is

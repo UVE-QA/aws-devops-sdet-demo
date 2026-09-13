@@ -1,0 +1,61 @@
+# THE VALUES THE WORKFLOW SETS are the digests; everything else has a default
+# that matches infra/envs/lab's outputs by name. No image has a default tag:
+# a chart installed without digests is refused by the templates, because a
+# lab running `latest` would not be the same digests stage tested (ADR-0029).
+
+images:
+  api:
+    repository: ""     # e.g. 993912191738.dkr.ecr.us-west-2.amazonaws.com/aws-devops-sdet-demo-app
+    digest: ""         # sha256:...
+  web:
+    repository: ""
+    digest: ""
+  worker:
+    repository: ""
+    digest: ""
+
+# What the environment injects (ADR-0032, ADR-0096). The queue URL is an
+# output of infra/envs/lab; the secret is the Kubernetes Secret Terraform
+# wrote there from Secrets Manager.
+appEnv: lab
+itemsQueueUrl: ""
+dbSecretName: db-credentials
+
+# The IRSA roles (ADR-0097 D4): one per service account, from Terraform's
+# outputs. Empty annotations would give the pods the node's role, which is
+# the permission nobody asked for - so the templates refuse empty ones.
+serviceAccounts:
+  api:
+    name: api
+    roleArn: ""
+  worker:
+    name: worker
+    roleArn: ""
+
+replicas:
+  api: 1
+  web: 1
+  worker: 1
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    memory: 256Mi
+
+# The Ingress the controller turns into an internet-facing ALB, with the same
+# path rules as infra/modules/alb: /api/* and /health to the api, everything
+# else to web. Target type ip: the pods are the targets, not the nodes.
+ingress:
+  className: alb
+  scheme: internet-facing
+  # Tags the controller puts on what it builds, beside its defaultTags; the
+  # sweep reads Project and Environment (ADR-0097 D6).
+  tags: "Project=aws-devops-sdet-demo,Environment=lab"
+
+# The database is prepared by two Helm hooks, in the order the ECS workflow
+# runs its one-off tasks: migrate, then seed. db-assert is the suite's.
+hooks:
+  migrate: true
+  seed: true

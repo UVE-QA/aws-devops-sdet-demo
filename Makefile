@@ -530,6 +530,27 @@ secret-scan:
 # The line it prints names the skip count, because a gate that does not say
 # what it declined to check is a gate you cannot review.
 CHECKOV_REPORT ?= checkov-report.json
+# THE CHART, RENDERED AND REFUSED (ADR-0097). `helm lint` and a full render
+# with placeholder digests, then the render WITHOUT digests, which must fail:
+# the templates refuse an install that would run a tag instead of the bytes
+# stage tested, and a gate that only checked the happy render would pass a
+# chart that had lost that refusal. Nothing here touches a cluster.
+CHART_PLACEHOLDERS := --set images.api.repository=r --set images.api.digest=sha256:a \
+  --set images.web.repository=r --set images.web.digest=sha256:b \
+  --set images.worker.repository=r --set images.worker.digest=sha256:c \
+  --set itemsQueueUrl=https://sqs.example/q \
+  --set serviceAccounts.api.roleArn=arn:aws:iam::0:role/a \
+  --set serviceAccounts.worker.roleArn=arn:aws:iam::0:role/w
+chart-check:
+	@command -v helm >/dev/null 2>&1 || { echo "chart-check: helm is not on PATH. Refusing to pass without rendering anything."; exit 1; }
+	@helm lint charts/demo $(CHART_PLACEHOLDERS) --quiet
+	@objects=$$(helm template demo charts/demo $(CHART_PLACEHOLDERS) | grep -c '^kind:'); \
+	  [ "$$objects" -ge 10 ] || { echo "chart-check: the chart rendered $$objects objects, fewer than the ten it declares"; exit 1; }; \
+	  echo "chart-check: helm $$(helm version --template '{{.Version}}'), $$objects objects rendered"
+	@if helm template demo charts/demo >/dev/null 2>&1; then \
+	  echo "chart-check: the chart rendered WITHOUT digests - the refusal in _helpers.tpl is gone"; exit 1; \
+	fi; echo "chart-check: refused without digests, as it must"
+
 iac-scan:
 	@command -v checkov >/dev/null 2>&1 || { echo "iac-scan: checkov is not on PATH. Refusing to pass without scanning anything."; exit 1; }
 	@[ -f .checkov.yaml ] || { echo "iac-scan: .checkov.yaml is missing, so both the directory list and the skip decisions are gone. Refusing."; exit 1; }

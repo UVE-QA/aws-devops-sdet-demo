@@ -1,0 +1,11 @@
+apiVersion: v2
+name: demo
+description: >-
+  The aws-devops-sdet-demo application on Kubernetes (ADR-0097): the same three
+  images by the same digests stage tested - api, web, worker - behind one
+  Ingress the AWS Load Balancer Controller turns into a load balancer. The
+  platform it needs (namespace, database secret, the controller) is Terraform's
+  in infra/envs/lab; this chart is only the application.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

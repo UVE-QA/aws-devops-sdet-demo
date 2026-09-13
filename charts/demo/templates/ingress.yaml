@@ -1,0 +1,44 @@
+# One Ingress, one ALB (ADR-0097 D6): the controller builds an internet-facing
+# balancer with the path rules infra/modules/alb has on ECS - /api/* and
+# /health to the api, everything else to the web. The balancer is the one
+# resource in the lab Terraform does not own; the tags below are how the
+# sweep sees it, and uninstalling this chart is how it goes away.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: demo
+  labels:
+    {{- include "demo.labels" . | nindent 4 }}
+  annotations:
+    alb.ingress.kubernetes.io/scheme: {{ .Values.ingress.scheme }}
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
+    alb.ingress.kubernetes.io/healthcheck-path: /health
+    alb.ingress.kubernetes.io/tags: {{ .Values.ingress.tags | quote }}
+    alb.ingress.kubernetes.io/load-balancer-name: aws-devops-sdet-demo-lab-alb
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  rules:
+    - http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: api
+                port:
+                  name: http
+          - path: /health
+            pathType: Exact
+            backend:
+              service:
+                name: api
+                port:
+                  name: http
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: web
+                port:
+                  name: http

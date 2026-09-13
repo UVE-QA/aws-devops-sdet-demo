@@ -34,7 +34,7 @@ variable "node_count" {
 }
 
 variable "admin_principal_arns" {
-  description = "IAM principals given cluster-admin beside the creator - the owner's SSO role, without its path. Set in terraform.tfvars, not here."
+  description = "IAM principals given cluster-admin beside the creator - the owner's SSO role, its full ARN with the path. Passed as TF_VAR_admin_principal_arns for a local apply; a .tfvars here would stop the sizing reader (scripts/sizing.py)."
   type        = list(string)
   default     = []
 }

@@ -31,7 +31,7 @@ variable "node_count" {
 }
 
 variable "admin_principal_arns" {
-  description = "IAM principals given cluster-admin by access entry, beside the creator: the owner's SSO role, so kubectl works from the devbox after a cycle created the cluster. Role ARNs WITHOUT their path - EKS access entries require it."
+  description = "IAM principals given cluster-admin by access entry, beside the creator: the owner's SSO role, so kubectl works from the devbox after a cycle created the cluster. The role's FULL ARN, path included: the first apply tried the path-stripped form the aws-auth ConfigMap wanted, and EKS answered `invalid principal`. NEVER the creator itself: the creator's entry is EKS's own, and a second one for the same principal is a 409 - so a local apply under the SSO role passes nothing here, and the workflow passes the SSO role."
   type        = list(string)
   default     = []
 }

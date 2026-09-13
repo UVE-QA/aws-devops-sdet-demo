@@ -154,6 +154,11 @@ jobs:
       - name: Terraform fmt check
         run: terraform fmt -check -recursive infra
 
+      # The application chart (ADR-0097): rendered with placeholder digests,
+      # and refused without them. helm is on the runner image.
+      - name: The chart renders, and refuses without digests
+        run: make chart-check
+
       - name: Terraform validate (every root level, no backend)
         run: make tf-validate
 

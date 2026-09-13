@@ -1,0 +1,74 @@
+# The database, prepared the way the ECS workflow prepares it - migrate, then
+# seed - as Helm hooks, so `helm upgrade --install --wait` does not return
+# until the schema is at head and the seed row exists. Both run the api's
+# image by the same digest; both are deleted once they succeed, and a failed
+# one is left for `kubectl logs` and fails the release (--atomic).
+{{- if .Values.hooks.migrate }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-migrate
+  labels:
+    {{- include "demo.labels" . | nindent 4 }}
+    app.kubernetes.io/name: migrate
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-10"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 1
+  template:
+    metadata:
+      labels:
+        {{- include "demo.labels" . | nindent 8 }}
+        app.kubernetes.io/name: migrate
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: migrate
+          image: {{ include "demo.image" (dict "Values" .Values "name" "api") }}
+          command: ["alembic", "upgrade", "head"]
+          env:
+            - name: APP_ENV
+              value: {{ .Values.appEnv | quote }}
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.dbSecretName }}
+                  key: DATABASE_URL
+{{- end }}
+{{- if .Values.hooks.seed }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-seed
+  labels:
+    {{- include "demo.labels" . | nindent 4 }}
+    app.kubernetes.io/name: seed
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-5"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 1
+  template:
+    metadata:
+      labels:
+        {{- include "demo.labels" . | nindent 8 }}
+        app.kubernetes.io/name: seed
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: seed
+          image: {{ include "demo.image" (dict "Values" .Values "name" "api") }}
+          command: ["python", "scripts/seed.py"]
+          env:
+            - name: APP_ENV
+              value: {{ .Values.appEnv | quote }}
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.dbSecretName }}
+                  key: DATABASE_URL
+{{- end }}

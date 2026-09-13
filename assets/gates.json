@@ -203,6 +203,14 @@
       ]
     },
     {
+      "target": "chart-check",
+      "local": false,
+      "needs": "helm",
+      "requires": [
+        "helm"
+      ]
+    },
+    {
       "target": "iac-scan",
       "local": false,
       "needs": "checkov",

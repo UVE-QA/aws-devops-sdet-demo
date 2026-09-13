@@ -1,9 +1,14 @@
-# Copy to terraform.tfvars (gitignored) for a local apply under demo-admin.
-# In CI every value comes from TF_VAR_* in the workflow.
-
-owner = "UVE"
-
-# The owner's SSO role, WITHOUT its path, so kubectl works from the devbox
-# after a cycle created the cluster (EKS access entries require the path
-# stripped: arn:aws:iam::<account>:role/AWSReservedSSO_AdministratorAccess_<hash>).
-# admin_principal_arns = ["arn:aws:iam::993912191738:role/AWSReservedSSO_AdministratorAccess_20369d4460860660"]
+# For a local apply under demo-admin, pass these as TF_VAR_* rather than as a
+# terraform.tfvars: scripts/sizing.py refuses an environment directory that
+# holds one, because a .tfvars means the defaults it reads are no longer the
+# effective configuration. In CI every value comes from the workflow.
+#
+#   export TF_VAR_owner=UVE
+#
+# admin_principal_arns stays EMPTY for a local apply: the principal that
+# creates the cluster is its admin by EKS's own bootstrap entry, and asking for
+# a second entry for the same role is a 409. The workflow, whose creator is
+# the deploy role, passes the owner's SSO role by its FULL ARN, path included
+# (EKS refuses the path-stripped form):
+#
+#   TF_VAR_admin_principal_arns='["arn:aws:iam::993912191738:role/aws-reserved/sso.amazonaws.com/AWSReservedSSO_AdministratorAccess_<hash>"]'
