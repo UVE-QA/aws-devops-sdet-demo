@@ -3,7 +3,7 @@
   "schema": 1,
   "counts": {
     "suites": 5,
-    "tests": 196
+    "tests": 199
   },
   "suites": {
     "api": {
@@ -326,7 +326,7 @@
     "unit": {
       "dir": "tests/unit",
       "collector": "pytest",
-      "count": 126,
+      "count": 129,
       "tests": [
         {
           "file": "tests/unit/test_access_log.py",
@@ -631,6 +631,18 @@
         {
           "file": "tests/unit/test_launch_refusals.py",
           "name": "test_the_kill_switch_is_evaluated_for_the_nonce_too"
+        },
+        {
+          "file": "tests/unit/test_launch_refusals.py",
+          "name": "test_a_press_during_a_cycle_that_came_from_elsewhere_is_refused_by_name"
+        },
+        {
+          "file": "tests/unit/test_launch_refusals.py",
+          "name": "test_an_actions_api_that_cannot_answer_fails_closed"
+        },
+        {
+          "file": "tests/unit/test_launch_refusals.py",
+          "name": "test_the_in_flight_check_comes_after_the_nonce_and_before_the_lock"
         },
         {
           "file": "tests/unit/test_sweep_orphans.py",

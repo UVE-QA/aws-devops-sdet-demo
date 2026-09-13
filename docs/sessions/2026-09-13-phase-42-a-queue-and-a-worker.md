@@ -117,9 +117,22 @@ empty one is the proof that everything that arrived was processed).
 the whole of Phase 42. The estate is 163 resource blocks, 60 permanent and
 103 per cycle; the release is three digests; the suites count 196 tests.
 
+## Postscript: the endpoint learns to ask
+
+Taken the same evening, first on the owner's *продолжаем по порядку*. The
+lock in the control store is written and read by the endpoint alone; a cycle
+dispatched from Actions holds none, so the refusal ADR-0035 wrote for *one at
+a time* was, for such cycles, GitHub's queue. The endpoint now asks the
+Actions API for unfinished runs of the workflow from any branch — after the
+nonce, so a bad press costs no GitHub call, and before the lock, so a press
+during a lockless cycle never takes one — and refuses `409 busy` naming the
+run and its branch. An API that cannot answer is `503 github`, fail-closed:
+a dispatch to it would fail a moment later anyway. The lock stays beside it
+for the seconds between a dispatch and the run's appearance in the API.
+Three refusal tests in process; one package, three Lambdas, one apply.
+
 ## What is still open
 
-The endpoint's lock against cycles that did not come through the button.
 The outbox, with plan item 4. The services manifest of item 5, which now
 has four lists of service names to reconcile: the module instances, the
 adoption rules, the deploy role, and every workflow. From before: the

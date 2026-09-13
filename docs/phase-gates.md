@@ -4116,7 +4116,7 @@ images scanning clean; every gate green over rewritten fixtures.
   the amended D2. Session record written. Phase 41 is DONE.
 
 
-### Phase 42 — A queue and a worker  ⏳ IN PROGRESS 2026-09-13
+### Phase 42 — A queue and a worker  ✅ DONE 2026-09-13 (postscript open)
 
 Item 2 of the plan (ADR-0094), on `next`. **ADR-0096**, decided with the
 owner before a line was written: the api publishes `item.created` after the
@@ -4158,9 +4158,20 @@ cycle).
   owner-run or `next` cycle is accepted and queues behind it on the workflow's
   `concurrency` group (ADR-0096, consequences). Harmless and not the refusal
   ADR-0036 wrote; the fix is the endpoint asking Actions for in-flight runs.
-- Next allowed step: **merge `next` → `main`** on the owner's word (ADR-0093
-  D1: the green cycle from `next` is the precondition, and #26 is it). Then
-  the session record for this stretch.
+- **Merged 2026-09-13** on the owner's word; publish-site and CI green on the
+  merge commit; session record written. Phase 42 is DONE as a phase; the
+  open item below is its postscript.
+- **The endpoint asks Actions before it takes the lock** (ADR-0035 guardrail
+  1, amended): a sixth refusal, `409 busy`, naming an unfinished run of the
+  workflow from any branch, after the nonce and before the lock; an Actions
+  API that cannot answer is `503 github`, fail-closed. Three new refusal
+  tests in process (129 unit); the page renders the new code with no change.
+  Package built; `infra/self-service` plans 0/3/0 - the three Lambdas share
+  one package and all three change hash.
+- Next allowed step: apply `infra/self-service` with the owner's yes, then
+  prove the refusal against the live endpoint the way guardrail 1's break
+  test says - a press during an owner-dispatched cycle - before the next
+  merge. Then plan item 3.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

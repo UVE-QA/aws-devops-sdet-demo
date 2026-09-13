@@ -90,6 +90,9 @@ def decide(store, **overrides):
         ttl_minutes=TTL,
         daily_cap=CAP,
         configured=True,
+        # Nothing in flight unless a test says so; the source is a callable,
+        # like the real one, so a test can hand it a list or an exception.
+        in_flight=lambda: [],
     )
     kwargs.update(overrides)
     return control.decide_launch(store, **kwargs)
@@ -359,3 +362,54 @@ def test_the_kill_switch_is_evaluated_for_the_nonce_too():
     assert control.kill_switch_refusal(engaged).code == "kill_switch"
     assert control.kill_switch_refusal(FakeStore()) is None, "and it lets a live one through"
     assert control.kill_switch_refusal(FakeStore(get_flag=True)).code == "store_unavailable"
+
+
+# ------------------------------------------------- a cycle that holds no lock
+# The lock sees only launches that came through the endpoint. A cycle the owner
+# dispatched from Actions, or one from `next`, holds none - and on 2026-09-13
+# the owner watched the page during one and asked what a press would do. It
+# would have been accepted, spent a launch, and queued behind the running cycle
+# on the workflow's concurrency group (ADR-0035 guardrail 1, amended).
+NEXT_RUN = {"id": 34762487475, "run_number": 26, "head_branch": "next",
+            "status": "in_progress", "html_url": "https://github.com/x/y/actions/runs/34762487475"}
+
+
+def test_a_press_during_a_cycle_that_came_from_elsewhere_is_refused_by_name():
+    store = FakeStore()
+    decision = decide(store, in_flight=lambda: [NEXT_RUN])
+    assert not decision.allowed
+    assert decision.code == "busy"
+    assert decision.status == 409
+    assert decision.detail["run_number"] == 26 and decision.detail["head_branch"] == "next"
+    assert "#26" in decision.message and "next" in decision.message
+    assert store.lock is None, "refused before the lock, so nothing to release"
+    assert store.counts == {}, "a refused press must not consume a launch"
+
+
+def test_an_actions_api_that_cannot_answer_fails_closed():
+    """An unreachable Actions API is not an idle workflow. The dispatch would
+    fail against it a moment later anyway; refusing first says why."""
+    def unreachable():
+        raise RuntimeError("timed out")
+    store = FakeStore()
+    decision = decide(store, in_flight=unreachable)
+    assert not decision.allowed
+    assert decision.code == "github"
+    assert decision.status == 503
+    assert store.lock is None and store.counts == {}
+
+
+def test_the_in_flight_check_comes_after_the_nonce_and_before_the_lock():
+    """A bad nonce must not cost a GitHub call; a good one is spent before the
+    call, which is what single-use means."""
+    asked = []
+    def source():
+        asked.append(1)
+        return [NEXT_RUN]
+    store = FakeStore()
+    bad = decide(store, nonce="no-such-nonce", in_flight=source)
+    assert bad.code == "nonce" and not asked, "refused on the nonce, GitHub never asked"
+    good = decide(store, in_flight=source)
+    assert good.code == "busy" and asked == [1]
+    assert "good-nonce" not in store.nonces, "the nonce was redeemed before the ask"
+    assert store.lock is None

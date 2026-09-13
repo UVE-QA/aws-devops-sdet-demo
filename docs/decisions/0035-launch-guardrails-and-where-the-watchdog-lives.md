@@ -67,6 +67,20 @@ break test   two launches back to back. The second returns a refusal that names
              the holder and confirm the lock is released rather than inherited.
 ```
 
+*Amended 2026-09-13 (Phase 42).* The lock sees only launches that came
+through the endpoint. A cycle the owner dispatches from Actions — and, since
+ADR-0093, every cycle from `next` — holds no lock, so a press during one was
+accepted, spent one of the day's three, and queued behind the running cycle on
+the `concurrency` group: harmless, and exactly the queue this guardrail was
+written to refuse. The owner found it watching the page during cycle #26 and
+asking what the button would do. So the endpoint now asks the Actions API,
+after the nonce and before the lock, for unfinished runs of the workflow from
+any branch, and refuses `409 busy` naming the run and its branch; an API that
+cannot answer is `503 github`, fail-closed — a dispatch to it would fail a
+moment later anyway. The lock stays beside it: a run takes seconds to appear in
+the API after its dispatch, and two presses in that window meet the lock and
+not the API. `actions: write` (ADR-0034) covers the read.
+
 ### 2. A per-day cap, and it fails CLOSED
 
 A counter at the permanent level, keyed by UTC date, incremented by a

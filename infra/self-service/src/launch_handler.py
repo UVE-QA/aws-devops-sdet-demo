@@ -183,6 +183,15 @@ def _launch(store, now: int, event: dict) -> dict:
     except ValueError:
         return _response(400, {"code": "bad_request", "message": "body must be JSON"})
 
+    # One installation token per press, minted the first time anything needs
+    # it - the in-flight check, or the dispatch - and reused by the other.
+    minted: dict[str, str] = {}
+
+    def token() -> str:
+        if "token" not in minted:
+            minted["token"] = github.installation_token(APP_ID, _private_key(), INSTALL_ID, now)
+        return minted["token"]
+
     decision = control.decide_launch(
         store,
         now=now,
@@ -191,6 +200,7 @@ def _launch(store, now: int, event: dict) -> dict:
         ttl_minutes=TTL_MINUTES,
         daily_cap=DAILY_CAP,
         configured=bool(APP_ID and INSTALL_ID and SECRET_NAME),
+        in_flight=lambda: github.in_flight_runs(token(), OWNER, REPO, WORKFLOW),
         quota_timezone=QUOTA_TIMEZONE,
     )
 
@@ -217,9 +227,8 @@ def _launch(store, now: int, event: dict) -> dict:
     detail = decision.detail or {}
     launch_id = detail["launch_id"]
     try:
-        token = github.installation_token(APP_ID, _private_key(), INSTALL_ID, now)
         github.dispatch_workflow(
-            token,
+            token(),
             OWNER,
             REPO,
             WORKFLOW,

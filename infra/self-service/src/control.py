@@ -6,14 +6,19 @@ process, with a fake store that can be made to fail in the exact way the real
 one fails. That is the Phase 16b precedent applied again: a property no HTTP
 client can observe belongs in a test that does not use HTTP.
 
-The five refusals (ADR-0035), in the order they are evaluated:
+The six refusals (ADR-0035), in the order they are evaluated:
 
     1. kill switch   thrown by the budget alarm OR by hand, read before
                      anything else, and applied to GET as well as to POST
     2. configured    no App id, no installation - refuse rather than 500 later
     3. nonce         single-use, and a speed bump rather than authorization
-    4. lock          one run at a time, refused HERE because Actions only queues
-    5. daily cap     conditional increment, and it FAILS CLOSED
+    4. in flight     a run of the workflow that has not finished, from ANY
+                     branch, asked of the Actions API - because the lock below
+                     sees only launches that came through here (amended
+                     2026-09-13), and it FAILS CLOSED
+    5. lock          one run at a time among the endpoint's own launches,
+                     refused HERE because Actions only queues
+    6. daily cap     conditional increment, and it FAILS CLOSED
 
 The one that matters most is the one that is easiest to get wrong: if the store
 cannot be READ, the answer is a refusal. An error is not "zero launches today".
@@ -22,6 +27,7 @@ A spend control that fails open is not a spend control.
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
@@ -174,9 +180,17 @@ def decide_launch(
     ttl_minutes: int,
     daily_cap: int,
     configured: bool,
+    in_flight: Callable[[], list[dict]],
     quota_timezone: str | None = None,
 ) -> Decision:
     """Evaluate every guardrail, in order, and take the lock if all of them pass.
+
+    `in_flight` answers "which runs of the workflow have not finished", from
+    the Actions API, for any branch; it is a callable so that this module
+    stays free of the network and the unit suite can hand it a list or an
+    exception. It is asked AFTER the nonce and BEFORE the lock: a press with a
+    bad nonce should not cost a GitHub call, and a press during a cycle that
+    holds no lock must be refused before it takes one.
 
     Returns a `Decision`. On `allowed`, the lock IS taken and the day counter IS
     consumed - so a caller that then fails to dispatch must release the lock.
@@ -224,9 +238,52 @@ def decide_launch(
     except StoreUnavailable as exc:
         return _store_refusal(exc)
 
-    # 4. One run at a time. The refusal lives HERE, not in `concurrency:`:
-    #    Actions queues or cancels, and a queue of fifty launches is fifty
-    #    cycles arriving later.
+    # 4. A cycle in flight that did not come through here. The lock below is
+    #    written by this endpoint and read by this endpoint; a cycle the owner
+    #    dispatched from Actions, or one from `next`, never touches it. On
+    #    2026-09-13 the owner watched the page during such a cycle and asked
+    #    what a press would do: it would have been accepted, spent one of the
+    #    day's three, and queued behind the running cycle on the workflow's
+    #    concurrency group - harmless, and not the refusal guardrail 1 wrote.
+    #    So the endpoint asks the same source the dashboard reads. FAILS
+    #    CLOSED: an Actions API that cannot answer is not an idle workflow, and
+    #    a dispatch to it would fail a moment later anyway.
+    try:
+        running = in_flight()
+    except Exception as exc:  # noqa: BLE001 - every failure here means the same thing
+        return Decision(
+            False,
+            "github",
+            "GitHub could not be asked whether a cycle is already running, so "
+            "this launch is refused rather than queued behind one it cannot "
+            "see. Try again in a minute.",
+            status=503,
+            detail={"error": type(exc).__name__},
+        )
+    if running:
+        run = running[0]
+        return Decision(
+            False,
+            "busy",
+            f"a cycle is already running (run #{run.get('run_number')}, from "
+            f"branch {run.get('head_branch')}). One at a time is a property of "
+            "the environments, not of this button, and that run did not come "
+            "through here - so nothing here held a lock for it. Watch it on the "
+            "dashboard and press again when it finishes.",
+            status=409,
+            detail={
+                "run_number": run.get("run_number"),
+                "head_branch": run.get("head_branch"),
+                "status": run.get("status"),
+                "html_url": run.get("html_url"),
+            },
+        )
+
+    # 5. One run at a time among the endpoint's own launches. The refusal
+    #    lives HERE, not in `concurrency:`: Actions queues or cancels, and a
+    #    queue of fifty launches is fifty cycles arriving later. Still needed
+    #    beside 4: a run takes seconds to appear in the Actions API after its
+    #    dispatch, and two presses in that window meet this and not that.
     expires_at = now + ttl_minutes * 60
     try:
         store.take_lock(launch_id, expires_at, now)
@@ -252,7 +309,7 @@ def decide_launch(
     except StoreUnavailable as exc:
         return _store_refusal(exc)
 
-    # 5. The per-day cap, by conditional increment rather than read-then-write.
+    # 6. The per-day cap, by conditional increment rather than read-then-write.
     try:
         count = store.increment_day(quota_day(now, quota_timezone), daily_cap)
     except CapReached:

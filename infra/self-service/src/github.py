@@ -89,3 +89,43 @@ def dispatch_workflow(token: str, owner: str, repo: str, workflow: str, ref: str
     )
     if status != 204:
         raise GitHubError(f"dispatch returned {status}, expected 204")
+
+
+# The statuses the Actions API reports for a run that has not finished. Listed
+# rather than derived as `!= completed`: a status this list does not know is
+# reported by the caller as unknown, not as idle.
+IN_FLIGHT_STATUSES = frozenset({"queued", "in_progress", "waiting", "requested", "pending"})
+
+
+def in_flight_runs(token: str, owner: str, repo: str, workflow: str) -> list[dict]:
+    """The runs of one workflow that have not finished, from ANY branch.
+
+    The lock in the control store sees only launches that came through the
+    endpoint (ADR-0035 guardrail 1, amended 2026-09-13): a cycle the owner
+    dispatched from Actions, or one from `next`, holds no lock, and a press
+    during it was accepted and queued behind it on the workflow's concurrency
+    group. So the endpoint asks the same source the dashboard reads. One call,
+    the newest ten - a workflow with ten unfinished runs is a different
+    problem - filtered here rather than by the API's `status=` parameter,
+    which takes one value per call.
+
+    `actions: write` (ADR-0034) covers this read; nothing wider is asked for.
+    """
+    status, payload = _request(
+        "GET",
+        f"{API}/repos/{owner}/{repo}/actions/workflows/{workflow}/runs?per_page=10",
+        token,
+    )
+    if status != 200:
+        raise GitHubError(f"listing runs returned {status}, expected 200")
+    return [
+        {
+            "id": run.get("id"),
+            "run_number": run.get("run_number"),
+            "head_branch": run.get("head_branch"),
+            "status": run.get("status"),
+            "html_url": run.get("html_url"),
+        }
+        for run in payload.get("workflow_runs", [])
+        if run.get("status") in IN_FLIGHT_STATUSES
+    ]
