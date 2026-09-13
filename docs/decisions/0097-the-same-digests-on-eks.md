@@ -177,4 +177,14 @@ not counted; they are observed, with the Ingress and its balancer, by a
   premature. The teardown uninstalls the chart before the revocation and the
   sweep, so neither meets the controller's objects; the sweep confirms
   access entries and listener rules.
+- **Verified by cycle #30 (34780714051, 2026-09-13, 63 minutes, every job
+  green)** - the first green cycle with three environments: launch 18 m,
+  lab 20 m beside promote 13 m (apply 963 s, chart 171 s, api contract 23 s
+  and smoke 28 s through the Ingress, the results fold landing on
+  `suite.api.lab` and `suite.smoke.lab`), destroy 11 m, destroy-lab 13 m
+  (the balancer gone before the destroy, the join carrying `destroy.lab` at
+  684 s), hold, destroy-prod 13 m, release-lock. Three status files say
+  `destroyed` and name #30; the lab's cost fold closed its cycle at
+  $0.043..$0.073 for 33 minutes; the account afterwards holds the default
+  VPC, the permanent levels and nothing of any environment.
 - Three lists of service names became four with the IRSA roles; plan item 5.

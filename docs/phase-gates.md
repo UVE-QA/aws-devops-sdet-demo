@@ -4177,7 +4177,7 @@ cycle).
   рекомендуешь*); Phase 43 below.
 
 
-### Phase 43 — The same digests on EKS  ⏳ IN PROGRESS 2026-09-13
+### Phase 43 — The same digests on EKS  ✅ DONE 2026-09-13
 
 Item 3 of the plan (ADR-0094), on `next`, in four slices. **ADR-0097**: a
 whole third environment with its own VPC, database, secret and queue; managed
@@ -4243,9 +4243,14 @@ now and the application through kubectl later.
   environment at rest; the teardown uninstalls before the revocation and the
   sweep; two more sweep arms. page-inflight, page-freshness, contrast,
   page-tense, live-state all green.
-- Next allowed step: **cycle #30** with the map that knows the lab - the
-  results fold, the destroy join and the page over real lab documents are
-  what it proves. Then merge.
+- **Cycle #30 (34780714051) green end to end, 63 minutes, three
+  environments**: lab 20 m beside promote 13 m, the results fold landing on
+  the lab's suite nodes, `destroy.lab` in the destroy join at 684 s, three
+  status files saying `destroyed` from #30, the lab at $0.043..$0.073, the
+  account empty afterwards. Phase 43 is proven.
+- Next allowed step: **merge `next` → `main`** on the owner's word (ADR-0093
+  D1: a green cycle from `next`, and #30 is it); the published page then
+  draws the lab. Then the session record.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,
