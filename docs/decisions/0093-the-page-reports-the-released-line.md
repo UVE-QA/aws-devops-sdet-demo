@@ -78,10 +78,16 @@ runs client-side was a window, and by the evening of 2026-09-13 — three
 cycles from `next`, a day of pushes to both branches — the window held no
 lifecycle run of `main` at all; the panel read *No lifecycle run found in the
 40 most recent runs*, true of the window and, to a stranger, a pipeline that
-had never run. Two list requests per poll instead of one; the pacer of
-ADR-0062 D2 divides the budget by two idle and three live, so the page slows
-itself rather than exhausting the hour, and the in-flight gate's first-news
-window moved from (45 s, 60 s] to (75 s, 90 s] against a 300 s ceiling.
+had never run. The first version asked both lists on every poll, and the
+owner's tab met HTTP 403 the same evening: twenty live polls an hour times
+three requests is the whole anonymous allowance, with no headroom for a
+second tab. So the by-name list is read once per ten minutes and kept as the
+long tail, and the released line the page shows is the union of that tail
+and this poll's `main` runs from the unfiltered list, merged by id — a run
+that started a minute ago is on the page at the poll's cadence, a run from a
+week ago is still in the history. The per-poll cost is what it was before
+(one list, and a jobs read while something runs), the pacer divides as it
+did, and the in-flight gate's first-news window is back at (45 s, 60 s].
 
 **D3. Experiments on the shared environments do not run while the demo is out.**
 This is the part no code enforces, and it is written here so that it is a rule

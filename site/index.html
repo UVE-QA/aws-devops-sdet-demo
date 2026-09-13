@@ -1786,6 +1786,8 @@
       // publishes the page and the one the button dispatches, and those three
       // being the same branch is the whole arrangement.
       var RELEASED_BRANCH = "main";
+      // How often the released line's own list is re-read (readGitHub).
+      var RELEASED_EVERY_MS = 600000;
 
       // Which workflow writes which environment's status file. This mapping is the
       // page's half of ADR-0026: a run that cannot write an environment's file must
@@ -1847,6 +1849,8 @@
         // views read `runs`; the questions about the ENVIRONMENTS read this -
         // see readGitHub() for the line between the two.
         allRuns: null,
+        releasedRuns: null,
+        releasedReadAt: 0,
         jobs: null,
         status: {},
         githubReadAt: null,
@@ -1918,17 +1922,30 @@
         // the 40 most recent runs" - true of the window, and to a stranger a
         // pipeline that had never run. The unfiltered list stays for the
         // questions about the ENVIRONMENTS (below), which any branch answers.
+        //
+        // AND NOT TWO PER POLL. The first version asked both on every poll,
+        // and the budget arithmetic below then had no headroom at all: twenty
+        // live polls an hour times three requests is sixty, the whole
+        // anonymous allowance, and the owner's tab met HTTP 403 the same
+        // evening. The released line's history changes once a cycle; it is
+        // read once per ten minutes and kept, and the per-poll cost is what
+        // it was before: one list, and a jobs read while something runs.
         var headers = { headers: { Accept: "application/vnd.github+json" } };
         var read = function (r) {
           readBudget(r);
           if (!r.ok) throw new Error("HTTP " + r.status);
           return r.json();
         };
+        var wantReleased = !state.releasedReadAt ||
+          (Date.now() - state.releasedReadAt) > RELEASED_EVERY_MS;
         return Promise.all([
           fetch(API + "/actions/runs?per_page=40", headers).then(read),
-          fetch(API + "/actions/runs?branch=" + RELEASED_BRANCH + "&per_page=40", headers).then(read)
+          wantReleased
+            ? fetch(API + "/actions/runs?branch=" + RELEASED_BRANCH + "&per_page=40", headers).then(read)
+            : Promise.resolve(null)
         ]).then(function (both) {
           var data = both[0], released = both[1];
+          if (released) state.releasedReadAt = Date.now();
           // THE PAGE REPORTS THE RELEASED LINE (ADR-0093). Every workflow here
           // can be dispatched from any branch, and from 2026-09-12 the work
           // happens on `next` while `main` is what the page publishes and what
@@ -1960,9 +1977,24 @@
           // Filtered again by field, deliberately: the API answered the
           // question, and a fixture that serves one file to both calls is
           // still held to the rule.
-          state.runs = (released.workflow_runs || []).filter(function (r) {
+          if (released) {
+            state.releasedRuns = (released.workflow_runs || []).filter(function (r) {
+              return r.head_branch === RELEASED_BRANCH;
+            });
+          }
+          // THE RELEASED LINE IS THE UNION OF THE TWO. The by-name list is
+          // the long tail, ten minutes old at most; the unfiltered list is
+          // this poll's, and carries every `main` run new enough to be in
+          // the forty. Merged by id, newest first, so a run that started a
+          // minute ago is on the page at this poll's cadence and a run from
+          // a week ago is still in the history when `next` has pushed forty
+          // runs past it.
+          var byId = {};
+          (state.releasedRuns || []).concat(state.allRuns.filter(function (r) {
             return r.head_branch === RELEASED_BRANCH;
-          });
+          })).forEach(function (r) { byId[r.id] = r; });
+          state.runs = Object.keys(byId).map(function (id) { return byId[id]; })
+            .sort(function (a, b) { return (b.created_at || "") < (a.created_at || "") ? -1 : 1; });
           state.githubError = null;
           state.githubReadAt = new Date();
           state.lastGithubOk = state.githubReadAt;
@@ -3035,17 +3067,18 @@
       // person, and the person is needed at the START of a run.
       //
       // Nothing here polls harder per hour than the budget allows. An idle poll
-      // costs TWO requests since the released line is asked for by name
-      // (readGitHub) and a live one three, so the spread below divides by that;
-      // the floors stay, and the arithmetic slows the page down by itself when
-      // the budget is short. With eight requests left it returns to 300000 on
-      // its own.
+      // costs ONE request - the jobs read for a finished run is skipped above,
+      // and the released line's list is read once per ten minutes, not per
+      // poll (readGitHub) - and a live one two, so the spread below divides
+      // by that; the floors stay, and the arithmetic slows the page down by
+      // itself when the budget is short. With eight requests left it returns
+      // to 300000 on its own.
       function githubIntervalMs() {
         var run = currentRun();
         var live = !state.githubError && run && run.status !== "completed";
         if (!state.rateRemaining || !state.rateReset) return live ? 90000 : 120000;
         var msLeft = Math.max(1000, state.rateReset - Date.now());
-        var polls = Math.max(1, (state.rateRemaining - 6) / (live ? 3 : 2));
+        var polls = Math.max(1, (state.rateRemaining - 6) / (live ? 2 : 1));
         var spread = msLeft / polls;
         return live
           ? Math.min(180000, Math.max(30000, spread))
