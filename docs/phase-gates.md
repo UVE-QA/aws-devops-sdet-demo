@@ -4168,10 +4168,13 @@ cycle).
   tests in process (129 unit); the page renders the new code with no change.
   Package built; `infra/self-service` plans 0/3/0 - the three Lambdas share
   one package and all three change hash.
-- Next allowed step: apply `infra/self-service` with the owner's yes, then
-  prove the refusal against the live endpoint the way guardrail 1's break
-  test says - a press during an owner-dispatched cycle - before the next
-  merge. Then plan item 3.
+- **`infra/self-service` applied 2026-09-13** with the owner's yes: 0 added,
+  3 changed, the endpoint answering `?quota` afterwards. The live proof - a
+  press during a cycle that did not come through the button, answered `busy`
+  by run and branch - is taken on the next cycle rather than on one of its
+  own, on the owner's word; the merge into `main` goes with plan item 3.
+- Next allowed step: **plan item 3**, the same digests on EKS - discussed
+  before written.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,
