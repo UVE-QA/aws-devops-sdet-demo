@@ -1601,7 +1601,7 @@ of it and the largest that a home project can carry without noise.
    system to run, and a paragraph explaining their absence is worth more here
    than the controller.
 
-4. Each service owns its data                   [IN PROGRESS 2026-09-13, ADR-0098]
+4. Each service owns its data                   [DONE 2026-09-13, ADR-0098]
    The worker gets its own schema and its own migrations; services meet only
    through the queue and the API contract; contract tests stand between them.
    Microservices is a statement about data, not about the number of

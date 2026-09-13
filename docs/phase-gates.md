@@ -4254,7 +4254,7 @@ now and the application through kubectl later.
   (ADR-0097 D2 amended), unproven by a cycle until the next one.
 
 
-### Phase 44 — Each service owns its data  ⏳ IN PROGRESS 2026-09-13
+### Phase 44 — Each service owns its data  ✅ DONE 2026-09-13
 
 Item 4 of the plan (ADR-0094), on `next`. **ADR-0098**, decided with the
 owner before a line was written: the worker gets its own schema and its own
@@ -4291,8 +4291,13 @@ both queues.
   self-service publishes pass the report directory now, and the publisher
   asks the bucket - by listing - whether a `latest` exists before the page
   links it).
-- Next allowed step: the rest of #31, then **merge** on the owner's word and
-  the session record.
+- **#31 green end to end, 68 minutes, three environments** (launch 20 m,
+  lab 20 m, promote 16 m, destroy 12 m, destroy-lab 14 m, hold, destroy-prod
+  11 m): the seam in both directions on ECS and on EKS, spot nodes, both
+  queue pairs swept clean; three status files `destroyed` from #31. Phase 44
+  is proven.
+- Next allowed step: **merge `next` → `main`** on the owner's word (ADR-0093
+  D1: a green cycle from `next`, and #31 is it). Then the session record.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

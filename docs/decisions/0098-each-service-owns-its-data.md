@@ -113,4 +113,12 @@ facts about reasons.
   observation reads both queues; the adoption map knows the second pair; the
   board's one tile is *SQS — items and results* and the panel shows both.
   Validated on nine levels, checkov 544/0, the chart renders eleven objects.
-  **A cycle from `next` is the proof.**
+- **Verified by cycle #31 (34787213122, 2026-09-13, 68 minutes, every job
+  green)**: the worker's migration as a one-off task on stage and prod and
+  as a hook on the lab; the async contract tests green through the
+  projection in all three environments - the outbox relay, two real queues,
+  the worker's receipt and report, the api's projection - on task roles and
+  on IRSA with the mirror permissions; both queues observed `0 waiting, 0
+  dead-lettered, alarm OK` everywhere; three teardowns green with both
+  queue pairs swept clean; the lab on spot nodes in the same cycle. Three
+  status files say `destroyed` and name #31.

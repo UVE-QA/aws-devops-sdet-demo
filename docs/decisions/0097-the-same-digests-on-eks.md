@@ -55,7 +55,10 @@ off the nodes, which were a third of the lab's hour. Still one instance
 type: the cost fold prices what the configuration declares, and it prices it
 at the on-demand rate as a ceiling, said so in the model. A wider pool
 (`t3a.small` beside `t3.small`) and ARM (`t4g.small`, which needs multi-arch
-images from every build) are noted and not taken.
+images from every build) are noted and not taken. Proven by cycle #31: the
+node group created as SPOT (`capacity_type = "SPOT"` in the apply stream),
+the apply in 921 s - no slower than on-demand - and the lab green through
+its suites and its teardown.
 
 **D3. Terraform owns the cluster and the platform; Helm owns the
 application.** Terraform makes the control plane, the node group, the
