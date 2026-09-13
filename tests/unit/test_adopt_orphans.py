@@ -325,13 +325,14 @@ def test_the_permanent_deploy_role_is_not_adoptable():
 
 def test_the_names_to_probe_come_from_the_map():
     names = adopt_orphans.unindexed_names(PREFIX, ACCOUNT)
-    # Four since the split (ADR-0095): two roles per service, one service that
-    # reads the secret and one that never will.
+    # Six since the worker (ADR-0095, ADR-0096): two roles per service.
     assert [entry["name"] for entry in names] == [
         f"{PREFIX}-api-ecs-execution",
         f"{PREFIX}-api-ecs-task",
         f"{PREFIX}-web-ecs-execution",
         f"{PREFIX}-web-ecs-task",
+        f"{PREFIX}-worker-ecs-execution",
+        f"{PREFIX}-worker-ecs-task",
     ]
     assert all(entry["kind"] == "iam:role" for entry in names)
 
@@ -404,12 +405,58 @@ def test_the_execution_role_drags_its_policies_into_state():
     )
 
 
-def test_the_task_role_has_nothing_hanging_off_it():
-    """Asserted rather than assumed: AWS confirmed the task role was bare while
-    the execution role held two. A dependent invented for it would fail an import
-    on every teardown and teach everyone to ignore the log."""
+def test_the_api_task_role_drags_the_policy_that_publishes():
+    """The task role was bare until ADR-0096 - AWS confirmed it, and this test
+    asserted it - and now carries exactly one thing: the right to put onto the
+    queue. One dependent, named literally, because a dependent invented for a
+    role fails an import on every teardown and teaches everyone to ignore the
+    log."""
     result = adopt_orphans.plan([TASK_ROLE], {}, PREFIX)
-    assert len(result["adopt"]) == 1
+    by_address = {e["address"]: e for e in result["adopt"]}
+    assert sorted(by_address) == [
+        "aws_iam_role_policy.api_publish_items",
+        "module.api.aws_iam_role.task",
+    ]
+    assert (
+        by_address["aws_iam_role_policy.api_publish_items"]["import_id"]
+        == f"{PREFIX}-api-ecs-task:{PREFIX}-api-publish-items"
+    )
+
+
+def test_the_worker_roles_drag_their_policies():
+    """The worker's execution role reads the secret like the api's; its task
+    role consumes from the queue and nothing else (ADR-0096)."""
+    execution = adopt_orphans.plan(
+        [f"arn:aws:iam::{ACCOUNT}:role/{PREFIX}-worker-ecs-execution"], {}, PREFIX
+    )
+    assert sorted(e["address"] for e in execution["adopt"]) == [
+        "aws_iam_role_policy.worker_read_db_secret",
+        "module.worker.aws_iam_role.execution",
+        "module.worker.aws_iam_role_policy_attachment.execution_managed",
+    ]
+    task = adopt_orphans.plan(
+        [f"arn:aws:iam::{ACCOUNT}:role/{PREFIX}-worker-ecs-task"], {}, PREFIX
+    )
+    assert sorted(e["address"] for e in task["adopt"]) == [
+        "aws_iam_role_policy.worker_consume_items",
+        "module.worker.aws_iam_role.task",
+    ]
+
+
+def test_a_queue_is_imported_by_its_url():
+    """SQS ARNs carry the bare name and Terraform imports a queue by URL; the
+    two are the same three facts in two shapes (ADR-0096)."""
+    result = adopt_orphans.plan(
+        [f"arn:aws:sqs:us-west-2:{ACCOUNT}:{PREFIX}-items-dlq",
+         f"arn:aws:sqs:us-west-2:{ACCOUNT}:{PREFIX}-items"], {}, PREFIX
+    )
+    by_address = {e["address"]: e for e in result["adopt"]}
+    assert by_address["module.queue.aws_sqs_queue.items"]["import_id"] == (
+        f"https://sqs.us-west-2.amazonaws.com/{ACCOUNT}/{PREFIX}-items"
+    )
+    assert by_address["module.queue.aws_sqs_queue.dead_letter"]["import_id"] == (
+        f"https://sqs.us-west-2.amazonaws.com/{ACCOUNT}/{PREFIX}-items-dlq"
+    )
 
 
 def test_the_web_execution_role_drags_only_the_managed_policy():

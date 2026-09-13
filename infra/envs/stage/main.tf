@@ -81,6 +81,14 @@ module "ecs_cluster" {
   name_prefix = local.name_prefix
 }
 
+# The queue between the api and the worker (ADR-0096): one standard queue,
+# its dead-letter queue and the alarm on it, per environment.
+module "queue" {
+  source = "../../modules/queue"
+
+  name_prefix = local.name_prefix
+}
+
 module "api" {
   source = "../../modules/ecs-service"
 
@@ -100,6 +108,8 @@ module "api" {
   task_cpu              = var.task_cpu
   task_memory           = var.task_memory
   desired_count         = var.desired_count
+  # Where item.created goes (ADR-0096). A URL, not a secret.
+  extra_environment = [{ name = "ITEMS_QUEUE_URL", value = module.queue.queue_url }]
   # The image asks itself, the way it always has: python is what it carries.
   health_check_command = ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:${var.app_port}/health').status==200 else 1)\""]
   depends_on           = [module.alb]
@@ -128,6 +138,33 @@ module "web" {
   depends_on           = [module.alb]
 }
 
+# The worker (ADR-0096): the third service, behind no load balancer and on no
+# port - a task that consumes the queue and writes the database. It holds the
+# database secret, so its execution role gets the read below, and its task
+# role gets the right to consume the one queue.
+module "worker" {
+  source = "../../modules/ecs-service"
+
+  name_prefix       = local.name_prefix
+  service           = "worker"
+  app_env           = var.environment
+  region            = var.region
+  vpc_id            = module.network.vpc_id
+  public_subnet_ids = module.network.public_subnet_ids
+  cluster_id        = module.ecs_cluster.cluster_id
+  image             = var.worker_image
+  db_secret_arn     = module.rds.db_secret_arn
+  log_group_name    = module.observability.log_group_name
+  task_cpu          = var.task_cpu
+  task_memory       = var.task_memory
+  desired_count     = var.desired_count
+  extra_environment = [{ name = "ITEMS_QUEUE_URL", value = module.queue.queue_url }]
+  # The heartbeat the loop touches on every pass (worker/consumer/main.py):
+  # a process that is up and stuck is what this tells apart from one that is
+  # up and working.
+  health_check_command = ["CMD-SHELL", "find /tmp/heartbeat -mmin -1 | grep -q . || exit 1"]
+}
+
 # THE ONE POLICY THAT MAY READ THE DATABASE SECRET, on the api's execution
 # role and on nothing else (ADR-0095). Here rather than inside the service
 # module: a policy counted into existence for one instance of a module and not
@@ -148,6 +185,54 @@ resource "aws_iam_role_policy" "api_read_db_secret" {
   policy = data.aws_iam_policy_document.api_read_db_secret.json
 }
 
+# THE WORKER READS THE SAME SECRET (ADR-0096): it writes the api's table, and
+# until plan item 4 gives it data of its own that is the database it reaches.
+# The same document, a second policy, on the worker's execution role and named
+# for the worker - one policy per role, so the adoption gate can find each.
+resource "aws_iam_role_policy" "worker_read_db_secret" {
+  name   = "${local.name_prefix}-worker-read-db-secret"
+  role   = module.worker.execution_role_name
+  policy = data.aws_iam_policy_document.api_read_db_secret.json
+}
+
+# THE TASK ROLES' ONLY PERMISSIONS (ADR-0096): the api may put onto the one
+# queue, the worker may take from it. Nothing on `*`, nothing either could do
+# to the other's half - a task role that could delete messages from the api's
+# side, or send them from the worker's, would be a permission nobody asked for
+# drawn on the board as if somebody had.
+data "aws_iam_policy_document" "api_publish_items" {
+  statement {
+    sid       = "PublishItems"
+    actions   = ["sqs:SendMessage", "sqs:GetQueueUrl"]
+    resources = [module.queue.queue_arn]
+  }
+}
+
+resource "aws_iam_role_policy" "api_publish_items" {
+  name   = "${local.name_prefix}-api-publish-items"
+  role   = module.api.task_role_name
+  policy = data.aws_iam_policy_document.api_publish_items.json
+}
+
+data "aws_iam_policy_document" "worker_consume_items" {
+  statement {
+    sid = "ConsumeItems"
+    actions = [
+      "sqs:ReceiveMessage",
+      "sqs:DeleteMessage",
+      "sqs:GetQueueAttributes",
+      "sqs:ChangeMessageVisibility",
+    ]
+    resources = [module.queue.queue_arn]
+  }
+}
+
+resource "aws_iam_role_policy" "worker_consume_items" {
+  name   = "${local.name_prefix}-worker-consume-items"
+  role   = module.worker.task_role_name
+  policy = data.aws_iam_policy_document.worker_consume_items.json
+}
+
 module "rds" {
   source = "../../modules/rds"
 
@@ -155,8 +240,10 @@ module "rds" {
   vpc_id                    = module.network.vpc_id
   private_db_subnet_ids     = module.network.private_db_subnet_ids
   ecs_app_security_group_id = module.api.security_group_id
-  engine_version            = var.db_engine_version
-  instance_class            = var.db_instance_class
+  # The worker reaches the database too (ADR-0096); still by group, never by CIDR.
+  extra_client_security_group_ids = [module.worker.security_group_id]
+  engine_version                  = var.db_engine_version
+  instance_class                  = var.db_instance_class
 }
 
 

@@ -241,6 +241,10 @@ confirm_exists() {
                 --log-group-name-prefix "$id" --query "logGroups[0].arn" --output text 2>/dev/null | grep -v None)" ] ;;
     secretsmanager:secret)
       aws secretsmanager describe-secret --region "$region" --secret-id "$arn" >/dev/null 2>&1 ;;
+    sqs:queue)
+      # By NAME: a deleted queue answers get-queue-url with NonExistentQueue
+      # for up to a minute, which is the same "not there" the arms above read.
+      aws sqs get-queue-url --region "$region" --queue-name "$id" >/dev/null 2>&1 ;;
     iam:role)
       # THE ONLY ARM THAT SEPARATES "it is gone" FROM "I could not ask", and the
       # only one that has to (ADR-0041 D4). Every arm above returns non-zero for

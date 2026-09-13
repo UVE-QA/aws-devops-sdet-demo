@@ -26,3 +26,9 @@ variable "web_repository_name" {
   type        = string
   default     = "aws-devops-sdet-demo-web"
 }
+
+variable "worker_repository_name" {
+  description = "ECR repository for the worker image (ADR-0096). Deterministic, like the other two."
+  type        = string
+  default     = "aws-devops-sdet-demo-worker"
+}

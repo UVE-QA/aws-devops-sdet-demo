@@ -107,10 +107,11 @@ jobs:
           # (ADR-0018): one repository per service since ADR-0095.
           ECR_REPOSITORY: aws-devops-sdet-demo-app
           WEB_ECR_REPOSITORY: aws-devops-sdet-demo-web
+          WORKER_ECR_REPOSITORY: aws-devops-sdet-demo-worker
           IMAGE_TAG: ${{ inputs.image_tag }}
         run: |
           set -euo pipefail
-          # ONE TAG, TWO DIGESTS (ADR-0095). The tag is the release's name - the
+          # ONE TAG, THREE DIGESTS (ADR-0095, ADR-0096). The tag is the release's name - the
           # commit stage tested - and the digests are what prod pins: one per
           # repository, resolved here and never guessed. `|| true` so a missing
           # repository or tag reaches the checks below and gets an actionable
@@ -138,10 +139,13 @@ jobs:
           }
           api="$(resolve "$ECR_REPOSITORY")"
           web="$(resolve "$WEB_ECR_REPOSITORY")"
+          worker="$(resolve "$WORKER_ECR_REPOSITORY")"
           echo "promoting api $api"
           echo "promoting web $web"
+          echo "promoting worker $worker"
           echo "ref=$api" >> "$GITHUB_OUTPUT"
           echo "web_ref=$web" >> "$GITHUB_OUTPUT"
+          echo "worker_ref=$worker" >> "$GITHUB_OUTPUT"
 
       - name: Read the rollback pointer
         id: pointer
@@ -169,18 +173,24 @@ jobs:
             echo "::error::rollback pointer $PARAM does not exist - apply infra/shared-ecr first (ADR-0029)"
             exit 1
           fi
-          api="none"; web="none"
+          api="none"; web="none"; worker="none"
           if [ "$value" = "none" ]; then
             echo "::warning::no previous release recorded - rollback is NOT armed for this run"
-          elif printf '%s' "$value" | jq -e 'type == "object" and .api and .web' >/dev/null 2>&1; then
+          elif printf '%s' "$value" | jq -e 'type == "object" and .api and .web and .worker' >/dev/null 2>&1; then
             api="$(printf '%s' "$value" | jq -r .api)"
             web="$(printf '%s' "$value" | jq -r .web)"
-            echo "rollback target if this release fails: api $api, web $web"
+            worker="$(printf '%s' "$value" | jq -r .worker)"
+            echo "rollback target if this release fails: api $api, web $web, worker $worker"
+          elif printf '%s' "$value" | jq -e 'type == "object" and .api and .web' >/dev/null 2>&1; then
+            # The shape ADR-0095 wrote: two services. A release is three now
+            # (ADR-0096), and a set that is missing one is not the set.
+            echo "::warning::the pointer names two services ($value) and a release is three since the worker - rollback is NOT armed for this run; the first green release writes all three"
           else
-            echo "::warning::the pointer holds a single digest from before the service split ($value) - it names the api alone, so rollback is NOT armed for this run; the first green release writes both"
+            echo "::warning::the pointer holds a single digest from before the service split ($value) - it names the api alone, so rollback is NOT armed for this run; the first green release writes all three"
           fi
           echo "api_digest=$api" >> "$GITHUB_OUTPUT"
           echo "web_digest=$web" >> "$GITHUB_OUTPUT"
+          echo "worker_digest=$worker" >> "$GITHUB_OUTPUT"
 
       - name: Terraform init (S3 backend)
         working-directory: infra/envs/prod
@@ -191,6 +201,7 @@ jobs:
         env:
           TF_VAR_api_image: ${{ steps.image.outputs.ref }}
           TF_VAR_web_image: ${{ steps.image.outputs.web_ref }}
+          TF_VAR_worker_image: ${{ steps.image.outputs.worker_ref }}
         run: terraform plan -input=false -out=tfplan
 
       # `-json` replaces terraform's human-readable output with an event stream
@@ -210,6 +221,7 @@ jobs:
             echo "cluster=$(terraform output -raw ecs_cluster_name)"
             echo "service=$(terraform output -raw ecs_service_name)"
             echo "web_service=$(terraform output -raw ecs_web_service_name)"
+            echo "worker_service=$(terraform output -raw ecs_worker_service_name)"
             echo "task_def=$(terraform output -raw task_definition_arn)"
             echo "container=$(terraform output -raw container_name)"
             echo "sg=$(terraform output -raw ecs_app_security_group_id)"
@@ -223,7 +235,7 @@ jobs:
           # Both services, one wait (ADR-0095).
           aws ecs wait services-stable \
             --cluster "${{ steps.tf.outputs.cluster }}" \
-            --services "${{ steps.tf.outputs.service }}" "${{ steps.tf.outputs.web_service }}"
+            --services "${{ steps.tf.outputs.service }}" "${{ steps.tf.outputs.web_service }}" "${{ steps.tf.outputs.worker_service }}"
 
       - name: Wait for the public HTTPS name to answer
         env:
@@ -299,12 +311,13 @@ jobs:
           PARAM: /release/aws-devops-sdet-demo/prod/last-good-image-digest
           IMAGE_REF: ${{ steps.image.outputs.ref }}
           WEB_IMAGE_REF: ${{ steps.image.outputs.web_ref }}
+          WORKER_IMAGE_REF: ${{ steps.image.outputs.worker_ref }}
         run: |
           set -euo pipefail
-          # The release is the SET (ADR-0095): one JSON object, written in one
-          # put, so the pointer never names a web from one release beside an
-          # api from another.
-          release="$(jq -nc --arg api "${IMAGE_REF##*@}" --arg web "${WEB_IMAGE_REF##*@}" '{api: $api, web: $web}')"
+          # The release is the SET (ADR-0095, three since ADR-0096): one JSON
+          # object, written in one put, so the pointer never names a web from
+          # one release beside an api from another.
+          release="$(jq -nc --arg api "${IMAGE_REF##*@}" --arg web "${WEB_IMAGE_REF##*@}" --arg worker "${WORKER_IMAGE_REF##*@}" '{api: $api, web: $web, worker: $worker}')"
           aws ssm put-parameter --region "$AWS_REGION" --name "$PARAM" \
             --type String --overwrite --value "$release" >/dev/null
           echo "last good prod release is now $release"
@@ -331,8 +344,10 @@ jobs:
         env:
           ECR_REPOSITORY: aws-devops-sdet-demo-app
           WEB_ECR_REPOSITORY: aws-devops-sdet-demo-web
+          WORKER_ECR_REPOSITORY: aws-devops-sdet-demo-worker
           IMAGE_REF: ${{ steps.image.outputs.ref }}
           WEB_IMAGE_REF: ${{ steps.image.outputs.web_ref }}
+          WORKER_IMAGE_REF: ${{ steps.image.outputs.worker_ref }}
           PROMOTED_SHA: ${{ inputs.image_tag }}
           # For the two `gh api` calls below. The same token `git push` was
           # using; what changes is the call, not the credential.
@@ -372,6 +387,7 @@ jobs:
           }
           tag_in "$ECR_REPOSITORY" "$digest"
           tag_in "$WEB_ECR_REPOSITORY" "${WEB_IMAGE_REF##*@}"
+          tag_in "$WORKER_ECR_REPOSITORY" "${WORKER_IMAGE_REF##*@}"
 
           # On the commit the IMAGE was built from - the dispatched tag - not on
           # this workflow's own head. They are usually the same commit, and the
@@ -437,12 +453,14 @@ jobs:
         env:
           ECR_REPOSITORY: aws-devops-sdet-demo-app
           WEB_ECR_REPOSITORY: aws-devops-sdet-demo-web
+          WORKER_ECR_REPOSITORY: aws-devops-sdet-demo-worker
           ROLLBACK_API: ${{ steps.pointer.outputs.api_digest }}
           ROLLBACK_WEB: ${{ steps.pointer.outputs.web_digest }}
+          ROLLBACK_WORKER: ${{ steps.pointer.outputs.worker_digest }}
         run: |
           set -euo pipefail
-          if [ "$ROLLBACK_API" = "none" ] || [ "$ROLLBACK_WEB" = "none" ]; then
-            echo "::error::this release failed and no previous release of BOTH services exists to roll back to. prod is left standing for inspection - tear it down with the destroy workflow (environment: prod)."
+          if [ "$ROLLBACK_API" = "none" ] || [ "$ROLLBACK_WEB" = "none" ] || [ "$ROLLBACK_WORKER" = "none" ]; then
+            echo "::error::this release failed and no previous release of ALL THREE services exists to roll back to. prod is left standing for inspection - tear it down with the destroy workflow (environment: prod)."
             exit 1
           fi
           # The pointer can outlive the images it names: the lifecycle policy
@@ -464,9 +482,11 @@ jobs:
           }
           api="$(target "$ECR_REPOSITORY" "$ROLLBACK_API")"
           web="$(target "$WEB_ECR_REPOSITORY" "$ROLLBACK_WEB")"
-          echo "rolling prod back to api $api, web $web"
+          worker="$(target "$WORKER_ECR_REPOSITORY" "$ROLLBACK_WORKER")"
+          echo "rolling prod back to api $api, web $web, worker $worker"
           echo "ref=$api" >> "$GITHUB_OUTPUT"
           echo "web_ref=$web" >> "$GITHUB_OUTPUT"
+          echo "worker_ref=$worker" >> "$GITHUB_OUTPUT"
 
       - name: Apply the rollback
         id: rollback_apply
@@ -475,6 +495,7 @@ jobs:
         env:
           TF_VAR_api_image: ${{ steps.rollback.outputs.ref }}
           TF_VAR_web_image: ${{ steps.rollback.outputs.web_ref }}
+          TF_VAR_worker_image: ${{ steps.rollback.outputs.worker_ref }}
         run: |
           set -euo pipefail
           # A second apply, NOT `aws ecs update-service`. update-service would
@@ -485,7 +506,7 @@ jobs:
             apply -input=false -auto-approve -json
           aws ecs wait services-stable \
             --cluster "$(terraform output -raw ecs_cluster_name)" \
-            --services "$(terraform output -raw ecs_service_name)" "$(terraform output -raw ecs_web_service_name)"
+            --services "$(terraform output -raw ecs_service_name)" "$(terraform output -raw ecs_web_service_name)" "$(terraform output -raw ecs_worker_service_name)"
           # Re-read rather than reuse steps.tf: the outputs step is one of the
           # things that may have failed on the way here.
           echo "app_url=$(terraform output -raw app_url)" >> "$GITHUB_OUTPUT"
@@ -526,7 +547,7 @@ jobs:
             echo "| image | ${{ steps.image.outputs.ref }} |"
             echo "| prod URL | ${{ steps.tf.outputs.app_url }} |"
             echo "| release | ${{ steps.release.outputs.name || '(none - this release did not pass)' }} |"
-            echo "| rollback target | api ${{ steps.pointer.outputs.api_digest }}, web ${{ steps.pointer.outputs.web_digest }} |"
+            echo "| rollback target | api ${{ steps.pointer.outputs.api_digest }}, web ${{ steps.pointer.outputs.web_digest }}, worker ${{ steps.pointer.outputs.worker_digest }} |"
             echo "| rollback applied | ${{ steps.rollback_apply.outcome || 'no' }} |"
             echo ""
             echo "prod is billable while it is up. Tear it down with the destroy workflow (environment: prod)."

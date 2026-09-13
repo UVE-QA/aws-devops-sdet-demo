@@ -186,6 +186,7 @@ jobs:
           # One repository per service since ADR-0095.
           ECR_REPOSITORY: aws-devops-sdet-demo-app
           WEB_ECR_REPOSITORY: aws-devops-sdet-demo-web
+          WORKER_ECR_REPOSITORY: aws-devops-sdet-demo-worker
         run: |
           set -euo pipefail
           resolve() {
@@ -202,8 +203,9 @@ jobs:
           }
           echo "ecr_url=$(resolve "$ECR_REPOSITORY")" >> "$GITHUB_OUTPUT"
           echo "web_ecr_url=$(resolve "$WEB_ECR_REPOSITORY")" >> "$GITHUB_OUTPUT"
+          echo "worker_ecr_url=$(resolve "$WORKER_ECR_REPOSITORY")" >> "$GITHUB_OUTPUT"
 
-      # ONE RELEASE, TWO IMAGES (ADR-0095), built one after the other under
+      # ONE RELEASE, THREE IMAGES (ADR-0095, ADR-0096), built one after the other under
       # the same tag; the matrix belongs with the services manifest of plan
       # item 5.
       - name: Build, tag, and push the api image
@@ -244,11 +246,31 @@ jobs:
           docker build -t "$ECR_URL:$IMAGE_TAG" ./web
           docker push "$ECR_URL:$IMAGE_TAG"
 
+      - name: Build, tag, and push the worker image
+        env:
+          ECR_URL: ${{ steps.repo.outputs.worker_ecr_url }}
+          ECR_REPOSITORY: aws-devops-sdet-demo-worker
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          # The registry is IMMUTABLE (ADR-0029), so an existing tag is reused
+          # rather than rebuilt. On the public path that is also the common case:
+          # every launch runs the same commit.
+          if aws ecr describe-images --region "$AWS_REGION" \
+               --repository-name "$ECR_REPOSITORY" \
+               --image-ids imageTag="$IMAGE_TAG" >/dev/null 2>&1; then
+            echo "$IMAGE_TAG is already in $ECR_REPOSITORY - reusing it, not rebuilding"
+            exit 0
+          fi
+          docker build -t "$ECR_URL:$IMAGE_TAG" ./worker
+          docker push "$ECR_URL:$IMAGE_TAG"
+
       - name: Terraform apply
         working-directory: infra/envs/stage
         env:
           TF_VAR_api_image: ${{ steps.repo.outputs.ecr_url }}:${{ github.sha }}
           TF_VAR_web_image: ${{ steps.repo.outputs.web_ecr_url }}:${{ github.sha }}
+          TF_VAR_worker_image: ${{ steps.repo.outputs.worker_ecr_url }}:${{ github.sha }}
           TF_VAR_expires_at: ${{ steps.deadline.outputs.expires_at }}
         run: |
           set -euo pipefail
@@ -264,6 +286,7 @@ jobs:
             echo "cluster=$(terraform output -raw ecs_cluster_name)"
             echo "service=$(terraform output -raw ecs_service_name)"
             echo "web_service=$(terraform output -raw ecs_web_service_name)"
+            echo "worker_service=$(terraform output -raw ecs_worker_service_name)"
             echo "task_def=$(terraform output -raw task_definition_arn)"
             echo "container=$(terraform output -raw container_name)"
             echo "sg=$(terraform output -raw ecs_app_security_group_id)"
@@ -273,11 +296,12 @@ jobs:
 
       - name: Wait for ECS service to be stable
         run: |
-          # Both services, one wait (ADR-0095): the page is not up until both
-          # halves of it answer, and the step's name is what the map binds.
+          # Every service, one wait (ADR-0095, ADR-0096): the page is not up
+          # until both halves of it answer and the worker is consuming, and the
+          # step's name is what the map binds.
           aws ecs wait services-stable \
             --cluster "${{ steps.tf.outputs.cluster }}" \
-            --services "${{ steps.tf.outputs.service }}" "${{ steps.tf.outputs.web_service }}"
+            --services "${{ steps.tf.outputs.service }}" "${{ steps.tf.outputs.web_service }}" "${{ steps.tf.outputs.worker_service }}"
 
       - name: Run one-off tasks (migrate, seed, db-assert)
         env:

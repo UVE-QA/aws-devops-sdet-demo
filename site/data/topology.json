@@ -5,13 +5,13 @@
     "levels": 8,
     "permanent_levels": 6,
     "cycle_levels": 2,
-    "resources": 135,
-    "resources_permanent": 58,
-    "resources_per_cycle": 77,
-    "modules": 10,
+    "resources": 163,
+    "resources_permanent": 60,
+    "resources_per_cycle": 103,
+    "modules": 11,
     "suites": 5,
     "workflows": 6,
-    "adrs": 96,
+    "adrs": 97,
     "repeated_blocks": 9
   },
   "measured_cycle": null,
@@ -95,12 +95,6 @@
     "note": "Planned, and deliberately not built yet. Nothing below is in infra/, the map draws none of it, and the order is the order it will be done in.",
     "items": [
       {
-        "id": "web-api-split",
-        "title": "Split the container into web and api",
-        "what": "two images behind one load balancer, routed by path; a release becomes a set of digests rather than one",
-        "why": "the first boundary, and the one that makes promotion by digest mean something across services"
-      },
-      {
         "id": "queue-worker",
         "title": "A queue and a worker",
         "what": "api publishes an event to SQS, a worker consumes it, with a dead-letter queue and an alarm on it",
@@ -125,36 +119,8 @@
         "why": "so the machinery around the application - the observed teardown, the cost fold, the gates - becomes a blueprint another project can declare its way into"
       }
     ],
-    "_services": "THE TILES (ADR-0094 D1, as the owner chose it): the additional services the plan brings, drawn as greyed marks in the same board vocabulary as the estate - `absent` is what this page already draws for a noun a cycle has not reached, and a planned service is exactly that. Each tile names the step it arrives in, and the step must be an item above; the generator refuses one that is not. `sqs` and `eks` carry a project glyph until their Architecture Icons are added to assets/aws-icons/.",
+    "_services": "THE TILES (ADR-0094 D1, as the owner chose it): the additional services the plan brings, drawn as greyed marks in the same board vocabulary as the estate - `absent` is what this page already draws for a noun a cycle has not reached, and a planned service is exactly that. Each tile names the step it arrives in, and the step must be an item above; the generator refuses one that is not. `sqs` and `eks` carry a project glyph until their Architecture Icons are added to assets/aws-icons/. A tile leaves the band the day the board draws the thing: web and api left with ADR-0095, the queue and the worker with ADR-0096.",
     "services": [
-      {
-        "id": "plan.web",
-        "label": "web",
-        "service": "ecs",
-        "step": "web-api-split",
-        "why": "the interface, in a container of its own"
-      },
-      {
-        "id": "plan.api",
-        "label": "api",
-        "service": "ecs",
-        "step": "web-api-split",
-        "why": "the domain, and the only thing that touches its schema"
-      },
-      {
-        "id": "plan.queue",
-        "label": "SQS + dead-letter queue",
-        "service": "sqs",
-        "step": "queue-worker",
-        "why": "the asynchronous seam between api and worker"
-      },
-      {
-        "id": "plan.worker",
-        "label": "worker",
-        "service": "ecs",
-        "step": "queue-worker",
-        "why": "consumes events; idempotent, retried, alarmed"
-      },
       {
         "id": "plan.eks",
         "label": "EKS — lab",
@@ -207,13 +173,15 @@
         "label": "ECR — the registry",
         "service": "ecr",
         "level": "infra/shared-ecr",
-        "resources": 5,
+        "resources": 7,
         "members": [
           "infra/shared-ecr :: aws_ssm_parameter.prod_last_good_digest",
           "infra/shared-ecr :: module.ecr.aws_ecr_repository.app",
           "infra/shared-ecr :: module.ecr.aws_ecr_lifecycle_policy.app",
           "infra/shared-ecr :: module.ecr_web.aws_ecr_repository.app",
-          "infra/shared-ecr :: module.ecr_web.aws_ecr_lifecycle_policy.app"
+          "infra/shared-ecr :: module.ecr_web.aws_ecr_lifecycle_policy.app",
+          "infra/shared-ecr :: module.ecr_worker.aws_ecr_repository.app",
+          "infra/shared-ecr :: module.ecr_worker.aws_ecr_lifecycle_policy.app"
         ],
         "why": "prod promotes the digest stage tested; a teardown must not delete it"
       },
@@ -372,9 +340,10 @@
             "env": "stage",
             "observer": "terraform",
             "tool": "terraform",
-            "resources": 7,
+            "resources": 8,
             "members": [
               "aws_iam_role_policy.api_read_db_secret",
+              "aws_iam_role_policy.api_publish_items",
               "module.api.aws_security_group.this",
               "module.api.aws_iam_role.execution",
               "module.api.aws_iam_role_policy_attachment.execution_managed",
@@ -399,6 +368,42 @@
               "module.web.aws_iam_role.task",
               "module.web.aws_ecs_task_definition.this",
               "module.web.aws_ecs_service.this"
+            ]
+          },
+          {
+            "id": "stage.queue",
+            "label": "SQS + dead-letter queue",
+            "service": "sqs",
+            "kind": "service",
+            "env": "stage",
+            "observer": "terraform",
+            "tool": "terraform",
+            "resources": 4,
+            "members": [
+              "module.queue.aws_sqs_queue.dead_letter",
+              "module.queue.aws_sqs_queue.items",
+              "module.queue.aws_sqs_queue_redrive_allow_policy.dead_letter",
+              "module.queue.aws_cloudwatch_metric_alarm.dead_letter_not_empty"
+            ]
+          },
+          {
+            "id": "stage.ecs_worker",
+            "label": "ECS — worker",
+            "service": "ecs",
+            "kind": "service",
+            "env": "stage",
+            "observer": "terraform",
+            "tool": "terraform",
+            "resources": 8,
+            "members": [
+              "aws_iam_role_policy.worker_read_db_secret",
+              "aws_iam_role_policy.worker_consume_items",
+              "module.worker.aws_security_group.this",
+              "module.worker.aws_iam_role.execution",
+              "module.worker.aws_iam_role_policy_attachment.execution_managed",
+              "module.worker.aws_iam_role.task",
+              "module.worker.aws_ecs_task_definition.this",
+              "module.worker.aws_ecs_service.this"
             ]
           },
           {
@@ -510,9 +515,10 @@
             "env": "prod",
             "observer": "terraform",
             "tool": "terraform",
-            "resources": 7,
+            "resources": 8,
             "members": [
               "aws_iam_role_policy.api_read_db_secret",
+              "aws_iam_role_policy.api_publish_items",
               "module.api.aws_security_group.this",
               "module.api.aws_iam_role.execution",
               "module.api.aws_iam_role_policy_attachment.execution_managed",
@@ -537,6 +543,42 @@
               "module.web.aws_iam_role.task",
               "module.web.aws_ecs_task_definition.this",
               "module.web.aws_ecs_service.this"
+            ]
+          },
+          {
+            "id": "prod.queue",
+            "label": "SQS + dead-letter queue",
+            "service": "sqs",
+            "kind": "service",
+            "env": "prod",
+            "observer": "terraform",
+            "tool": "terraform",
+            "resources": 4,
+            "members": [
+              "module.queue.aws_sqs_queue.dead_letter",
+              "module.queue.aws_sqs_queue.items",
+              "module.queue.aws_sqs_queue_redrive_allow_policy.dead_letter",
+              "module.queue.aws_cloudwatch_metric_alarm.dead_letter_not_empty"
+            ]
+          },
+          {
+            "id": "prod.ecs_worker",
+            "label": "ECS — worker",
+            "service": "ecs",
+            "kind": "service",
+            "env": "prod",
+            "observer": "terraform",
+            "tool": "terraform",
+            "resources": 8,
+            "members": [
+              "aws_iam_role_policy.worker_read_db_secret",
+              "aws_iam_role_policy.worker_consume_items",
+              "module.worker.aws_security_group.this",
+              "module.worker.aws_iam_role.execution",
+              "module.worker.aws_iam_role_policy_attachment.execution_managed",
+              "module.worker.aws_iam_role.task",
+              "module.worker.aws_ecs_task_definition.this",
+              "module.worker.aws_ecs_service.this"
             ]
           },
           {
@@ -599,7 +641,8 @@
             "when": "step",
             "steps": [
               "Build, tag, and push the api image",
-              "Build, tag, and push the web image"
+              "Build, tag, and push the web image",
+              "Build, tag, and push the worker image"
             ]
           },
           {
@@ -609,7 +652,8 @@
             "when": "step",
             "steps": [
               "Build, tag, and push the api image",
-              "Build, tag, and push the web image"
+              "Build, tag, and push the web image",
+              "Build, tag, and push the worker image"
             ]
           }
         ],
@@ -668,6 +712,35 @@
                 "when": "step",
                 "steps": [
                   "Build, tag, and push the web image"
+                ]
+              }
+            ],
+            "env": "stage"
+          },
+          {
+            "id": "build.worker",
+            "tool": "docker",
+            "label": "ECR push — worker",
+            "service": "ecr",
+            "kind": "service",
+            "observer": "actions",
+            "live": [
+              {
+                "workflow": "deploy-stage.yml",
+                "path": ".github/workflows/deploy-stage.yml",
+                "job": "deploy",
+                "when": "step",
+                "steps": [
+                  "Build, tag, and push the worker image"
+                ]
+              },
+              {
+                "workflow": "self-service.yml",
+                "path": ".github/workflows/self-service.yml",
+                "job": "launch",
+                "when": "step",
+                "steps": [
+                  "Build, tag, and push the worker image"
                 ]
               }
             ],
@@ -868,7 +941,7 @@
             "suite": "api",
             "suite_dir": "tests/api",
             "asserts": "the paginated envelope, partial update, request id — DESTRUCTIVE",
-            "spec_files": 2,
+            "spec_files": 3,
             "live": [
               {
                 "workflow": "deploy-stage.yml",
@@ -1222,7 +1295,7 @@
                 ]
               }
             ],
-            "resources": 38,
+            "resources": 51,
             "level": "infra/envs/stage",
             "tool": "terraform"
           },
@@ -1245,7 +1318,7 @@
                 ]
               }
             ],
-            "resources": 39,
+            "resources": 52,
             "level": "infra/envs/prod",
             "tool": "terraform"
           }
@@ -1331,7 +1404,7 @@
         "dir": "tests/unit",
         "pattern": "test_*.py",
         "asserts": "the shape of the log line the 5xx alarm reads, and the scripts a teardown depends on — in-process, no network",
-        "spec_files": 6,
+        "spec_files": 7,
         "run_by": [],
         "not_in_cycle": "in-process and importing the application, so there is nothing for a cycle to run it against: it runs in ci.yml and locally. Declared rather than inferred - a suite with neither a run node nor this reason is a red build (ADR-0054 D8)."
       },
@@ -1354,7 +1427,7 @@
         "dir": "tests/api",
         "pattern": "test_*.py",
         "asserts": "the paginated envelope, partial update, request id — DESTRUCTIVE",
-        "spec_files": 2,
+        "spec_files": 3,
         "run_by": [
           "suite.api.stage"
         ],
@@ -1392,7 +1465,7 @@
       "group": "ecs_cluster",
       "label": "the ECS cluster",
       "resources": 2,
-      "why": "the room both services run in and a property of neither; drawing it as a third tile would put a container beside its contents (ADR-0095)",
+      "why": "the room the three services run in and a property of none of them; drawing it as a fourth tile would put a container beside its contents (ADR-0095)",
       "members": [
         "module.ecs_cluster.aws_ecs_cluster.this"
       ]

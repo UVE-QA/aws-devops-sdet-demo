@@ -14,8 +14,14 @@ variable "private_db_subnet_ids" {
 }
 
 variable "ecs_app_security_group_id" {
-  description = "Security group ID of the ECS app; RDS allows 5432 only from this SG."
+  description = "Security group ID of the api's tasks; RDS allows 5432 from this SG."
   type        = string
+}
+
+variable "extra_client_security_group_ids" {
+  description = "Further security groups RDS allows 5432 from - the worker's, since ADR-0096. Still by group, never by CIDR."
+  type        = list(string)
+  default     = []
 }
 
 variable "engine_version" {

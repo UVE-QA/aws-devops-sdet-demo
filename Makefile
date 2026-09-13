@@ -98,7 +98,7 @@ test-unit:
 	  echo "could not create a virtualenv - install python3-venv (apt install python3-venv)"; exit 1; }
 	@$(UNIT_VENV)/bin/pip install -q --upgrade pip
 	$(UNIT_VENV)/bin/pip install -q -r tests/unit/requirements.txt
-	PYTHONPATH=app:infra/self-service/src $(UNIT_VENV)/bin/pytest tests/unit -q
+	PYTHONPATH=app:worker:infra/self-service/src $(UNIT_VENV)/bin/pytest tests/unit -q
 
 # Build the Lambda deployment package for infra/self-service.
 #
@@ -565,7 +565,7 @@ APP_IMAGE ?= aws-devops-sdet-demo-app:local
 # Every image this repository builds, and the scan runs over all of them
 # (ADR-0095). A scan over one of two images is the vacuous green this project
 # keeps finding one layer down.
-IMAGES ?= $(APP_IMAGE) aws-devops-sdet-demo-web:local
+IMAGES ?= $(APP_IMAGE) aws-devops-sdet-demo-web:local aws-devops-sdet-demo-worker:local
 TRIVY_REPORT ?= trivy-report.json
 image-scan:
 	@command -v trivy >/dev/null 2>&1 || { echo "image-scan: trivy is not on PATH. Refusing to pass without scanning anything."; exit 1; }
@@ -588,9 +588,10 @@ action-pins:
 
 # Build the app image only.
 docker-build:
-	# Both images (ADR-0095): the scan iterates over IMAGES and refuses one it
-	# cannot find, so a build of one image alone is a red gate, not a fast one.
-	docker compose build app web
+	# Every image (ADR-0095, ADR-0096): the scan iterates over IMAGES and
+	# refuses one it cannot find, so a build of one image alone is a red gate,
+	# not a fast one.
+	docker compose build app web worker
 
 # Terraform formatting check across the whole tree.
 tf-fmt:

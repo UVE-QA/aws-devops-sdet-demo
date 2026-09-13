@@ -93,6 +93,9 @@ data "aws_iam_policy_document" "deploy" {
       "budgets:*",
       "cloudwatch:*",
       "application-autoscaling:*",
+      # The queue and its dead-letter queue (ADR-0096), created and destroyed
+      # with the environment like everything else in this statement.
+      "sqs:*",
       "secretsmanager:CreateSecret",
       "secretsmanager:DeleteSecret",
       "secretsmanager:DescribeSecret",
@@ -151,7 +154,7 @@ data "aws_iam_policy_document" "deploy" {
     # cycle after the split found it still holding the old pair, and the sweep
     # answered `unconfirmed` for four roles it was not allowed to ask about.
     resources = flatten([
-      for service in ["api", "web"] : [
+      for service in ["api", "web", "worker"] : [
         "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.name_prefix}-${service}-ecs-execution",
         "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.name_prefix}-${service}-ecs-task",
       ]

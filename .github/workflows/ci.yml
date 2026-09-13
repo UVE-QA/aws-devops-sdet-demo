@@ -37,6 +37,14 @@ jobs:
         working-directory: app
         run: python -c "import src.main; print('app imports OK')"
 
+      # The worker's own dependencies and its own package (ADR-0096): an
+      # import that fails here fails before a container is built for it.
+      - name: Install worker dependencies and import check
+        working-directory: worker
+        run: |
+          pip install -r requirements.txt
+          python -c "import consumer.main; print('worker imports OK')"
+
       # Before the stack is up, deliberately: this suite needs no database and
       # no container, and it is the only place the shape of the log line the
       # 5xx alarm reads can be asserted at all (ADR-0032).

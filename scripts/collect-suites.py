@@ -81,7 +81,7 @@ COLLECTORS = {
     "unit": {
         "how": "pytest",
         "interpreter_env": "UNIT_PYTEST",
-        "pythonpath": "app:infra/self-service/src",
+        "pythonpath": "app:worker:infra/self-service/src",
         "pin_file": "tests/unit/requirements.txt",
     },
     "api": {

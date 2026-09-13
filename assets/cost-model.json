@@ -68,6 +68,8 @@
   "not_metered": {
     "aws_cloudwatch_log_group": "billed on bytes ingested and bytes stored. Neither is a lifetime and neither is visible in a timeline; measuring it would need a CloudWatch API call, which this fold deliberately does not make (ADR-0039 D2).",
     "aws_cloudwatch_log_metric_filter": "no charge for the filter; what it produces is a metric, and the alarm below is what is billable.",
+    "aws_sqs_queue": "billed per million requests, and a cycle makes a few hundred: the api's sends, the worker's long polls, the observation's attribute reads. Not a lifetime and nowhere near the width of the band (ADR-0096).",
+    "aws_sqs_queue_redrive_allow_policy": "an attribute of the dead-letter queue, not a thing that bills.",
     "aws_cloudwatch_metric_alarm": "billed per alarm-month, which IS a lifetime this fold could price. Left out of v1 on purpose and named here rather than dropped: one alarm over half an hour is far below the width of the band the estimate already reports, and adding it would mean a fourth price lookup for a figure that cannot change the answer.",
     "aws_secretsmanager_secret": "billed per secret-month plus API calls. Same shape and same reasoning as the alarm."
   },

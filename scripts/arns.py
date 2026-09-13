@@ -63,6 +63,14 @@ def parse(arn: str) -> tuple[str, str, str]:
         return "", "", ""
     service, rest = parts[2], parts[5]
 
+    # SQS is the one service whose resource part is the bare queue name, with
+    # no kind in front of it (`arn:aws:sqs:us-west-2:1234:demo-stage-items`).
+    # Left to the split below it would read as a kind called after the queue,
+    # with no name - and no rule would ever match. Named `queue` here so the
+    # sweep and the adoption can have a rule for it (ADR-0096).
+    if service == "sqs":
+        return service, "queue", rest
+
     cut = min(
         (i for i in (rest.find(":"), rest.find("/")) if i >= 0),
         default=-1,

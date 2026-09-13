@@ -2091,6 +2091,20 @@
         h += '<dt>web service</dt><dd>' + (r.ecs_web_service
           ? esc(r.ecs_web_service.status) + ", " + esc(r.ecs_web_service.running) + "/" + esc(r.ecs_web_service.desired) + " running"
           : '<span class="off">absent</span>') + '</dd>';
+        // The third service and the queue it reads (ADR-0096), by the same
+        // rule: an observation from before the worker says nothing about it,
+        // and is drawn as absent rather than hidden.
+        h += '<dt>worker service</dt><dd>' + (r.ecs_worker_service
+          ? esc(r.ecs_worker_service.status) + ", " + esc(r.ecs_worker_service.running) + "/" + esc(r.ecs_worker_service.desired) + " running"
+          : '<span class="off">absent</span>') + '</dd>';
+        // Three facts off the queue, and the alarm's own word for the third:
+        // `OK` is the alarm saying the dead-letter queue is empty, `ALARM` is
+        // it saying a message the worker could never process is sitting there,
+        // and `INSUFFICIENT_DATA` is a queue too young to have been measured.
+        h += '<dt>queue</dt><dd>' + (r.queue
+          ? esc(r.queue.visible) + " waiting, " + esc(r.queue.dead_letter_visible) + " dead-lettered" +
+            (r.queue.dead_letter_alarm ? ", alarm <span class=\"mono\">" + esc(r.queue.dead_letter_alarm) + "</span>" : "")
+          : '<span class="off">absent</span>') + '</dd>';
         h += '<dt>database</dt><dd>' + (r.db_instance
           ? esc(r.db_instance.status) + ' <span class="mono">' + esc(r.db_instance.identifier) + '</span>'
           : '<span class="off">absent</span>') + '</dd>';

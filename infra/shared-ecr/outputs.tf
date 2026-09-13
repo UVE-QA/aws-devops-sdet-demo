@@ -32,3 +32,13 @@ output "web_repository_name" {
   description = "Name of the web image's repository."
   value       = module.ecr_web.repository_name
 }
+
+output "worker_repository_url" {
+  description = "URL of the worker image's repository (ADR-0096)."
+  value       = module.ecr_worker.repository_url
+}
+
+output "worker_repository_name" {
+  description = "Name of the worker image's repository."
+  value       = module.ecr_worker.repository_name
+}

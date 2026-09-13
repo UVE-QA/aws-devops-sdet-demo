@@ -24,13 +24,24 @@ variable "public_subnet_ids" {
 }
 
 variable "alb_security_group_id" {
-  description = "The ALB's security group; the only source allowed onto the service's port."
+  description = "The ALB's security group; the only source allowed onto the service's port. null for a service nothing connects to (the worker, ADR-0096): its group then has no ingress at all."
   type        = string
+  default     = null
 }
 
 variable "target_group_arn" {
-  description = "The target group the service registers in."
+  description = "The target group the service registers in. null for a service behind no load balancer (the worker, ADR-0096)."
   type        = string
+  default     = null
+}
+
+variable "extra_environment" {
+  description = "Further non-secret environment for the container, as {name, value} pairs - the queue URL for the api and the worker (ADR-0096). Secrets never go here; that is what db_secret_arn is for."
+  type = list(object({
+    name  = string
+    value = string
+  }))
+  default = []
 }
 
 variable "cluster_id" {
@@ -44,8 +55,14 @@ variable "image" {
 }
 
 variable "port" {
-  description = "The container port the service listens on and the ALB forwards to."
+  description = "The container port the service listens on and the ALB forwards to. null for a service that listens on nothing (the worker, ADR-0096)."
   type        = number
+  default     = null
+
+  validation {
+    condition     = (var.port == null) == (var.target_group_arn == null) && (var.port == null) == (var.alb_security_group_id == null)
+    error_message = "port, target_group_arn and alb_security_group_id are set together (a service behind the load balancer) or not at all (a service behind nothing)."
+  }
 }
 
 variable "app_env" {

@@ -33,6 +33,12 @@ variable "web_image" {
   default     = "aws-devops-sdet-demo-web:bootstrap"
 }
 
+variable "worker_image" {
+  description = "Full ECR image reference for the worker (ADR-0096). Same rule as the api's."
+  type        = string
+  default     = "aws-devops-sdet-demo-worker:bootstrap"
+}
+
 variable "web_port" {
   description = "Port the web container listens on."
   type        = number

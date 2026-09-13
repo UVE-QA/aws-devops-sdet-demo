@@ -50,6 +50,7 @@ cluster_arn="$(aws ecs list-clusters --region "$AWS_REGION" \
 
 service='null'
 web_service='null'
+worker_service='null'
 image='null'
 if [ "$cluster_arn" != "None" ] && [ -n "$cluster_arn" ]; then
   # TWO SERVICES IN THE CLUSTER (ADR-0095), and `serviceArns[0]` was whichever
@@ -63,6 +64,15 @@ if [ "$cluster_arn" != "None" ] && [ -n "$cluster_arn" ]; then
   if [ "$web_service_arn" != "None" ] && [ -n "$web_service_arn" ]; then
     web_service="$(aws ecs describe-services --region "$AWS_REGION" \
       --cluster "$cluster_arn" --services "$web_service_arn" \
+      --query "services[0].{name:serviceName,status:status,desired:desiredCount,running:runningCount}" \
+      --output json)"
+  fi
+  # The third service (ADR-0096), observed the same way.
+  worker_service_arn="$(aws ecs list-services --region "$AWS_REGION" --cluster "$cluster_arn" \
+    --query "serviceArns[?ends_with(@, '-worker')] | [0]" --output text)"
+  if [ "$worker_service_arn" != "None" ] && [ -n "$worker_service_arn" ]; then
+    worker_service="$(aws ecs describe-services --region "$AWS_REGION" \
+      --cluster "$cluster_arn" --services "$worker_service_arn" \
       --query "services[0].{name:serviceName,status:status,desired:desiredCount,running:runningCount}" \
       --output json)"
   fi
@@ -84,6 +94,40 @@ if [ "$cluster_arn" != "None" ] && [ -n "$cluster_arn" ]; then
         --query "taskDefinition.containerDefinitions[0].image" --output json)"
     fi
   fi
+fi
+
+# ---- the queue (ADR-0096) ---------------------------------------------------
+#
+# Three facts and nothing derived from them: how many messages the queue holds,
+# how many the dead-letter queue holds, and what the alarm on the dead-letter
+# queue says. A queue that is gone answers get-queue-url with NonExistentQueue,
+# which reads as null here - the same shape as every other absent resource.
+queue='null'
+queue_url="$(aws sqs get-queue-url --region "$AWS_REGION" \
+  --queue-name "${prefix}-items" --query QueueUrl --output text 2>/dev/null || true)"
+if [ -n "$queue_url" ] && [ "$queue_url" != "None" ]; then
+  visible="$(aws sqs get-queue-attributes --region "$AWS_REGION" --queue-url "$queue_url" \
+    --attribute-names ApproximateNumberOfMessages \
+    --query 'Attributes.ApproximateNumberOfMessages' --output text 2>/dev/null || echo null)"
+  dlq_url="$(aws sqs get-queue-url --region "$AWS_REGION" \
+    --queue-name "${prefix}-items-dlq" --query QueueUrl --output text 2>/dev/null || true)"
+  dlq_visible=null
+  if [ -n "$dlq_url" ] && [ "$dlq_url" != "None" ]; then
+    dlq_visible="$(aws sqs get-queue-attributes --region "$AWS_REGION" --queue-url "$dlq_url" \
+      --attribute-names ApproximateNumberOfMessages \
+      --query 'Attributes.ApproximateNumberOfMessages' --output text 2>/dev/null || echo null)"
+  fi
+  alarm_state="$(aws cloudwatch describe-alarms --region "$AWS_REGION" \
+    --alarm-names "${prefix}-items-dlq-not-empty" \
+    --query 'MetricAlarms[0].StateValue' --output text 2>/dev/null || true)"
+  if [ -z "$alarm_state" ] || [ "$alarm_state" = "None" ]; then
+    alarm_state=null
+  else
+    alarm_state="\"$alarm_state\""
+  fi
+  queue="$(jq -n --arg name "${prefix}-items" --argjson visible "${visible:-null}" \
+    --argjson dlq_visible "${dlq_visible:-null}" --argjson alarm "$alarm_state" \
+    '{name: $name, visible: $visible, dead_letter_visible: $dlq_visible, dead_letter_alarm: $alarm}')"
 fi
 
 # ---- database -------------------------------------------------------------
@@ -125,6 +169,8 @@ jq -n \
   --argjson load_balancer "$alb" \
   --argjson ecs_service "$service" \
   --argjson ecs_web_service "$web_service" \
+  --argjson ecs_worker_service "$worker_service" \
+  --argjson queue "$queue" \
   --argjson db_instance "$rds" \
   --argjson image "$image" \
   '{
@@ -140,6 +186,8 @@ jq -n \
        load_balancer: $load_balancer,
        ecs_service: $ecs_service,
        ecs_web_service: $ecs_web_service,
+       ecs_worker_service: $ecs_worker_service,
+       queue: $queue,
        db_instance: $db_instance
      }
    }'

@@ -1,16 +1,22 @@
 # One Fargate service (ADR-0095): its security group, its two IAM roles, its
-# task definition and the service itself. Instantiated once per service - `api`
-# and `web` today - in the cluster modules/ecs-cluster makes. The service runs
-# in PUBLIC subnets with assign_public_ip = true (no NAT, ADR-0006); inbound is
-# allowed only from the ALB's security group, on this service's port.
+# task definition and the service itself. Instantiated once per service - `api`,
+# `web` and, since ADR-0096, `worker` - in the cluster modules/ecs-cluster
+# makes. The service runs in PUBLIC subnets with assign_public_ip = true (no
+# NAT, ADR-0006); inbound is allowed only from the ALB's security group, on
+# this service's port - and a service with no port (the worker) gets a group
+# with no ingress at all and no load balancer, which is what "nothing connects
+# to it" looks like as configuration.
 #
-# WHAT IS PER SERVICE ON PURPOSE. Only the service that is given the database
+# WHAT IS PER SERVICE ON PURPOSE. Only a service that is given the database
 # secret has it injected into its task, and only its execution role is granted
 # the read - by a policy the environment attaches, see below: `web` serves
 # static files and has no business holding a credential to the database, and a
 # role that could read it anyway is the kind of thing this project draws on its
 # board. The security group is per service for the same reason - the RDS module
-# allows 5432 from the api's group and from nothing else.
+# allows 5432 from the groups of the services that reach it and from nothing
+# else. The task role is where a service's own AWS permissions go - the api's
+# right to publish to the queue, the worker's to consume from it - and those
+# too are policies the environment attaches, named for the service.
 #
 # DB credentials are injected via the task definition `secrets` block (valueFrom
 # = Secrets Manager ARN), never plaintext env (ADR-0005). The api's task
@@ -22,19 +28,26 @@ locals {
   # A service without a secret gets no policy and no `secrets` block at all,
   # rather than an empty one: absence is the statement.
   has_secret = var.db_secret_arn != null && var.db_secret_arn != ""
+  # A service behind the load balancer has a port, a target group and an
+  # ingress rule; one behind nothing has none of the three (variables.tf
+  # refuses the half-way states).
+  exposed = var.port != null
 }
 
 resource "aws_security_group" "this" {
   name        = "${local.name}-sg"
-  description = "ECS ${var.service} SG: inbound only from ALB SG on port ${var.port}; all egress."
+  description = local.exposed ? "ECS ${var.service} SG: inbound only from ALB SG on port ${var.port}; all egress." : "ECS ${var.service} SG: no inbound; all egress."
   vpc_id      = var.vpc_id
 
-  ingress {
-    description     = "Service port from ALB SG only"
-    from_port       = var.port
-    to_port         = var.port
-    protocol        = "tcp"
-    security_groups = [var.alb_security_group_id]
+  dynamic "ingress" {
+    for_each = local.exposed ? [1] : []
+    content {
+      description     = "Service port from ALB SG only"
+      from_port       = var.port
+      to_port         = var.port
+      protocol        = "tcp"
+      security_groups = [var.alb_security_group_id]
+    }
   }
 
   egress {
@@ -108,21 +121,21 @@ resource "aws_ecs_task_definition" "this" {
       name      = var.service
       image     = var.image
       essential = true
-      portMappings = [
+      portMappings = local.exposed ? [
         {
           containerPort = var.port
           protocol      = "tcp"
         }
-      ]
+      ] : []
       # Non-secret configuration. APP_ENV tags every JSON log line with the
       # environment that produced it (ADR-0032), so a line lifted out of
       # CloudWatch cannot be mistaken for one from the other environment.
-      environment = [
+      environment = concat([
         {
           name  = "APP_ENV"
           value = var.app_env
         }
-      ]
+      ], var.extra_environment)
       # DB credentials come from Secrets Manager (valueFrom), not plaintext env;
       # and only for the service that has a database to reach.
       secrets = local.has_secret ? [
@@ -167,14 +180,18 @@ resource "aws_ecs_service" "this" {
     assign_public_ip = true
   }
 
-  load_balancer {
-    target_group_arn = var.target_group_arn
-    container_name   = var.service
-    container_port   = var.port
+  dynamic "load_balancer" {
+    for_each = local.exposed ? [1] : []
+    content {
+      target_group_arn = var.target_group_arn
+      container_name   = var.service
+      container_port   = var.port
+    }
   }
 
-  # Allow the one-off run-task overrides and ALB draining to settle.
-  health_check_grace_period_seconds = 60
+  # Allow the one-off run-task overrides and ALB draining to settle. Only
+  # meaningful - and only accepted - with a load balancer.
+  health_check_grace_period_seconds = local.exposed ? 60 : null
 
   tags = {
     Name = local.name

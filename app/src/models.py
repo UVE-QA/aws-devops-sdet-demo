@@ -38,3 +38,12 @@ class DemoItem(Base):
         server_default=func.now(),
         onupdate=func.now(),
     )
+    # Added by Alembic revision 0004 (Phase 42). WRITTEN BY THE WORKER, never
+    # by this application: the api publishes `item.created` after the commit
+    # and the worker stamps the row once it has consumed the event. NULL is a
+    # real state - "no worker has been here yet" - and the contract suite waits
+    # for it to change rather than asserting it does not exist.
+    processed_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    processed_by: Mapped[Optional[str]] = mapped_column(Text, nullable=True)

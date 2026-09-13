@@ -79,6 +79,8 @@
           "alb",
           "ecs_api",
           "ecs_web",
+          "queue",
+          "ecs_worker",
           "cloudwatch",
           "budgets"
         ]
@@ -93,6 +95,8 @@
           "alb",
           "ecs_api",
           "ecs_web",
+          "queue",
+          "ecs_worker",
           "cloudwatch",
           "dnsrec",
           "budgets"
@@ -192,11 +196,26 @@
       "service": "ecs"
     },
     {
+      "id": "ecs_worker",
+      "kind": "node",
+      "shown": true,
+      "label": "ECS \u2014 worker",
+      "service": "ecs"
+    },
+    {
+      "id": "queue",
+      "kind": "node",
+      "shown": true,
+      "label": "SQS + dead-letter queue",
+      "service": "sqs",
+      "why": "the asynchronous seam between api and worker (ADR-0096): the queue, its dead-letter queue and the alarm on it, one tile - three resources that exist for one reason"
+    },
+    {
       "id": "ecs_cluster",
       "kind": "hidden",
       "shown": false,
       "label": "the ECS cluster",
-      "why": "the room both services run in and a property of neither; drawing it as a third tile would put a container beside its contents (ADR-0095)"
+      "why": "the room the three services run in and a property of none of them; drawing it as a fourth tile would put a container beside its contents (ADR-0095)"
     },
     {
       "id": "cloudwatch",
@@ -346,7 +365,10 @@
     },
     "infra/envs/prod": {
       "aws_route53_record.app": "dnsrec",
-      "aws_iam_role_policy.api_read_db_secret": "ecs_api"
+      "aws_iam_role_policy.api_read_db_secret": "ecs_api",
+      "aws_iam_role_policy.worker_read_db_secret": "ecs_worker",
+      "aws_iam_role_policy.api_publish_items": "ecs_api",
+      "aws_iam_role_policy.worker_consume_items": "ecs_worker"
     },
     "infra/modules/ecs-cluster": {
       "aws_ecs_cluster.this": "ecs_cluster"
@@ -368,7 +390,24 @@
       "aws_ecs_service.this": "ecs_web"
     },
     "infra/envs/stage": {
-      "aws_iam_role_policy.api_read_db_secret": "ecs_api"
+      "aws_iam_role_policy.api_read_db_secret": "ecs_api",
+      "aws_iam_role_policy.worker_read_db_secret": "ecs_worker",
+      "aws_iam_role_policy.api_publish_items": "ecs_api",
+      "aws_iam_role_policy.worker_consume_items": "ecs_worker"
+    },
+    "infra/modules/ecs-service@worker": {
+      "aws_security_group.this": "ecs_worker",
+      "aws_iam_role.execution": "ecs_worker",
+      "aws_iam_role_policy_attachment.execution_managed": "ecs_worker",
+      "aws_iam_role.task": "ecs_worker",
+      "aws_ecs_task_definition.this": "ecs_worker",
+      "aws_ecs_service.this": "ecs_worker"
+    },
+    "infra/modules/queue": {
+      "aws_sqs_queue.items": "queue",
+      "aws_sqs_queue.dead_letter": "queue",
+      "aws_sqs_queue_redrive_allow_policy.dead_letter": "queue",
+      "aws_cloudwatch_metric_alarm.dead_letter_not_empty": "queue"
     }
   },
   "_phases": "The order the cycle happens in, and - in `live` - how each phase is recognised WHILE IT RUNS. Every workflow here holds one job, so a job name cannot tell Build from Apply; the binding names a STEP, and scripts/generate-topology.py refuses if that step does not exist in that job of that workflow. A renamed step would otherwise break the pulse silently, which no other gate in this repository can see. `when: waiting` is the approval, which is not a step at all: it is the gap before the job starts, and the runs API reports it as a run in the waiting state. A SUITE NODE carries its own `live` in exactly the same shape, and must: which phase box a suite is drawn in is a layout decision, and on 2026-08-08 the two disagreed - suite.db.stage sits in the quality gate while its step runs in Provision, and prod's copy of the same suite sat in a phase that does bind that step. A node bound to its own step cannot inherit a phase's answer about a different one.",
@@ -384,7 +423,8 @@
           "job": "deploy",
           "steps": [
             "Build, tag, and push the api image",
-            "Build, tag, and push the web image"
+            "Build, tag, and push the web image",
+            "Build, tag, and push the worker image"
           ]
         },
         {
@@ -392,7 +432,8 @@
           "job": "launch",
           "steps": [
             "Build, tag, and push the api image",
-            "Build, tag, and push the web image"
+            "Build, tag, and push the web image",
+            "Build, tag, and push the worker image"
           ]
         }
       ],
@@ -448,6 +489,30 @@
               "job": "launch",
               "steps": [
                 "Build, tag, and push the web image"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "build.worker",
+          "tool": "docker",
+          "label": "ECR push \u2014 worker",
+          "service": "ecr",
+          "kind": "service",
+          "observer": "actions",
+          "live": [
+            {
+              "workflow": "deploy-stage.yml",
+              "job": "deploy",
+              "steps": [
+                "Build, tag, and push the worker image"
+              ]
+            },
+            {
+              "workflow": "self-service.yml",
+              "job": "launch",
+              "steps": [
+                "Build, tag, and push the worker image"
               ]
             }
           ]
@@ -1048,12 +1113,6 @@
     "note": "Planned, and deliberately not built yet. Nothing below is in infra/, the map draws none of it, and the order is the order it will be done in.",
     "items": [
       {
-        "id": "web-api-split",
-        "title": "Split the container into web and api",
-        "what": "two images behind one load balancer, routed by path; a release becomes a set of digests rather than one",
-        "why": "the first boundary, and the one that makes promotion by digest mean something across services"
-      },
-      {
         "id": "queue-worker",
         "title": "A queue and a worker",
         "what": "api publishes an event to SQS, a worker consumes it, with a dead-letter queue and an alarm on it",
@@ -1078,36 +1137,8 @@
         "why": "so the machinery around the application - the observed teardown, the cost fold, the gates - becomes a blueprint another project can declare its way into"
       }
     ],
-    "_services": "THE TILES (ADR-0094 D1, as the owner chose it): the additional services the plan brings, drawn as greyed marks in the same board vocabulary as the estate - `absent` is what this page already draws for a noun a cycle has not reached, and a planned service is exactly that. Each tile names the step it arrives in, and the step must be an item above; the generator refuses one that is not. `sqs` and `eks` carry a project glyph until their Architecture Icons are added to assets/aws-icons/.",
+    "_services": "THE TILES (ADR-0094 D1, as the owner chose it): the additional services the plan brings, drawn as greyed marks in the same board vocabulary as the estate - `absent` is what this page already draws for a noun a cycle has not reached, and a planned service is exactly that. Each tile names the step it arrives in, and the step must be an item above; the generator refuses one that is not. `sqs` and `eks` carry a project glyph until their Architecture Icons are added to assets/aws-icons/. A tile leaves the band the day the board draws the thing: web and api left with ADR-0095, the queue and the worker with ADR-0096.",
     "services": [
-      {
-        "id": "plan.web",
-        "label": "web",
-        "service": "ecs",
-        "step": "web-api-split",
-        "why": "the interface, in a container of its own"
-      },
-      {
-        "id": "plan.api",
-        "label": "api",
-        "service": "ecs",
-        "step": "web-api-split",
-        "why": "the domain, and the only thing that touches its schema"
-      },
-      {
-        "id": "plan.queue",
-        "label": "SQS + dead-letter queue",
-        "service": "sqs",
-        "step": "queue-worker",
-        "why": "the asynchronous seam between api and worker"
-      },
-      {
-        "id": "plan.worker",
-        "label": "worker",
-        "service": "ecs",
-        "step": "queue-worker",
-        "why": "consumes events; idempotent, retried, alarmed"
-      },
       {
         "id": "plan.eks",
         "label": "EKS \u2014 lab",

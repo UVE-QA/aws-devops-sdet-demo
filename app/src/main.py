@@ -29,6 +29,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from src.db import get_sessionmaker
+from src.events import publish_item_created
 from src.logging_config import (
     configure_logging,
     new_request_id,
@@ -176,6 +177,12 @@ def create_item(payload: ItemCreate, db: Session = Depends(get_db)) -> DemoItem:
             detail=f"item with name '{payload.name}' already exists",
         )
     db.refresh(item)
+    # AFTER the commit, never before: an event about a row that may still roll
+    # back is a lie the worker would act on. The gap between the two writes is
+    # named in src/events.py; the response does not wait on the answer.
+    publish_item_created(
+        item.id, item.name, item.created_at.isoformat(), request_id_var.get()
+    )
     return item
 
 

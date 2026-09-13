@@ -32,3 +32,8 @@ output "execution_role_name" {
   description = "Name of the task execution role, for a policy the environment attaches to it (ADR-0095)."
   value       = aws_iam_role.execution.name
 }
+
+output "task_role_name" {
+  description = "Name of the task role, for a policy the environment attaches to it - the service's own AWS permissions (ADR-0096)."
+  value       = aws_iam_role.task.name
+}

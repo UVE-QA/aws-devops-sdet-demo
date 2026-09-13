@@ -57,3 +57,28 @@ output "container_name" {
   description = "App container name for run-task containerOverrides."
   value       = module.api.container_name
 }
+
+output "ecs_worker_service_name" {
+  description = "Name of the ECS worker service (ADR-0096); the deploy waits for it too."
+  value       = module.worker.service_name
+}
+
+output "items_queue_url" {
+  description = "URL of the items queue (ADR-0096)."
+  value       = module.queue.queue_url
+}
+
+output "items_queue_name" {
+  description = "Name of the items queue, for the observation."
+  value       = module.queue.queue_name
+}
+
+output "items_dead_letter_queue_name" {
+  description = "Name of the dead-letter queue, for the observation."
+  value       = module.queue.dead_letter_queue_name
+}
+
+output "items_dead_letter_alarm_name" {
+  description = "Name of the alarm on the dead-letter queue, for the observation."
+  value       = module.queue.dead_letter_alarm_name
+}

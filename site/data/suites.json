@@ -3,14 +3,22 @@
   "schema": 1,
   "counts": {
     "suites": 5,
-    "tests": 181
+    "tests": 196
   },
   "suites": {
     "api": {
       "dir": "tests/api",
       "collector": "pytest",
-      "count": 52,
+      "count": 54,
       "tests": [
+        {
+          "file": "tests/api/test_items_async.py",
+          "name": "test_a_created_item_starts_unprocessed_and_is_processed_later"
+        },
+        {
+          "file": "tests/api/test_items_async.py",
+          "name": "test_processing_happens_once_and_a_later_edit_does_not_move_it"
+        },
         {
           "file": "tests/api/test_items_contract.py",
           "name": "test_create_returns_201_and_echoes_the_payload"
@@ -318,7 +326,7 @@
     "unit": {
       "dir": "tests/unit",
       "collector": "pytest",
-      "count": 113,
+      "count": 126,
       "tests": [
         {
           "file": "tests/unit/test_access_log.py",
@@ -454,7 +462,15 @@
         },
         {
           "file": "tests/unit/test_adopt_orphans.py",
-          "name": "test_the_task_role_has_nothing_hanging_off_it"
+          "name": "test_the_api_task_role_drags_the_policy_that_publishes"
+        },
+        {
+          "file": "tests/unit/test_adopt_orphans.py",
+          "name": "test_the_worker_roles_drag_their_policies"
+        },
+        {
+          "file": "tests/unit/test_adopt_orphans.py",
+          "name": "test_a_queue_is_imported_by_its_url"
         },
         {
           "file": "tests/unit/test_adopt_orphans.py",
@@ -771,6 +787,50 @@
         {
           "file": "tests/unit/test_watchdog_sweep.py",
           "name": "test_the_blunt_path_names_everything_it_is_about_to_delete"
+        },
+        {
+          "file": "tests/unit/test_worker_handler.py",
+          "name": "test_the_api_message_parses_to_its_item_and_request_id"
+        },
+        {
+          "file": "tests/unit/test_worker_handler.py",
+          "name": "test_a_missing_request_id_reads_as_dash"
+        },
+        {
+          "file": "tests/unit/test_worker_handler.py",
+          "name": "test_extra_fields_are_ignored_not_refused"
+        },
+        {
+          "file": "tests/unit/test_worker_handler.py",
+          "name": "test_what_is_poison_says_why[this is not an event-not JSON]"
+        },
+        {
+          "file": "tests/unit/test_worker_handler.py",
+          "name": "test_what_is_poison_says_why[[1, 2, 3]-not a JSON object]"
+        },
+        {
+          "file": "tests/unit/test_worker_handler.py",
+          "name": "test_what_is_poison_says_why[{\"type\": \"item.deleted\", \"version\": 1, \"item\": {\"id\": 1}}-type]"
+        },
+        {
+          "file": "tests/unit/test_worker_handler.py",
+          "name": "test_what_is_poison_says_why[{\"type\": \"item.created\", \"version\": 2, \"item\": {\"id\": 1}}-version]"
+        },
+        {
+          "file": "tests/unit/test_worker_handler.py",
+          "name": "test_what_is_poison_says_why[{\"type\": \"item.created\", \"version\": 1}-no item]"
+        },
+        {
+          "file": "tests/unit/test_worker_handler.py",
+          "name": "test_what_is_poison_says_why[{\"type\": \"item.created\", \"version\": 1, \"item\": {\"id\": \"1\"}}-positive integer]"
+        },
+        {
+          "file": "tests/unit/test_worker_handler.py",
+          "name": "test_what_is_poison_says_why[{\"type\": \"item.created\", \"version\": 1, \"item\": {\"id\": 0}}-positive integer]"
+        },
+        {
+          "file": "tests/unit/test_worker_handler.py",
+          "name": "test_what_is_poison_says_why[{\"type\": \"item.created\", \"version\": 1, \"item\": {\"id\": true}}-positive integer]"
         }
       ]
     }

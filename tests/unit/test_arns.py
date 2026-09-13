@@ -45,6 +45,8 @@ SAMPLES = {
     "ecs:service": f"arn:aws:ecs:us-west-2:{ACCOUNT}:service/demo-cluster/demo-app",
     "rds:db": f"arn:aws:rds:us-west-2:{ACCOUNT}:db:demo-db",
     "rds:subgrp": f"arn:aws:rds:us-west-2:{ACCOUNT}:subgrp:demo-db-subnet-group",
+    # The bare-name ARN, the one kind with no separator at all (ADR-0096).
+    "sqs:queue": f"arn:aws:sqs:us-west-2:{ACCOUNT}:demo-stage-items",
     "elasticloadbalancing:loadbalancer": (
         f"arn:aws:elasticloadbalancing:us-west-2:{ACCOUNT}:loadbalancer/app/demo-alb/50dc6c49"
     ),

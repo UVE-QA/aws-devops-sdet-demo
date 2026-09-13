@@ -149,6 +149,12 @@ def _arn_itself(arn: Arn) -> str:
     return arn.raw
 
 
+def _sqs_url(arn: Arn) -> str:
+    """`arn:aws:sqs:<region>:<account>:<name>` -> the queue URL Terraform imports."""
+    parts = arn.raw.split(":")
+    return f"https://sqs.{parts[3]}.amazonaws.com/{parts[4]}/{arn.tail}"
+
+
 def _ecs_service_id(arn: Arn) -> str:
     """Terraform imports a service as `<cluster>/<service>`."""
     return arn.tail
@@ -193,6 +199,7 @@ RULES: dict[str, Rule] = {
             # One group per service (ADR-0095): the api's is what RDS trusts.
             "api-sg": "module.api.aws_security_group.this",
             "web-sg": "module.web.aws_security_group.this",
+            "worker-sg": "module.worker.aws_security_group.this",
             "rds-sg": "module.rds.aws_security_group.rds",
             # The VPC's default group, which AWS creates and cannot delete. It
             # leaves with the VPC; adopting it only keeps it from being reported
@@ -205,7 +212,11 @@ RULES: dict[str, Rule] = {
     # --- everything else: the ARN carries the name -------------------------
     "ecs:cluster": Rule({"cluster": "module.ecs_cluster.aws_ecs_cluster.this"}, import_id=_tail),
     "ecs:service": Rule(
-        {"api": "module.api.aws_ecs_service.this", "web": "module.web.aws_ecs_service.this"},
+        {
+            "api": "module.api.aws_ecs_service.this",
+            "web": "module.web.aws_ecs_service.this",
+            "worker": "module.worker.aws_ecs_service.this",
+        },
         import_id=_ecs_service_id,
         name_from=_ecs_service_name,
     ),
@@ -245,8 +256,20 @@ RULES: dict[str, Rule] = {
             "api-ecs-execution": "module.api.aws_iam_role.execution",
             "web-ecs-task": "module.web.aws_iam_role.task",
             "web-ecs-execution": "module.web.aws_iam_role.execution",
+            "worker-ecs-task": "module.worker.aws_iam_role.task",
+            "worker-ecs-execution": "module.worker.aws_iam_role.execution",
         },
         import_id=_tail,
+    ),
+    # The two queues (ADR-0096). The ARN is the bare name (scripts/arns.py
+    # calls the kind `queue`) and Terraform imports a queue by its URL, which
+    # is the region, the account and the name in a shape the ARN also holds.
+    "sqs:queue": Rule(
+        {
+            "items": "module.queue.aws_sqs_queue.items",
+            "items-dlq": "module.queue.aws_sqs_queue.dead_letter",
+        },
+        import_id=_sqs_url,
     ),
 }
 
@@ -318,6 +341,33 @@ DEPENDENTS: dict[str, list[tuple[str, Callable[[str, str], str]]]] = {
         (
             "module.web.aws_iam_role_policy_attachment.execution_managed",
             lambda prefix, role: f"{role}/{ECS_TASK_EXECUTION_POLICY}",
+        ),
+    ],
+    # THE TASK ROLES ARE NOT BARE ANY MORE (ADR-0096): the api's carries the
+    # policy that publishes to the queue and the worker's the one that
+    # consumes from it; the worker's execution role reads the secret the way
+    # the api's does. Each is an environment-level resource, named for its
+    # service, on one role.
+    "module.api.aws_iam_role.task": [
+        (
+            "aws_iam_role_policy.api_publish_items",
+            lambda prefix, role: f"{role}:{prefix}-api-publish-items",
+        ),
+    ],
+    "module.worker.aws_iam_role.execution": [
+        (
+            "module.worker.aws_iam_role_policy_attachment.execution_managed",
+            lambda prefix, role: f"{role}/{ECS_TASK_EXECUTION_POLICY}",
+        ),
+        (
+            "aws_iam_role_policy.worker_read_db_secret",
+            lambda prefix, role: f"{role}:{prefix}-worker-read-db-secret",
+        ),
+    ],
+    "module.worker.aws_iam_role.task": [
+        (
+            "aws_iam_role_policy.worker_consume_items",
+            lambda prefix, role: f"{role}:{prefix}-worker-consume-items",
         ),
     ],
 }

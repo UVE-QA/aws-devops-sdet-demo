@@ -40,11 +40,57 @@ services:
       # environments pass "stage"/"prod" through the task definition, so a line
       # can never be mistaken for one from another environment.
       APP_ENV: local
+      # The queue (ADR-0096). Locally it is ElasticMQ; the three lines below
+      # are the whole difference from AWS, where the endpoint is unset and the
+      # credentials are the task role's.
+      ITEMS_QUEUE_URL: http://elasticmq:9324/000000000000/items
+      SQS_ENDPOINT_URL: http://elasticmq:9324
+      AWS_ACCESS_KEY_ID: local
+      AWS_SECRET_ACCESS_KEY: local
+      AWS_REGION: us-west-2
     # NOT published any more (ADR-0095): the web service is the one origin on
     # 8000, and it proxies /api to this container - see web/local/api-proxy.conf.
     depends_on:
       postgres:
         condition: service_healthy
+      elasticmq:
+        condition: service_started
+
+  elasticmq:
+    # SQS on the devbox (ADR-0096): the same two queues and the same redrive
+    # as the module declares, from worker/local/elasticmq.conf. Not published
+    # to the host; the api and the worker reach it by name.
+    image: softwaremill/elasticmq-native:1.6.12
+    volumes:
+      - ./worker/local/elasticmq.conf:/opt/elasticmq.conf:ro
+
+  worker:
+    # The consumer (ADR-0096). Named for the same reason the other two are:
+    # the image scan looks for it by this name.
+    image: aws-devops-sdet-demo-worker:local
+    build:
+      context: ./worker
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql+psycopg2://demo:demo@postgres:5432/demo
+      APP_ENV: local
+      ITEMS_QUEUE_URL: http://elasticmq:9324/000000000000/items
+      SQS_ENDPOINT_URL: http://elasticmq:9324
+      AWS_ACCESS_KEY_ID: local
+      AWS_SECRET_ACCESS_KEY: local
+      AWS_REGION: us-west-2
+    healthcheck:
+      # The heartbeat the loop touches on every pass (consumer/main.py).
+      test: ["CMD-SHELL", "find /tmp/heartbeat -mmin -1 | grep -q ."]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      elasticmq:
+        condition: service_started
 
   web:
     # The interface, in a container of its own (ADR-0095). Named for the same

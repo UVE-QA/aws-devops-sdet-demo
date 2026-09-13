@@ -88,6 +88,10 @@ class ItemRead(BaseModel):
     description: Optional[str] = None
     created_at: datetime
     updated_at: datetime
+    # Filled by the worker, asynchronously (Phase 42). A freshly created item
+    # comes back with both null; the suite polls until they are not.
+    processed_at: Optional[datetime] = None
+    processed_by: Optional[str] = None
 
 
 class ItemList(BaseModel):

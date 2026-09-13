@@ -59,6 +59,19 @@ def create(client, name, **fields):
     return res.json()
 
 
+# THE FIELDS THE API OWNS. Since Phase 42 a worker stamps `processed_at` and
+# `processed_by` some time after the 201, so two reads of one row can differ
+# in those two fields without anything the api did - the first run of this
+# suite with a worker beside it failed two whole-row comparisons on exactly
+# that. "The row is untouched" is a statement about the api's fields; the
+# worker's half of the contract is tests/api/test_items_async.py's.
+WORKER_FIELDS = ("processed_at", "processed_by")
+
+
+def owned(item: dict) -> dict:
+    return {k: v for k, v in item.items() if k not in WORKER_FIELDS}
+
+
 # --- create ---------------------------------------------------------------
 
 
@@ -133,7 +146,7 @@ def test_get_by_id_returns_the_item(client, unique_name, created_items):
 
     res = client.get(f"/api/items/{created['id']}")
     assert res.status_code == 200, res.text
-    assert res.json() == created
+    assert owned(res.json()) == owned(created)
 
 
 def test_get_unknown_id_returns_404(client):
@@ -374,7 +387,7 @@ def test_a_refused_patch_leaves_the_row_untouched(client, unique_name, created_i
     created_items.append(created["id"])
 
     assert client.patch(f"/api/items/{created['id']}", json={}).status_code == 422
-    assert client.get(f"/api/items/{created['id']}").json() == created
+    assert owned(client.get(f"/api/items/{created['id']}").json()) == owned(created)
 
 
 # --- delete ---------------------------------------------------------------

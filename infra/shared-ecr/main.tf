@@ -59,6 +59,15 @@ module "ecr_web" {
   force_delete    = false
 }
 
+# The worker's repository (ADR-0096), beside the other two.
+module "ecr_worker" {
+  source = "../modules/ecr"
+
+  repository_name = var.worker_repository_name
+  max_image_count = var.max_image_count
+  force_delete    = false
+}
+
 # ------------------------------------------------------------------------------
 # Release pointer (ADR-0029): the digest of the last image whose prod smoke
 # passed. It lives HERE, at a permanent level, for the same reason the registry
