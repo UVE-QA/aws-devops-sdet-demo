@@ -46,9 +46,30 @@ the duration estimate all answer about the same set of runs and cannot disagree
 about which line they describe. Strict on the field: a run with no
 `head_branch` is not something the Actions API returned, it is a fixture that
 has not been told about this rule — so every fixture run now carries one, and
-the in-flight fixture plants a newer, failed `next` run that the page must show
+the in-flight fixture plants a failed `next` run that the page must show
 nowhere. `check-page-inflight.mjs` refuses to pass without that intruder, because
 a claim about other branches over a fixture with none is vacuous.
+
+*Amended 2026-09-13, after the first cycle from `next`.* "Nowhere" was too
+wide by exactly the environments. The list above had the busy state in it, and
+the staleness judgement used the same list: a `next` cycle wrote stage's status
+file, and the page — asking whether the newest run *of `main`* had reported —
+called a file one minute old `unknown`, over a run that had finished a day
+earlier and "did not write a status file" when it was not the run that had. The
+environments are not on a branch; there is one stage, and whichever line's cycle
+touched it last is the newest word on it. So the two questions about the
+ENVIRONMENTS — is this reading current, is anything using it now — are asked of
+every run the API returned (`state.allRuns`), and only the questions about the
+CYCLE — the history, the panel, the quota, the estimate — of the released line.
+Where the first kind of question names a run off that line, it names the branch
+with it, so a reader who cannot find `#24` in the history is told why in the same
+sentence. Two fixture states carry this: `foreign-writer` (the file written by a
+`next` run must read as current) and `foreign-in-flight` (a `next` run in flight
+puts stage in `unknown` by name and closes the button); the intruder the
+in-flight fixture already had is now older than the run that wrote stage's
+file, so the two claims do not pull one fixture in two directions. Not covered:
+the *being torn down* tense of ADR-0086, which reads the steps of the released
+line's current run — a `next` teardown shows as `unknown`, not as a teardown.
 
 **D3. Experiments on the shared environments do not run while the demo is out.**
 This is the part no code enforces, and it is written here so that it is a rule
@@ -69,8 +90,14 @@ template. Not built now: D1–D3 cover everything before that work starts.
 ## Consequences
 
 - The page loses nothing on the released line and stops reporting anything
-  off it. A visitor who dispatches from a fork sees their run on GitHub and not
-  here, which is the same rule stated from the other side.
+  off it in the cycle's views. A visitor who dispatches from a fork sees their
+  run on GitHub and not here, which is the same rule stated from the other side
+  — except in the environment panels, which report what touched the
+  environment last, and say from which branch (D2, amended).
+- The `prod` GitHub Environment's deployment branch policy admits `next` beside
+  `main` from 2026-09-13 (ADR-0095 D10): without it every job bound to that
+  environment fails in two seconds with no steps from any other branch, and a
+  cycle from `next` could never have been the full proof D1 asks for.
 - `demo-2026-09-12` is the first release tag this repository has. It marks a
   state, not a version; there is no changelog behind it and none is implied.
 - The bucket versioning declared and never applied in Phase 28 is now the

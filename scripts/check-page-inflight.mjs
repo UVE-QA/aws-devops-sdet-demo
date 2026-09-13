@@ -253,6 +253,19 @@ const OBSERVE = () => {
     })(),
     rows: [...document.querySelectorAll("#history table tbody tr")].map((tr) =>
       [...tr.children].map((td) => t(td))),
+    // THE ENVIRONMENT PANELS AND THE BUTTON. The questions the page asks about
+    // the environments are asked of every branch (ADR-0093 D2, amended); the
+    // two foreign-* states are read here and nowhere else.
+    envs: [...document.querySelectorAll("#environments .env")].map((e) => ({
+      name: t(e.querySelector(".envrow b")),
+      badge: t(e.querySelector(".envrow .badge")),
+      stale: e.classList.contains("stale"),
+      text: t(e)
+    })),
+    launch: (() => {
+      const b = document.querySelector("#launch-button");
+      return b ? { text: t(b), disabled: b.disabled } : null;
+    })(),
     nodes: [...document.querySelectorAll(".node")]
       .filter((n) => n.dataset.id)
       .map((n) => ({
@@ -841,12 +854,24 @@ function claimProgressFraction({ meta, seen }, index) {
 
 /* THE PAGE REPORTS THE RELEASED LINE (ADR-0093). Every workflow can be
    dispatched from any branch, and a cycle run from `next` is a real run in the
-   same account. It must show NOWHERE on the page: not as a history row, not as
-   the run in flight, not in the verdict. The fixture plants one - newest of all
-   and failed, so a filter that let it through would sit at the top of the table
-   and turn the verdict red - and this refuses to pass unless the fixture still
-   contains such a run, because a claim about runs on other branches is vacuous
-   over a fixture with none. */
+   same account. It must show nowhere in the CYCLE'S views: not as a history
+   row, not as the run in flight, not in the verdict. The fixture plants one -
+   failed, and newer than every finished released run, so a filter that let it
+   through would be a red row near the top of the table and turn the verdict
+   red - and this refuses to pass unless the fixture still contains such a run,
+   because a claim about runs on other branches is vacuous over a fixture with
+   none.
+
+   NOT "nowhere on the page". The environments are not on a branch: a `next`
+   cycle builds and tears down the same stage, and the panel that says what is
+   in AWS has to judge its reading against whichever run touched it last. The
+   first cycle from `next` (2026-09-13) wrote stage's file and the page called
+   it stale, over a released run that had finished a day earlier and "did not
+   write a status file". So the environment panels and the button are asked
+   about every branch, and that half lives in claimEnvironmentsAnyBranch over
+   the two foreign-* states; here, the intruder is deliberately OLDER than the
+   run that wrote stage's file, so that this claim and that one do not pull the
+   same fixture in two directions. */
 function claimReleasedLineOnly({ meta, seen }, index, dir) {
   const out = [];
   const runs = readJSON(path.join(dir, "runs.json"), "the run history");
@@ -871,6 +896,48 @@ function claimReleasedLineOnly({ meta, seen }, index, dir) {
         out.push(`run #${r.run_number} is on branch ${r.head_branch} and the page names it: "${text.slice(0, 120)}"`);
         break;
       }
+    }
+  }
+  return out;
+}
+
+/* THE ENVIRONMENTS ARE ASKED ABOUT EVERY BRANCH (ADR-0093 D2, amended
+   2026-09-13). Two states, both at-rest plus one run from `next`, newest of all:
+
+     foreign-writer     #101 finished and WROTE stage's file. The panel must
+                        read that file as the newest word on stage - not stale,
+                        and not `unknown` over a released run that never wrote
+                        it. This is the shape seen live on 2026-09-13.
+     foreign-in-flight  #102 is running. Stage's file is #64's, so stage is
+                        honestly unknown - and the sentence must say which run
+                        and from which branch, because that number is in no
+                        history row below it. The button must be closed: one
+                        cycle at a time is a property of the environments.
+
+   Both states also pass claimReleasedLineOnly, which is the other half: the
+   cycle's views still do not know either run exists. */
+function claimEnvironmentsAnyBranch({ state, seen }) {
+  const out = [];
+  const stage = (seen.envs || []).find((e) => e.name === "stage");
+  if (!stage) return ["no stage panel was rendered at all"];
+  if (state === "foreign-writer") {
+    if (stage.stale) out.push(`stage is drawn stale: "${stage.text.slice(0, 160)}"`);
+    if (!/destroyed/i.test(stage.badge || "")) {
+      out.push(`stage's badge reads "${stage.badge}", not what #101's file says (destroyed)`);
+    }
+    if (/did not write a status file/.test(stage.text)) {
+      out.push("stage's panel says a run did not write a status file, over a file the newest run wrote");
+    }
+  }
+  if (state === "foreign-in-flight") {
+    if (!stage.stale) out.push(`stage is not drawn stale while #102 is using it: "${stage.text.slice(0, 160)}"`);
+    if (!/#102/.test(stage.text)) out.push("stage's panel does not name the run that is using it");
+    if (!/from branch next/.test(stage.text)) {
+      out.push(`stage's panel names a run off the released line without its branch: "${stage.text.slice(0, 200)}"`);
+    }
+    if (!seen.launch) out.push("no launch button was rendered, so the busy state cannot be read");
+    else if (!seen.launch.disabled || !/running/i.test(seen.launch.text)) {
+      out.push(`the button is open over a cycle from another branch: "${seen.launch.text}" disabled=${seen.launch.disabled}`);
     }
   }
   return out;
@@ -905,7 +972,12 @@ async function main() {
   if (!Object.keys(index).length) refuse("site/data/topology.json indexed no nodes at all.");
 
   const wanted = arg("--state");
+  const FOREIGN = ["foreign-writer", "foreign-in-flight"];
   const states = wanted ? [wanted] : ["in-flight", "at-rest"];
+  // The foreign-* states answer two claims and not the six: they are at-rest
+  // with one run the cycle's views must not see, so every map claim would be
+  // at-rest's reading a third and fourth time.
+  const foreignStates = wanted ? [] : FOREIGN;
   const chromium = await loadChromium();
   const notFound = [];
   const box = { overlay: null };
@@ -925,6 +997,14 @@ async function main() {
       const reading = await render(browser, origin, state, notFound);
       reading.audit = auditFixture(reading);
       reading.dir = path.join(FIXTURE, state);
+      readings.push(reading);
+    }
+    for (const state of foreignStates) {
+      notFound.length = 0;
+      box.overlay = null;
+      const reading = await render(browser, origin, state, notFound);
+      reading.dir = path.join(FIXTURE, state);
+      reading.foreign = true;
       readings.push(reading);
     }
     if (!wanted) {
@@ -955,9 +1035,14 @@ async function main() {
     ["a run from another branch is shown nowhere", claimReleasedLineOnly]
   ];
 
+  const FOREIGN_CLAIMS = [
+    ["a run from another branch is shown nowhere", claimReleasedLineOnly],
+    ["the environments are asked about every branch", claimEnvironmentsAnyBranch]
+  ];
+
   let failed = 0;
   for (const r of readings) {
-    for (const [name, fn] of CLAIMS) {
+    for (const [name, fn] of (r.foreign ? FOREIGN_CLAIMS : CLAIMS)) {
       const findings = fn(r, fn === claimVerdict ? r.audit : index, r.dir);
       if (findings.length) {
         failed += 1;
@@ -1011,8 +1096,11 @@ async function main() {
     }
   }
 
-  if (readings.length === 2) {
-    const diff = controlDiffers(readings[0], readings[1]);
+  // The control is in-flight against at-rest; the foreign-* readings are
+  // at-rest with one run added and are not part of it.
+  const subjects = readings.filter((r) => !r.foreign);
+  if (subjects.length === 2) {
+    const diff = controlDiffers(subjects[0], subjects[1]);
     if (diff.length) {
       console.error("\npage-inflight: the control does not differ from the subject.");
       diff.forEach((d) => console.error(`  ${d}`));

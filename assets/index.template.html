@@ -1716,6 +1716,10 @@
 
       var state = {
         runs: null,
+        // Every run the API answered, whatever branch it ran from. The cycle's
+        // views read `runs`; the questions about the ENVIRONMENTS read this -
+        // see readGitHub() for the line between the two.
+        allRuns: null,
         jobs: null,
         status: {},
         githubReadAt: null,
@@ -1792,12 +1796,28 @@
           // run in the same account, and it used to land here as a row in the
           // history and as the "step in flight" - a red row from an experiment
           // on the page a stranger was handed. Filtered ONCE, at the source, so
-          // the history, the panel, the quota, the busy state and the estimate
-          // all answer about the same set of runs and cannot disagree about
-          // which line they describe. STRICT on the field: a run with no
-          // `head_branch` is not a run the Actions API returned, it is a
-          // fixture that has not been told about this rule.
-          state.runs = (data.workflow_runs || []).filter(function (r) {
+          // the history, the panel, the quota and the estimate all answer about
+          // the same set of runs and cannot disagree about which line they
+          // describe. STRICT on the field: a run with no `head_branch` is not a
+          // run the Actions API returned, it is a fixture that has not been
+          // told about this rule.
+          //
+          // BUT THE ENVIRONMENTS ARE NOT ON A BRANCH. There is one stage and
+          // one prod, and a cycle from `next` builds and tears down the same
+          // ones. The first such cycle (2026-09-13) wrote stage's status file,
+          // and this page - judging freshness against the newest run of `main`
+          // - called a file written one minute earlier `unknown`, over a run
+          // that "did not write a status file" when it was the run that had.
+          // The busy state has the same shape: a `next` cycle in flight is the
+          // environments in use, whichever line it came from, and a button
+          // that opens over it is the disagreement between halves this project
+          // keeps refusing. So the two questions about the ENVIRONMENTS - is
+          // this reading the newest word on it, is anything using it now - are
+          // asked of every run, and only the questions about the CYCLE are
+          // asked of the released line. Where an off-line run is named by the
+          // first kind of question, it is named with its branch.
+          state.allRuns = data.workflow_runs || [];
+          state.runs = state.allRuns.filter(function (r) {
             return r.head_branch === RELEASED_BRANCH;
           });
           state.githubError = null;
@@ -1867,9 +1887,23 @@
       function currentRun() {
         return lifecycleRuns()[0] || null;
       }
+      // The newest run that touches THIS environment, from any branch - the
+      // staleness judgement is about the environment, not about the released
+      // line (see readGitHub()).
       function newestRunFor(env) {
-        var list = lifecycleRuns().filter(function (r) { return runEnvironments(r).indexOf(env) !== -1; });
+        var list = (state.allRuns || []).filter(function (r) { return runEnvironments(r).indexOf(env) !== -1; });
         return list[0] || null;
+      }
+      // How a run is named where it is named as the environment's newest
+      // toucher: with its branch when that is not the released line, so a
+      // visitor reading `#24` here and not finding it in the history below
+      // is told why in the same sentence.
+      function runLabel(run) {
+        var label = "Run #" + run.run_number + " (" + esc(run.name || run.path);
+        if (run.head_branch && run.head_branch !== RELEASED_BRANCH) {
+          label += ", from branch " + esc(run.head_branch) + ", not the released line";
+        }
+        return label + ")";
       }
 
       // ---- rendering ----------------------------------------------------------
@@ -1916,9 +1950,9 @@
         } else if (newest && String(newest.id) !== String(file.run && file.run.id)) {
           stale = true;
           reason = newest.status !== "completed"
-            ? "Run #" + newest.run_number + " (" + esc(newest.name || newest.path) + ") is " +
+            ? runLabel(newest) + " is " +
               esc(newest.status.replace("_", " ")) + " and has not reported yet."
-            : "Run #" + newest.run_number + " (" + esc(newest.name || newest.path) + ") finished " +
+            : runLabel(newest) + " finished " +
               esc(ago(newest.updated_at)) + " and did not write a status file. " +
               "Whatever it did to this environment is not reflected below.";
         }
@@ -2473,12 +2507,14 @@
       }
 
       // Busy is a different question from spent, and it is NOT filtered by who
-      // started the run: one cycle at a time is a property of the environments,
-      // not of the endpoint's quota. An owner-run cycle must still close the
-      // button, which is what `concurrency` enforces on the workflow side.
+      // started the run or from which branch: one cycle at a time is a property
+      // of the environments, not of the endpoint's quota. An owner-run cycle
+      // must still close the button, which is what `concurrency` enforces on
+      // the workflow side - and so must a cycle from `next`, which is why this
+      // reads `allRuns` (see readGitHub()).
       function anySelfServiceInFlight() {
         var today = new Date().toISOString().slice(0, 10);
-        return (state.runs || []).filter(function (r) {
+        return (state.allRuns || []).filter(function (r) {
           return r.path === ".github/workflows/self-service.yml" &&
                  String(r.created_at || "").slice(0, 10) === today &&
                  r.status !== "completed";

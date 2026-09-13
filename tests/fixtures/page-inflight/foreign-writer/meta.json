@@ -1,0 +1,16 @@
+{
+  "label": "foreign-writer",
+  "description": "at-rest, plus one run off the released line: self-service #101 from `next`, newest of all, finished, and the writer of stage's status file (stage is `destroyed`, as a self-service cycle leaves it). The cycle's views are at-rest's exactly; the stage panel is the test - it must read #101's file as current, and name #101 with its branch if it names it at all.",
+  "now": "2026-08-11T04:25:00Z",
+  "provenance": {
+    "runs.json": "SYNTHETIC. at-rest's history with #101 prepended: completed/success, head_branch next.",
+    "jobs.json": "SYNTHETIC. at-rest's - the cycle's view still reads #64.",
+    "status-stage.json": "SYNTHETIC. Written by #101: destroyed, no resources, no report.",
+    "status-prod.json": "SYNTHETIC. Byte-identical to at-rest's."
+  },
+  "cycle": {
+    "_": "DECLARED, not re-derived. The released line has nothing in flight; #101 is not on it.",
+    "in_flight": false,
+    "environments": []
+  }
+}

@@ -2,22 +2,6 @@
   "total_count": 14,
   "workflow_runs": [
     {
-      "_": "NOT ON THE RELEASED BRANCH (ADR-0093): a self-service cycle dispatched from `next`, newer than everything else here and FAILED. The page must show it nowhere - not as a history row, not as the run in flight, not in the verdict - because it describes the released line and this run is not on it. Newest and red on purpose: a filter that let it through would put it at the top of the table and turn the verdict red.",
-      "id": 31461000099,
-      "name": "self-service launch by the owner",
-      "display_title": "self-service launch by the owner",
-      "run_number": 99,
-      "path": ".github/workflows/self-service.yml",
-      "event": "workflow_dispatch",
-      "status": "completed",
-      "conclusion": "failure",
-      "head_branch": "next",
-      "created_at": "2026-08-11T04:05:00Z",
-      "run_started_at": "2026-08-11T04:05:05Z",
-      "updated_at": "2026-08-11T04:10:00Z",
-      "html_url": "https://github.com/UVE-QA/aws-devops-sdet-demo/actions/runs/31461000099"
-    },
-    {
       "id": 31461000064,
       "name": "deploy-stage",
       "path": ".github/workflows/deploy-stage.yml",
@@ -32,6 +16,22 @@
       "updated_at": "2026-08-11T04:11:30Z",
       "html_url": "https://github.com/UVE-QA/aws-devops-sdet-demo/actions/runs/31461000064",
       "head_branch": "main"
+    },
+    {
+      "_": "NOT ON THE RELEASED BRANCH (ADR-0093): a failed self-service cycle from `next`, newer than every finished released run and older only than #64. Were it counted it would be a red row second in the table and would turn the verdict red; the cycle's views must not know it exists. It is OLDER than #64 on purpose: the environment's freshness is judged against every branch, and a `next` run newer than the one that wrote stage's file would honestly put stage in `unknown` - which is the foreign-writer fixture's subject, not this one's.",
+      "id": 31461000099,
+      "name": "self-service launch by the owner",
+      "display_title": "self-service launch by the owner",
+      "run_number": 99,
+      "path": ".github/workflows/self-service.yml",
+      "event": "workflow_dispatch",
+      "status": "completed",
+      "conclusion": "failure",
+      "head_branch": "next",
+      "created_at": "2026-08-11T03:40:00Z",
+      "run_started_at": "2026-08-11T03:40:05Z",
+      "updated_at": "2026-08-11T03:47:00Z",
+      "html_url": "https://github.com/UVE-QA/aws-devops-sdet-demo/actions/runs/31461000099"
     },
     {
       "id": 31460000199,
