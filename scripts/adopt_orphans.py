@@ -215,7 +215,9 @@ RULES: dict[str, Rule] = {
         name_from=_elb_name,
     ),
     "elasticloadbalancing:targetgroup": Rule(
-        {"tg": "module.alb.aws_lb_target_group.app", "web-tg": "module.alb.aws_lb_target_group.web"},
+        # The web group is `<prefix>-web`: the 32-character cap on a target
+        # group's name leaves no room for a `-tg` suffix on stage (ADR-0095).
+        {"tg": "module.alb.aws_lb_target_group.app", "web": "module.alb.aws_lb_target_group.web"},
         import_id=_arn_itself,
         name_from=_elb_name,
     ),

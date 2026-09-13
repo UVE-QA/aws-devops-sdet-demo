@@ -4082,9 +4082,29 @@ Verified so far: `terraform validate` on every changed level; the local stack
 through the web container - 52 api contract, 2 smoke, 12 regression, both
 images scanning clean; every gate green over rewritten fixtures.
 
-- Next allowed step: **apply `infra/shared-ecr` for the web repository (owner's
-  yes), then one cycle from `next`** - while the demo is out, that means the
-  owner's call on timing (ADR-0093 D3).
+- `aws-devops-sdet-demo-web` applied under `demo-admin` on 2026-09-13 with the
+  owner's yes: repository and lifecycle policy, IMMUTABLE tags, read back.
+- **The first cycle from `next` (#24, 34731290270) failed three ways, none of
+  them the split itself.** (1) `Terraform apply` refused a 33-character
+  target-group name — `${prefix}-web-tg` — against the API's cap of 32; it is
+  `${prefix}-web` now. (2) The teardown's sweep went red on four `unconfirmed`
+  IAM roles: the deploy role's `IamManageScoped` still named the pre-split pair,
+  so `get-role` on `-api-ecs-*`/`-web-ecs-*` was `AccessDenied` — and the next
+  apply would have died on `CreateRole` for the same reason. **ADR-0095 D9**;
+  `infra/bootstrap-oidc` applied under `demo-admin` with the owner's yes, 2
+  changed, nothing destroyed. (3) `destroy-prod` failed in two seconds with zero
+  steps: the `prod` GitHub Environment admitted `main` alone. **D10**; `next`
+  added to the policy with the owner's yes. AWS after the cycle: no roles,
+  clusters, instances, balancers or VPCs — verified under `demo-admin`; both
+  images had been pushed under the commit tag.
+- **What the page said while it ran: `stage — unknown`** over a status file
+  the cycle had written one minute earlier, because ADR-0093's filter reached
+  the staleness judgement and the busy state. **ADR-0093 D2 amended**: the
+  environment questions are asked of every branch, the cycle's of `main`; two
+  new fixture states (`foreign-writer`, `foreign-in-flight`) in the in-flight
+  gate, each proven to fail against the filtered rule before passing.
+- Next allowed step: **the second cycle from `next`**, on the owner's standing
+  word; what it shows goes here.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

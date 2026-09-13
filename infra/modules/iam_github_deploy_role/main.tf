@@ -144,10 +144,18 @@ data "aws_iam_policy_document" "deploy" {
       "iam:ListInstanceProfilesForRole",
       "iam:TagRole",
     ]
-    resources = [
-      "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.name_prefix}-ecs-execution",
-      "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.name_prefix}-ecs-task",
-    ]
+    # ONE PAIR PER SERVICE (ADR-0095). The environment makes an execution role
+    # and a task role for each service it runs, named `<prefix>-<service>-ecs-*`
+    # by modules/ecs-service. This list is the only place outside that module
+    # and scripts/adopt_orphans.py that knows the services by name; the first
+    # cycle after the split found it still holding the old pair, and the sweep
+    # answered `unconfirmed` for four roles it was not allowed to ask about.
+    resources = flatten([
+      for service in ["api", "web"] : [
+        "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.name_prefix}-${service}-ecs-execution",
+        "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.name_prefix}-${service}-ecs-task",
+      ]
+    ])
   }
 
   statement {

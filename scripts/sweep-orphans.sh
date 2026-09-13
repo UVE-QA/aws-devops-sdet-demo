@@ -121,8 +121,9 @@ fi
 # Terraform, which no longer holds it. Two of them blocked every apply for three
 # days after a teardown that verified itself green.
 #
-# There is nothing to scan with either: the deploy role has `iam:GetRole` on two
-# ARNs and neither `iam:ListRoles` nor `iam:ListRoleTags`. So the names come from
+# There is nothing to scan with either: the deploy role has `iam:GetRole` on the
+# four role ARNs it manages (two per service, ADR-0095) and neither
+# `iam:ListRoles` nor `iam:ListRoleTags`. So the names come from
 # `adopt_orphans.py`, which already holds the map of what this configuration has,
 # and the loop below asks the owning service about each. A name that exists and
 # is not in state is an orphan; a name that does not exist is what a finished

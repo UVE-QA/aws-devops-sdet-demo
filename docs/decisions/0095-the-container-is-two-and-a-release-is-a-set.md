@@ -87,6 +87,32 @@ different tile per instance, keyed `<dir>@<call>`.
 both; a scan over one of two images would be the vacuous green this project
 keeps finding one layer down.
 
+**D9. The deploy role names the four roles, and it is a permanent level.**
+*Added after the first cycle, 2026-09-13.* `IamManageScoped` in
+`modules/iam_github_deploy_role` granted `iam:CreateRole … PassRole` on exactly
+two ARNs, `<prefix>-ecs-execution` and `<prefix>-ecs-task`, which D3 renamed
+into four. The first cycle never reached `CreateRole` — a target-group name
+was 33 characters against a cap of 32, and the plan refused before the apply
+— so it surfaced in the sweep instead: `get-role` on four names the role was
+not allowed to ask about, `AccessDenied` read as *unconfirmed*, red. Fixed as
+`flatten([for service in ["api", "web"] : …])` and applied to
+`infra/bootstrap-oidc` under `demo-admin` with the owner's yes: 0 to add, 2 to
+change, 0 to destroy — the two deploy policies, in place. The target group is
+`${prefix}-web` (the api's keeps `-tg`, which nothing renames). This list is
+now the third place that knows the services by name, after the module and
+`adopt_orphans.py`; the services manifest of plan item 5 is where they meet.
+
+**D10. The `prod` environment admits `next`.** The same cycle's `destroy-prod`
+failed in two seconds with zero steps and no log: the GitHub Environment `prod`
+carried a deployment branch policy of `main` alone, and a job bound to that
+environment from any other branch is refused before its first step. `promote`
+would have met the same wall. A cycle from `next` that cannot reach prod is not
+the proof ADR-0093 D1 asks for, so `next` was added to the policy with the
+owner's yes (`POST …/environments/prod/deployment-branch-policies`). The AWS
+side needed nothing: the prod deploy role trusts `environment:prod` and no
+branch (ADR-0021), and the environment's own policy is what decides which
+branches may bind to it. Recorded in the primer as UI state git cannot assert.
+
 ## Consequences
 
 - Locally, every suite passes through the web container: 52 api contract, 2

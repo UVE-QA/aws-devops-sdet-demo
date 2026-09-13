@@ -32,9 +32,10 @@ Resource-scoped where cheap and meaningful:
 - S3 state bucket (read/write to that bucket only);
 - DB secret (`secretsmanager:GetSecretValue` on the `<name_prefix>-db-credentials-*`
   pattern only);
-- IAM management restricted to exactly `<name_prefix>-ecs-execution` and
-  `<name_prefix>-ecs-task`. The role cannot modify itself, which is what
-  ADR-0015 traded away and got back.
+- IAM management restricted to exactly the ECS roles of the services the
+  environment runs: `<name_prefix>-<service>-ecs-execution` and
+  `<name_prefix>-<service>-ecs-task` for `api` and `web` (ADR-0095). The role
+  cannot modify itself, which is what ADR-0015 traded away and got back.
 
 Infrastructure-management actions (ec2/elb/ecs/ecr/rds/logs/budgets/cloudwatch)
 use `"*"` resources on purpose: Terraform creates and destroys many short-lived

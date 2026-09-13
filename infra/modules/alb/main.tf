@@ -97,7 +97,12 @@ resource "aws_lb_target_group" "app" {
 }
 
 resource "aws_lb_target_group" "web" {
-  name        = "${var.name_prefix}-web-tg"
+  # `<prefix>-web`, not `<prefix>-web-tg`: a target group name is capped at 32
+  # characters and `aws-devops-sdet-demo-stage-web-tg` is 33. Found by the
+  # first cycle from `next`, not by validate, which does not know the cap. The
+  # api's group keeps `<prefix>-tg`, which fits and which the adoption rules
+  # already name.
+  name        = "${var.name_prefix}-web"
   port        = var.web_port
   protocol    = "HTTP"
   vpc_id      = var.vpc_id
@@ -114,7 +119,7 @@ resource "aws_lb_target_group" "web" {
   }
 
   tags = {
-    Name = "${var.name_prefix}-web-tg"
+    Name = "${var.name_prefix}-web"
   }
 }
 
