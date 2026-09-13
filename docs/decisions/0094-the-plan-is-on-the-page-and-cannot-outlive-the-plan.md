@@ -53,8 +53,10 @@ items live in `assets/topology-groups.json` beside `outside` and
 - a tile whose step is not an item of the plan, or a plan with items and no
   tiles.
 
-`sqs` and `eks` carry a project glyph until their Architecture Icons are added
-to `assets/aws-icons/`, on the same terms as the eighteen already there.
+`sqs` and `eks` are Architecture Icons from the same release the other
+eighteen came from (`Icon-package_07312026`, the `48` set, unmodified), taken
+with the owner's word on the download. They carried a project glyph for one
+commit.
 
 **D3. The plan itself, in `docs/next-phases.md`,** in the order the owner
 chose after the reasons were argued:

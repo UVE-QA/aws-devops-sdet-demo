@@ -291,7 +291,8 @@ is `site-data: REFUSED`. Written first as a numbered list - cards are for
 things that exist - and redrawn on the owner's word as greyed tiles of the
 services the plan brings, each naming its step: `absent` is what the board
 already draws for a noun a cycle has not reached, and a planned service is
-exactly that. `sqs` and `eks` carry a glyph until their icons are added.
+exactly that. `sqs` and `eks` came from the same icon release as the rest,
+with the owner's word on the download.
 
 And `ci.yml` runs on `next` now. The gates have to run where the work is;
 nothing in CI publishes or touches AWS, so a branch run costs a runner.

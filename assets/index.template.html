@@ -2939,6 +2939,10 @@
           "s3", "iam", "secretsmanager", "acm", "ecr", "ecs", "route53", "cloudfront",
           "vpc", "elb", "rds", "dynamodb", "cloudwatch", "budgets", "lambda", "sns", "eventbridge",
           "lightsail",
+          // Planned services (ADR-0094), from the same Architecture Icons
+          // release as everything above; the tiles that carry them are greyed
+          // until the plan builds them.
+          "sqs", "eks",
           "github",
         ]);
         /* A PROJECT GLYPH ONLY WHERE NO OWNER'S MARK EXISTS. A test suite, a
@@ -2946,10 +2950,7 @@
            `WWW` for a browser is right for the same reason - a browser is a kind
            of program, not a vendor. Drawing any of them in AWS's visual language
            would still be a claim about what they are, and that rule is untouched. */
-        // `sqs` and `eks` are planned services (ADR-0094) whose Architecture
-        // Icons are not in assets/aws-icons/ yet; a glyph until they are, and
-        // then they move to MARK above and these two lines go.
-        const GLYPH = { suite: "TEST", human: "YOU", destroy: "DEL", sqs: "SQS", eks: "EKS" };
+        const GLYPH = { suite: "TEST", human: "YOU", destroy: "DEL" };
 
         const iconEl = (service) =>
           MARK.has(service)

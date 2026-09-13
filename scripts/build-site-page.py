@@ -53,6 +53,8 @@ KEYS = [
     "s3", "iam", "secretsmanager", "acm", "ecr", "ecs", "route53", "cloudfront",
     "vpc", "elb", "rds", "dynamodb", "cloudwatch", "budgets", "lambda", "sns",
     "eventbridge", "lightsail",
+    # planned services (ADR-0094): same release, same set, drawn greyed until built
+    "sqs", "eks",
     # not AWS, and drawn with its owner's own mark under its owner's own licence
     "github",
 ]
