@@ -330,24 +330,30 @@ def test_the_permanent_deploy_role_is_not_adoptable():
 
 
 def test_the_names_to_probe_come_from_the_map():
-    names = adopt_orphans.unindexed_names(PREFIX, ACCOUNT)
-    # Six ECS roles (ADR-0095, ADR-0096) and the lab's five (ADR-0097), probed
-    # by every environment's teardown: a name with the wrong environment in
-    # it does not exist, and asking costs one NoSuchEntity.
-    assert [entry["name"] for entry in names] == [
-        f"{PREFIX}-alb-controller",
+    """PER ENVIRONMENT (ADR-0097): stage is asked about the six ECS roles it
+    wires and not about the lab's five - its deploy role cannot even ask, and
+    the first cycle with a lab went red on exactly that AccessDenied. The lab
+    is asked about its five and not about the ECS six."""
+    stage = adopt_orphans.unindexed_names(PREFIX, ACCOUNT, "stage")
+    assert [entry["name"] for entry in stage] == [
         f"{PREFIX}-api-ecs-execution",
         f"{PREFIX}-api-ecs-task",
-        f"{PREFIX}-api-irsa",
-        f"{PREFIX}-eks-cluster",
-        f"{PREFIX}-eks-node",
         f"{PREFIX}-web-ecs-execution",
         f"{PREFIX}-web-ecs-task",
         f"{PREFIX}-worker-ecs-execution",
         f"{PREFIX}-worker-ecs-task",
-        f"{PREFIX}-worker-irsa",
     ]
-    assert all(entry["kind"] == "iam:role" for entry in names)
+    assert all(entry["kind"] == "iam:role" for entry in stage)
+    lab = adopt_orphans.unindexed_names("aws-devops-sdet-demo-lab", ACCOUNT, "lab")
+    assert [entry["name"] for entry in lab] == [
+        "aws-devops-sdet-demo-lab-alb-controller",
+        "aws-devops-sdet-demo-lab-api-irsa",
+        "aws-devops-sdet-demo-lab-eks-cluster",
+        "aws-devops-sdet-demo-lab-eks-node",
+        "aws-devops-sdet-demo-lab-worker-irsa",
+    ]
+    # Without an environment the whole map is listed - the break tests' shape.
+    assert len(adopt_orphans.unindexed_names(PREFIX, ACCOUNT)) == 11
 
 
 def test_every_built_arn_parses_back_to_the_kind_it_claims():

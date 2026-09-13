@@ -132,7 +132,7 @@ if [ -n "${BREAK_TEST_UNINDEXED_JSON:-}" ]; then
   echo "!! BREAK_TEST_UNINDEXED_JSON is set: reading ${BREAK_TEST_UNINDEXED_JSON} instead of the configuration"
   cp "$BREAK_TEST_UNINDEXED_JSON" "$WORK/declared.json"
 else
-  python3 scripts/adopt_orphans.py --unindexed "$PREFIX" \
+  python3 scripts/adopt_orphans.py --unindexed "$PREFIX" --environment "$ENVIRONMENT" \
     --account "${ACCOUNT:-$(aws sts get-caller-identity --query Account --output text)}" \
     > "$WORK/declared.json"
 fi

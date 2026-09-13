@@ -82,6 +82,8 @@ naming, because a scan would have had neither:
 """
 from __future__ import annotations
 
+import pathlib
+import re
 from typing import Any, Callable
 
 import arns
@@ -462,7 +464,19 @@ def dependents_of(address: str, prefix: str, parent_name: str, arn: str) -> list
     ]
 
 
-def unindexed_names(prefix: str, account: str = "ACCOUNT") -> list[dict[str, str]]:
+def wired_modules(environment: str | None) -> set[str] | None:
+    """The module names `infra/envs/<environment>/main.tf` instantiates, or None
+    when no environment is given (every address then counts)."""
+    if not environment:
+        return None
+    main = pathlib.Path(__file__).resolve().parent.parent / "infra" / "envs" / environment / "main.tf"
+    if not main.is_file():
+        return None
+    return set(re.findall(r'module\s+"([^"]+)"\s*\{', main.read_text(encoding="utf-8")))
+
+
+def unindexed_names(prefix: str, account: str = "ACCOUNT",
+                    environment: str | None = None) -> list[dict[str, str]]:
     """Every name this configuration will need, for kinds nothing discovers.
 
     Derived from `RULES` rather than listed a second time, so a role added to the
@@ -470,10 +484,21 @@ def unindexed_names(prefix: str, account: str = "ACCOUNT") -> list[dict[str, str
     `aws_iam_role` in the configuration with no entry in `RULES` - is asserted in
     `tests/unit/test_adopt_orphans.py`, because that is the half a map cannot
     check about itself.
+
+    PER ENVIRONMENT since the lab (ADR-0097): the map holds the ECS roles and
+    the lab's five, and an environment is asked only about the roles whose
+    module it wires. The first cycle with a lab asked stage's deploy role about
+    `stage-eks-cluster` - a name nothing could have - and its `iam:GetRole` is
+    scoped to the six names it manages, so the answer was AccessDenied, which
+    the sweep reads as `unconfirmed`, which is red. A name the environment
+    cannot have is not a name to probe.
     """
+    modules = wired_modules(environment)
     out: list[dict[str, str]] = []
     for kind in UNINDEXED_KINDS:
-        for discriminator in sorted(RULES[kind].addresses):
+        for discriminator, address in sorted(RULES[kind].addresses.items()):
+            if modules is not None and address.split(".")[1] not in modules:
+                continue
             name = f"{prefix}-{discriminator}"
             out.append(
                 {"kind": kind, "name": name, "arn": UNINDEXED_ARN[kind](account, name)}
@@ -587,7 +612,7 @@ def main(argv: list[str]) -> int:
     args = parser.parse_args(argv)
 
     if args.unindexed:
-        print(json.dumps({"names": unindexed_names(args.unindexed, args.account)}))
+        print(json.dumps({"names": unindexed_names(args.unindexed, args.account, args.environment)}))
         return 0
 
     missing = [
