@@ -27,3 +27,8 @@ output "container_name" {
   description = "Name of the container in the task definition (used by run-task overrides)."
   value       = var.service
 }
+
+output "execution_role_name" {
+  description = "Name of the task execution role, for a policy the environment attaches to it (ADR-0095)."
+  value       = aws_iam_role.execution.name
+}

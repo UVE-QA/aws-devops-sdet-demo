@@ -128,6 +128,26 @@ module "web" {
   depends_on           = [module.alb]
 }
 
+# THE ONE POLICY THAT MAY READ THE DATABASE SECRET, on the api's execution
+# role and on nothing else (ADR-0095). Here rather than inside the service
+# module: a policy counted into existence for one instance of a module and not
+# the other is a resource the orphan-adoption gate cannot see, and a policy
+# left on an orphaned role is exactly the DeleteConflict ADR-0041 was written
+# about. Named for the api, findable by name.
+data "aws_iam_policy_document" "api_read_db_secret" {
+  statement {
+    sid       = "ReadDbSecret"
+    actions   = ["secretsmanager:GetSecretValue"]
+    resources = [module.rds.db_secret_arn]
+  }
+}
+
+resource "aws_iam_role_policy" "api_read_db_secret" {
+  name   = "${local.name_prefix}-api-read-db-secret"
+  role   = module.api.execution_role_name
+  policy = data.aws_iam_policy_document.api_read_db_secret.json
+}
+
 module "rds" {
   source = "../../modules/rds"
 

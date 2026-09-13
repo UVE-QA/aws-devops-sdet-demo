@@ -588,7 +588,9 @@ action-pins:
 
 # Build the app image only.
 docker-build:
-	docker compose build app
+	# Both images (ADR-0095): the scan iterates over IMAGES and refuses one it
+	# cannot find, so a build of one image alone is a red gate, not a fast one.
+	docker compose build app web
 
 # Terraform formatting check across the whole tree.
 tf-fmt:

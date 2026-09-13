@@ -4,12 +4,13 @@
 # in PUBLIC subnets with assign_public_ip = true (no NAT, ADR-0006); inbound is
 # allowed only from the ALB's security group, on this service's port.
 #
-# WHAT IS PER SERVICE ON PURPOSE. The execution role reads the database secret
-# only when the service is given one: `web` serves static files and has no
-# business holding a credential to the database, and a role that could read it
-# anyway is the kind of thing this project draws on its board. The security
-# group is per service for the same reason - the RDS module allows 5432 from the
-# api's group and from nothing else.
+# WHAT IS PER SERVICE ON PURPOSE. Only the service that is given the database
+# secret has it injected into its task, and only its execution role is granted
+# the read - by a policy the environment attaches, see below: `web` serves
+# static files and has no business holding a credential to the database, and a
+# role that could read it anyway is the kind of thing this project draws on its
+# board. The security group is per service for the same reason - the RDS module
+# allows 5432 from the api's group and from nothing else.
 #
 # DB credentials are injected via the task definition `secrets` block (valueFrom
 # = Secrets Manager ARN), never plaintext env (ADR-0005). The api's task
@@ -59,8 +60,9 @@ data "aws_iam_policy_document" "ecs_assume" {
   }
 }
 
-# Execution role: pull from ECR, write CloudWatch logs (AWS managed policy),
-# plus read the specific DB secret - for the service that has one.
+# Execution role: pull from ECR, write CloudWatch logs (AWS managed policy).
+# The api's also reads the database secret, through a policy the environment
+# attaches to it - see above.
 resource "aws_iam_role" "execution" {
   name               = "${local.name}-ecs-execution"
   assume_role_policy = data.aws_iam_policy_document.ecs_assume.json
@@ -75,23 +77,12 @@ resource "aws_iam_role_policy_attachment" "execution_managed" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
-data "aws_iam_policy_document" "read_db_secret" {
-  count = local.has_secret ? 1 : 0
-
-  statement {
-    sid       = "ReadDbSecret"
-    actions   = ["secretsmanager:GetSecretValue"]
-    resources = [var.db_secret_arn]
-  }
-}
-
-resource "aws_iam_role_policy" "execution_read_secret" {
-  count = local.has_secret ? 1 : 0
-
-  name   = "${local.name}-read-db-secret"
-  role   = aws_iam_role.execution.id
-  policy = data.aws_iam_policy_document.read_db_secret[0].json
-}
+# THE POLICY THAT READS THE SECRET IS NOT IN THIS MODULE. It is attached at
+# the environment level, to the api's execution role alone (ADR-0095): a
+# `count`ed policy inside a module called twice is a resource that exists in
+# one instance and not the other, and the orphan-adoption gate reads modules
+# and cannot tell which. A plain resource in the environment, named for the
+# api, is a thing every reader of infra/ can find.
 
 # Task role: minimal (no AWS API calls from either service).
 resource "aws_iam_role" "task" {

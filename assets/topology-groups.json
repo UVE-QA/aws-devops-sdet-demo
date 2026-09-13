@@ -237,8 +237,7 @@
     "infra/modules/budgets::aws_budgets_budget.monthly": "count 0 or 1 \u2014 the module is instantiated with enabled = false in an environment that does not want its own budget",
     "infra/modules/network::aws_subnet.public": "count = 2 \u2014 one public subnet per availability zone",
     "infra/modules/network::aws_subnet.private_db": "count = 2 \u2014 the RDS subnet group needs two AZs whether or not anything runs in the second",
-    "infra/modules/network::aws_route_table_association.public": "count = 2 \u2014 one per public subnet",
-    "infra/modules/ecs-service::aws_iam_role_policy.execution_read_secret": "count = 1 for the service that is given the database secret and 0 for the one that is not (ADR-0095): the api's execution role may read the credential, the web's may not, and the block that grants it exists once per instance that has a secret. Counted as one block; two instances make it one policy in total."
+    "infra/modules/network::aws_route_table_association.public": "count = 2 \u2014 one per public subnet"
   },
   "assign": {
     "infra/bootstrap": {
@@ -346,7 +345,8 @@
       "aws_budgets_budget.monthly": "budgets"
     },
     "infra/envs/prod": {
-      "aws_route53_record.app": "dnsrec"
+      "aws_route53_record.app": "dnsrec",
+      "aws_iam_role_policy.api_read_db_secret": "ecs_api"
     },
     "infra/modules/ecs-cluster": {
       "aws_ecs_cluster.this": "ecs_cluster"
@@ -355,7 +355,6 @@
       "aws_security_group.this": "ecs_api",
       "aws_iam_role.execution": "ecs_api",
       "aws_iam_role_policy_attachment.execution_managed": "ecs_api",
-      "aws_iam_role_policy.execution_read_secret": "ecs_api",
       "aws_iam_role.task": "ecs_api",
       "aws_ecs_task_definition.this": "ecs_api",
       "aws_ecs_service.this": "ecs_api"
@@ -364,10 +363,12 @@
       "aws_security_group.this": "ecs_web",
       "aws_iam_role.execution": "ecs_web",
       "aws_iam_role_policy_attachment.execution_managed": "ecs_web",
-      "aws_iam_role_policy.execution_read_secret": "ecs_web",
       "aws_iam_role.task": "ecs_web",
       "aws_ecs_task_definition.this": "ecs_web",
       "aws_ecs_service.this": "ecs_web"
+    },
+    "infra/envs/stage": {
+      "aws_iam_role_policy.api_read_db_secret": "ecs_api"
     }
   },
   "_phases": "The order the cycle happens in, and - in `live` - how each phase is recognised WHILE IT RUNS. Every workflow here holds one job, so a job name cannot tell Build from Apply; the binding names a STEP, and scripts/generate-topology.py refuses if that step does not exist in that job of that workflow. A renamed step would otherwise break the pulse silently, which no other gate in this repository can see. `when: waiting` is the approval, which is not a step at all: it is the gap before the job starts, and the runs API reports it as a run in the waiting state. A SUITE NODE carries its own `live` in exactly the same shape, and must: which phase box a suite is drawn in is a layout decision, and on 2026-08-08 the two disagreed - suite.db.stage sits in the quality gate while its step runs in Provision, and prod's copy of the same suite sat in a phase that does bind that step. A node bound to its own step cannot inherit a phase's answer about a different one.",

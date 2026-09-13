@@ -190,7 +190,9 @@ RULES: dict[str, Rule] = {
     "ec2:security-group": Rule(
         {
             "alb-sg": "module.alb.aws_security_group.alb",
-            "app-sg": "module.ecs.aws_security_group.app",
+            # One group per service (ADR-0095): the api's is what RDS trusts.
+            "api-sg": "module.api.aws_security_group.this",
+            "web-sg": "module.web.aws_security_group.this",
             "rds-sg": "module.rds.aws_security_group.rds",
             # The VPC's default group, which AWS creates and cannot delete. It
             # leaves with the VPC; adopting it only keeps it from being reported
@@ -201,9 +203,9 @@ RULES: dict[str, Rule] = {
         from_tag=True,
     ),
     # --- everything else: the ARN carries the name -------------------------
-    "ecs:cluster": Rule({"cluster": "module.ecs.aws_ecs_cluster.this"}, import_id=_tail),
+    "ecs:cluster": Rule({"cluster": "module.ecs_cluster.aws_ecs_cluster.this"}, import_id=_tail),
     "ecs:service": Rule(
-        {"app": "module.ecs.aws_ecs_service.app"},
+        {"api": "module.api.aws_ecs_service.this", "web": "module.web.aws_ecs_service.this"},
         import_id=_ecs_service_id,
         name_from=_ecs_service_name,
     ),
@@ -213,7 +215,7 @@ RULES: dict[str, Rule] = {
         name_from=_elb_name,
     ),
     "elasticloadbalancing:targetgroup": Rule(
-        {"tg": "module.alb.aws_lb_target_group.app"},
+        {"tg": "module.alb.aws_lb_target_group.app", "web-tg": "module.alb.aws_lb_target_group.web"},
         import_id=_arn_itself,
         name_from=_elb_name,
     ),
@@ -237,8 +239,10 @@ RULES: dict[str, Rule] = {
     # and Terraform imports a role by name, so no tag is involved on either side.
     "iam:role": Rule(
         {
-            "ecs-task": "module.ecs.aws_iam_role.task",
-            "ecs-execution": "module.ecs.aws_iam_role.execution",
+            "api-ecs-task": "module.api.aws_iam_role.task",
+            "api-ecs-execution": "module.api.aws_iam_role.execution",
+            "web-ecs-task": "module.web.aws_iam_role.task",
+            "web-ecs-execution": "module.web.aws_iam_role.execution",
         },
         import_id=_tail,
     ),
@@ -291,14 +295,27 @@ ECS_TASK_EXECUTION_POLICY = (
 )
 
 DEPENDENTS: dict[str, list[tuple[str, Callable[[str, str], str]]]] = {
-    "module.ecs.aws_iam_role.execution": [
+    # The api's execution role carries the managed policy AND the inline one
+    # that reads the database secret; the web's carries the managed policy
+    # alone, because it was never given a secret to read (ADR-0095).
+    "module.api.aws_iam_role.execution": [
         (
-            "module.ecs.aws_iam_role_policy_attachment.execution_managed",
+            "module.api.aws_iam_role_policy_attachment.execution_managed",
             lambda prefix, role: f"{role}/{ECS_TASK_EXECUTION_POLICY}",
         ),
         (
-            "module.ecs.aws_iam_role_policy.execution_read_secret",
-            lambda prefix, role: f"{role}:{prefix}-read-db-secret",
+            # A ROOT resource of the environment, not the module's (ADR-0095):
+            # the policy that reads the secret is attached to the api's role
+            # from infra/envs/<env>, so that a module called twice does not
+            # carry a resource that exists in one instance and not the other.
+            "aws_iam_role_policy.api_read_db_secret",
+            lambda prefix, role: f"{role}:{prefix}-api-read-db-secret",
+        ),
+    ],
+    "module.web.aws_iam_role.execution": [
+        (
+            "module.web.aws_iam_role_policy_attachment.execution_managed",
+            lambda prefix, role: f"{role}/{ECS_TASK_EXECUTION_POLICY}",
         ),
     ],
 }

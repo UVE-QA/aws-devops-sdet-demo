@@ -45,8 +45,12 @@ the cluster; `modules/ecs-service` makes a security group, two roles, a task
 definition and a service, and is instantiated as `api` and as `web`. What is
 per service is per service on purpose: the api's execution role reads the
 database secret and the web's cannot, the RDS group allows 5432 from the api's
-group and from nothing else. The old module went with no state migration,
-because the environments it built are destroyed at the end of every cycle.
+group and from nothing else. The policy that grants the read is a plain
+resource of the environment attached to the api's role, not a `count`ed one
+inside the module: a resource that exists in one instance of a module and not
+the other is one the orphan-adoption gate, which reads modules, cannot tell
+apart - and it said so. The old module went with no state migration, because
+the environments it built are destroyed at the end of every cycle.
 
 **D4. One repository per service, and the api keeps the old one.** Renaming an
 ECR repository is creating a new one, and the api's history is in
@@ -74,7 +78,8 @@ services it needs will live. Two steps cost about a minute and no machinery.
 services run in and a property of neither. Nine nouns in prod would have
 squeezed every tile to 160px at 1512, and the owner's answer was a next row,
 not a narrower tile: the column count stays the estate's and is capped by how
-many 11rem tiles fit, and both rows wrap at the same column so VPC still sits
+many 10.5rem tiles fit - what eight measure across the 1512px board today -
+and both rows wrap at the same column so VPC still sits
 over VPC. `generate-topology.py` learned to assign one module's blocks to a
 different tile per instance, keyed `<dir>@<call>`.
 
@@ -89,10 +94,14 @@ keeps finding one layer down.
   `/api` now share one origin. Both images scan clean — the web image, on
   alpine, with nothing at all to report.
 - The published estate gains a tile per environment: 17 nouns across two rows,
-  137 resource blocks in `infra/`, 58 permanent, 79 per cycle - counted, not
+  135 resource blocks in `infra/`, 58 permanent, 77 per cycle - counted, not
   written.
 - The cycle grows by roughly a minute for the second build and a little for the
   second service's stability, and by one Fargate task's worth of cost.
+- `scripts/adopt_orphans.py` knows the two services' names - security groups,
+  services, target groups, four roles - and the api's role drags its two
+  policies into state while the web's drags one; 113 unit tests say so,
+  including a new one for the web role.
 - The `Build` phase draws two nodes with their own steps; every fixture that
   named `build.ecr`, `stage.ecs` or *Build, tag, and push image* was rewritten,
   and the frozen `live-state/phases.json` was refreshed and the approval's

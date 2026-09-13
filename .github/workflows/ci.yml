@@ -43,7 +43,7 @@ jobs:
       - name: In-process tests (log shape, request id)
         run: make test-unit
 
-      - name: Build app image
+      - name: Build the images
         run: make docker-build
 
       - name: Set up Node.js

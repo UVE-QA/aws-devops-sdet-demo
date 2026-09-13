@@ -32,7 +32,7 @@ PREFIX = "aws-devops-sdet-demo-stage"
 RDS = f"arn:aws:rds:us-west-2:{ACCOUNT}:db:{PREFIX}-db"
 SUBGRP = f"arn:aws:rds:us-west-2:{ACCOUNT}:subgrp:{PREFIX}-db-subnet-group"
 CLUSTER = f"arn:aws:ecs:us-west-2:{ACCOUNT}:cluster/{PREFIX}-cluster"
-SERVICE = f"arn:aws:ecs:us-west-2:{ACCOUNT}:service/{PREFIX}-cluster/{PREFIX}-app"
+SERVICE = f"arn:aws:ecs:us-west-2:{ACCOUNT}:service/{PREFIX}-cluster/{PREFIX}-api"
 ALB = f"arn:aws:elasticloadbalancing:us-west-2:{ACCOUNT}:loadbalancer/app/{PREFIX}-alb/50dc6c495c0c9188"
 TG = f"arn:aws:elasticloadbalancing:us-west-2:{ACCOUNT}:targetgroup/{PREFIX}-tg/73e2d6bc24d8a067"
 APP_SG = f"arn:aws:ec2:us-west-2:{ACCOUNT}:security-group/sg-0app"
@@ -71,7 +71,7 @@ def test_the_cluster_that_survived_a_teardown():
     assert one(CLUSTER) == {
         "arn": CLUSTER,
         "verdict": "adopt",
-        "address": "module.ecs.aws_ecs_cluster.this",
+        "address": "module.ecs_cluster.aws_ecs_cluster.this",
         "import_id": f"{PREFIX}-cluster",
     }
 
@@ -79,8 +79,8 @@ def test_the_cluster_that_survived_a_teardown():
 def test_an_ecs_service_is_imported_as_cluster_slash_service():
     """Terraform's own import id for a service, which is not its ARN."""
     entry = one(SERVICE)
-    assert entry["address"] == "module.ecs.aws_ecs_service.app"
-    assert entry["import_id"] == f"{PREFIX}-cluster/{PREFIX}-app"
+    assert entry["address"] == "module.api.aws_ecs_service.this"
+    assert entry["import_id"] == f"{PREFIX}-cluster/{PREFIX}-api"
 
 
 def test_a_load_balancer_is_imported_by_arn():
@@ -104,7 +104,7 @@ def test_a_log_group_is_named_by_a_path_rather_than_a_prefix():
 # ---------------------------------------------------------------------------
 def test_security_groups_are_told_apart_by_their_name_tag():
     """`sg-0app` and `sg-0rds` are indistinguishable without the tag."""
-    assert one(APP_SG, f"{PREFIX}-app-sg")["address"] == "module.ecs.aws_security_group.app"
+    assert one(APP_SG, f"{PREFIX}-api-sg")["address"] == "module.api.aws_security_group.this"
     assert one(RDS_SG, f"{PREFIX}-rds-sg")["address"] == "module.rds.aws_security_group.rds"
 
 
@@ -159,7 +159,7 @@ def test_two_security_groups_with_one_name_tag_adopt_neither():
     the one this cycle created, and nothing in the tag says which is which.
     """
     other = f"arn:aws:ec2:us-west-2:{ACCOUNT}:security-group/sg-0old"
-    tags = {APP_SG: {"Name": f"{PREFIX}-app-sg"}, other: {"Name": f"{PREFIX}-app-sg"}}
+    tags = {APP_SG: {"Name": f"{PREFIX}-api-sg"}, other: {"Name": f"{PREFIX}-api-sg"}}
     result = adopt_orphans.plan([APP_SG, other], tags, PREFIX)
     assert result["adopt"] == []
     assert sorted(e["arn"] for e in result["unadoptable"]) == sorted([APP_SG, other])
@@ -167,7 +167,7 @@ def test_two_security_groups_with_one_name_tag_adopt_neither():
     # The address is named in the message: a duplicate nobody can locate is a
     # log line, not a finding.
     assert all(
-        "module.ecs.aws_security_group.app" in e["reason"]
+        "module.api.aws_security_group.this" in e["reason"]
         for e in result["unadoptable"]
     )
 
@@ -179,7 +179,7 @@ def test_an_empty_account_plans_nothing():
 def test_a_whole_cancelled_launch_maps_the_way_the_teardown_needs():
     """The six orphans of 2026-08-07, plus the two that were never adoptable."""
     tags = {
-        APP_SG: {"Name": f"{PREFIX}-app-sg"},
+        APP_SG: {"Name": f"{PREFIX}-api-sg"},
         RDS_SG: {"Name": f"{PREFIX}-rds-sg"},
         VPC: {"Name": f"{PREFIX}-vpc"},
         SUBNET: {"Name": f"{PREFIX}-public-us-west-2a"},
@@ -188,8 +188,8 @@ def test_a_whole_cancelled_launch_maps_the_way_the_teardown_needs():
         [RDS, CLUSTER, APP_SG, RDS_SG, VPC, SUBNET, WEIRD], tags, PREFIX
     )
     assert sorted(e["address"] for e in result["adopt"]) == [
-        "module.ecs.aws_ecs_cluster.this",
-        "module.ecs.aws_security_group.app",
+        "module.api.aws_security_group.this",
+        "module.ecs_cluster.aws_ecs_cluster.this",
         "module.network.aws_vpc.this",
         "module.rds.aws_db_instance.this",
         "module.rds.aws_security_group.rds",
@@ -288,14 +288,16 @@ def test_no_mapped_resource_is_counted():
 # nobody ever asks about, which is how two roles blocked every apply for three
 # days while every gate in this repository stayed green.
 # ---------------------------------------------------------------------------
-TASK_ROLE = f"arn:aws:iam::{ACCOUNT}:role/{PREFIX}-ecs-task"
+TASK_ROLE = f"arn:aws:iam::{ACCOUNT}:role/{PREFIX}-api-ecs-task"
 DEPLOY_ROLE = f"arn:aws:iam::{ACCOUNT}:role/{PREFIX}-github-deploy"
 
 
 def test_the_two_roles_that_blocked_every_apply():
     for arn, address in (
-        (TASK_ROLE, "module.ecs.aws_iam_role.task"),
-        (f"arn:aws:iam::{ACCOUNT}:role/{PREFIX}-ecs-execution", "module.ecs.aws_iam_role.execution"),
+        (TASK_ROLE, "module.api.aws_iam_role.task"),
+        (f"arn:aws:iam::{ACCOUNT}:role/{PREFIX}-api-ecs-execution", "module.api.aws_iam_role.execution"),
+        (f"arn:aws:iam::{ACCOUNT}:role/{PREFIX}-web-ecs-task", "module.web.aws_iam_role.task"),
+        (f"arn:aws:iam::{ACCOUNT}:role/{PREFIX}-web-ecs-execution", "module.web.aws_iam_role.execution"),
     ):
         plan = adopt_orphans.plan_one(arn, {}, PREFIX)
         assert plan["verdict"] == "adopt"
@@ -323,9 +325,13 @@ def test_the_permanent_deploy_role_is_not_adoptable():
 
 def test_the_names_to_probe_come_from_the_map():
     names = adopt_orphans.unindexed_names(PREFIX, ACCOUNT)
+    # Four since the split (ADR-0095): two roles per service, one service that
+    # reads the secret and one that never will.
     assert [entry["name"] for entry in names] == [
-        f"{PREFIX}-ecs-execution",
-        f"{PREFIX}-ecs-task",
+        f"{PREFIX}-api-ecs-execution",
+        f"{PREFIX}-api-ecs-task",
+        f"{PREFIX}-web-ecs-execution",
+        f"{PREFIX}-web-ecs-task",
     ]
     assert all(entry["kind"] == "iam:role" for entry in names)
 
@@ -376,23 +382,25 @@ def test_every_role_in_the_configuration_is_declared():
 # before anything was removed: adopting the role alone would have turned a green
 # teardown that leaks a role into a RED one that leaks it anyway.
 # ---------------------------------------------------------------------------
-EXEC_ROLE = f"arn:aws:iam::{ACCOUNT}:role/{PREFIX}-ecs-execution"
+EXEC_ROLE = f"arn:aws:iam::{ACCOUNT}:role/{PREFIX}-api-ecs-execution"
 
 
 def test_the_execution_role_drags_its_policies_into_state():
     result = adopt_orphans.plan([EXEC_ROLE], {}, PREFIX)
     by_address = {e["address"]: e for e in result["adopt"]}
-    assert by_address["module.ecs.aws_iam_role.execution"]["import_id"] == f"{PREFIX}-ecs-execution"
+    assert by_address["module.api.aws_iam_role.execution"]["import_id"] == f"{PREFIX}-api-ecs-execution"
     # Terraform's documented import ids: `<role>/<policy-arn>` for an attachment,
     # `<role>:<policy-name>` for an inline policy. Asserted literally, because a
     # wrong separator here fails in the middle of a teardown.
     assert (
-        by_address["module.ecs.aws_iam_role_policy_attachment.execution_managed"]["import_id"]
-        == f"{PREFIX}-ecs-execution/arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+        by_address["module.api.aws_iam_role_policy_attachment.execution_managed"]["import_id"]
+        == f"{PREFIX}-api-ecs-execution/arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
     )
     assert (
-        by_address["module.ecs.aws_iam_role_policy.execution_read_secret"]["import_id"]
-        == f"{PREFIX}-ecs-execution:{PREFIX}-read-db-secret"
+        # The policy that reads the secret lives at the environment level, on
+        # the api's role alone (ADR-0095) - a root address, not the module's.
+        by_address["aws_iam_role_policy.api_read_db_secret"]["import_id"]
+        == f"{PREFIX}-api-ecs-execution:{PREFIX}-api-read-db-secret"
     )
 
 
@@ -404,6 +412,19 @@ def test_the_task_role_has_nothing_hanging_off_it():
     assert len(result["adopt"]) == 1
 
 
+def test_the_web_execution_role_drags_only_the_managed_policy():
+    """The web service was never given the secret, so nothing but the managed
+    policy hangs off its execution role (ADR-0095) - and a dependent invented
+    for it would fail an import on every teardown."""
+    result = adopt_orphans.plan(
+        [f"arn:aws:iam::{ACCOUNT}:role/{PREFIX}-web-ecs-execution"], {}, PREFIX
+    )
+    assert sorted(e["address"] for e in result["adopt"]) == [
+        "module.web.aws_iam_role.execution",
+        "module.web.aws_iam_role_policy_attachment.execution_managed",
+    ]
+
+
 def test_a_dependents_parent_is_imported_by_name():
     """`dependents_of` builds its ids from the parent's `import_id`, so a parent
     imported by ARN would silently produce nonsense ids."""
@@ -412,7 +433,7 @@ def test_a_dependents_parent_is_imported_by_name():
         rule = next(
             r for r in adopt_orphans.RULES.values() if parent in r.addresses.values()
         )
-        sample = f"arn:aws:iam::{ACCOUNT}:role/{PREFIX}-ecs-execution"
+        sample = f"arn:aws:iam::{ACCOUNT}:role/{PREFIX}-api-ecs-execution"
         parsed = adopt_orphans.Arn(sample)
         assert rule.import_id(parsed) == rule.name_from(parsed)
 
@@ -421,7 +442,7 @@ def test_a_duplicate_parent_does_not_drag_dependents_in():
     """Order matters, and this is why the dependents are appended AFTER the
     collision check. A parent that lost its address has nothing for them to hang
     off, and three imports would then fail for a reason that is not theirs."""
-    other = f"arn:aws:iam::{ACCOUNT}:role/{PREFIX}-ecs-execution"
+    other = f"arn:aws:iam::{ACCOUNT}:role/{PREFIX}-api-ecs-execution"
     result = adopt_orphans.plan([other, other], {}, PREFIX)
     assert result["adopt"] == []
     assert all(adopt_orphans.DUPLICATE in e["reason"] for e in result["unadoptable"])

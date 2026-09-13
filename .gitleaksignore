@@ -1,0 +1,9 @@
+# Two trivy reports committed by mistake on `next` in 6430a67 (ADR-0095's
+# commit) and untracked in the commit after it. The "secret" is the python
+# base image's GPG_KEY environment value - the signing key's public
+# fingerprint, published in the official image - copied into the scan report.
+# Left in history rather than rewritten: this repository does not force-push
+# over pushed commits (see CLAUDE.md on the session-URL trailers). The files
+# are gitignored as trivy-report.json* now, so the shape cannot recur.
+6430a67f0f03845b55db96921b49cb7106df5868:trivy-report.json.aws-devops-sdet-demo-app_local:generic-api-key:68
+6430a67f0f03845b55db96921b49cb7106df5868:trivy-report.json.aws-devops-sdet-demo-app_local:generic-api-key:202

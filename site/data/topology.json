@@ -5,14 +5,14 @@
     "levels": 8,
     "permanent_levels": 6,
     "cycle_levels": 2,
-    "resources": 137,
+    "resources": 135,
     "resources_permanent": 58,
-    "resources_per_cycle": 79,
+    "resources_per_cycle": 77,
     "modules": 10,
     "suites": 5,
     "workflows": 6,
     "adrs": 96,
-    "repeated_blocks": 10
+    "repeated_blocks": 9
   },
   "measured_cycle": null,
   "layout": {
@@ -374,10 +374,10 @@
             "tool": "terraform",
             "resources": 7,
             "members": [
+              "aws_iam_role_policy.api_read_db_secret",
               "module.api.aws_security_group.this",
               "module.api.aws_iam_role.execution",
               "module.api.aws_iam_role_policy_attachment.execution_managed",
-              "module.api.aws_iam_role_policy.execution_read_secret",
               "module.api.aws_iam_role.task",
               "module.api.aws_ecs_task_definition.this",
               "module.api.aws_ecs_service.this"
@@ -391,12 +391,11 @@
             "env": "stage",
             "observer": "terraform",
             "tool": "terraform",
-            "resources": 7,
+            "resources": 6,
             "members": [
               "module.web.aws_security_group.this",
               "module.web.aws_iam_role.execution",
               "module.web.aws_iam_role_policy_attachment.execution_managed",
-              "module.web.aws_iam_role_policy.execution_read_secret",
               "module.web.aws_iam_role.task",
               "module.web.aws_ecs_task_definition.this",
               "module.web.aws_ecs_service.this"
@@ -513,10 +512,10 @@
             "tool": "terraform",
             "resources": 7,
             "members": [
+              "aws_iam_role_policy.api_read_db_secret",
               "module.api.aws_security_group.this",
               "module.api.aws_iam_role.execution",
               "module.api.aws_iam_role_policy_attachment.execution_managed",
-              "module.api.aws_iam_role_policy.execution_read_secret",
               "module.api.aws_iam_role.task",
               "module.api.aws_ecs_task_definition.this",
               "module.api.aws_ecs_service.this"
@@ -530,12 +529,11 @@
             "env": "prod",
             "observer": "terraform",
             "tool": "terraform",
-            "resources": 7,
+            "resources": 6,
             "members": [
               "module.web.aws_security_group.this",
               "module.web.aws_iam_role.execution",
               "module.web.aws_iam_role_policy_attachment.execution_managed",
-              "module.web.aws_iam_role_policy.execution_read_secret",
               "module.web.aws_iam_role.task",
               "module.web.aws_ecs_task_definition.this",
               "module.web.aws_ecs_service.this"
@@ -1224,7 +1222,7 @@
                 ]
               }
             ],
-            "resources": 39,
+            "resources": 38,
             "level": "infra/envs/stage",
             "tool": "terraform"
           },
@@ -1247,7 +1245,7 @@
                 ]
               }
             ],
-            "resources": 40,
+            "resources": 39,
             "level": "infra/envs/prod",
             "tool": "terraform"
           }
@@ -1421,10 +1419,6 @@
     {
       "address": "infra/modules/budgets::aws_budgets_budget.monthly",
       "why": "count 0 or 1 — the module is instantiated with enabled = false in an environment that does not want its own budget"
-    },
-    {
-      "address": "infra/modules/ecs-service::aws_iam_role_policy.execution_read_secret",
-      "why": "count = 1 for the service that is given the database secret and 0 for the one that is not (ADR-0095): the api's execution role may read the credential, the web's may not, and the block that grants it exists once per instance that has a secret. Counted as one block; two instances make it one policy in total."
     },
     {
       "address": "infra/modules/network::aws_route_table_association.public",
