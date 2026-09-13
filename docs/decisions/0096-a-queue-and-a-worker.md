@@ -129,7 +129,7 @@ The environment panel gains a `worker service` row and a `queue` row.
   the sweep confirms one by `get-queue-url`, and the adoption imports one by
   its URL. The dead-letter alarm is reported by the sweep and not adopted,
   exactly as the 5xx alarm always was.
-- The estate is 163 resource blocks, 86 per cycle; the cycle grows by a
+- The estate is 163 resource blocks, 60 permanent and 103 per cycle; the cycle grows by a
   third build, a third service's stability and one Fargate task's worth of
   cost; the queue itself bills per million requests and a cycle makes a few
   hundred.

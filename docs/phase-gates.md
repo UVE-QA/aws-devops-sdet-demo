@@ -4068,7 +4068,7 @@ proceeds — the mirror of what Phase 39 built for the apply.
   release-tag 403 of 2026-09-05 are both still open and still undiagnosed.
 
 
-### Phase 41 — The container is two, and a release is a set  ⏳ IN PROGRESS 2026-09-13
+### Phase 41 — The container is two, and a release is a set  ✅ DONE 2026-09-13
 
 Item 1 of the plan (ADR-0094), on `next`. **ADR-0095**: `web` is nginx serving
 the interface the api used to serve from `/`; `api` is FastAPI without `/`; one
@@ -4111,10 +4111,40 @@ images scanning clean; every gate green over rewritten fixtures.
   rule), destroy 10 m with a green sweep over four confirmed roles, hold 5 m,
   destroy-prod 10 m, release-lock. 57 minutes. Both status files say
   `destroyed` and name #25; the account holds the default VPC and nothing else.
-- Next allowed step: **merge `next` → `main`** on the owner's word (ADR-0093
-  D1: a green cycle from `next` is the precondition, and this is it); the
-  published page then gets the amended D2 and stops calling a `next` cycle's
-  file `unknown`. Then the session record for 2026-09-13.
+- **Merged 2026-09-13** on the owner's word: `main` fast-forwarded to `next`,
+  publish-site and CI green on the merge commit, the published page carrying
+  the amended D2. Session record written. Phase 41 is DONE.
+
+
+### Phase 42 — A queue and a worker  ⏳ IN PROGRESS 2026-09-13
+
+Item 2 of the plan (ADR-0094), on `next`. **ADR-0096**, decided with the
+owner before a line was written: the api publishes `item.created` after the
+commit and the gap between the two writes is named rather than closed by an
+outbox; a worker in its own image consumes it and stamps `processed_at` and
+`processed_by` on the api's own table — the shared-database debt item 4 pays;
+poison is left for the dead-letter queue and the alarm on it has no action;
+ElasticMQ stands in for SQS locally with the same redrive.
+
+Verified so far, locally: 54 api contract tests through the web container
+(52 + 2 asynchronous, waiting on a deadline for the worker's stamp), the
+poison path end to end (`scripts/break-poison-message.sh`: three refusals by
+message id, the message in the dead-letter queue and gone from the main one),
+126 unit tests, three images with nothing fixable, `terraform validate` on
+all eight levels, checkov 406/0 after both queues took the SQS-owned key;
+every checkout gate green over the regenerated topology (163 blocks, 103 per
+cycle).
+
+- Two contract tests raced the worker on the first run - whole-row
+  comparisons - and now compare the fields the api owns.
+- The worker's queue helper, first named queue.py, shadowed the standard
+  library's `queue` for urllib3 under boto3 on its first run; it is
+  `worker/scripts/sqs_tool.py`.
+- Next allowed step: apply the two permanent levels with the owner's yes -
+  `infra/shared-ecr` (worker repository: 2 to add) and `infra/bootstrap-oidc`
+  (six ECS roles and `sqs:*` on both deploy policies: 2 to change) - then
+  **the first cycle from `next`**, on the owner's word; what it shows goes
+  here.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

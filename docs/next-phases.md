@@ -1574,16 +1574,19 @@ components, each with a reason to exist, is the smallest shape that shows all
 of it and the largest that a home project can carry without noise.
 
 ```text
-1. Split the container into web and api        [IN PROGRESS 2026-09-13, ADR-0095]
+1. Split the container into web and api        [DONE 2026-09-13, ADR-0095]
    Two images behind one load balancer, routed by path; a release becomes a
    SET of digests rather than one. The first boundary, and the one that makes
-   promotion by digest mean something across services. Built on `next`; the
-   web repository and a cycle from the branch are what remain.
+   promotion by digest mean something across services. Proven by the second
+   cycle from `next` (#25) and merged.
 
-2. A queue and a worker
+2. A queue and a worker                         [IN PROGRESS 2026-09-13, ADR-0096]
    api publishes an event to SQS, a worker consumes it; a dead-letter queue
    with an alarm on it. Asynchronous decoupling, idempotency, retries - for
-   pennies.
+   pennies. Decided with the owner: the worker stamps `processed_at` on the
+   api's own table (the shared-database debt item 4 pays), the api publishes
+   directly after the commit and the gap is named rather than closed by an
+   outbox, the alarm has no action, and ElasticMQ stands in for SQS locally.
 
 3. The same digests on EKS
    Terraform brings up the cluster and the platform (including the load
