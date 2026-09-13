@@ -4194,10 +4194,20 @@ now and the application through kubectl later.
   the cost model's two new lifetimes and the sizing reader's second shape,
   two rates captured. Validated on all nine levels; checkov 501/0; gates
   13/13. **Nothing applied yet.**
-- Next allowed step: apply `bootstrap-oidc` (the lab role: 2 to add) with the
-  owner's yes, then prove the cluster the cheap way - a local `apply` and
-  `destroy` of `infra/envs/lab` under `demo-admin`, about twenty minutes and
-  a few tens of cents - before the chart (slice two) has anywhere to go.
+- **`bootstrap-oidc` applied 2026-09-13** with the owner's yes (the lab role:
+  2 added). **Slice two (chart) 2026-09-13**, proven by hand under
+  `demo-admin`: three applies to a green one (the secret read raced RDS; an
+  access entry wants the SSO role's full ARN; the creator gets no second
+  entry), cluster 9m24s, nodes 1m47s, controller 22s; `charts/demo` installed
+  by `scripts/lab-install.sh` with the digests of #26 - hooks, three pods,
+  the balancer tagged for the sweep; 54 api contract and 2 smoke green
+  through the Ingress, the worker consuming through IRSA; uninstall and
+  balancer gone in 38 s, destroy 38 resources in 11m53s (the node group
+  8m10s of it). `chart-check` is a gate.
+- Next allowed step: **slice three** - the `lab` job in the cycle beside
+  `promote`, its teardown through destroy.yml with the uninstall first, the
+  GitHub Environment `lab` and its `OIDC_ROLE_ARN`, the sweep and the
+  adoption taught the lab's kinds. Then the first cycle with a lab.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

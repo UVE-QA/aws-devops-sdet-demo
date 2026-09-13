@@ -123,6 +123,20 @@ not counted; they are observed, with the Ingress and its balancer, by a
   carries `eks_cluster_hour` ($0.10) and `ec2_instance_hour` ($0.0208) from
   the Price List API. **Not yet applied anywhere**: the lab deploy role plans
   2 to add on `bootstrap-oidc`, and the lab itself has never been created.
+- Slice two, 2026-09-13, by hand under `demo-admin`: the cluster ACTIVE in
+  9m24s, the node group in 1m47s, RDS in 4m53s, the controller in 22s; the
+  chart's two hooks and three pods up on the first install; the balancer
+  built by the controller with `Project` and `Environment` on it and on both
+  target groups, visible to the tagging API; 54 api contract tests and 2
+  smoke green through the Ingress, the worker consuming through IRSA (ten
+  `processed` lines in its log). Three findings on the way, all in the
+  configuration now: the secret read raced the RDS create; an access entry
+  wants the SSO role's full ARN; the creator must not be given a second one.
+  Teardown: `helm uninstall` and the balancer gone in 38 s; `terraform
+  destroy` 38 resources in 11m53s, the node group 8m10s of it and the
+  internet gateway waiting 6m44s on the nodes' interfaces - the lab's
+  teardown is a node-group teardown. Afterwards the account holds the lab's
+  deploy role and nothing else of the lab.
 - The adoption map and the sweep know nothing of the lab's kinds yet (cluster,
   node group, OIDC provider, launch template, the controller's balancer); both
   read stage's module map. Slice three, with the lab's teardown.
