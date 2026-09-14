@@ -96,13 +96,39 @@ gate     2 states, 17 tiles, 20 parts, 54 edges in the picture, every claim hold
 gates    13/13 locally, 36 in the registry; contrast 10 states, 4 ancestries
 ```
 
+## The cycle
+
+```text
+#32  34796443184  01:36  success   67 m — launch 20, lab 20, promote 16,
+                                   destroy 12, destroy-lab 13, hold 5,
+                                   destroy-prod 12, release-lock
+```
+
+The `next` page, rendered over the live bucket while stage and then the
+lab were up: the picture from real observations — three services at 1/1
+behind the balancer's rule, the cluster with its control plane active, two
+spot nodes and three Deployments at 1/1 ready, both queues empty — the
+parts' words the rows' words, the durations the cycle's. Three status files
+say `destroyed` and name #32.
+
+## What the owner's screen said
+
+Two things, neither this phase's, both decided. **The anonymous GitHub
+budget is per IP**, and the owner's browser reads two dashboards from it —
+this one and zero-trust-lab's — so a fresh tab saw HTTP 403 before its
+first successful read. Decided: the run history will be published to the
+bucket by the cycle itself, after this phase; the zero-trust-lab session
+was told, at the owner's request, to do the same on its side. **Prod's
+public name answered blank** for the first minute after the panel said
+`up`: negative DNS caching of a name that is dead between cycles, and the
+balancer's target registration — which the panel already says under prod.
+
 ## What is still open
 
-A cycle from `next`, on the owner's word — the first look at the picture
-over real observations, and the condition for the merge. The picture's
-routing: an edge from the runtime lane to the VPC crosses the balancer's
-tile on its way, legible and not pretty; a routed layout is a later slice
-if wanted. The services manifest after it (item 6), which becomes the
+The merge, on the owner's word. The run history into the bucket, next.
+The picture's routing is plain — curves, ports, no crossings avoided — and
+a routed layout is a later slice if wanted. The services manifest after it
+(item 6), which becomes the
 graph's source without the page changing. Per-service database users
 (ADR-0098 D2). The Cycle map for a `next` cycle, on the owner's condition.
 From before: the lab site, the two blunted break tests, the release-tag 403.

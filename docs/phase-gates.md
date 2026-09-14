@@ -4337,9 +4337,16 @@ graph and the manifest can become its source later.
   / ops off; a layer off hides its edges and its own nouns. ADR-0099 D1, D3
   and D4 amended. Gate rewritten for one board per environment, green on
   both states; contrast green; gates 13/13.
-- Next allowed step: **a cycle from `next`** on the owner's word (ADR-0093
-  D1), which is also the first look at the picture over real observations;
-  then **merge `next` → `main`** on the owner's word, then the record.
+- **#32 green end to end, 67 minutes, three environments** (launch 20 m,
+  lab 20 m, promote 16 m, destroy 12 m, destroy-lab 13 m, hold, destroy-prod
+  12 m): the picture rendered over the live bucket while stage and the lab
+  were up - real durations on the tiles, 1/1 on every service and
+  Deployment, both queues observed; three status files `destroyed` from
+  #32. Phase 45 is proven.
+- Next allowed step: **merge `next` → `main`** on the owner's word (ADR-0093
+  D1: a green cycle from `next`, and #32 is it). Then the run history into
+  the bucket (decided with the owner 2026-09-14: the anonymous GitHub budget
+  is per IP and shared with the zero-trust-lab dashboard).
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

@@ -145,8 +145,21 @@ says so rather than passing without the chart's half.
   geometry — one board per environment, a layer switched on adds its edges
   and its nouns and moves nothing else — and hold on both states; the
   contrast contract's schema ancestry is the frame's columns.
-- Not yet: a cycle from `next` with the layout live over real observations
-  (the merge rule of ADR-0093 D1).
+- **Verified by cycle #32 (34796443184, 2026-09-14, 67 minutes, every job
+  green - launch 20 m, lab 20 m, promote 16 m, destroy 12 m, destroy-lab
+  13 m, hold 5 m, destroy-prod 12 m)**: the `next` page rendered over the
+  live bucket while stage and then the lab were up drew the picture from
+  real observations - stage's three services at 1/1 running behind the
+  balancer's rule, both queues empty with the alarm OK, the cluster at 15 m
+  59 s with its control plane active, two spot t3.small nodes and the three
+  Deployments at 1/1 ready, the Ingress active, the parts' words the rows'
+  words. Three status files say `destroyed` and name #32. Two things the
+  owner's screen said meanwhile, neither this record's: the anonymous
+  GitHub budget is shared per IP with the zero-trust-lab dashboard (a
+  decision taken - the run history will be published to the bucket by the
+  cycle itself, after this phase), and prod's public name answered blank
+  for the first minute after `up` (negative DNS caching and target
+  registration, which the panel already says).
 - What to watch: the generator reads Terraform by regular expression, not
   by parsing HCL; a module argument split over lines in a way the pattern
   does not expect would drop an edge silently rather than refuse. The gate
