@@ -7,7 +7,7 @@
         self-service-package self-service-cors-check site-page site-page-check \
         site-data site-data-check timeline-check node-states-check \
         suite-inventory suite-inventory-check results-check live-state-check \
-        page-tense-check page-freshness-check page-inflight-check \
+        page-tense-check page-freshness-check page-inflight-check page-schema-check \
         publish-prefixes-check claim-chain contrast-check measure-page gates gates-full gates-check
 
 # Bring up postgres + app (build app image if needed), detached.
@@ -352,6 +352,16 @@ page-freshness-check:
 # and measure-page, same CHROMIUM_PATH escape hatch, same place in ci.yml.
 page-inflight-check:
 	node scripts/check-page-inflight.mjs
+
+# THE ESTATE'S SECOND LAYOUT IS THE SAME BOARD (ADR-0099). Renders the built
+# page over tests/fixtures/page-schema/ - both runtimes up, a count in every
+# part class - switches the board to the schema layout and holds it to the
+# rows: same ids, same words, every part and edge the generated schema names,
+# the counts the documents carry, a destroyed environment with none, a layer
+# switch that dims and hides and removes nothing, a stale reading grey. Same
+# Playwright and chromium as the gates above, same place in ci.yml.
+page-schema-check:
+	node scripts/check-page-schema.mjs
 
 # THE GATE UNDER ADR-0047 D6. Every state on the map carries a boundary, and a
 # boundary that identifies state has a 3:1 floor (WCAG 1.4.11). Three states

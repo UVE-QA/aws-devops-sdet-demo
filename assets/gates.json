@@ -91,6 +91,16 @@
       ]
     },
     {
+      "target": "page-schema-check",
+      "local": false,
+      "browser": true,
+      "needs": "playwright and chromium, same as contrast-check; it renders the built page over a fixture with both runtimes up and switches the board to its schema layout",
+      "requires": [
+        "playwright",
+        "chromium"
+      ]
+    },
+    {
       "target": "suite-inventory-check",
       "local": false,
       "needs": "the unit venv, the api venv and playwright's node_modules, each a side effect of a step above it (ADR-0042 D2)",

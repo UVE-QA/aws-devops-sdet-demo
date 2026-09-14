@@ -1,0 +1,77 @@
+{
+  "schema": 1,
+  "environment": "lab",
+  "state": "up",
+  "observed_at": "2026-08-11T04:19:30Z",
+  "account": "993912191738",
+  "region": "us-west-2",
+  "app_url": "http://k8s-demo-demo-1a2b3c.us-west-2.elb.amazonaws.com",
+  "image": "sha256:4c7e1a90b6d38f2e5710c94ab2d7f0836e519c4d0a7b3e6f8129d5c0a4b7e312",
+  "resources": {
+    "load_balancer": {
+      "name": "k8s-demo-demo-1a2b3c",
+      "state": "active"
+    },
+    "ecs_service": null,
+    "ecs_web_service": null,
+    "ecs_worker_service": null,
+    "queue": {
+      "name": "demo-lab-items",
+      "visible": 0,
+      "dead_letter_visible": 0,
+      "dead_letter_alarm": "OK"
+    },
+    "results_queue": {
+      "name": "demo-lab-results",
+      "visible": 0,
+      "dead_letter_visible": 0,
+      "dead_letter_alarm": "INSUFFICIENT_DATA"
+    },
+    "eks": {
+      "cluster": {
+        "name": "demo-lab",
+        "status": "ACTIVE",
+        "version": "1.35"
+      },
+      "node_group": {
+        "name": "demo-lab-default",
+        "status": "ACTIVE",
+        "desired": 2,
+        "instance_types": [
+          "t3.small"
+        ]
+      },
+      "deployments": [
+        {
+          "name": "api",
+          "ready": 1,
+          "desired": 1
+        },
+        {
+          "name": "web",
+          "ready": 1,
+          "desired": 1
+        },
+        {
+          "name": "worker",
+          "ready": 0,
+          "desired": 1
+        }
+      ]
+    },
+    "db_instance": {
+      "name": "aws-devops-sdet-demo-lab",
+      "status": "available"
+    }
+  },
+  "report_url": "https://demo.uveapp.net/reports/stage/63/index.html",
+  "written_at": "2026-08-11T04:18:36Z",
+  "run": {
+    "id": "31461000098",
+    "number": "98",
+    "attempt": "1",
+    "workflow": "self-service",
+    "status": "success",
+    "url": "https://github.com/UVE-QA/aws-devops-sdet-demo/actions/runs/31461000098"
+  }
+}

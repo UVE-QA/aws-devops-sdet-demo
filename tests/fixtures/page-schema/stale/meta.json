@@ -1,0 +1,73 @@
+{
+  "label": "stale",
+  "description": "THE SAME PAGE WITH THE LAB'S DOCUMENT WRITTEN BY AN OLDER RUN (#13): the panel calls that reading stale, and every part the lab's document colours must be grey with it - a count the panel would not draw as current is not drawn as current in the picture either (2026-09-14).",
+  "now": "2026-08-11T04:25:00Z",
+  "provenance": {
+    "runs.json, jobs.json, quota.json": "COPIED from tests/fixtures/page-inflight/at-rest; nothing in flight.",
+    "status-*.json": "SYNTHETIC, in the shape scripts/observe-environment.sh writes since ADR-0098: the three ECS services, both queues with their alarms, the lab's cluster, node group and Deployments. The counts are chosen so every part class the page can draw is drawn."
+  },
+  "cycle": {
+    "in_flight": false,
+    "environments": []
+  },
+  "expect": {
+    "_": "DECLARED beside the documents that justify them, not re-derived from the documents by the gate - the gate's job is to check the page's reading against this one. `class` is the part's state class; `figure` a substring of what the chip prints.",
+    "parts": {
+      "stage.ecs_api.tasks": {
+        "class": "ok",
+        "figure": "2/2"
+      },
+      "stage.ecs_worker.tasks": {
+        "class": "short",
+        "figure": "0/1"
+      },
+      "stage.queue.items": {
+        "class": "ok",
+        "figure": "3 waiting"
+      },
+      "stage.queue.results": {
+        "class": "alarm",
+        "figure": "dlq not empty"
+      },
+      "stage.alb.tg_api": {
+        "class": "declared",
+        "figure": "declared"
+      },
+      "lab.eks.control_plane": {
+        "class": "ok",
+        "figure": "active"
+      },
+      "lab.eks.nodes": {
+        "class": "ok",
+        "figure": "2 desired"
+      },
+      "lab.eks.pods_web": {
+        "class": "ok",
+        "figure": "1/1"
+      },
+      "lab.eks.pods_worker": {
+        "class": "short",
+        "figure": "0/1"
+      },
+      "lab.eks.svc_api": {
+        "class": "declared",
+        "figure": "declared"
+      },
+      "lab.eks.hook_seed": {
+        "class": "declared",
+        "figure": "declared"
+      },
+      "lab.eks.ingress": {
+        "class": "ok",
+        "figure": "active"
+      },
+      "lab.queue.results": {
+        "class": "ok",
+        "figure": "dlq unmeasured"
+      }
+    },
+    "stale": {
+      "lab": true
+    }
+  }
+}

@@ -40,33 +40,64 @@
     "`gone` is the seventh state, added for the reason the paragraph above",
     "predicted. Every CSS rule pairs it with `absent` and it is exempt for the",
     "same reason - but until Phase 27 it was a state the page drew and this",
-    "contract did not name, which is the sentence above failing to be acted on."
+    "contract did not name, which is the sentence above failing to be acted on.",
+    "",
+    "PHASE 45 (ADR-0099): THREE PART STATES AND A FOURTH CHAIN. The schema",
+    "layout draws a finer grain inside a runtime tile - a PART, a chip whose",
+    "4px left edge says the count's state: ok, short, alarm - on the chip's own",
+    "background (--off-bg), which is not the panel the node states sit on. Same",
+    "floor, same probe on the element itself; `absent` and `declared` parts are",
+    "dashed --line like an absent node and exempt for the same reason."
   ],
-
   "floor": 3.0,
-
   "page": "site/index.html",
-
   "chains": [
     {
       "id": "cycle",
       "why": "the map. The chain this contract has always carried.",
       "nodes": [
-        { "tag": "main", "class": "" },
-        { "tag": "div", "class": "cycle" },
-        { "tag": "section", "class": "phase" },
-        { "tag": "div", "class": "set" }
+        {
+          "tag": "main",
+          "class": ""
+        },
+        {
+          "tag": "div",
+          "class": "cycle"
+        },
+        {
+          "tag": "section",
+          "class": "phase"
+        },
+        {
+          "tag": "div",
+          "class": "set"
+        }
       ]
     },
     {
       "id": "estate",
       "why": "the nouns, drawn as a contour of their own since Phase 24 (ADR-0058).",
       "nodes": [
-        { "tag": "main", "class": "" },
-        { "tag": "section", "class": "contour" },
-        { "tag": "div", "class": "" },
-        { "tag": "section", "class": "estate-env" },
-        { "tag": "div", "class": "set estate-set" }
+        {
+          "tag": "main",
+          "class": ""
+        },
+        {
+          "tag": "section",
+          "class": "contour"
+        },
+        {
+          "tag": "div",
+          "class": ""
+        },
+        {
+          "tag": "section",
+          "class": "estate-env"
+        },
+        {
+          "tag": "div",
+          "class": "set estate-set"
+        }
       ]
     },
     {
@@ -74,13 +105,55 @@
       "why": "the suites. The third ancestry, and ADR-0058 named only two - measured on the built page rather than read off the template.",
       "adds": "assertion",
       "nodes": [
-        { "tag": "main", "class": "" },
-        { "tag": "section", "class": "contour" },
-        { "tag": "div", "class": "suites" }
+        {
+          "tag": "main",
+          "class": ""
+        },
+        {
+          "tag": "section",
+          "class": "contour"
+        },
+        {
+          "tag": "div",
+          "class": "suites"
+        }
+      ]
+    },
+    {
+      "id": "schema",
+      "why": "the second layout (ADR-0099): the same tiles under a lane cell of the schema grid, and the parts inside them.",
+      "nodes": [
+        {
+          "tag": "main",
+          "class": ""
+        },
+        {
+          "tag": "section",
+          "class": "contour"
+        },
+        {
+          "tag": "div",
+          "class": ""
+        },
+        {
+          "tag": "div",
+          "class": "schema-grid"
+        },
+        {
+          "tag": "div",
+          "class": "lane-cell"
+        },
+        {
+          "tag": "div",
+          "class": "node"
+        },
+        {
+          "tag": "div",
+          "class": "parts"
+        }
       ]
     }
   ],
-
   "control": [
     {
       "id": "black on white, hex",
@@ -93,43 +166,60 @@
       "expect": 21.0
     }
   ],
-
   "states": [
     {
       "id": "live",
       "what": "running now",
       "class": "node live",
-      "probe": { "on": "::before", "property": "background-color" }
+      "probe": {
+        "on": "::before",
+        "property": "background-color"
+      }
     },
     {
       "id": "failed-now",
       "what": "failed in the run still going",
       "class": "node failed-now",
-      "probe": { "on": "::before", "property": "background-color" }
+      "probe": {
+        "on": "::before",
+        "property": "background-color"
+      }
     },
     {
       "id": "working",
       "what": "its phase is running - which node is unknown",
       "class": "node working",
-      "probe": { "on": "::before", "property": "background-color" }
+      "probe": {
+        "on": "::before",
+        "property": "background-color"
+      }
     },
     {
       "id": "done",
       "what": "finished in the run still going",
       "class": "node done",
-      "probe": { "on": "::before", "property": "background-color" }
+      "probe": {
+        "on": "::before",
+        "property": "background-color"
+      }
     },
     {
       "id": "suite",
       "what": "a test suite - observed by its report, not by Terraform",
       "class": "node suite",
-      "probe": { "on": "::before", "property": "background-color" }
+      "probe": {
+        "on": "::before",
+        "property": "background-color"
+      }
     },
     {
       "id": "gone",
       "what": "an environment that is destroyed - drawn by the estate contour",
       "class": "node gone",
-      "probe": { "on": "::before", "property": "background-color" },
+      "probe": {
+        "on": "::before",
+        "property": "background-color"
+      },
       "exempt": [
         "The same exemption as `absent`, and not a second decision: every CSS",
         "rule that names one names the other - the grayscale icon, the 0.45",
@@ -145,7 +235,10 @@
       "id": "absent",
       "what": "nothing recorded yet",
       "class": "node absent",
-      "probe": { "on": "::before", "property": "background-color" },
+      "probe": {
+        "on": "::before",
+        "property": "background-color"
+      },
       "exempt": [
         "DELIBERATE, and ADR-0047 D6 says so in the decision itself: the absence",
         "of state is carried by the word alone. Drawing 'nothing has happened' as",
@@ -156,6 +249,33 @@
         "Exempt from the FLOOR, not from measurement: it is measured on every run",
         "and printed with the rest, so a change to it is visible."
       ]
+    },
+    {
+      "id": "part-ok",
+      "what": "a part at its desired count",
+      "class": "part ok",
+      "probe": {
+        "on": "self",
+        "property": "border-left-color"
+      }
+    },
+    {
+      "id": "part-short",
+      "what": "a part under its desired count",
+      "class": "part short",
+      "probe": {
+        "on": "self",
+        "property": "border-left-color"
+      }
+    },
+    {
+      "id": "part-alarm",
+      "what": "a queue with a dead letter",
+      "class": "part alarm",
+      "probe": {
+        "on": "self",
+        "property": "border-left-color"
+      }
     }
   ]
 }

@@ -1,0 +1,60 @@
+{
+  "schema": 1,
+  "environment": "stage",
+  "state": "up",
+  "observed_at": "2026-08-11T04:19:30Z",
+  "account": "993912191738",
+  "region": "us-west-2",
+  "app_url": "http://demo-stage-alb-1043827516.us-west-2.elb.amazonaws.com",
+  "image": "sha256:4c7e1a90b6d38f2e5710c94ab2d7f0836e519c4d0a7b3e6f8129d5c0a4b7e312",
+  "resources": {
+    "load_balancer": {
+      "name": "demo-stage-alb",
+      "state": "active"
+    },
+    "ecs_service": {
+      "name": "demo-stage-api",
+      "status": "ACTIVE",
+      "desired": 2,
+      "running": 2
+    },
+    "ecs_web_service": {
+      "name": "demo-stage-web",
+      "status": "ACTIVE",
+      "desired": 1,
+      "running": 1
+    },
+    "ecs_worker_service": {
+      "name": "demo-stage-worker",
+      "status": "ACTIVE",
+      "desired": 1,
+      "running": 0
+    },
+    "queue": {
+      "name": "demo-stage-items",
+      "visible": 3,
+      "dead_letter_visible": 0,
+      "dead_letter_alarm": "OK"
+    },
+    "results_queue": {
+      "name": "demo-stage-results",
+      "visible": 0,
+      "dead_letter_visible": 1,
+      "dead_letter_alarm": "ALARM"
+    },
+    "db_instance": {
+      "name": "aws-devops-sdet-demo-stage",
+      "status": "available"
+    }
+  },
+  "report_url": "https://demo.uveapp.net/reports/stage/63/index.html",
+  "written_at": "2026-08-11T04:18:36Z",
+  "run": {
+    "id": "31461000064",
+    "number": "64",
+    "attempt": "1",
+    "workflow": "deploy-stage",
+    "status": "success",
+    "url": "https://github.com/UVE-QA/aws-devops-sdet-demo/actions/runs/31461000064"
+  }
+}

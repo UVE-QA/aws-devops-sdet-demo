@@ -651,7 +651,11 @@
       .part.absent, .part.declared { border-style: dashed; border-left-style: solid; background: transparent; }
       .part.absent .plabel, .part.declared .plabel { color: var(--muted); font-weight: 500; }
       .part.unobserved { opacity: 0.5; }
-      .node.absent .part, .node.gone .part { border-style: dashed; border-left-style: solid; background: transparent; }
+      /* NOT dashed with its tile. A noun no cycle has measured is `absent` on
+         the strength of the run layer; the part beside it carries the
+         bucket's own count, and the gate found the first rule here dashing
+         a `2/2` because the noun's record was missing. The part says what
+         the bucket says. */
       /* The edges run UNDER the tiles: a line through a tile's text is a
          line nobody can read either half of. The tiles are lifted above the
          overlay, so an edge shows in the gaps between lanes and disappears
