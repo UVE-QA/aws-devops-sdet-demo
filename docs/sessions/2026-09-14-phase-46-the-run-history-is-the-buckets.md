@@ -103,8 +103,10 @@ lifecycle run of any branch at rest too, named with its branch.
 
 ## What is still open
 
-The second merge, on the owner's word - the picture's tiles and the
-cycle view - and the hook watched firing by itself on the next cycle. The picture's tiles - the owner is choosing
+Merged a second time on the owner's word - the picture's tiles, the cycle
+view, the hook's file. The hook firing by itself is the next cycle's to
+show. The picture the owner is living with for a few days. Then the
+services manifest, item 6 of the plan. The picture's tiles - the owner is choosing
 between three translucencies with mid-line arrows, sent this session, none
 committed. The document's size — a job's steps travel whole — if the
 bucket's egress ever matters.

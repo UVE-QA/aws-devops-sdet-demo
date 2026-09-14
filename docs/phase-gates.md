@@ -4395,10 +4395,12 @@ only without it. The zero-trust-lab session was told, at the owner's word.
   rest the cycle view draws the newest lifecycle run of any branch, named
   with its branch, so the live page stops showing a two-day-old #23 over an
   hour-old #33 (*чтоб завтра он отображал реальные прогоны*).
-- Next allowed step: **merge `next` → `main`** on the owner's word - page
-  and the hook's own file only, gated, no cycle needed by ADR-0093 D1's
-  letter but the owner's word still; then watch the hook fire by itself on
-  the next cycle.
+- Merged to `main` on the owner's second *да, вливай* (fast-forward, page
+  and the hook's file). Phase 46 is done as far as this session can prove
+  it; the hook firing by itself is the next cycle's to show.
+- Next allowed step: the next cycle, whenever it comes - watch
+  `publish-runs` fire on its completion and the snapshot say so. Then item
+  6 of the plan, the services manifest (ADR-0094), on the owner's word.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,
