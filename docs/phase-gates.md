@@ -4398,9 +4398,20 @@ only without it. The zero-trust-lab session was told, at the owner's word.
 - Merged to `main` on the owner's second *да, вливай* (fast-forward, page
   and the hook's file). Phase 46 is done as far as this session can prove
   it; the hook firing by itself is the next cycle's to show.
-- Next allowed step: the next cycle, whenever it comes - watch
-  `publish-runs` fire on its completion and the snapshot say so. Then item
-  6 of the plan, the services manifest (ADR-0094), on the owner's word.
+- **Proven on the public path, 2026-09-14**: the owner pressed the button
+  twice from a private window. #34 died in two seconds on a reset connection
+  to Docker Hub; everything after it behaved, and the hook fired by
+  `workflow_run` for the first time. The build got three tries in one
+  script, the base images moved to ECR Public after the image scan met the
+  same reset, both merged. #35 green in 67 minutes: the first snapshot 16 s
+  after the press, the page drawing the cycle from the bucket with zero
+  GitHub requests, the hook writing `completed success` 12 s after
+  `release-lock`. The schema layout photographed through every stage -
+  apply, up, teardown, after - and drawing each as observed. Phase 46 is
+  proven.
+- Next allowed step: item 6 of the plan, the services manifest (ADR-0094),
+  on the owner's word - slices 6a (the manifest and its reconciliation
+  gate) and 6b (the generators read it) first.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

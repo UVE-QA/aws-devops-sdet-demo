@@ -104,6 +104,19 @@ older state has no snapshot and gates the fallback, unchanged.
   environments' subjects and no branch, so the job wears stage's
   environment. Third dispatch: `completed - 40 runs, 40 of main, 8 job(s)`,
   and the bucket's snapshot says #33 `completed success`.
+- **Verified on the public path by #34 and #35 (2026-09-14), both pressed
+  by the owner from a private window.** #34 died in two seconds on a reset
+  connection to Docker Hub (the runner's, not ours) - and everything after
+  it behaved: both destroys ran, the lock was released, and the completion
+  hook fired by `workflow_run` for the first time and wrote the snapshot
+  that says #34 failed. The build step got a second and a third try in one
+  script (`scripts/build-and-push-image.sh`), then the base images moved to
+  AWS's mirror at `public.ecr.aws/docker/library` after the image scan on
+  `main` met the same reset. #35 then went green end to end in 67 minutes:
+  the first snapshot 16 seconds after the press, the page closing the
+  button and drawing the cycle with its steps from the bucket with zero
+  requests to GitHub, and the hook writing `completed success` 12 seconds
+  after `release-lock`. Three status files say `destroyed` and name #35.
 - Relayed to the zero-trust-lab session at the owner's request: the same
   shape applies there, and until it lands the two pages compete for the one
   budget whenever both are open.

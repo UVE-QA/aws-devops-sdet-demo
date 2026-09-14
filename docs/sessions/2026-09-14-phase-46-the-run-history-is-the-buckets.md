@@ -101,12 +101,32 @@ at the live page: *Current cycle* was #23 from two days before while #33
 had ended an hour earlier - ADR-0093 D2 amended a fifth time, the newest
 lifecycle run of any branch at rest too, named with its branch.
 
+## The public path, pressed twice
+
+The owner pressed the button from a private window. #34 died in two
+seconds: `failed to fetch oauth token: Post https://auth.docker.io/token:
+connection reset by peer` - the runner could not reach Docker Hub once, and
+six inline copies of the build step had no second try. Everything after
+the failure behaved: both destroys ran, the lock was released, and the hook
+fired by `workflow_run` for the first time, writing the snapshot that says
+#34 failed. One script with three tries replaced the six copies; then the
+image scan on `main` met the same reset, and the three Dockerfiles moved to
+AWS's mirror of the same official images at `public.ecr.aws/docker/library`
+with three tries in `make docker-build` too. Both merged on the owner's
+word. #35 then went green end to end in 67 minutes: the first snapshot in
+the bucket 16 seconds after the press, the page closing the button and
+drawing the cycle with its steps from the bucket with zero requests to
+GitHub, the hook writing `completed success` 12 seconds after
+`release-lock`. The schema layout, photographed every 2.5 minutes through
+the cycle, drew each stage as observed: `created · observed by the cycle
+under way` with progress bars during the apply, `measured` with 1/1 running
+and 1/1 ready when up, `being destroyed 4 of 9` and `still standing` during
+the teardown, `destroyed` and `absent` after.
+
 ## What is still open
 
-Merged a second time on the owner's word - the picture's tiles, the cycle
-view, the hook's file. The hook firing by itself is the next cycle's to
-show. The picture the owner is living with for a few days. Then the
-services manifest, item 6 of the plan. The picture's tiles - the owner is choosing
+The picture the owner is living with for a few days. Then the services
+manifest, item 6 of the plan. The picture's tiles - the owner is choosing
 between three translucencies with mid-line arrows, sent this session, none
 committed. The document's size — a job's steps travel whole — if the
 bucket's egress ever matters.
