@@ -4296,8 +4296,30 @@ both queues.
   11 m): the seam in both directions on ECS and on EKS, spot nodes, both
   queue pairs swept clean; three status files `destroyed` from #31. Phase 44
   is proven.
-- Next allowed step: **merge `next` → `main`** on the owner's word (ADR-0093
-  D1: a green cycle from `next`, and #31 is it). Then the session record.
+- Merged to `main` on the owner's *да, вливай* (fast-forward, nine commits);
+  the session record is `docs/sessions/2026-09-13-phase-44-each-service-owns-its-data.md`.
+
+### Phase 45 — The estate as a schema  🔧 IN PROGRESS (from 2026-09-14)
+
+Item 5 of the plan (ADR-0094), on `next`. **ADR-0099**, decided with the
+owner on 2026-09-13 (*согласен, так и делаем*): a second layout of the
+estate board with edges and a finer grain inside each runtime - tasks and
+target groups on ECS, nodes and pods on EKS, side by side - layers to switch
+rather than objects, the rows kept as the compact view, the graph generated
+from the modules' inputs, the policies, the ALB rule and `helm template`,
+gated like the topology. Before the manifest, because the renderer takes a
+graph and the manifest can become its source later.
+
+- **Slice 5a (generator, graph, gate) 2026-09-14**: `scripts/generate-schema.py`
+  writes `site/data/schema.json` - stage 10 nouns / 7 parts / 29 edges,
+  prod 11 / 7 / 29, lab 7 / 13 / 24; every edge with a source line, every
+  part with the status path it is coloured from. `make schema-check` refuses
+  drift (proven by dropping one edge), registered in `assets/gates.json` and
+  as a CI step after chart-check. The page does not read the file yet.
+- Next allowed step: **slice 5b** - the SVG layout in lanes on the estate
+  board, the stage / prod / lab switch and the four layers, rows kept as the
+  compact view; then 5c (contrast, in-flight and destroyed through the
+  second layout, fixtures for the page check) and ADR-0099's consequences.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

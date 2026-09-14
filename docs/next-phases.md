@@ -1607,7 +1607,7 @@ of it and the largest that a home project can carry without noise.
    Microservices is a statement about data, not about the number of
    containers.
 
-5. The estate as a schema
+5. The estate as a schema                       [IN PROGRESS 2026-09-14, ADR-0099]
    A second layout of the estate board: the same observed tiles, laid out as
    a diagram with edges - and inside each runtime a finer grain than the
    nouns, tasks and target groups on ECS, nodes and pods on EKS, drawn side
