@@ -56,7 +56,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           SITE_BUCKET: ${{ vars.SITE_BUCKET }}
-        env:
           RUN_ID: ${{ github.event.workflow_run.id || inputs.run_id }}
         run: |
           if [ -n "$RUN_ID" ]; then
