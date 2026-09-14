@@ -97,7 +97,13 @@ older state has no snapshot and gates the fallback, unchanged.
   with six jobs done and one running. D3's three hours cover that once;
   `publish-runs.yml` gained a `workflow_dispatch` with a `run_id` so the true
   snapshot can be written by hand, and after the merge the hook writes it
-  itself.
+  itself. The hand dispatch then failed twice before it worked, both times
+  on this file: a checkout pinned to a SHA that did not exist (the other
+  workflows' v7.0.1 pin now), and `Not authorized to perform
+  sts:AssumeRoleWithWebIdentity` - the publish role trusts the deployed
+  environments' subjects and no branch, so the job wears stage's
+  environment. Third dispatch: `completed - 40 runs, 40 of main, 8 job(s)`,
+  and the bucket's snapshot says #33 `completed success`.
 - Relayed to the zero-trust-lab session at the owner's request: the same
   shape applies there, and until it lands the two pages compete for the one
   budget whenever both are open.

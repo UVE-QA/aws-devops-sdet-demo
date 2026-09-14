@@ -4384,11 +4384,21 @@ only without it. The zero-trust-lab session was told, at the owner's word.
   `publish-runs.yml` gained a `workflow_dispatch` for that case, and the
   merge makes the hook real. Phase 46 is proven as far as `next` can prove
   it.
-- Next allowed step: **merge `next` → `main`** on the owner's word (ADR-0093
-  D1: a green cycle from `next`, and #33 is it); then dispatch
-  `publish-runs` by hand for #33, and watch the hook fire on the next cycle.
-  Open beside it: the picture's tile translucency and mid-line arrows, on
-  the owner's choice between three renderings sent 2026-09-14.
+- Merged to `main` on the owner's *да, вливай* (fast-forward); publish-site
+  and CI green. Then, on `next`: the hand dispatch of `publish-runs` for #33
+  failed twice on the new file - an invented checkout SHA, then the publish
+  role's trust (environments only, no branch: the job wears `stage`'s) - and
+  wrote the true snapshot on the third: #33 `completed success`, 8 jobs.
+- **Two more on `next`, on the owner's word**: the picture's tiles at 70%
+  with mid-line arrows and parts going dark with their environment (*коммить
+  так пока, посмотрю пару дней*); and ADR-0093 D2 amended a fifth time - at
+  rest the cycle view draws the newest lifecycle run of any branch, named
+  with its branch, so the live page stops showing a two-day-old #23 over an
+  hour-old #33 (*чтоб завтра он отображал реальные прогоны*).
+- Next allowed step: **merge `next` → `main`** on the owner's word - page
+  and the hook's own file only, gated, no cycle needed by ADR-0093 D1's
+  letter but the owner's word still; then watch the hook fire by itself on
+  the next cycle.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

@@ -89,10 +89,22 @@ page stops believing such a snapshot after three hours; `publish-runs.yml`
 gained a `workflow_dispatch` with a `run_id` so the true one can be written
 by hand, and the merge makes the hook real for every cycle after.
 
+## After the merge
+
+`main` fast-forwarded on the owner's word; publish-site and CI green. The
+hand dispatch of `publish-runs` for #33 failed twice on the new file - a
+checkout pinned to a SHA that did not exist, then the publish role refusing
+a job with no environment (its trust is the deployed environments' subjects
+and no branch; the job wears `stage`'s now) - and on the third wrote the
+true snapshot: #33 `completed success`, eight jobs. And the owner, looking
+at the live page: *Current cycle* was #23 from two days before while #33
+had ended an hour earlier - ADR-0093 D2 amended a fifth time, the newest
+lifecycle run of any branch at rest too, named with its branch.
+
 ## What is still open
 
-The merge, on the owner's word; then `publish-runs` by hand for #33 and the
-hook watched on the next cycle. The picture's tiles - the owner is choosing
+The second merge, on the owner's word - the picture's tiles and the
+cycle view - and the hook watched firing by itself on the next cycle. The picture's tiles - the owner is choosing
 between three translucencies with mid-line arrows, sent this session, none
 committed. The document's size — a job's steps travel whole — if the
 bucket's egress ever matters.

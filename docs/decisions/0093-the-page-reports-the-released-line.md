@@ -117,6 +117,18 @@ project has shipped, and a red row from an experiment is still the thing
 this record exists to keep off it. The in-flight gate's `foreign-in-flight`
 state holds the page to both halves.
 
+
+*Amended a fifth time, the same night.* With the fourth amendment on
+`main`, the live page's *Current cycle* at rest was still #23 from two days
+before while #33 from `next` had ended an hour earlier - the owner: *нужно
+подключить сегодня текущий цикл, чтоб завтра он отображал реальные
+прогоны*. So the cycle view's subject is the newest lifecycle run of ANY
+branch: one in flight first, else the newest, named with its branch where
+it is not the released line. The history table and its verdict stay the
+released line's - what shipped is still the only thing that table records.
+The `foreign-writer` state holds both halves: #101 from `next` is the cycle
+view's subject and still no row of the history.
+
 **D3. Experiments on the shared environments do not run while the demo is out.**
 This is the part no code enforces, and it is written here so that it is a rule
 rather than a habit. Page work needs no AWS at all — the browser gates render
