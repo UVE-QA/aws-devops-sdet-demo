@@ -57,8 +57,10 @@ the balancer, the lab's control plane, node group, pods, Services, Ingress
 and hooks, the two queues under the one tile. Each part names the path in
 `status/<env>.json` it is coloured from — running against desired, ready
 against desired, the queue's alarm — so the diagram's inside is as live as
-its outside. A part without an observation path is a refusal; the parts
-are drawn from the module and the chart, not typed. ECS and EKS are drawn
+its outside. A part nothing observes on its own — a Service, a hook, a
+target group — is drawn dashed and says *declared*, never coloured on the
+strength of the Deployment beside it; the parts are drawn from the module
+and the chart, not typed. ECS and EKS are drawn
 side by side by the same rules, so the two runtimes read as one architecture
 with two insides.
 

@@ -62,6 +62,20 @@ LANE_OF = {
     "rds": "data", "secrets": "data", "queue": "data",
     "cloudwatch": "ops", "budgets": "ops", "dnsrec": "ops",
 }
+# THE LAYERS THE VISITOR SWITCHES (ADR-0099 D4): a concern each, never an
+# object. A lane is where a noun is drawn; a layer is which switch dims it.
+# The ops lane belongs to no layer - budgets and logs are not a connection.
+LAYERS = ["network", "runtime", "data", "identity"]
+LAYER_OF_LANE = {"network": "network", "edge": "network", "runtime": "runtime", "data": "data", "ops": None}
+LAYER_OF_PART = {"queue": "data", "target-group": "network"}  # every other part is the runtime's
+# An input edge's layer from the argument that carries it, then from the lane
+# of what it points at. A log group is the runtime's concern, so it is not
+# left in ops with nothing to switch it.
+LAYER_OF_ARG = [
+    (re.compile(r"vpc|subnet|security_group|dns|zone"), "network"),
+    (re.compile(r"secret|queue|db_"), "data"),
+    (re.compile(r"target_group|log_group"), "runtime"),
+]
 # What the page reads a part's numbers from, in status/<env>.json.
 ECS_SERVICES = {
     "ecs_api": ("api", "resources.ecs_service"),
@@ -91,6 +105,7 @@ MODULE_BLOCK = re.compile(r'^module\s+"([^"]+)"\s*\{', re.M)
 RESOURCE_BLOCK = re.compile(r'^(resource|data)\s+"([^"]+)"\s+"([^"]+)"\s*\{', re.M)
 MODULE_REF = re.compile(r'\bmodule\.([a-z_]+)\.([a-z_]+)')
 ARG = re.compile(r'^\s*([a-z_]+)\s*=\s*(.+?)\s*$', re.M)
+HELM_SET = re.compile(r'set\s*\{\s*name\s*=\s*"([^"]+)"\s*value\s*=\s*(.+?)\s*\}', re.S)
 
 
 def blocks(text: str):
@@ -143,9 +158,13 @@ def call_groups(env: str, level: pathlib.Path, assign: dict) -> dict[str, str]:
     return out
 
 
-def terraform_edges(env: str, level: pathlib.Path, groups: dict[str, str], shown: set[str]) -> list[dict]:
+def terraform_edges(env: str, level: pathlib.Path, groups: dict[str, str], shown: set[str],
+                    env_assign: dict[str, str]) -> list[dict]:
+    """The environment level's edges: a module's inputs that name another
+    module, a resource of the level (assigned to a group by the topology,
+    like prod's Route 53 record) whose arguments name a module, and a policy
+    whose role is one module's and whose document names another."""
     edges = []
-    env_assign = None
     for tf in sorted(level.glob("*.tf")):
         text = tf.read_text(encoding="utf-8")
         rel = str(tf.relative_to(ROOT))
@@ -165,6 +184,22 @@ def terraform_edges(env: str, level: pathlib.Path, groups: dict[str, str], shown
                             continue
                         edges.append({"from": f"{env}.{here}", "to": f"{env}.{there}",
                                       "via": arg.group(1), "kind": "input",
+                                      "source": f"{rel}:{line}"})
+            elif kind.startswith("resource:") and kind != "resource:aws_iam_role_policy":
+                here = env_assign.get(f"{kind.split(':', 1)[1]}.{name}")
+                if not here or here not in shown:
+                    continue
+                # A Helm value is named by its `set { name = … }`, not by the
+                # word `value`: the controller's `vpcId` is the edge.
+                args = [(m.group(1), m.group(2)) for m in HELM_SET.finditer(body)]
+                args += [(m.group(1), m.group(2)) for m in ARG.finditer(body) if m.group(1) != "value"]
+                for via, expr in args:
+                    for ref in MODULE_REF.finditer(expr):
+                        there = groups.get(ref.group(1))
+                        if not there or there not in shown or there == here:
+                            continue
+                        edges.append({"from": f"{env}.{here}", "to": f"{env}.{there}",
+                                      "via": via, "kind": "input",
                                       "source": f"{rel}:{line}"})
             elif kind == "resource:aws_iam_role_policy":
                 role = re.search(r'role\s*=\s*module\.([a-z_]+)\.', body)
@@ -304,13 +339,25 @@ def chart_parts(env: str, cluster: str, irsa_group: dict[str, str]) -> tuple[lis
     return parts, edges
 
 
+def edge_layer(e: dict, lane_of: dict[str, str]) -> str:
+    if e["kind"] in ("policy", "identity"):
+        return "identity"
+    if e["kind"] in ("network", "data"):
+        return e["kind"]
+    for pattern, layer in LAYER_OF_ARG:
+        if pattern.search(e["via"]):
+            return layer
+    target = e["to"] if e["to"] in lane_of else e["to"].rsplit(".", 1)[0]
+    return LAYER_OF_LANE.get(lane_of.get(target, "runtime")) or "runtime"
+
+
 # ---------------------------------------------------------------- the graph
 def build() -> dict:
     topology = read_json(TOPOLOGY)
     spec = read_json(GROUPS)
     shown = {g["id"] for g in spec["groups"] if g.get("shown")}
     assign = spec["assign"]
-    out = {"schema": "schema/1", "lanes": LANES, "environments": {}}
+    out = {"schema": "schema/1", "lanes": LANES, "layers": LAYERS, "environments": {}}
     irsa_group = {"api-irsa": "k8s_api", "worker-irsa": "k8s_worker"}
     for env in topology["estate"]["environments"]:
         eid = env["id"]
@@ -323,12 +370,12 @@ def build() -> dict:
             if lane is None:
                 raise Refusal(f"{n['id']}: no lane for group {gid!r}; add it to LANE_OF")
             nouns.append({"id": n["id"], "group": gid, "label": n["label"], "service": n["service"],
-                          "lane": lane, "resources": n.get("resources")})
+                          "lane": lane, "layer": LAYER_OF_LANE[lane], "resources": n.get("resources")})
         order = {lane: 0 for lane in LANES}
         for n in nouns:
             n["col"] = order[n["lane"]]
             order[n["lane"]] += 1
-        parts, edges = [], terraform_edges(eid, level, groups, shown)
+        parts, edges = [], terraform_edges(eid, level, groups, shown, assign.get(env["level"], {}))
         runtime = "eks" if any(n["group"] == "eks" for n in nouns) else "ecs"
         # the queues under the one tile, wherever the tile is
         if any(n["group"] == "queue" for n in nouns):
@@ -359,7 +406,7 @@ def build() -> dict:
                     e["to"] = f"{eid}.queue.{which}"
         else:
             parts.append({"id": f"{eid}.eks.control_plane", "parent": f"{eid}.eks", "kind": "control-plane",
-                          "label": "control plane (managed)", "observe": {"path": "resources.eks.cluster", "have": "status", "want": None},
+                          "label": "control plane", "observe": {"path": "resources.eks.cluster", "have": "status", "want": None},
                           "source": "infra/modules/eks/main.tf"})
             variables = (ROOT / "infra/modules/eks/variables.tf").read_text(encoding="utf-8")
             capacity = re.search(r'variable "capacity_type".*?default\s*=\s*"([A-Z_]+)"', variables, re.S)
@@ -376,6 +423,11 @@ def build() -> dict:
                     which = "results" if "results" in e["via"] else "items"
                     e["to"] = f"{eid}.queue.{which}"
         ids = {n["id"] for n in nouns} | {p["id"] for p in parts}
+        lane_of = {n["id"]: n["lane"] for n in nouns}
+        for p in parts:
+            p["layer"] = LAYER_OF_PART.get(p["kind"], "runtime")
+        for e in edges:
+            e["layer"] = edge_layer(e, lane_of)
         for e in edges:
             for end in ("from", "to"):
                 if e[end] not in ids:
