@@ -75,7 +75,6 @@ connecting themselves, web among neither.
 
 ## What is still open
 
-A cycle from `next`, on the owner's word: the snapshot within a minute of
-the launch job, the completion hook after `release-lock`, a tab with its
-budget spent drawing the cycle regardless. Then the merge. The document's
-size — a job's steps travel whole — if the bucket's egress ever matters.
+#33 to its end - the completion hook after `release-lock` is the one writer
+not yet seen - then the merge, on the owner's word. The document's size — a
+job's steps travel whole — if the bucket's egress ever matters.

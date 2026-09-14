@@ -4366,7 +4366,7 @@ only without it. The zero-trust-lab session was told, at the owner's word.
   claim - which on its first run held the button to `closed` and learned
   from the in-flight reading that an owner's deploy-stage never closed it;
   the claim compares the two readings now. Page checks green; gates 13/13.
-- **#33 launched 2026-09-14 03:58 UTC** from `next` on the owner's word; the
+- **#33 launched 2026-09-14 02:58 UTC** from `next` on the owner's word; the
   first snapshot was in the bucket 75 seconds later, written by the launch
   job's watcher, and the `next` page with every GitHub request answering
   403 drew the cycle from it: zero reads, no banner, the button closed.
