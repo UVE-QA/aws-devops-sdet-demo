@@ -277,8 +277,8 @@
         },
         {
           "from": "stage.ecs_api",
-          "to": "stage.rds",
-          "via": "db_secret_arn",
+          "to": "stage.secrets",
+          "via": "db_secret_arn - reads the database credentials",
           "kind": "input",
           "source": "infra/envs/stage/main.tf:101",
           "layer": "data"
@@ -365,8 +365,8 @@
         },
         {
           "from": "stage.ecs_worker",
-          "to": "stage.rds",
-          "via": "db_secret_arn",
+          "to": "stage.secrets",
+          "via": "db_secret_arn - reads the database credentials",
           "kind": "input",
           "source": "infra/envs/stage/main.tf:157",
           "layer": "data"
@@ -412,20 +412,20 @@
           "layer": "network"
         },
         {
-          "from": "stage.rds",
-          "to": "stage.ecs_api",
-          "via": "ecs_app_security_group_id",
-          "kind": "input",
+          "from": "stage.ecs_api",
+          "to": "stage.rds",
+          "via": "connects - its security group is admitted by RDS (ecs_app_security_group_id)",
+          "kind": "data",
           "source": "infra/envs/stage/main.tf:287",
-          "layer": "network"
+          "layer": "data"
         },
         {
-          "from": "stage.rds",
-          "to": "stage.ecs_worker",
-          "via": "extra_client_security_group_ids",
-          "kind": "input",
+          "from": "stage.ecs_worker",
+          "to": "stage.rds",
+          "via": "connects - its security group is admitted by RDS (extra_client_security_group_ids)",
+          "kind": "data",
           "source": "infra/envs/stage/main.tf:287",
-          "layer": "network"
+          "layer": "data"
         },
         {
           "from": "stage.ecs_api",
@@ -750,8 +750,8 @@
         },
         {
           "from": "prod.ecs_api",
-          "to": "prod.rds",
-          "via": "db_secret_arn",
+          "to": "prod.secrets",
+          "via": "db_secret_arn - reads the database credentials",
           "kind": "input",
           "source": "infra/envs/prod/main.tf:147",
           "layer": "data"
@@ -838,8 +838,8 @@
         },
         {
           "from": "prod.ecs_worker",
-          "to": "prod.rds",
-          "via": "db_secret_arn",
+          "to": "prod.secrets",
+          "via": "db_secret_arn - reads the database credentials",
           "kind": "input",
           "source": "infra/envs/prod/main.tf:203",
           "layer": "data"
@@ -885,20 +885,20 @@
           "layer": "network"
         },
         {
-          "from": "prod.rds",
-          "to": "prod.ecs_api",
-          "via": "ecs_app_security_group_id",
-          "kind": "input",
+          "from": "prod.ecs_api",
+          "to": "prod.rds",
+          "via": "connects - its security group is admitted by RDS (ecs_app_security_group_id)",
+          "kind": "data",
           "source": "infra/envs/prod/main.tf:333",
-          "layer": "network"
+          "layer": "data"
         },
         {
-          "from": "prod.rds",
-          "to": "prod.ecs_worker",
-          "via": "extra_client_security_group_ids",
-          "kind": "input",
+          "from": "prod.ecs_worker",
+          "to": "prod.rds",
+          "via": "connects - its security group is admitted by RDS (extra_client_security_group_ids)",
+          "kind": "data",
           "source": "infra/envs/prod/main.tf:333",
-          "layer": "network"
+          "layer": "data"
         },
         {
           "from": "prod.dnsrec",
@@ -1311,7 +1311,15 @@
         {
           "from": "lab.eks.pods_api",
           "to": "lab.secrets",
-          "via": "Secret db-credentials \u2190 Secrets Manager",
+          "via": "DATABASE_URL from Secret db-credentials, filled from Secrets Manager",
+          "kind": "data",
+          "source": "charts/demo/templates/api.yaml",
+          "layer": "data"
+        },
+        {
+          "from": "lab.eks.pods_api",
+          "to": "lab.rds",
+          "via": "DATABASE_URL - connects to the database with the credentials in Secret db-credentials",
           "kind": "data",
           "source": "charts/demo/templates/api.yaml",
           "layer": "data"
@@ -1343,7 +1351,15 @@
         {
           "from": "lab.eks.pods_worker",
           "to": "lab.secrets",
-          "via": "Secret db-credentials \u2190 Secrets Manager",
+          "via": "DATABASE_URL from Secret db-credentials, filled from Secrets Manager",
+          "kind": "data",
+          "source": "charts/demo/templates/worker.yaml",
+          "layer": "data"
+        },
+        {
+          "from": "lab.eks.pods_worker",
+          "to": "lab.rds",
+          "via": "DATABASE_URL - connects to the database with the credentials in Secret db-credentials",
           "kind": "data",
           "source": "charts/demo/templates/worker.yaml",
           "layer": "data"
@@ -1424,7 +1440,7 @@
       "counts": {
         "nouns": 7,
         "parts": 13,
-        "edges": 25
+        "edges": 27
       }
     }
   },

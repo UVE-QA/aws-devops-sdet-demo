@@ -324,8 +324,18 @@ def chart_parts(env: str, cluster: str, irsa_group: dict[str, str]) -> tuple[lis
         for envvar in container.get("env", []):
             ref = (envvar.get("valueFrom") or {}).get("secretKeyRef")
             if ref:
-                edges.append({"from": pid, "to": f"{env}.secrets", "via": f"Secret {ref['name']} ← Secrets Manager",
+                edges.append({"from": pid, "to": f"{env}.secrets",
+                              "via": f"{envvar.get('name')} from Secret {ref['name']}, filled from Secrets Manager",
                               "kind": "data", "source": f"charts/demo/templates/{name}.yaml"})
+                # THE POD THAT HOLDS DATABASE_URL IS THE POD THAT TALKS TO THE
+                # DATABASE (the owner, 2026-09-14: in the lab it was not clear
+                # who does). The cluster's security group is what RDS admits -
+                # every node, so every pod - and that edge stays on the network
+                # layer; this one says which Deployments actually connect.
+                if envvar.get("name") == "DATABASE_URL":
+                    edges.append({"from": pid, "to": f"{env}.rds",
+                                  "via": f"DATABASE_URL - connects to the database with the credentials in Secret {ref['name']}",
+                                  "kind": "data", "source": f"charts/demo/templates/{name}.yaml"})
             if envvar.get("name") == "ITEMS_QUEUE_URL":
                 edges.append({"from": pid, "to": f"{env}.queue.items", "via": "ITEMS_QUEUE_URL",
                               "kind": "data", "source": f"charts/demo/templates/{name}.yaml"})
@@ -445,6 +455,23 @@ def build() -> dict:
                     which = "results" if "results" in e["via"] else "items"
                     e["to"] = f"{eid}.queue.{which}"
         ids = {n["id"] for n in nouns} | {p["id"] for p in parts}
+        # WHO TALKS TO THE DATABASE, said as such (the owner, 2026-09-14: "не
+        # совсем понятно кто и как общается с РДС"). The rds module ADMITS a
+        # security group - that input is the database saying who may connect,
+        # and it is drawn from the client to the database, on the data layer,
+        # as the connection it permits. And the secret the rds module made is
+        # read from Secrets Manager, so the credentials edge points at that
+        # tile and not at the database.
+        has_secrets = any(n["group"] == "secrets" for n in nouns)
+        for e in edges:
+            if (e["via"] in ("ecs_app_security_group_id", "extra_client_security_group_ids") and e["from"].endswith(".rds")
+                    and not e["to"].endswith(".eks")):  # the cluster's group is every node's; its pods say who connects
+                e["from"], e["to"] = e["to"], e["from"]
+                e["via"] = f"connects - its security group is admitted by RDS ({e['via']})"
+                e["kind"] = "data"
+            elif e["via"] == "db_secret_arn" and has_secrets:
+                e["to"] = f"{eid}.secrets"
+                e["via"] = "db_secret_arn - reads the database credentials"
         for p in parts:
             p["place"] = PLACE_OF_PART.get(p["kind"], "inside")
         for e in edges:
