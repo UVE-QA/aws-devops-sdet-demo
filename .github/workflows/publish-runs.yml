@@ -17,6 +17,17 @@ on:
   workflow_run:
     workflows: [self-service, deploy-stage, promote-prod, destroy]
     types: [completed]
+  # By hand, for a run the hook did not see: #33 completed while this file
+  # lived on `next` only, and a workflow_run trigger fires from the default
+  # branch's copy - so its last snapshot said `in_progress` until someone
+  # wrote another. The page stops believing such a snapshot after three
+  # hours (ADR-0100 D3); this is the way to write the true one sooner.
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: "the completed run whose jobs and conclusion to publish (empty: the list alone)"
+        required: false
+        default: ""
 
 permissions:
   id-token: write
@@ -45,6 +56,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           SITE_BUCKET: ${{ vars.SITE_BUCKET }}
+        env:
+          RUN_ID: ${{ github.event.workflow_run.id || inputs.run_id }}
         run: |
-          scripts/publish-runs.sh completed --run-id "${{ github.event.workflow_run.id }}"
-          echo "completed: ${{ github.event.workflow_run.name }} #${{ github.event.workflow_run.run_number }} (${{ github.event.workflow_run.conclusion }})"
+          if [ -n "$RUN_ID" ]; then
+            scripts/publish-runs.sh completed --run-id "$RUN_ID"
+          else
+            scripts/publish-runs.sh completed
+          fi
+          echo "completed: ${{ github.event.workflow_run.name || 'by hand' }} #${{ github.event.workflow_run.run_number || inputs.run_id }} (${{ github.event.workflow_run.conclusion || 'as the API says' }})"

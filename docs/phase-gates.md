@@ -4377,7 +4377,18 @@ only without it. The zero-trust-lab session was told, at the owner's word.
   connecting themselves); and the owner's condition come due - ADR-0093 D2
   amended a fourth time, a run in flight from any branch is the cycle view's
   subject, named with its branch, the history still the released line's.
-- Next allowed step: #33 green, then **merge** on the owner's word.
+- **#33 green end to end, 67 minutes, three environments**; three status
+  files `destroyed` from #33. The completion hook did not fire - a
+  `workflow_run` trigger runs the default branch's file, and the file is on
+  `next` - so the last snapshot is the destroy-prod job's, `in_progress`;
+  `publish-runs.yml` gained a `workflow_dispatch` for that case, and the
+  merge makes the hook real. Phase 46 is proven as far as `next` can prove
+  it.
+- Next allowed step: **merge `next` → `main`** on the owner's word (ADR-0093
+  D1: a green cycle from `next`, and #33 is it); then dispatch
+  `publish-runs` by hand for #33, and watch the hook fire on the next cycle.
+  Open beside it: the picture's tile translucency and mid-line arrows, on
+  the owner's choice between three renderings sent 2026-09-14.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

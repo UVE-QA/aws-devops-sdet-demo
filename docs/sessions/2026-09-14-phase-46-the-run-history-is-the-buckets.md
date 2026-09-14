@@ -73,8 +73,26 @@ drawn from the client to the database, the credentials edge pointing at
 Secrets Manager, and in the lab the Deployments that hold `DATABASE_URL`
 connecting themselves, web among neither.
 
+## The cycle
+
+```text
+#33  34800980236  02:58  success   67 m — launch 20, lab 21, promote 16,
+                                   destroy 12, destroy-lab 14, hold 5,
+                                   destroy-prod 12, release-lock
+```
+
+Three status files `destroyed` from #33. The completion hook did not fire:
+a `workflow_run` trigger runs from the default branch's copy of the
+workflow, and this one lives on `next` until the merge - so the last
+snapshot is the destroy-prod job's, `in_progress` with six jobs done. The
+page stops believing such a snapshot after three hours; `publish-runs.yml`
+gained a `workflow_dispatch` with a `run_id` so the true one can be written
+by hand, and the merge makes the hook real for every cycle after.
+
 ## What is still open
 
-#33 to its end - the completion hook after `release-lock` is the one writer
-not yet seen - then the merge, on the owner's word. The document's size — a
-job's steps travel whole — if the bucket's egress ever matters.
+The merge, on the owner's word; then `publish-runs` by hand for #33 and the
+hook watched on the next cycle. The picture's tiles - the owner is choosing
+between three translucencies with mid-line arrows, sent this session, none
+committed. The document's size — a job's steps travel whole — if the
+bucket's egress ever matters.

@@ -82,10 +82,22 @@ older state has no snapshot and gates the fallback, unchanged.
   two workflows that lacked it, the page's snapshot reader with the shared
   merge, the clocks and the footer, the `snapshot` fixture state and its
   claim, and every page check tolerant of the document's absence.
-- What to watch: the first cycle after this lands is the proof — the
-  snapshot appearing within a minute of the launch job, the completion hook
-  firing after `release-lock`, and a tab with the anonymous budget spent
-  drawing the cycle regardless. Until then the fallback is the page.
+- **Verified by cycle #33 (34800980236, 2026-09-14, 67 minutes, every job
+  green - launch 20 m, lab 21 m, promote 16 m, destroy 12 m, destroy-lab
+  14 m, hold 5 m, destroy-prod 12 m)**: the first snapshot was in the bucket
+  75 seconds after the run began, written by the launch job's watcher; the
+  `next` page rendered over the live bucket with every GitHub request
+  answering 403 drew the cycle from it - zero requests, no banner, the
+  history clock naming the snapshot, the button closed on the run, and once
+  ADR-0093 D2 was amended the same night, the run itself as *Current cycle*
+  with its steps. Three status files say `destroyed` and name #33. The one
+  writer not seen: the completion hook, because a `workflow_run` trigger
+  fires from the default branch's copy of the file and this one lived on
+  `next` - so the last snapshot, the destroy-prod job's, said `in_progress`
+  with six jobs done and one running. D3's three hours cover that once;
+  `publish-runs.yml` gained a `workflow_dispatch` with a `run_id` so the true
+  snapshot can be written by hand, and after the merge the hook writes it
+  itself.
 - Relayed to the zero-trust-lab session at the owner's request: the same
   shape applies there, and until it lands the two pages compete for the one
   budget whenever both are open.
