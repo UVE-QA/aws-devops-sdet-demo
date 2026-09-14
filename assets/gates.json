@@ -211,6 +211,14 @@
       ]
     },
     {
+      "target": "schema-check",
+      "local": false,
+      "needs": "helm, for the chart's half of the graph",
+      "requires": [
+        "helm"
+      ]
+    },
+    {
       "target": "iac-scan",
       "local": false,
       "needs": "checkov",

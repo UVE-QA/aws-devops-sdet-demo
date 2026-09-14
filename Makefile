@@ -543,6 +543,17 @@ CHART_PLACEHOLDERS := --set images.api.repository=r --set images.api.digest=sha2
   --set itemsQueueUrl=https://sqs.example/q --set resultsQueueUrl=https://sqs.example/r \
   --set serviceAccounts.api.roleArn=arn:aws:iam::0:role/a \
   --set serviceAccounts.worker.roleArn=arn:aws:iam::0:role/w
+# THE ESTATE AS A SCHEMA (ADR-0099): the graph the board's second layout
+# draws, generated from the modules' inputs, the environments' and the eks
+# module's policies, the ALB rule and `helm template`; refused on drift like
+# the topology. Needs helm for the chart's half, as chart-check does.
+schema:
+	python3 scripts/generate-schema.py
+
+schema-check:
+	@command -v helm >/dev/null 2>&1 || { echo "schema-check: helm is not on PATH. Refusing to pass without reading the chart."; exit 1; }
+	python3 scripts/generate-schema.py --check
+
 chart-check:
 	@command -v helm >/dev/null 2>&1 || { echo "chart-check: helm is not on PATH. Refusing to pass without rendering anything."; exit 1; }
 	@helm lint charts/demo $(CHART_PLACEHOLDERS) --quiet

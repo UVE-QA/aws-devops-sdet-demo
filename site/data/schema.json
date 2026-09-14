@@ -1,0 +1,1180 @@
+{
+  "schema": "schema/1",
+  "lanes": [
+    "network",
+    "edge",
+    "runtime",
+    "data",
+    "ops"
+  ],
+  "environments": {
+    "stage": {
+      "runtime": "ecs",
+      "nouns": [
+        {
+          "id": "stage.vpc",
+          "group": "vpc",
+          "label": "VPC",
+          "service": "vpc",
+          "lane": "network",
+          "resources": 6,
+          "col": 0
+        },
+        {
+          "id": "stage.secrets",
+          "group": "secrets",
+          "label": "Secrets Manager",
+          "service": "secretsmanager",
+          "lane": "data",
+          "resources": 2,
+          "col": 0
+        },
+        {
+          "id": "stage.rds",
+          "group": "rds",
+          "label": "RDS PostgreSQL",
+          "service": "rds",
+          "lane": "data",
+          "resources": 4,
+          "col": 1
+        },
+        {
+          "id": "stage.alb",
+          "group": "alb",
+          "label": "Application Load Balancer",
+          "service": "elb",
+          "lane": "edge",
+          "resources": 7,
+          "col": 0
+        },
+        {
+          "id": "stage.ecs_api",
+          "group": "ecs_api",
+          "label": "ECS \u2014 api",
+          "service": "ecs",
+          "lane": "runtime",
+          "resources": 9,
+          "col": 0
+        },
+        {
+          "id": "stage.ecs_web",
+          "group": "ecs_web",
+          "label": "ECS \u2014 web",
+          "service": "ecs",
+          "lane": "runtime",
+          "resources": 6,
+          "col": 1
+        },
+        {
+          "id": "stage.queue",
+          "group": "queue",
+          "label": "SQS \u2014 items and results",
+          "service": "sqs",
+          "lane": "data",
+          "resources": 8,
+          "col": 2
+        },
+        {
+          "id": "stage.ecs_worker",
+          "group": "ecs_worker",
+          "label": "ECS \u2014 worker",
+          "service": "ecs",
+          "lane": "runtime",
+          "resources": 9,
+          "col": 2
+        },
+        {
+          "id": "stage.cloudwatch",
+          "group": "cloudwatch",
+          "label": "CloudWatch",
+          "service": "cloudwatch",
+          "lane": "ops",
+          "resources": 3,
+          "col": 0
+        },
+        {
+          "id": "stage.budgets",
+          "group": "budgets",
+          "label": "Budgets",
+          "service": "budgets",
+          "lane": "ops",
+          "resources": 1,
+          "col": 1
+        }
+      ],
+      "parts": [
+        {
+          "id": "stage.queue.items",
+          "parent": "stage.queue",
+          "kind": "queue",
+          "label": "items + dlq",
+          "observe": {
+            "path": "resources.queue",
+            "have": "visible",
+            "want": null,
+            "alarm": "dead_letter_alarm"
+          },
+          "source": "infra/modules/queue (module \"queue\")"
+        },
+        {
+          "id": "stage.queue.results",
+          "parent": "stage.queue",
+          "kind": "queue",
+          "label": "results + dlq",
+          "observe": {
+            "path": "resources.results_queue",
+            "have": "visible",
+            "want": null,
+            "alarm": "dead_letter_alarm"
+          },
+          "source": "infra/modules/queue (module \"results\")"
+        },
+        {
+          "id": "stage.ecs_api.tasks",
+          "parent": "stage.ecs_api",
+          "kind": "tasks",
+          "label": "tasks \u00b7 api",
+          "observe": {
+            "path": "resources.ecs_service",
+            "have": "running",
+            "want": "desired"
+          },
+          "source": "infra/modules/ecs-service/main.tf"
+        },
+        {
+          "id": "stage.ecs_web.tasks",
+          "parent": "stage.ecs_web",
+          "kind": "tasks",
+          "label": "tasks \u00b7 web",
+          "observe": {
+            "path": "resources.ecs_web_service",
+            "have": "running",
+            "want": "desired"
+          },
+          "source": "infra/modules/ecs-service/main.tf"
+        },
+        {
+          "id": "stage.ecs_worker.tasks",
+          "parent": "stage.ecs_worker",
+          "kind": "tasks",
+          "label": "tasks \u00b7 worker",
+          "observe": {
+            "path": "resources.ecs_worker_service",
+            "have": "running",
+            "want": "desired"
+          },
+          "source": "infra/modules/ecs-service/main.tf"
+        },
+        {
+          "id": "stage.alb.tg_api",
+          "parent": "stage.alb",
+          "kind": "target-group",
+          "label": "/api/*, /health \u2192 api",
+          "observe": null,
+          "source": "infra/modules/alb/main.tf"
+        },
+        {
+          "id": "stage.alb.tg_web",
+          "parent": "stage.alb",
+          "kind": "target-group",
+          "label": "everything else \u2192 web",
+          "observe": null,
+          "source": "infra/modules/alb/main.tf"
+        }
+      ],
+      "edges": [
+        {
+          "from": "stage.alb",
+          "to": "stage.vpc",
+          "via": "vpc_id",
+          "kind": "input",
+          "source": "infra/envs/stage/main.tf:64"
+        },
+        {
+          "from": "stage.alb",
+          "to": "stage.vpc",
+          "via": "public_subnet_ids",
+          "kind": "input",
+          "source": "infra/envs/stage/main.tf:64"
+        },
+        {
+          "from": "stage.ecs_api",
+          "to": "stage.vpc",
+          "via": "vpc_id",
+          "kind": "input",
+          "source": "infra/envs/stage/main.tf:101"
+        },
+        {
+          "from": "stage.ecs_api",
+          "to": "stage.vpc",
+          "via": "public_subnet_ids",
+          "kind": "input",
+          "source": "infra/envs/stage/main.tf:101"
+        },
+        {
+          "from": "stage.ecs_api",
+          "to": "stage.alb",
+          "via": "alb_security_group_id",
+          "kind": "input",
+          "source": "infra/envs/stage/main.tf:101"
+        },
+        {
+          "from": "stage.ecs_api",
+          "to": "stage.alb",
+          "via": "target_group_arn",
+          "kind": "input",
+          "source": "infra/envs/stage/main.tf:101"
+        },
+        {
+          "from": "stage.ecs_api",
+          "to": "stage.rds",
+          "via": "db_secret_arn",
+          "kind": "input",
+          "source": "infra/envs/stage/main.tf:101"
+        },
+        {
+          "from": "stage.ecs_api",
+          "to": "stage.cloudwatch",
+          "via": "log_group_name",
+          "kind": "input",
+          "source": "infra/envs/stage/main.tf:101"
+        },
+        {
+          "from": "stage.ecs_web",
+          "to": "stage.vpc",
+          "via": "vpc_id",
+          "kind": "input",
+          "source": "infra/envs/stage/main.tf:130"
+        },
+        {
+          "from": "stage.ecs_web",
+          "to": "stage.vpc",
+          "via": "public_subnet_ids",
+          "kind": "input",
+          "source": "infra/envs/stage/main.tf:130"
+        },
+        {
+          "from": "stage.ecs_web",
+          "to": "stage.alb",
+          "via": "alb_security_group_id",
+          "kind": "input",
+          "source": "infra/envs/stage/main.tf:130"
+        },
+        {
+          "from": "stage.ecs_web",
+          "to": "stage.alb",
+          "via": "target_group_arn",
+          "kind": "input",
+          "source": "infra/envs/stage/main.tf:130"
+        },
+        {
+          "from": "stage.ecs_web",
+          "to": "stage.cloudwatch",
+          "via": "log_group_name",
+          "kind": "input",
+          "source": "infra/envs/stage/main.tf:130"
+        },
+        {
+          "from": "stage.ecs_worker",
+          "to": "stage.vpc",
+          "via": "vpc_id",
+          "kind": "input",
+          "source": "infra/envs/stage/main.tf:157"
+        },
+        {
+          "from": "stage.ecs_worker",
+          "to": "stage.vpc",
+          "via": "public_subnet_ids",
+          "kind": "input",
+          "source": "infra/envs/stage/main.tf:157"
+        },
+        {
+          "from": "stage.ecs_worker",
+          "to": "stage.rds",
+          "via": "db_secret_arn",
+          "kind": "input",
+          "source": "infra/envs/stage/main.tf:157"
+        },
+        {
+          "from": "stage.ecs_worker",
+          "to": "stage.cloudwatch",
+          "via": "log_group_name",
+          "kind": "input",
+          "source": "infra/envs/stage/main.tf:157"
+        },
+        {
+          "from": "stage.rds",
+          "to": "stage.vpc",
+          "via": "vpc_id",
+          "kind": "input",
+          "source": "infra/envs/stage/main.tf:287"
+        },
+        {
+          "from": "stage.rds",
+          "to": "stage.vpc",
+          "via": "private_db_subnet_ids",
+          "kind": "input",
+          "source": "infra/envs/stage/main.tf:287"
+        },
+        {
+          "from": "stage.rds",
+          "to": "stage.ecs_api",
+          "via": "ecs_app_security_group_id",
+          "kind": "input",
+          "source": "infra/envs/stage/main.tf:287"
+        },
+        {
+          "from": "stage.rds",
+          "to": "stage.ecs_worker",
+          "via": "extra_client_security_group_ids",
+          "kind": "input",
+          "source": "infra/envs/stage/main.tf:287"
+        },
+        {
+          "from": "stage.ecs_api",
+          "to": "stage.rds",
+          "via": "api_read_db_secret",
+          "kind": "policy",
+          "source": "infra/envs/stage/main.tf:197"
+        },
+        {
+          "from": "stage.ecs_worker",
+          "to": "stage.rds",
+          "via": "worker_read_db_secret",
+          "kind": "policy",
+          "source": "infra/envs/stage/main.tf:207"
+        },
+        {
+          "from": "stage.ecs_api",
+          "to": "stage.queue.items",
+          "via": "api_publish_items",
+          "kind": "policy",
+          "source": "infra/envs/stage/main.tf:226"
+        },
+        {
+          "from": "stage.ecs_worker",
+          "to": "stage.queue.items",
+          "via": "worker_consume_items",
+          "kind": "policy",
+          "source": "infra/envs/stage/main.tf:245"
+        },
+        {
+          "from": "stage.ecs_worker",
+          "to": "stage.queue.results",
+          "via": "worker_publish_results",
+          "kind": "policy",
+          "source": "infra/envs/stage/main.tf:262"
+        },
+        {
+          "from": "stage.ecs_api",
+          "to": "stage.queue.results",
+          "via": "api_consume_results",
+          "kind": "policy",
+          "source": "infra/envs/stage/main.tf:281"
+        },
+        {
+          "from": "stage.alb.tg_api",
+          "to": "stage.ecs_api.tasks",
+          "via": "targets",
+          "kind": "network",
+          "source": "infra/modules/alb/main.tf"
+        },
+        {
+          "from": "stage.alb.tg_web",
+          "to": "stage.ecs_web.tasks",
+          "via": "targets",
+          "kind": "network",
+          "source": "infra/modules/alb/main.tf"
+        }
+      ],
+      "counts": {
+        "nouns": 10,
+        "parts": 7,
+        "edges": 29
+      }
+    },
+    "prod": {
+      "runtime": "ecs",
+      "nouns": [
+        {
+          "id": "prod.vpc",
+          "group": "vpc",
+          "label": "VPC",
+          "service": "vpc",
+          "lane": "network",
+          "resources": 6,
+          "col": 0
+        },
+        {
+          "id": "prod.secrets",
+          "group": "secrets",
+          "label": "Secrets Manager",
+          "service": "secretsmanager",
+          "lane": "data",
+          "resources": 2,
+          "col": 0
+        },
+        {
+          "id": "prod.rds",
+          "group": "rds",
+          "label": "RDS PostgreSQL",
+          "service": "rds",
+          "lane": "data",
+          "resources": 4,
+          "col": 1
+        },
+        {
+          "id": "prod.alb",
+          "group": "alb",
+          "label": "Application Load Balancer",
+          "service": "elb",
+          "lane": "edge",
+          "resources": 7,
+          "col": 0
+        },
+        {
+          "id": "prod.ecs_api",
+          "group": "ecs_api",
+          "label": "ECS \u2014 api",
+          "service": "ecs",
+          "lane": "runtime",
+          "resources": 9,
+          "col": 0
+        },
+        {
+          "id": "prod.ecs_web",
+          "group": "ecs_web",
+          "label": "ECS \u2014 web",
+          "service": "ecs",
+          "lane": "runtime",
+          "resources": 6,
+          "col": 1
+        },
+        {
+          "id": "prod.queue",
+          "group": "queue",
+          "label": "SQS \u2014 items and results",
+          "service": "sqs",
+          "lane": "data",
+          "resources": 8,
+          "col": 2
+        },
+        {
+          "id": "prod.ecs_worker",
+          "group": "ecs_worker",
+          "label": "ECS \u2014 worker",
+          "service": "ecs",
+          "lane": "runtime",
+          "resources": 9,
+          "col": 2
+        },
+        {
+          "id": "prod.cloudwatch",
+          "group": "cloudwatch",
+          "label": "CloudWatch",
+          "service": "cloudwatch",
+          "lane": "ops",
+          "resources": 3,
+          "col": 0
+        },
+        {
+          "id": "prod.dnsrec",
+          "group": "dnsrec",
+          "label": "Route 53 \u2014 app record",
+          "service": "route53",
+          "lane": "ops",
+          "resources": 1,
+          "col": 1
+        },
+        {
+          "id": "prod.budgets",
+          "group": "budgets",
+          "label": "Budgets",
+          "service": "budgets",
+          "lane": "ops",
+          "resources": 1,
+          "col": 2
+        }
+      ],
+      "parts": [
+        {
+          "id": "prod.queue.items",
+          "parent": "prod.queue",
+          "kind": "queue",
+          "label": "items + dlq",
+          "observe": {
+            "path": "resources.queue",
+            "have": "visible",
+            "want": null,
+            "alarm": "dead_letter_alarm"
+          },
+          "source": "infra/modules/queue (module \"queue\")"
+        },
+        {
+          "id": "prod.queue.results",
+          "parent": "prod.queue",
+          "kind": "queue",
+          "label": "results + dlq",
+          "observe": {
+            "path": "resources.results_queue",
+            "have": "visible",
+            "want": null,
+            "alarm": "dead_letter_alarm"
+          },
+          "source": "infra/modules/queue (module \"results\")"
+        },
+        {
+          "id": "prod.ecs_api.tasks",
+          "parent": "prod.ecs_api",
+          "kind": "tasks",
+          "label": "tasks \u00b7 api",
+          "observe": {
+            "path": "resources.ecs_service",
+            "have": "running",
+            "want": "desired"
+          },
+          "source": "infra/modules/ecs-service/main.tf"
+        },
+        {
+          "id": "prod.ecs_web.tasks",
+          "parent": "prod.ecs_web",
+          "kind": "tasks",
+          "label": "tasks \u00b7 web",
+          "observe": {
+            "path": "resources.ecs_web_service",
+            "have": "running",
+            "want": "desired"
+          },
+          "source": "infra/modules/ecs-service/main.tf"
+        },
+        {
+          "id": "prod.ecs_worker.tasks",
+          "parent": "prod.ecs_worker",
+          "kind": "tasks",
+          "label": "tasks \u00b7 worker",
+          "observe": {
+            "path": "resources.ecs_worker_service",
+            "have": "running",
+            "want": "desired"
+          },
+          "source": "infra/modules/ecs-service/main.tf"
+        },
+        {
+          "id": "prod.alb.tg_api",
+          "parent": "prod.alb",
+          "kind": "target-group",
+          "label": "/api/*, /health \u2192 api",
+          "observe": null,
+          "source": "infra/modules/alb/main.tf"
+        },
+        {
+          "id": "prod.alb.tg_web",
+          "parent": "prod.alb",
+          "kind": "target-group",
+          "label": "everything else \u2192 web",
+          "observe": null,
+          "source": "infra/modules/alb/main.tf"
+        }
+      ],
+      "edges": [
+        {
+          "from": "prod.alb",
+          "to": "prod.vpc",
+          "via": "vpc_id",
+          "kind": "input",
+          "source": "infra/envs/prod/main.tf:89"
+        },
+        {
+          "from": "prod.alb",
+          "to": "prod.vpc",
+          "via": "public_subnet_ids",
+          "kind": "input",
+          "source": "infra/envs/prod/main.tf:89"
+        },
+        {
+          "from": "prod.ecs_api",
+          "to": "prod.vpc",
+          "via": "vpc_id",
+          "kind": "input",
+          "source": "infra/envs/prod/main.tf:147"
+        },
+        {
+          "from": "prod.ecs_api",
+          "to": "prod.vpc",
+          "via": "public_subnet_ids",
+          "kind": "input",
+          "source": "infra/envs/prod/main.tf:147"
+        },
+        {
+          "from": "prod.ecs_api",
+          "to": "prod.alb",
+          "via": "alb_security_group_id",
+          "kind": "input",
+          "source": "infra/envs/prod/main.tf:147"
+        },
+        {
+          "from": "prod.ecs_api",
+          "to": "prod.alb",
+          "via": "target_group_arn",
+          "kind": "input",
+          "source": "infra/envs/prod/main.tf:147"
+        },
+        {
+          "from": "prod.ecs_api",
+          "to": "prod.rds",
+          "via": "db_secret_arn",
+          "kind": "input",
+          "source": "infra/envs/prod/main.tf:147"
+        },
+        {
+          "from": "prod.ecs_api",
+          "to": "prod.cloudwatch",
+          "via": "log_group_name",
+          "kind": "input",
+          "source": "infra/envs/prod/main.tf:147"
+        },
+        {
+          "from": "prod.ecs_web",
+          "to": "prod.vpc",
+          "via": "vpc_id",
+          "kind": "input",
+          "source": "infra/envs/prod/main.tf:176"
+        },
+        {
+          "from": "prod.ecs_web",
+          "to": "prod.vpc",
+          "via": "public_subnet_ids",
+          "kind": "input",
+          "source": "infra/envs/prod/main.tf:176"
+        },
+        {
+          "from": "prod.ecs_web",
+          "to": "prod.alb",
+          "via": "alb_security_group_id",
+          "kind": "input",
+          "source": "infra/envs/prod/main.tf:176"
+        },
+        {
+          "from": "prod.ecs_web",
+          "to": "prod.alb",
+          "via": "target_group_arn",
+          "kind": "input",
+          "source": "infra/envs/prod/main.tf:176"
+        },
+        {
+          "from": "prod.ecs_web",
+          "to": "prod.cloudwatch",
+          "via": "log_group_name",
+          "kind": "input",
+          "source": "infra/envs/prod/main.tf:176"
+        },
+        {
+          "from": "prod.ecs_worker",
+          "to": "prod.vpc",
+          "via": "vpc_id",
+          "kind": "input",
+          "source": "infra/envs/prod/main.tf:203"
+        },
+        {
+          "from": "prod.ecs_worker",
+          "to": "prod.vpc",
+          "via": "public_subnet_ids",
+          "kind": "input",
+          "source": "infra/envs/prod/main.tf:203"
+        },
+        {
+          "from": "prod.ecs_worker",
+          "to": "prod.rds",
+          "via": "db_secret_arn",
+          "kind": "input",
+          "source": "infra/envs/prod/main.tf:203"
+        },
+        {
+          "from": "prod.ecs_worker",
+          "to": "prod.cloudwatch",
+          "via": "log_group_name",
+          "kind": "input",
+          "source": "infra/envs/prod/main.tf:203"
+        },
+        {
+          "from": "prod.rds",
+          "to": "prod.vpc",
+          "via": "vpc_id",
+          "kind": "input",
+          "source": "infra/envs/prod/main.tf:333"
+        },
+        {
+          "from": "prod.rds",
+          "to": "prod.vpc",
+          "via": "private_db_subnet_ids",
+          "kind": "input",
+          "source": "infra/envs/prod/main.tf:333"
+        },
+        {
+          "from": "prod.rds",
+          "to": "prod.ecs_api",
+          "via": "ecs_app_security_group_id",
+          "kind": "input",
+          "source": "infra/envs/prod/main.tf:333"
+        },
+        {
+          "from": "prod.rds",
+          "to": "prod.ecs_worker",
+          "via": "extra_client_security_group_ids",
+          "kind": "input",
+          "source": "infra/envs/prod/main.tf:333"
+        },
+        {
+          "from": "prod.ecs_api",
+          "to": "prod.rds",
+          "via": "api_read_db_secret",
+          "kind": "policy",
+          "source": "infra/envs/prod/main.tf:243"
+        },
+        {
+          "from": "prod.ecs_worker",
+          "to": "prod.rds",
+          "via": "worker_read_db_secret",
+          "kind": "policy",
+          "source": "infra/envs/prod/main.tf:253"
+        },
+        {
+          "from": "prod.ecs_api",
+          "to": "prod.queue.items",
+          "via": "api_publish_items",
+          "kind": "policy",
+          "source": "infra/envs/prod/main.tf:272"
+        },
+        {
+          "from": "prod.ecs_worker",
+          "to": "prod.queue.items",
+          "via": "worker_consume_items",
+          "kind": "policy",
+          "source": "infra/envs/prod/main.tf:291"
+        },
+        {
+          "from": "prod.ecs_worker",
+          "to": "prod.queue.results",
+          "via": "worker_publish_results",
+          "kind": "policy",
+          "source": "infra/envs/prod/main.tf:308"
+        },
+        {
+          "from": "prod.ecs_api",
+          "to": "prod.queue.results",
+          "via": "api_consume_results",
+          "kind": "policy",
+          "source": "infra/envs/prod/main.tf:327"
+        },
+        {
+          "from": "prod.alb.tg_api",
+          "to": "prod.ecs_api.tasks",
+          "via": "targets",
+          "kind": "network",
+          "source": "infra/modules/alb/main.tf"
+        },
+        {
+          "from": "prod.alb.tg_web",
+          "to": "prod.ecs_web.tasks",
+          "via": "targets",
+          "kind": "network",
+          "source": "infra/modules/alb/main.tf"
+        }
+      ],
+      "counts": {
+        "nouns": 11,
+        "parts": 7,
+        "edges": 29
+      }
+    },
+    "lab": {
+      "runtime": "eks",
+      "nouns": [
+        {
+          "id": "lab.vpc",
+          "group": "vpc",
+          "label": "VPC",
+          "service": "vpc",
+          "lane": "network",
+          "resources": 6,
+          "col": 0
+        },
+        {
+          "id": "lab.secrets",
+          "group": "secrets",
+          "label": "Secrets Manager",
+          "service": "secretsmanager",
+          "lane": "data",
+          "resources": 2,
+          "col": 0
+        },
+        {
+          "id": "lab.rds",
+          "group": "rds",
+          "label": "RDS PostgreSQL",
+          "service": "rds",
+          "lane": "data",
+          "resources": 4,
+          "col": 1
+        },
+        {
+          "id": "lab.queue",
+          "group": "queue",
+          "label": "SQS \u2014 items and results",
+          "service": "sqs",
+          "lane": "data",
+          "resources": 8,
+          "col": 2
+        },
+        {
+          "id": "lab.eks",
+          "group": "eks",
+          "label": "EKS cluster",
+          "service": "eks",
+          "lane": "runtime",
+          "resources": 14,
+          "col": 0
+        },
+        {
+          "id": "lab.k8s_api",
+          "group": "k8s_api",
+          "label": "Kubernetes \u2014 api",
+          "service": "eks",
+          "lane": "runtime",
+          "resources": 2,
+          "col": 1
+        },
+        {
+          "id": "lab.k8s_worker",
+          "group": "k8s_worker",
+          "label": "Kubernetes \u2014 worker",
+          "service": "eks",
+          "lane": "runtime",
+          "resources": 2,
+          "col": 2
+        }
+      ],
+      "parts": [
+        {
+          "id": "lab.queue.items",
+          "parent": "lab.queue",
+          "kind": "queue",
+          "label": "items + dlq",
+          "observe": {
+            "path": "resources.queue",
+            "have": "visible",
+            "want": null,
+            "alarm": "dead_letter_alarm"
+          },
+          "source": "infra/modules/queue (module \"queue\")"
+        },
+        {
+          "id": "lab.queue.results",
+          "parent": "lab.queue",
+          "kind": "queue",
+          "label": "results + dlq",
+          "observe": {
+            "path": "resources.results_queue",
+            "have": "visible",
+            "want": null,
+            "alarm": "dead_letter_alarm"
+          },
+          "source": "infra/modules/queue (module \"results\")"
+        },
+        {
+          "id": "lab.eks.control_plane",
+          "parent": "lab.eks",
+          "kind": "control-plane",
+          "label": "control plane (managed)",
+          "observe": {
+            "path": "resources.eks.cluster",
+            "have": "status",
+            "want": null
+          },
+          "source": "infra/modules/eks/main.tf"
+        },
+        {
+          "id": "lab.eks.nodes",
+          "parent": "lab.eks",
+          "kind": "nodes",
+          "label": "nodes \u00b7 spot",
+          "observe": {
+            "path": "resources.eks.node_group",
+            "have": null,
+            "want": "desired"
+          },
+          "source": "infra/modules/eks/main.tf"
+        },
+        {
+          "id": "lab.eks.pods_api",
+          "parent": "lab.eks",
+          "kind": "pods",
+          "label": "pods \u00b7 api",
+          "port": 8000,
+          "observe": {
+            "path": "resources.eks.deployments[name=api]",
+            "have": "ready",
+            "want": "desired"
+          },
+          "source": "charts/demo/templates/api.yaml"
+        },
+        {
+          "id": "lab.eks.pods_web",
+          "parent": "lab.eks",
+          "kind": "pods",
+          "label": "pods \u00b7 web",
+          "port": 80,
+          "observe": {
+            "path": "resources.eks.deployments[name=web]",
+            "have": "ready",
+            "want": "desired"
+          },
+          "source": "charts/demo/templates/web.yaml"
+        },
+        {
+          "id": "lab.eks.pods_worker",
+          "parent": "lab.eks",
+          "kind": "pods",
+          "label": "pods \u00b7 worker",
+          "port": null,
+          "observe": {
+            "path": "resources.eks.deployments[name=worker]",
+            "have": "ready",
+            "want": "desired"
+          },
+          "source": "charts/demo/templates/worker.yaml"
+        },
+        {
+          "id": "lab.eks.svc_api",
+          "parent": "lab.eks",
+          "kind": "service",
+          "label": "Service \u00b7 api",
+          "port": 8000,
+          "observe": null,
+          "source": "charts/demo/templates/api.yaml"
+        },
+        {
+          "id": "lab.eks.svc_web",
+          "parent": "lab.eks",
+          "kind": "service",
+          "label": "Service \u00b7 web",
+          "port": 80,
+          "observe": null,
+          "source": "charts/demo/templates/web.yaml"
+        },
+        {
+          "id": "lab.eks.ingress",
+          "parent": "lab.eks",
+          "kind": "ingress",
+          "label": "Ingress \u2192 ALB",
+          "observe": {
+            "path": "resources.load_balancer",
+            "have": "state",
+            "want": null
+          },
+          "source": "charts/demo/templates/ingress.yaml"
+        },
+        {
+          "id": "lab.eks.hook_migrate",
+          "parent": "lab.eks",
+          "kind": "hook",
+          "label": "hook \u00b7 migrate",
+          "observe": null,
+          "source": "charts/demo/templates/hooks.yaml"
+        },
+        {
+          "id": "lab.eks.hook_worker-migrate",
+          "parent": "lab.eks",
+          "kind": "hook",
+          "label": "hook \u00b7 worker-migrate",
+          "observe": null,
+          "source": "charts/demo/templates/hooks.yaml"
+        },
+        {
+          "id": "lab.eks.hook_seed",
+          "parent": "lab.eks",
+          "kind": "hook",
+          "label": "hook \u00b7 seed",
+          "observe": null,
+          "source": "charts/demo/templates/hooks.yaml"
+        }
+      ],
+      "edges": [
+        {
+          "from": "lab.eks",
+          "to": "lab.vpc",
+          "via": "vpc_id",
+          "kind": "input",
+          "source": "infra/envs/lab/main.tf:113"
+        },
+        {
+          "from": "lab.eks",
+          "to": "lab.vpc",
+          "via": "subnet_ids",
+          "kind": "input",
+          "source": "infra/envs/lab/main.tf:113"
+        },
+        {
+          "from": "lab.eks",
+          "to": "lab.queue",
+          "via": "queue_arn",
+          "kind": "input",
+          "source": "infra/envs/lab/main.tf:113"
+        },
+        {
+          "from": "lab.eks",
+          "to": "lab.queue",
+          "via": "results_queue_arn",
+          "kind": "input",
+          "source": "infra/envs/lab/main.tf:113"
+        },
+        {
+          "from": "lab.rds",
+          "to": "lab.vpc",
+          "via": "vpc_id",
+          "kind": "input",
+          "source": "infra/envs/lab/main.tf:131"
+        },
+        {
+          "from": "lab.rds",
+          "to": "lab.vpc",
+          "via": "private_db_subnet_ids",
+          "kind": "input",
+          "source": "infra/envs/lab/main.tf:131"
+        },
+        {
+          "from": "lab.rds",
+          "to": "lab.eks",
+          "via": "ecs_app_security_group_id",
+          "kind": "input",
+          "source": "infra/envs/lab/main.tf:131"
+        },
+        {
+          "from": "lab.eks.pods_api",
+          "to": "lab.k8s_api",
+          "via": "serviceAccount api \u2192 IRSA",
+          "kind": "identity",
+          "source": "charts/demo/templates/serviceaccounts.yaml"
+        },
+        {
+          "from": "lab.eks.pods_api",
+          "to": "lab.queue.items",
+          "via": "ITEMS_QUEUE_URL",
+          "kind": "data",
+          "source": "charts/demo/templates/api.yaml"
+        },
+        {
+          "from": "lab.eks.pods_api",
+          "to": "lab.queue.results",
+          "via": "RESULTS_QUEUE_URL",
+          "kind": "data",
+          "source": "charts/demo/templates/api.yaml"
+        },
+        {
+          "from": "lab.eks.pods_api",
+          "to": "lab.secrets",
+          "via": "Secret db-credentials \u2190 Secrets Manager",
+          "kind": "data",
+          "source": "charts/demo/templates/api.yaml"
+        },
+        {
+          "from": "lab.eks.pods_worker",
+          "to": "lab.k8s_worker",
+          "via": "serviceAccount worker \u2192 IRSA",
+          "kind": "identity",
+          "source": "charts/demo/templates/serviceaccounts.yaml"
+        },
+        {
+          "from": "lab.eks.pods_worker",
+          "to": "lab.queue.items",
+          "via": "ITEMS_QUEUE_URL",
+          "kind": "data",
+          "source": "charts/demo/templates/worker.yaml"
+        },
+        {
+          "from": "lab.eks.pods_worker",
+          "to": "lab.queue.results",
+          "via": "RESULTS_QUEUE_URL",
+          "kind": "data",
+          "source": "charts/demo/templates/worker.yaml"
+        },
+        {
+          "from": "lab.eks.pods_worker",
+          "to": "lab.secrets",
+          "via": "Secret db-credentials \u2190 Secrets Manager",
+          "kind": "data",
+          "source": "charts/demo/templates/worker.yaml"
+        },
+        {
+          "from": "lab.eks.svc_api",
+          "to": "lab.eks.pods_api",
+          "via": "selector",
+          "kind": "network",
+          "source": "charts/demo/templates/api.yaml"
+        },
+        {
+          "from": "lab.eks.svc_web",
+          "to": "lab.eks.pods_web",
+          "via": "selector",
+          "kind": "network",
+          "source": "charts/demo/templates/web.yaml"
+        },
+        {
+          "from": "lab.eks.ingress",
+          "to": "lab.eks.svc_api",
+          "via": "/api",
+          "kind": "network",
+          "source": "charts/demo/templates/ingress.yaml"
+        },
+        {
+          "from": "lab.eks.ingress",
+          "to": "lab.eks.svc_api",
+          "via": "/health",
+          "kind": "network",
+          "source": "charts/demo/templates/ingress.yaml"
+        },
+        {
+          "from": "lab.eks.ingress",
+          "to": "lab.eks.svc_web",
+          "via": "/",
+          "kind": "network",
+          "source": "charts/demo/templates/ingress.yaml"
+        },
+        {
+          "from": "lab.k8s_api",
+          "to": "lab.queue.items",
+          "via": "api_publish_items",
+          "kind": "policy",
+          "source": "infra/modules/eks/irsa.tf:65"
+        },
+        {
+          "from": "lab.k8s_api",
+          "to": "lab.queue.results",
+          "via": "api_publish_items",
+          "kind": "policy",
+          "source": "infra/modules/eks/irsa.tf:65"
+        },
+        {
+          "from": "lab.k8s_worker",
+          "to": "lab.queue.items",
+          "via": "worker_consume_items",
+          "kind": "policy",
+          "source": "infra/modules/eks/irsa.tf:101"
+        },
+        {
+          "from": "lab.k8s_worker",
+          "to": "lab.queue.results",
+          "via": "worker_consume_items",
+          "kind": "policy",
+          "source": "infra/modules/eks/irsa.tf:101"
+        }
+      ],
+      "counts": {
+        "nouns": 7,
+        "parts": 13,
+        "edges": 24
+      }
+    }
+  },
+  "_": "GENERATED by scripts/generate-schema.py from site/data/topology.json, the modules' inputs in infra/envs/*, the listener rule in infra/modules/alb and `helm template` over charts/demo (ADR-0099). Do not edit; `make schema` regenerates it and `make schema-check` refuses drift."
+}

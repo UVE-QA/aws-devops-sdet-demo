@@ -159,6 +159,11 @@ jobs:
       - name: The chart renders, and refuses without digests
         run: make chart-check
 
+      # The estate as a schema (ADR-0099): the committed graph must be what
+      # the modules, the policies, the ALB rule and the chart say today.
+      - name: The schema is what the configuration says
+        run: make schema-check
+
       - name: Terraform validate (every root level, no backend)
         run: make tf-validate
 
