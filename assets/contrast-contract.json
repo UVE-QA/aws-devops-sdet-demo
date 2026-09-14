@@ -121,7 +121,7 @@
     },
     {
       "id": "schema",
-      "why": "the second layout (ADR-0099): the same tiles under a lane cell of the schema grid, and the parts inside them.",
+      "why": "the second layout (ADR-0099, redrawn 2026-09-14): a tile under the VPC frame's columns, and the parts inside it.",
       "nodes": [
         {
           "tag": "main",
@@ -136,16 +136,28 @@
           "class": ""
         },
         {
-          "tag": "div",
-          "class": "schema-grid"
+          "tag": "section",
+          "class": "estate-env schema-board"
         },
         {
           "tag": "div",
-          "class": "lane-cell"
+          "class": "frame"
         },
         {
           "tag": "div",
-          "class": "node"
+          "class": "schema-cols"
+        },
+        {
+          "tag": "div",
+          "class": "schema-col"
+        },
+        {
+          "tag": "div",
+          "class": "schema-set"
+        },
+        {
+          "tag": "div",
+          "class": "node tile"
         },
         {
           "tag": "div",

@@ -583,112 +583,131 @@
         align-items: center; text-align: center;
         padding: 0.6rem 0.4rem 0.5rem;
       }
-      /* THE SCHEMA LAYOUT (ADR-0099). One grid for both boards: a row per
-         lane and a column per board, so VPC sits beside VPC and the lab's pods
-         sit beside the ECS tasks in the same lane. The tiles are the rows'
-         own elements, from the same function; what is added is the PARTS
-         inside a runtime tile and the edges drawn over the grid. */
+      /* THE SCHEMA LAYOUT (ADR-0099, redrawn 2026-09-14). The first picture
+         put two boards side by side in five lanes with every edge drawn, and
+         the owner's verdict was the right one: small, crowded, worse than the
+         rows. This one is ONE environment at the rows' own tile size, read
+         left to right the way a request travels - edge, runtime, data - with
+         the VPC as the box everything sits in rather than a tile with eleven
+         arrows into it, the cluster as a second box, and only the edges a
+         reader asks about drawn by default: where traffic goes and who reads
+         which store. If it does not fit, the board scrolls sideways; the
+         marks do not shrink (the owner, 2026-09-14). */
       .estate-tools[hidden], #estate-schema[hidden], .schema-only[hidden] { display: none !important; }
       .estate-tools {
-        display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 1.1rem;
-        margin: 0 0 0.7rem; font-size: 0.7rem; color: var(--muted);
+        display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 1.2rem;
+        margin: 0 0 0.7rem; font-size: 0.74rem; color: var(--muted);
       }
       .estate-tools .sw { display: inline-flex; align-items: center; gap: 0.25rem; }
       .estate-tools .swlabel { font-weight: 600; margin-right: 0.15rem; }
-      .estate-tools .sw button { font-size: 0.7rem; padding: 0.1rem 0.5rem; border-radius: 999px; }
+      .estate-tools .sw button { font-size: 0.74rem; padding: 0.12rem 0.6rem; border-radius: 999px; }
       .estate-tools .sw button[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
       /* A layer's button carries the colour its edges are drawn in, so the
          switch is the legend. */
-      .estate-tools .layers button { border-left-width: 4px; }
-      .estate-tools .layers button[data-layer="network"] { border-left-color: var(--edge-network); }
-      .estate-tools .layers button[data-layer="runtime"] { border-left-color: var(--edge-runtime); }
-      .estate-tools .layers button[data-layer="data"] { border-left-color: var(--edge-data); }
-      .estate-tools .layers button[data-layer="identity"] { border-left-color: var(--edge-identity); }
-      .estate-tools .layers button[aria-pressed="false"] { opacity: 0.55; text-decoration: line-through; }
+      .estate-tools .layers button { border-left-width: 5px; }
+      .estate-tools .layers button[aria-pressed="false"] { opacity: 0.6; text-decoration: line-through; }
       .estate-tools .swnote { flex-basis: 100%; }
       :root {
-        --edge-network: var(--accent);
-        --edge-runtime: color-mix(in srgb, var(--fg) 60%, var(--line));
+        --edge-traffic: var(--accent);
         --edge-data: var(--ok);
         --edge-identity: var(--warn);
+        --edge-network: color-mix(in srgb, #8250df 80%, var(--fg));
+        --edge-ops: var(--muted);
       }
-      .schema-grid {
-        position: relative; display: grid;
-        grid-template-columns: 4.4rem repeat(var(--boards, 1), minmax(0, 1fr));
-        gap: 0.55rem 1rem; align-items: stretch; margin: 0 0 1.2rem;
+      #estate-schema { overflow-x: auto; }
+      .schema-board { position: relative; min-width: 64rem; margin: 0; }
+      .schema-board > header { margin-bottom: 0.5rem; }
+      .frame {
+        position: relative; border: 1.5px dashed color-mix(in srgb, var(--edge-network) 55%, var(--line));
+        border-radius: 16px; padding: 0.8rem 1.2rem 1.2rem;
+        background: color-mix(in srgb, var(--edge-network) 3%, transparent);
       }
-      .schema-grid > .estate-env { margin: 0; }
-      .schema-grid > .lane-label {
-        font-size: 0.6rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
-        color: var(--muted); padding-top: 0.55rem; border-top: 1px dashed var(--line);
+      .frame.cluster {
+        border: 1px solid color-mix(in srgb, var(--fg) 40%, var(--line));
+        background: color-mix(in srgb, var(--fg) 3%, transparent); padding: 0.7rem 1rem 1rem;
       }
-      .schema-grid > .lane-cell {
-        display: flex; flex-wrap: wrap; align-content: flex-start; gap: 0.5rem;
-        border-top: 1px dashed var(--line); padding-top: 0.5rem; min-height: 2.2rem;
+      .framehead { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem; margin: 0 0 0.7rem; }
+      /* The box's own noun, as a STRIP along its top edge: same element, same
+         word, same colours as its tile in the rows, laid sideways. */
+      .schema-board .node.strip {
+        flex-direction: row; align-items: center; width: auto; padding: 0.3rem 0.7rem 0.3rem 0.8rem;
+        gap: 0.7rem; text-align: left; background: transparent; border-color: transparent;
       }
-      .schema-grid > .lane-cell > .node {
-        width: var(--tile-s, 10.5rem); flex: 0 0 auto;
-        align-items: center; text-align: center; padding: 0.6rem 0.4rem 0.5rem;
+      .schema-board .node.strip::before { display: none; }
+      /* `.node .head` is a grid further down (the pilot's overflow fix); the
+         picture's heads are flex, stacked on a tile and in a row on a strip,
+         exactly as the rows' own tiles set them. */
+      .schema-board .node.strip .head { display: flex; flex-direction: row; align-items: center; gap: 0.5rem; }
+      .schema-board .node.strip .head .icon { min-width: 2.2rem; width: 2.2rem; height: 2.2rem; border-radius: 6px; }
+      .schema-board .node.strip .name { font-size: 0.92rem; }
+      .schema-board .node.strip .nmeta, .schema-board .node.strip .nstate { display: inline; font-size: 0.78rem; }
+      .framehead .parts { flex-direction: row; width: auto; margin: 0; }
+      .schema-cols {
+        position: relative; z-index: 1; display: grid;
+        grid-template-columns: 15rem 1.55fr 1fr; gap: 1.2rem 2.4rem; align-items: start;
       }
-      /* A runtime with many parts - the cluster's thirteen - takes the room
-         its parts need rather than stacking them thirteen high. */
-      .schema-grid > .lane-cell > .node.wide { width: auto; flex: 1 1 18rem; }
-      .node .parts { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.25rem; margin-top: 0.35rem; }
+      .schema-col > .lane, .schema-ops > .lane {
+        font-size: 0.66rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+        color: var(--muted); margin: 0 0 0.5rem;
+      }
+      .schema-set { display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-start; }
+      .schema-ops { position: relative; z-index: 1; margin-top: 1.2rem; }
+      /* THE TILE IS THE ROWS' TILE, at the rows' size, without the two lines
+         that belong to the rows: the block count and the verbs that point
+         into the map. Here the room goes to the parts. */
+      .schema-board .node.tile {
+        width: 15rem; align-items: center; text-align: center; padding: 0.8rem 0.7rem 0.7rem; gap: 0.3rem;
+        border-radius: 12px;
+      }
+      .schema-board .node.tile::before { border-radius: 12px 0 0 12px; width: 5px; }
+      .schema-board .node.tile .head { display: flex; flex-direction: column; align-items: center; gap: 0.3rem; }
+      /* A noun on a layer that is off is hidden with it. `.node` sets
+         display, so the attribute alone would not do it. */
+      .schema-board .node[hidden] { display: none; }
+      .schema-board .node.tile .head .icon { min-width: 5rem; height: 5rem; font-size: 0.8rem; border-radius: 12px; }
+      .schema-board .node.tile .head .icon.mark { width: 5rem; border-radius: 12px; }
+      .schema-board .node.tile .name { font-size: 0.98rem; }
+      .schema-board .node.tile .nstate { font-size: 0.8rem; line-height: 1.35; }
+      .schema-board .node .nmeta, .schema-board .node .touchedby { display: none; }
+      .schema-ops .node.tile { width: 12rem; }
+      .schema-ops .node.tile .head .icon { min-width: 3.6rem; height: 3.6rem; }
+      .schema-ops .node.tile .head .icon.mark { width: 3.6rem; }
+      .node .parts { display: flex; flex-direction: column; gap: 0.35rem; width: 100%; margin-top: 0.4rem; }
       /* A PART IS NOT A NODE. Same rail vocabulary - a colour on the left edge
          says the state - at chip size, with the figure the observation gave
          it. Dashed is the same statement it is on a tile: nothing observed. */
       .part {
-        display: inline-flex; flex-direction: column; align-items: flex-start;
-        padding: 0.16rem 0.4rem 0.18rem; min-width: 0;
-        border: 1px solid var(--line); border-left-width: 4px; border-radius: 6px;
-        background: var(--off-bg); font-size: 0.6rem; line-height: 1.25; text-align: left;
+        display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 0.2rem 0.6rem;
+        padding: 0.3rem 0.55rem; border: 1px solid var(--line); border-left: 5px solid var(--line);
+        border-radius: 8px; background: var(--off-bg); font-size: 0.84rem; line-height: 1.3; text-align: left;
       }
-      .part .plabel { font-weight: 600; color: var(--fg); white-space: nowrap; }
-      .part .pfig { color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; overflow-wrap: anywhere; }
+      .part .plabel { font-weight: 600; color: var(--fg); }
+      .part .pfig { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.78rem; color: var(--muted); text-align: right; }
       .part.ok { border-left-color: var(--ok); }
       .part.short, .part.idle { border-left-color: var(--warn); }
       .part.alarm { border-left-color: var(--bad); }
       .part.absent, .part.declared { border-style: dashed; border-left-style: solid; background: transparent; }
       .part.absent .plabel, .part.declared .plabel { color: var(--muted); font-weight: 500; }
       .part.unobserved { opacity: 0.5; }
-      /* NOT dashed with its tile. A noun no cycle has measured is `absent` on
-         the strength of the run layer; the part beside it carries the
-         bucket's own count, and the gate found the first rule here dashing
-         a `2/2` because the noun's record was missing. The part says what
-         the bucket says. */
-      /* The edges run UNDER the tiles: a line through a tile's text is a
-         line nobody can read either half of. The tiles are lifted above the
-         overlay, so an edge shows in the gaps between lanes and disappears
-         behind the boxes it connects, the way a wire does. */
-      .schema-grid > svg.edges {
+      /* A part drawn as a tile - a Deployment's pods, the Ingress - carries
+         its own count on the state line; the class is the chip's. */
+      .nstate.part-state.short, .nstate.part-state.alarm { color: var(--warn); }
+      .nstate.part-state.alarm { color: var(--bad); }
+      .nstate.part-state.absent, .nstate.part-state.declared { color: var(--muted); }
+      .schema-board > svg.edges {
         position: absolute; inset: 0; width: 100%; height: 100%;
         pointer-events: none; overflow: visible; z-index: 0;
       }
-      .schema-grid > .lane-cell { position: relative; z-index: 1; }
-      .edge { fill: none; stroke-width: 1.5; stroke-opacity: 0.7; pointer-events: stroke; }
-      .edge.network { stroke: var(--edge-network); }
-      .edge.runtime { stroke: var(--edge-runtime); }
+      .edge { fill: none; stroke-width: 2.2; stroke-opacity: 0.8; pointer-events: stroke; }
+      .edge.traffic { stroke: var(--edge-traffic); }
       .edge.data { stroke: var(--edge-data); }
       .edge.identity { stroke: var(--edge-identity); }
-      .edge.lit, .edge:hover { stroke-width: 3; stroke-opacity: 1; }
-      .schema-grid.hovering .edge:not(.lit) { stroke-opacity: 0.12; }
+      .edge.network { stroke: var(--edge-network); stroke-width: 1.4; stroke-opacity: 0.55; }
+      .edge.ops { stroke: var(--edge-ops); stroke-width: 1.4; stroke-opacity: 0.55; }
+      .edge.lit, .edge:hover { stroke-width: 3.5; stroke-opacity: 1; }
+      .schema-board.hovering .edge:not(.lit) { stroke-opacity: 0.12; }
       .edges .arrow { fill: var(--muted); }
-      /* A LAYER OFF is its edges gone and its tiles and parts dimmed - never
-         removed, so the geometry holds and the reader can see where the
-         thing they switched off was. */
-      .schema-grid[data-off~="network"] .edge.network,
-      .schema-grid[data-off~="runtime"] .edge.runtime,
-      .schema-grid[data-off~="data"] .edge.data,
-      .schema-grid[data-off~="identity"] .edge.identity { display: none; }
-      .schema-grid[data-off~="network"] [data-layer="network"],
-      .schema-grid[data-off~="runtime"] [data-layer="runtime"],
-      .schema-grid[data-off~="data"] [data-layer="data"],
-      .schema-grid[data-off~="identity"] [data-layer="identity"] { opacity: 0.25; }
-      @media (max-width: 1000px) {
-        .schema-grid > .lane-cell > .node { width: var(--tile); padding: 0.5rem 0.35rem 0.45rem; }
-        .schema-grid > .lane-cell > .node.wide { width: auto; flex-basis: 16rem; }
-      }
-      /* BELOW THE CROSSOVER THE GRID STOPS BEING ONE. At about 1000px eight
+            /* BELOW THE CROSSOVER THE GRID STOPS BEING ONE. At about 1000px eight
          columns are already down to --tile, the width at which `Application
          Load Balancer` stops breaking into four lines, so under it the board
          wraps fixed tiles instead - and the marks go back to the size they are
@@ -1720,17 +1739,16 @@
             <button type="button" data-layout="rows" aria-pressed="true">rows</button>
             <button type="button" data-layout="schema" aria-pressed="false">schema</button>
           </span>
-          <span class="sw schema-only" role="group" aria-label="ECS environment" hidden>
-            <span class="swlabel">beside the lab</span>
-            <button type="button" data-ecs="stage" aria-pressed="true">stage</button>
-            <button type="button" data-ecs="prod" aria-pressed="false">prod</button>
+          <span class="sw schema-only" role="group" aria-label="Environment" hidden>
+            <span class="swlabel">environment</span>
+            <button type="button" data-env="stage" aria-pressed="true">stage</button>
+            <button type="button" data-env="prod" aria-pressed="false">prod</button>
+            <button type="button" data-env="lab" aria-pressed="false">lab</button>
           </span>
+          <!-- The layer buttons are drawn from the schema's own list, with
+               the colour each layer's edges are drawn in. -->
           <span class="sw layers schema-only" role="group" aria-label="Layers" hidden>
             <span class="swlabel">layers</span>
-            <button type="button" data-layer="network" aria-pressed="true">network</button>
-            <button type="button" data-layer="runtime" aria-pressed="true">runtime</button>
-            <button type="button" data-layer="data" aria-pressed="true">data</button>
-            <button type="button" data-layer="identity" aria-pressed="true">identity</button>
           </span>
           <span class="swnote schema-only" id="schema-note" hidden></span>
         </div>
@@ -5330,27 +5348,40 @@
         }
 
         /* ---------------------------------------------------------------- THE
-           SCHEMA LAYOUT (ADR-0099). The same board, laid out as a picture: a
-           row per lane, a column per board - the chosen ECS environment beside
-           the lab - the tiles from envBoard() unchanged, the PARTS a generated
-           file names inside each runtime, and the EDGES that file read off the
-           modules' inputs, the policies, the balancer's rule and the chart,
-           drawn over the grid once the browser has laid it out. The page never
-           decides what connects to what; it turns ids into pixels. */
+           SCHEMA LAYOUT (ADR-0099, redrawn 2026-09-14). One environment, laid
+           out as a picture: the VPC as the box everything sits in, three
+           columns read left to right - edge, runtime, data - the cluster as a
+           second box inside the runtime column, the ops nouns in a strip
+           below, outside the VPC. The tiles are envBoard()'s own elements at
+           the rows' size; the PARTS the generated file names are drawn inside
+           them, or as tiles of their own where the file says so (a
+           Deployment's pods, the Ingress); the EDGES are drawn over the board
+           once the browser has laid it out, and only those on a layer that is
+           switched on. The page never decides what connects to what; it turns
+           ids into pixels. */
         let SCHEMA = null;
-        const ESTATE_VIEW = { layout: "rows", ecs: "stage", off: {} };
+        const ESTATE_VIEW = { v: 2, layout: "rows", env: "stage", off: null };
         function readEstateView() {
           try {
             const v = JSON.parse(localStorage.getItem("estate-view") || "null");
-            if (v && typeof v === "object") {
+            if (v && typeof v === "object" && v.v === 2) {
               if (v.layout === "schema" || v.layout === "rows") ESTATE_VIEW.layout = v.layout;
-              if (v.ecs === "stage" || v.ecs === "prod") ESTATE_VIEW.ecs = v.ecs;
+              if (["stage", "prod", "lab"].includes(v.env)) ESTATE_VIEW.env = v.env;
               if (v.off && typeof v.off === "object") ESTATE_VIEW.off = v.off;
             }
           } catch (e) { /* a private window, or storage refused: the defaults stand */ }
         }
         function saveEstateView() {
           try { localStorage.setItem("estate-view", JSON.stringify(ESTATE_VIEW)); } catch (e) { /* same */ }
+        }
+        // Which layers are off: the schema's own defaults until the visitor
+        // touches a switch.
+        function layersOff() {
+          if (!ESTATE_VIEW.off) {
+            ESTATE_VIEW.off = {};
+            ((SCHEMA && SCHEMA.layers) || []).forEach((l) => { ESTATE_VIEW.off[l.id] = !l.on; });
+          }
+          return ESTATE_VIEW.off;
         }
         function applyEstateView() {
           const tools = $("#estate-tools");
@@ -5360,11 +5391,20 @@
           tools.querySelectorAll("[data-layout]").forEach((b) => {
             b.setAttribute("aria-pressed", String((b.dataset.layout === "schema") === schema));
           });
-          tools.querySelectorAll("[data-ecs]").forEach((b) => {
-            b.setAttribute("aria-pressed", String(b.dataset.ecs === ESTATE_VIEW.ecs));
+          tools.querySelectorAll("[data-env]").forEach((b) => {
+            b.setAttribute("aria-pressed", String(b.dataset.env === ESTATE_VIEW.env));
           });
+          const layers = tools.querySelector(".layers");
+          if (SCHEMA && layers && !layers.querySelector("[data-layer]")) {
+            (SCHEMA.layers || []).forEach((l) => {
+              layers.insertAdjacentHTML("beforeend",
+                `<button type="button" data-layer="${esc(l.id)}" title="${esc(l.what || "")}" ` +
+                `style="border-left-color: var(--edge-${esc(l.id)})">${esc(l.id)}</button>`);
+            });
+          }
+          const off = layersOff();
           tools.querySelectorAll("[data-layer]").forEach((b) => {
-            b.setAttribute("aria-pressed", String(!ESTATE_VIEW.off[b.dataset.layer]));
+            b.setAttribute("aria-pressed", String(!off[b.dataset.layer]));
           });
           tools.querySelectorAll(".schema-only").forEach((el) => { el.hidden = !schema; });
           const rows = $("#estate-envs");
@@ -5391,21 +5431,17 @@
           }
           return cur;
         }
-        function partChip(part, env) {
+        function partReading(part, env) {
           const obs = RUNSTATE.observation && RUNSTATE.observation.environments
             ? RUNSTATE.observation.environments[env] : null;
-          const el = document.createElement("span");
-          el.dataset.part = part.id;
-          el.dataset.layer = part.layer || "";
-          el.title = `${part.label} - ${part.source}`;
-          let cls = "", fig = "";
+          let cls = "", fig = "", title = `${part.label} - ${part.source}`, unobserved = false;
           if (!part.observe) {
             // DECLARED, NOT OBSERVED. A Service, a hook, a target group: the
             // chart or the module declares it and nothing on the page measures
             // it by itself. Drawn dashed, and said - not coloured green on the
             // strength of the Deployment beside it.
             cls = "declared"; fig = "declared";
-            el.title += " - declared by the chart or the module; not observed on its own";
+            title += " - declared by the chart or the module; not observed on its own";
           } else {
             const v = obs && obs.resources ? observePath({ resources: obs.resources }, part.observe.path) : undefined;
             if (v == null) {
@@ -5420,7 +5456,7 @@
               const want = o.want ? v[o.want] : undefined;
               const alarm = o.alarm ? v[o.alarm] : undefined;
               if (typeof have === "number" && typeof want === "number") {
-                fig = `${have}/${want}`;
+                fig = `${have}/${want}` + (part.kind === "pods" ? " ready" : part.kind === "tasks" ? " running" : "");
                 cls = want === 0 ? "idle" : have >= want ? "ok" : "short";
               } else if (typeof have === "number") {
                 fig = `${have} waiting`;
@@ -5439,15 +5475,40 @@
               }
               // A reading the panel would not draw as current is not drawn
               // as current here either: same word, same greyness.
-              if (obs.stale || obs.unverified || obs.tearing) el.classList.add("unobserved");
+              if (obs.stale || obs.unverified || obs.tearing) unobserved = true;
             }
           }
-          el.className = "part " + cls + (el.classList.contains("unobserved") ? " unobserved" : "");
-          el.innerHTML = `<span class="plabel">${esc(part.label)}</span><span class="pfig">${esc(fig)}</span>`;
+          return { cls, fig, title, unobserved };
+        }
+        function partChip(part, env) {
+          const r = partReading(part, env);
+          const el = document.createElement("span");
+          el.className = "part " + r.cls + (r.unobserved ? " unobserved" : "");
+          el.dataset.part = part.id;
+          el.title = r.title;
+          el.innerHTML = `<span class="plabel">${esc(part.label)}</span><span class="pfig">${esc(r.fig)}</span>`;
+          return el;
+        }
+        /* A part drawn as a tile of its own: the mark of the noun it belongs
+           to, its label as the name, its reading on the state line. */
+        function partTile(part, env, service, parts) {
+          const r = partReading(part, env);
+          const el = document.createElement("div");
+          el.className = "node tile pseudo";
+          el.dataset.node = part.id;
+          el.title = r.title;
+          el.innerHTML = `<div class="head">${iconEl(service)}<span class="name">${esc(part.label)}</span></div>` +
+            `<div class="nstate part-state ${esc(r.cls)}${r.unobserved ? " unobserved" : ""}" data-part="${esc(part.id)}">` +
+            `<span class="word">${esc(r.fig)}</span></div>`;
+          if (parts && parts.length) {
+            const box = document.createElement("div");
+            box.className = "parts";
+            parts.forEach((p) => box.appendChild(partChip(p, env)));
+            el.appendChild(box);
+          }
           return el;
         }
 
-        const SCHEMA_WIDE = typeof matchMedia === "function" ? matchMedia("(min-width: 1180px)") : null;
         function renderSchema() {
           const host = $("#estate-schema");
           applyEstateView();
@@ -5458,166 +5519,230 @@
           // copy of the estate is a second copy of the estate.
           if (ESTATE_VIEW.layout !== "schema" || !SCHEMA || !DATA) return;
           const envs = DATA.estate.environments || [];
-          const byEnv = {};
-          envs.forEach((e) => { byEnv[e.id] = e; });
-          const ecs = byEnv[ESTATE_VIEW.ecs] || envs[0];
-          const eks = envs.find((e) => (SCHEMA.environments[e.id] || {}).runtime === "eks");
-          const boards = [ecs, eks].filter((e) => e && SCHEMA.environments[e.id]);
-          // Side by side when the width allows, stacked when it does not. Both
-          // are ONE grid per group so the lanes line up across boards.
-          const groups = SCHEMA_WIDE && SCHEMA_WIDE.matches ? [boards] : boards.map((b) => [b]);
-          let edgeCount = 0;
-          groups.forEach((group) => {
-            const grid = document.createElement("div");
-            grid.className = "schema-grid";
-            grid.style.setProperty("--boards", String(group.length));
-            grid.dataset.off = Object.keys(ESTATE_VIEW.off).filter((k) => ESTATE_VIEW.off[k]).join(" ");
-            grid.appendChild(Object.assign(document.createElement("div"), { className: "lane-label" }));
-            group.forEach((e) => {
-              const sec = document.createElement("section");
-              sec.className = "estate-env";
-              sec.appendChild(envBoard(e).header);
-              grid.appendChild(sec);
-            });
-            const tiles = {};
-            group.forEach((e) => { tiles[e.id] = envBoard(e).byId; });
-            (SCHEMA.lanes || []).forEach((lane) => {
-              const label = document.createElement("div");
-              label.className = "lane-label";
-              label.textContent = lane;
-              grid.appendChild(label);
-              group.forEach((e) => {
-                const cell = document.createElement("div");
-                cell.className = "lane-cell";
-                cell.dataset.env = e.id;
-                cell.dataset.lane = lane;
-                const sch = SCHEMA.environments[e.id];
-                sch.nouns.filter((n) => n.lane === lane).sort((a, b) => a.col - b.col).forEach((n) => {
-                  const tile = tiles[e.id][n.id];
-                  if (!tile) return;
-                  if (n.layer) tile.dataset.layer = n.layer;
-                  const parts = sch.parts.filter((p) => p.parent === n.id);
-                  if (parts.length) {
-                    const box = document.createElement("div");
-                    box.className = "parts";
-                    parts.forEach((p) => box.appendChild(partChip(p, e.id)));
-                    tile.appendChild(box);
-                    if (parts.length >= 6) tile.classList.add("wide");
-                  }
-                  cell.appendChild(tile);
-                });
-                grid.appendChild(cell);
-              });
-            });
-            const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-            svg.setAttribute("class", "edges");
-            svg.innerHTML = `<defs><marker id="arrow-${group.map((e) => e.id).join("-")}" viewBox="0 0 8 8" refX="7" refY="4" ` +
-              `markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="arrow" d="M0,0 L8,4 L0,8 z"/></marker></defs>`;
-            grid.appendChild(svg);
-            grid.dataset.edges = JSON.stringify(group.map((e) => e.id));
-            group.forEach((e) => { edgeCount += SCHEMA.environments[e.id].edges.length; });
-            // Hovering a tile lights its edges and fades the rest.
-            grid.addEventListener("mouseover", (ev) => {
-              const t = ev.target.closest("[data-part], .node[data-id]");
-              if (!t) return;
-              const id = t.dataset.part || t.dataset.id;
-              const lit = grid.querySelectorAll(`.edge[data-from="${id}"], .edge[data-to="${id}"]`);
-              if (!lit.length) return;
-              grid.classList.add("hovering");
-              lit.forEach((p) => p.classList.add("lit"));
-            });
-            grid.addEventListener("mouseout", (ev) => {
-              if (ev.target.closest && ev.target.closest("[data-part], .node[data-id]")) {
-                grid.classList.remove("hovering");
-                grid.querySelectorAll(".edge.lit").forEach((p) => p.classList.remove("lit"));
-              }
-            });
-            host.appendChild(grid);
+          const env = envs.find((e) => e.id === ESTATE_VIEW.env && SCHEMA.environments[e.id]) ||
+                      envs.find((e) => SCHEMA.environments[e.id]);
+          if (!env) return;
+          const sch = SCHEMA.environments[env.id];
+          const off = layersOff();
+          const board = envBoard(env);
+          const sec = document.createElement("section");
+          sec.className = "estate-env schema-board";
+          sec.appendChild(board.header);
+          const nounsIn = (lane) => sch.nouns.filter((n) => n.lane === lane).sort((a, b) => a.col - b.col);
+          const partsOf = (id, place) => sch.parts.filter((p) => p.parent === id && (!place || p.place === place));
+          const el = (tag, cls, text) => {
+            const x = document.createElement(tag);
+            x.className = cls;
+            if (text) x.textContent = text;
+            return x;
+          };
+          // A noun's tile, with the parts that live inside it.
+          const tileOf = (n, cls) => {
+            const t = board.byId[n.id];
+            if (!t) return null;
+            t.classList.add(cls || "tile");
+            if (n.layer) { t.dataset.layer = n.layer; t.hidden = Boolean(off[n.layer]); }
+            const inside = partsOf(n.id, "inside");
+            if (inside.length) {
+              const box = el("div", "parts");
+              inside.forEach((p) => box.appendChild(partChip(p, env.id)));
+              t.appendChild(box);
+            }
+            return t;
+          };
+          const column = (lane, title) => {
+            const col = el("div", "schema-col");
+            col.dataset.lane = lane;
+            col.appendChild(el("div", "lane", title));
+            const set = el("div", "schema-set");
+            col.appendChild(set);
+            return { col, set };
+          };
+          // THE VPC IS THE BOX. Its tile lies along the top edge as a strip.
+          const vpc = nounsIn("network")[0];
+          const frame = el("div", "frame");
+          const frameHead = el("div", "framehead");
+          frameHead.dataset.lane = "network";
+          if (vpc) frameHead.appendChild(tileOf(vpc, "strip"));
+          nounsIn("network").slice(1).forEach((n) => frameHead.appendChild(tileOf(n, "strip")));
+          frame.appendChild(frameHead);
+          const cols = el("div", "schema-cols");
+          // EDGE: the balancer with its rule inside, or the Ingress the chart
+          // declares with its Services inside.
+          const edge = column("edge", "edge");
+          nounsIn("edge").forEach((n) => edge.set.appendChild(tileOf(n)));
+          sch.parts.filter((p) => p.place === "edge" && p.kind === "ingress").forEach((ing) => {
+            const services = sch.parts.filter((p) => p.place === "edge" && p.kind === "service" && p.parent === ing.parent);
+            edge.set.appendChild(partTile(ing, env.id, "elb", services));
           });
+          cols.appendChild(edge.col);
+          // RUNTIME: the services with their tasks, or the cluster as a box
+          // with its pods as tiles and its hooks as a strip.
+          const runtime = column("runtime", sch.runtime === "eks" ? "runtime · EKS" : "runtime · ECS on Fargate");
+          const clusterNoun = nounsIn("runtime").find((n) => partsOf(n.id, "cluster").length);
+          nounsIn("runtime").forEach((n) => {
+            if (n === clusterNoun) {
+              const box = el("div", "frame cluster");
+              const head = el("div", "framehead");
+              head.dataset.lane = "runtime";
+              head.appendChild(tileOf(n, "strip"));
+              const label = partsOf(n.id, "label");
+              if (label.length) {
+                const chips = el("div", "parts");
+                label.forEach((p) => chips.appendChild(partChip(p, env.id)));
+                head.appendChild(chips);
+              }
+              box.appendChild(head);
+              const set = el("div", "schema-set");
+              set.dataset.lane = "runtime";
+              partsOf(n.id, "cluster").filter((p) => p.kind === "pods").forEach((p) => set.appendChild(partTile(p, env.id, n.service)));
+              // The IRSA roles and whatever else the runtime lane holds sit
+              // inside the cluster's box, on their own layer.
+              nounsIn("runtime").filter((m) => m !== n).forEach((m) => set.appendChild(tileOf(m)));
+              box.appendChild(set);
+              const hooks = partsOf(n.id, "cluster").filter((p) => p.kind !== "pods");
+              if (hooks.length) {
+                const strip = el("div", "parts");
+                strip.style.marginTop = "0.8rem";
+                hooks.forEach((p) => strip.appendChild(partChip(p, env.id)));
+                box.appendChild(strip);
+              }
+              runtime.set.appendChild(box);
+            } else if (!clusterNoun) {
+              runtime.set.appendChild(tileOf(n));
+            }
+          });
+          cols.appendChild(runtime.col);
+          // DATA: the stores, the queue tile with both queues inside.
+          const data = column("data", "data");
+          nounsIn("data").forEach((n) => data.set.appendChild(tileOf(n)));
+          cols.appendChild(data.col);
+          frame.appendChild(cols);
+          sec.appendChild(frame);
+          // OPS, outside the VPC.
+          const opsNouns = nounsIn("ops");
+          if (opsNouns.length) {
+            const ops = el("div", "schema-ops");
+            ops.dataset.lane = "ops";
+            ops.appendChild(el("div", "lane", "ops · outside the VPC"));
+            const set = el("div", "schema-set");
+            opsNouns.forEach((n) => set.appendChild(tileOf(n)));
+            ops.appendChild(set);
+            sec.appendChild(ops);
+          }
+          const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+          svg.setAttribute("class", "edges");
+          svg.innerHTML = `<defs><marker id="arrow-${esc(env.id)}" viewBox="0 0 8 8" refX="7" refY="4" ` +
+            `markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="arrow" d="M0,0 L8,4 L0,8 z"/></marker></defs>`;
+          sec.appendChild(svg);
+          sec.dataset.env = env.id;
+          // Hovering a tile lights its edges and fades the rest.
+          sec.addEventListener("mouseover", (ev) => {
+            const t = ev.target.closest("[data-part], [data-node], .node[data-id]");
+            if (!t) return;
+            const id = t.dataset.part || t.dataset.node || t.dataset.id;
+            const lit = sec.querySelectorAll(`.edge[data-from="${id}"], .edge[data-to="${id}"]`);
+            if (!lit.length) return;
+            sec.classList.add("hovering");
+            lit.forEach((p) => p.classList.add("lit"));
+          });
+          sec.addEventListener("mouseout", (ev) => {
+            if (ev.target.closest && ev.target.closest("[data-part], [data-node], .node[data-id]")) {
+              sec.classList.remove("hovering");
+              sec.querySelectorAll(".edge.lit").forEach((p) => p.classList.remove("lit"));
+            }
+          });
+          host.appendChild(sec);
           const note = $("#schema-note");
           if (note) {
-            note.textContent = `${edgeCount} edges in this picture, read from the modules' inputs, ` +
-              `the IAM policies, the balancer's listener rule and the Helm chart - none drawn by hand. ` +
+            const on = (SCHEMA.layers || []).filter((l) => !off[l.id]);
+            const shown = sch.edges.filter((e) => !off[e.layer]).length;
+            note.textContent = `${shown} of ${sch.edges.length} edges shown` +
+              (on.length ? ` - ${on.map((l) => `${l.id}: ${l.what}`).join("; ")}` : "") +
+              `. Every edge was read from the modules' inputs, the IAM policies, the balancer's listener rule ` +
+              `or the Helm chart; none is drawn by hand. The VPC is the box everything sits in. ` +
               `Hover a tile for its edges, an edge for the argument and the file it was read from. ` +
               `A part carries the count the bucket last observed; dashed is declared and not observed.`;
           }
           drawEdges();
         }
 
-        /* The edges, as paths over the laid-out grid. Recomputed - never
-           cached - whenever the grid's size changes, because every endpoint is
-           a rectangle the browser decided. */
+        /* The edges, as paths over the laid-out board. Recomputed - never
+           cached - whenever the board's size changes, because every endpoint
+           is a rectangle the browser decided. Only the layers that are on. */
         function drawEdges() {
           const host = $("#estate-schema");
           if (!host || host.hidden) return;
-          host.querySelectorAll(".schema-grid").forEach((grid) => {
-            const svg = grid.querySelector("svg.edges");
-            if (!svg || !grid.dataset.edges) return;
-            const box = grid.getBoundingClientRect();
-            if (!box.width) return;
-            const marker = svg.querySelector("marker");
-            const rect = (id) => {
-              const el = grid.querySelector(`[data-part="${id}"]`) || grid.querySelector(`.node[data-id="${id}"]`);
-              if (!el) return null;
-              const r = el.getBoundingClientRect();
-              return { x: r.left - box.left, y: r.top - box.top, w: r.width, h: r.height };
-            };
-            const envs = JSON.parse(grid.dataset.edges);
-            const edges = envs.reduce((a, env) => a.concat(SCHEMA.environments[env].edges), []);
-            // EVERY EDGE HAS A PORT OF ITS OWN. Eleven edges into the VPC's
-            // bottom centre are one line; eleven ports spread along its
-            // bottom, in the order of where they come from, are eleven.
-            const ends = [];
-            edges.forEach((e) => {
-              const a = rect(e.from), b = rect(e.to);
-              if (!a || !b) return;
-              const ca = a.y + a.h / 2, cb = b.y + b.h / 2;
-              const vertical = Math.abs(ca - cb) > Math.max(a.h, b.h) / 2;
-              const down = cb > ca, right = b.x + b.w / 2 > a.x + a.w / 2;
-              ends.push({ e, a, b, vertical,
-                          sa: vertical ? (down ? "bottom" : "top") : (right ? "right" : "left"),
-                          sb: vertical ? (down ? "top" : "bottom") : (right ? "left" : "right") });
-            });
-            const ports = {};
-            const ask = (id, sideName, order, slot) => {
-              const k = id + "|" + sideName;
-              (ports[k] = ports[k] || []).push({ order, slot });
-            };
-            ends.forEach((x) => {
-              ask(x.e.from, x.sa, x.vertical ? x.b.x + x.b.w / 2 : x.b.y + x.b.h / 2, x);
-              ask(x.e.to, x.sb, x.vertical ? x.a.x + x.a.w / 2 : x.a.y + x.a.h / 2, x);
-            });
-            const at = {};
-            Object.keys(ports).forEach((k) => {
-              const list = ports[k].sort((p, q) => p.order - q.order);
-              list.forEach((p, i) => { at[k + "|" + ends.indexOf(p.slot)] = (i + 1) / (list.length + 1); });
-            });
-            const point = (r, sideName, t) => (
-              sideName === "top" ? [r.x + r.w * t, r.y] :
-              sideName === "bottom" ? [r.x + r.w * t, r.y + r.h] :
-              sideName === "left" ? [r.x, r.y + r.h * t] : [r.x + r.w, r.y + r.h * t]);
-            const paths = [];
-            ends.forEach((x, idx) => {
-              const e = x.e;
-              const [x1, y1] = point(x.a, x.sa, at[e.from + "|" + x.sa + "|" + idx]);
-              const [x2, y2] = point(x.b, x.sb, at[e.to + "|" + x.sb + "|" + idx]);
-              let c1x, c1y, c2x, c2y;
-              if (x.vertical) {
-                const dy = (y2 - y1) / 2;
-                c1x = x1; c1y = y1 + dy; c2x = x2; c2y = y2 - dy;
-              } else {
-                const dx = (x2 - x1) / 2;
-                c1x = x1 + dx; c1y = y1; c2x = x2 - dx; c2y = y2;
-              }
-              const title = `${e.from.split(".").slice(1).join(".")} → ${e.to.split(".").slice(1).join(".")} · ${e.via} · ${e.source}`;
-              paths.push(`<path class="edge ${esc(e.layer || e.kind)}" data-from="${esc(e.from)}" data-to="${esc(e.to)}" ` +
-                `d="M${x1.toFixed(1)},${y1.toFixed(1)} C${c1x.toFixed(1)},${c1y.toFixed(1)} ${c2x.toFixed(1)},${c2y.toFixed(1)} ${x2.toFixed(1)},${y2.toFixed(1)}" ` +
-                `marker-end="url(#${marker ? marker.id : ""})"><title>${esc(title)}</title></path>`);
-            });
-            svg.setAttribute("viewBox", `0 0 ${box.width} ${box.height}`);
-            svg.querySelectorAll("path.edge").forEach((p) => p.remove());
-            svg.insertAdjacentHTML("beforeend", paths.join(""));
+          const sec = host.querySelector(".schema-board");
+          const svg = sec && sec.querySelector("svg.edges");
+          if (!svg || !SCHEMA) return;
+          const box = sec.getBoundingClientRect();
+          if (!box.width) return;
+          const marker = svg.querySelector("marker");
+          const off = layersOff();
+          const rect = (id) => {
+            const el = sec.querySelector(`[data-node="${id}"]`) || sec.querySelector(`.node[data-id="${id}"]`) ||
+                       sec.querySelector(`[data-part="${id}"]`);
+            if (!el || el.hidden || el.closest("[hidden]")) return null;
+            const r = el.getBoundingClientRect();
+            if (!r.width) return null;
+            return { x: r.left - box.left, y: r.top - box.top, w: r.width, h: r.height };
+          };
+          const edges = SCHEMA.environments[sec.dataset.env].edges.filter((e) => !off[e.layer]);
+          // EVERY EDGE HAS A PORT OF ITS OWN, spread along the side it leaves
+          // by in the order of where it goes, so parallel edges read as
+          // parallel and not as one line. Sideways when the two boxes do not
+          // overlap in x - the flow of the picture - and up or down when they
+          // do.
+          const ends = [];
+          edges.forEach((e) => {
+            const a = rect(e.from), b = rect(e.to);
+            if (!a || !b) return;
+            const overlapX = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x) > Math.min(a.w, b.w) * 0.4;
+            const right = b.x + b.w / 2 > a.x + a.w / 2, down = b.y + b.h / 2 > a.y + a.h / 2;
+            ends.push({ e, a, b, vertical: overlapX,
+                        sa: overlapX ? (down ? "bottom" : "top") : (right ? "right" : "left"),
+                        sb: overlapX ? (down ? "top" : "bottom") : (right ? "left" : "right") });
           });
+          const ports = {};
+          const ask = (id, sideName, order, slot) => {
+            const k = id + "|" + sideName;
+            (ports[k] = ports[k] || []).push({ order, slot });
+          };
+          ends.forEach((x) => {
+            ask(x.e.from, x.sa, x.vertical ? x.b.x + x.b.w / 2 : x.b.y + x.b.h / 2, x);
+            ask(x.e.to, x.sb, x.vertical ? x.a.x + x.a.w / 2 : x.a.y + x.a.h / 2, x);
+          });
+          const at = {};
+          Object.keys(ports).forEach((k) => {
+            const list = ports[k].sort((p, q) => p.order - q.order);
+            list.forEach((p, i) => { at[k + "|" + ends.indexOf(p.slot)] = (i + 1) / (list.length + 1); });
+          });
+          const point = (r, sideName, t) => (
+            sideName === "top" ? [r.x + r.w * t, r.y] :
+            sideName === "bottom" ? [r.x + r.w * t, r.y + r.h] :
+            sideName === "left" ? [r.x, r.y + r.h * t] : [r.x + r.w, r.y + r.h * t]);
+          const paths = [];
+          ends.forEach((x, idx) => {
+            const e = x.e;
+            const [x1, y1] = point(x.a, x.sa, at[e.from + "|" + x.sa + "|" + idx]);
+            const [x2, y2] = point(x.b, x.sb, at[e.to + "|" + x.sb + "|" + idx]);
+            let c1x, c1y, c2x, c2y;
+            if (x.vertical) {
+              const dy = (y2 - y1) / 2;
+              c1x = x1; c1y = y1 + dy; c2x = x2; c2y = y2 - dy;
+            } else {
+              const dx = (x2 - x1) / 2;
+              c1x = x1 + dx; c1y = y1; c2x = x2 - dx; c2y = y2;
+            }
+            const title = `${e.from.split(".").slice(1).join(".")} → ${e.to.split(".").slice(1).join(".")} · ${e.via} · ${e.source}`;
+            paths.push(`<path class="edge ${esc(e.layer || e.kind)}" data-from="${esc(e.from)}" data-to="${esc(e.to)}" ` +
+              `d="M${x1.toFixed(1)},${y1.toFixed(1)} C${c1x.toFixed(1)},${c1y.toFixed(1)} ${c2x.toFixed(1)},${c2y.toFixed(1)} ${x2.toFixed(1)},${y2.toFixed(1)}" ` +
+              `marker-end="url(#${marker ? marker.id : ""})"><title>${esc(title)}</title></path>`);
+          });
+          svg.setAttribute("viewBox", `0 0 ${box.width} ${box.height}`);
+          svg.querySelectorAll("path.edge").forEach((p) => p.remove());
+          svg.insertAdjacentHTML("beforeend", paths.join(""));
         }
         (() => {
           const tools = $("#estate-tools");
@@ -5627,13 +5752,12 @@
             const b = ev.target.closest("button");
             if (!b) return;
             if (b.dataset.layout) ESTATE_VIEW.layout = b.dataset.layout;
-            else if (b.dataset.ecs) ESTATE_VIEW.ecs = b.dataset.ecs;
-            else if (b.dataset.layer) ESTATE_VIEW.off[b.dataset.layer] = !ESTATE_VIEW.off[b.dataset.layer];
+            else if (b.dataset.env) ESTATE_VIEW.env = b.dataset.env;
+            else if (b.dataset.layer) { const off = layersOff(); off[b.dataset.layer] = !off[b.dataset.layer]; }
             else return;
             saveEstateView();
             renderSchema();
           });
-          if (SCHEMA_WIDE && SCHEMA_WIDE.addEventListener) SCHEMA_WIDE.addEventListener("change", () => renderSchema());
           const pic = $("#estate-schema");
           if (pic && typeof ResizeObserver !== "undefined") {
             let raf = 0;

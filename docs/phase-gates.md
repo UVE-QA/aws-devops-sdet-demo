@@ -4329,6 +4329,14 @@ graph and the manifest can become its source later.
   noun's missing record and a claim that mistook absent for dimmed, both
   fixed. Three part states in the contrast contract, 4.26:1 at worst.
   Gates 13/13 locally; CI green on `next`.
+- **Redrawn 2026-09-14** on the owner's verdict (*мелко, громозда … стало
+  хуже чем просто в ряд*), a mock first (*давай вариант 1, сначала макет*,
+  marks never smaller): one environment at a time, the VPC as a frame, edge
+  → runtime → data, the cluster as a frame with its pods as tiles, the ops
+  nouns outside; layers traffic and data on by default, identity / network
+  / ops off; a layer off hides its edges and its own nouns. ADR-0099 D1, D3
+  and D4 amended. Gate rewritten for one board per environment, green on
+  both states; contrast green; gates 13/13.
 - Next allowed step: **a cycle from `next`** on the owner's word (ADR-0093
   D1), which is also the first look at the picture over real observations;
   then **merge `next` → `main`** on the owner's word, then the record.

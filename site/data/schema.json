@@ -8,10 +8,31 @@
     "ops"
   ],
   "layers": [
-    "network",
-    "runtime",
-    "data",
-    "identity"
+    {
+      "id": "traffic",
+      "on": true,
+      "what": "the balancer's rule to the tasks; the Ingress to the Service to the pods"
+    },
+    {
+      "id": "data",
+      "on": true,
+      "what": "who reads the database and the secret, who publishes to and consumes from each queue"
+    },
+    {
+      "id": "identity",
+      "on": false,
+      "what": "the IAM policies and the IRSA roles"
+    },
+    {
+      "id": "network",
+      "on": false,
+      "what": "VPC, subnets, security groups, the target group's registration, the DNS alias"
+    },
+    {
+      "id": "ops",
+      "on": false,
+      "what": "the log groups"
+    }
   ],
   "environments": {
     "stage": {
@@ -23,7 +44,7 @@
           "label": "VPC",
           "service": "vpc",
           "lane": "network",
-          "layer": "network",
+          "layer": null,
           "resources": 6,
           "col": 0
         },
@@ -33,7 +54,7 @@
           "label": "Secrets Manager",
           "service": "secretsmanager",
           "lane": "data",
-          "layer": "data",
+          "layer": null,
           "resources": 2,
           "col": 0
         },
@@ -43,7 +64,7 @@
           "label": "RDS PostgreSQL",
           "service": "rds",
           "lane": "data",
-          "layer": "data",
+          "layer": null,
           "resources": 4,
           "col": 1
         },
@@ -53,7 +74,7 @@
           "label": "Application Load Balancer",
           "service": "elb",
           "lane": "edge",
-          "layer": "network",
+          "layer": null,
           "resources": 7,
           "col": 0
         },
@@ -63,7 +84,7 @@
           "label": "ECS \u2014 api",
           "service": "ecs",
           "lane": "runtime",
-          "layer": "runtime",
+          "layer": null,
           "resources": 9,
           "col": 0
         },
@@ -73,7 +94,7 @@
           "label": "ECS \u2014 web",
           "service": "ecs",
           "lane": "runtime",
-          "layer": "runtime",
+          "layer": null,
           "resources": 6,
           "col": 1
         },
@@ -83,7 +104,7 @@
           "label": "SQS \u2014 items and results",
           "service": "sqs",
           "lane": "data",
-          "layer": "data",
+          "layer": null,
           "resources": 8,
           "col": 2
         },
@@ -93,7 +114,7 @@
           "label": "ECS \u2014 worker",
           "service": "ecs",
           "lane": "runtime",
-          "layer": "runtime",
+          "layer": null,
           "resources": 9,
           "col": 2
         },
@@ -131,7 +152,7 @@
             "alarm": "dead_letter_alarm"
           },
           "source": "infra/modules/queue (module \"queue\")",
-          "layer": "data"
+          "place": "inside"
         },
         {
           "id": "stage.queue.results",
@@ -145,7 +166,7 @@
             "alarm": "dead_letter_alarm"
           },
           "source": "infra/modules/queue (module \"results\")",
-          "layer": "data"
+          "place": "inside"
         },
         {
           "id": "stage.ecs_api.tasks",
@@ -158,7 +179,7 @@
             "want": "desired"
           },
           "source": "infra/modules/ecs-service/main.tf",
-          "layer": "runtime"
+          "place": "inside"
         },
         {
           "id": "stage.ecs_web.tasks",
@@ -171,7 +192,7 @@
             "want": "desired"
           },
           "source": "infra/modules/ecs-service/main.tf",
-          "layer": "runtime"
+          "place": "inside"
         },
         {
           "id": "stage.ecs_worker.tasks",
@@ -184,7 +205,7 @@
             "want": "desired"
           },
           "source": "infra/modules/ecs-service/main.tf",
-          "layer": "runtime"
+          "place": "inside"
         },
         {
           "id": "stage.alb.tg_api",
@@ -193,7 +214,7 @@
           "label": "/api/*, /health \u2192 api",
           "observe": null,
           "source": "infra/modules/alb/main.tf",
-          "layer": "network"
+          "place": "inside"
         },
         {
           "id": "stage.alb.tg_web",
@@ -202,7 +223,7 @@
           "label": "everything else \u2192 web",
           "observe": null,
           "source": "infra/modules/alb/main.tf",
-          "layer": "network"
+          "place": "inside"
         }
       ],
       "edges": [
@@ -252,7 +273,7 @@
           "via": "target_group_arn",
           "kind": "input",
           "source": "infra/envs/stage/main.tf:101",
-          "layer": "runtime"
+          "layer": "network"
         },
         {
           "from": "stage.ecs_api",
@@ -268,7 +289,23 @@
           "via": "log_group_name",
           "kind": "input",
           "source": "infra/envs/stage/main.tf:101",
-          "layer": "runtime"
+          "layer": "ops"
+        },
+        {
+          "from": "stage.ecs_api",
+          "to": "stage.queue.items",
+          "via": "ITEMS_QUEUE_URL",
+          "kind": "input",
+          "source": "infra/envs/stage/main.tf:101",
+          "layer": "data"
+        },
+        {
+          "from": "stage.ecs_api",
+          "to": "stage.queue.results",
+          "via": "RESULTS_QUEUE_URL",
+          "kind": "input",
+          "source": "infra/envs/stage/main.tf:101",
+          "layer": "data"
         },
         {
           "from": "stage.ecs_web",
@@ -300,7 +337,7 @@
           "via": "target_group_arn",
           "kind": "input",
           "source": "infra/envs/stage/main.tf:130",
-          "layer": "runtime"
+          "layer": "network"
         },
         {
           "from": "stage.ecs_web",
@@ -308,7 +345,7 @@
           "via": "log_group_name",
           "kind": "input",
           "source": "infra/envs/stage/main.tf:130",
-          "layer": "runtime"
+          "layer": "ops"
         },
         {
           "from": "stage.ecs_worker",
@@ -340,7 +377,23 @@
           "via": "log_group_name",
           "kind": "input",
           "source": "infra/envs/stage/main.tf:157",
-          "layer": "runtime"
+          "layer": "ops"
+        },
+        {
+          "from": "stage.ecs_worker",
+          "to": "stage.queue.items",
+          "via": "ITEMS_QUEUE_URL",
+          "kind": "input",
+          "source": "infra/envs/stage/main.tf:157",
+          "layer": "data"
+        },
+        {
+          "from": "stage.ecs_worker",
+          "to": "stage.queue.results",
+          "via": "RESULTS_QUEUE_URL",
+          "kind": "input",
+          "source": "infra/envs/stage/main.tf:157",
+          "layer": "data"
         },
         {
           "from": "stage.rds",
@@ -428,7 +481,7 @@
           "via": "targets",
           "kind": "network",
           "source": "infra/modules/alb/main.tf",
-          "layer": "network"
+          "layer": "traffic"
         },
         {
           "from": "stage.alb.tg_web",
@@ -436,13 +489,13 @@
           "via": "targets",
           "kind": "network",
           "source": "infra/modules/alb/main.tf",
-          "layer": "network"
+          "layer": "traffic"
         }
       ],
       "counts": {
         "nouns": 10,
         "parts": 7,
-        "edges": 29
+        "edges": 33
       }
     },
     "prod": {
@@ -454,7 +507,7 @@
           "label": "VPC",
           "service": "vpc",
           "lane": "network",
-          "layer": "network",
+          "layer": null,
           "resources": 6,
           "col": 0
         },
@@ -464,7 +517,7 @@
           "label": "Secrets Manager",
           "service": "secretsmanager",
           "lane": "data",
-          "layer": "data",
+          "layer": null,
           "resources": 2,
           "col": 0
         },
@@ -474,7 +527,7 @@
           "label": "RDS PostgreSQL",
           "service": "rds",
           "lane": "data",
-          "layer": "data",
+          "layer": null,
           "resources": 4,
           "col": 1
         },
@@ -484,7 +537,7 @@
           "label": "Application Load Balancer",
           "service": "elb",
           "lane": "edge",
-          "layer": "network",
+          "layer": null,
           "resources": 7,
           "col": 0
         },
@@ -494,7 +547,7 @@
           "label": "ECS \u2014 api",
           "service": "ecs",
           "lane": "runtime",
-          "layer": "runtime",
+          "layer": null,
           "resources": 9,
           "col": 0
         },
@@ -504,7 +557,7 @@
           "label": "ECS \u2014 web",
           "service": "ecs",
           "lane": "runtime",
-          "layer": "runtime",
+          "layer": null,
           "resources": 6,
           "col": 1
         },
@@ -514,7 +567,7 @@
           "label": "SQS \u2014 items and results",
           "service": "sqs",
           "lane": "data",
-          "layer": "data",
+          "layer": null,
           "resources": 8,
           "col": 2
         },
@@ -524,7 +577,7 @@
           "label": "ECS \u2014 worker",
           "service": "ecs",
           "lane": "runtime",
-          "layer": "runtime",
+          "layer": null,
           "resources": 9,
           "col": 2
         },
@@ -572,7 +625,7 @@
             "alarm": "dead_letter_alarm"
           },
           "source": "infra/modules/queue (module \"queue\")",
-          "layer": "data"
+          "place": "inside"
         },
         {
           "id": "prod.queue.results",
@@ -586,7 +639,7 @@
             "alarm": "dead_letter_alarm"
           },
           "source": "infra/modules/queue (module \"results\")",
-          "layer": "data"
+          "place": "inside"
         },
         {
           "id": "prod.ecs_api.tasks",
@@ -599,7 +652,7 @@
             "want": "desired"
           },
           "source": "infra/modules/ecs-service/main.tf",
-          "layer": "runtime"
+          "place": "inside"
         },
         {
           "id": "prod.ecs_web.tasks",
@@ -612,7 +665,7 @@
             "want": "desired"
           },
           "source": "infra/modules/ecs-service/main.tf",
-          "layer": "runtime"
+          "place": "inside"
         },
         {
           "id": "prod.ecs_worker.tasks",
@@ -625,7 +678,7 @@
             "want": "desired"
           },
           "source": "infra/modules/ecs-service/main.tf",
-          "layer": "runtime"
+          "place": "inside"
         },
         {
           "id": "prod.alb.tg_api",
@@ -634,7 +687,7 @@
           "label": "/api/*, /health \u2192 api",
           "observe": null,
           "source": "infra/modules/alb/main.tf",
-          "layer": "network"
+          "place": "inside"
         },
         {
           "id": "prod.alb.tg_web",
@@ -643,7 +696,7 @@
           "label": "everything else \u2192 web",
           "observe": null,
           "source": "infra/modules/alb/main.tf",
-          "layer": "network"
+          "place": "inside"
         }
       ],
       "edges": [
@@ -693,7 +746,7 @@
           "via": "target_group_arn",
           "kind": "input",
           "source": "infra/envs/prod/main.tf:147",
-          "layer": "runtime"
+          "layer": "network"
         },
         {
           "from": "prod.ecs_api",
@@ -709,7 +762,23 @@
           "via": "log_group_name",
           "kind": "input",
           "source": "infra/envs/prod/main.tf:147",
-          "layer": "runtime"
+          "layer": "ops"
+        },
+        {
+          "from": "prod.ecs_api",
+          "to": "prod.queue.items",
+          "via": "ITEMS_QUEUE_URL",
+          "kind": "input",
+          "source": "infra/envs/prod/main.tf:147",
+          "layer": "data"
+        },
+        {
+          "from": "prod.ecs_api",
+          "to": "prod.queue.results",
+          "via": "RESULTS_QUEUE_URL",
+          "kind": "input",
+          "source": "infra/envs/prod/main.tf:147",
+          "layer": "data"
         },
         {
           "from": "prod.ecs_web",
@@ -741,7 +810,7 @@
           "via": "target_group_arn",
           "kind": "input",
           "source": "infra/envs/prod/main.tf:176",
-          "layer": "runtime"
+          "layer": "network"
         },
         {
           "from": "prod.ecs_web",
@@ -749,7 +818,7 @@
           "via": "log_group_name",
           "kind": "input",
           "source": "infra/envs/prod/main.tf:176",
-          "layer": "runtime"
+          "layer": "ops"
         },
         {
           "from": "prod.ecs_worker",
@@ -781,7 +850,23 @@
           "via": "log_group_name",
           "kind": "input",
           "source": "infra/envs/prod/main.tf:203",
-          "layer": "runtime"
+          "layer": "ops"
+        },
+        {
+          "from": "prod.ecs_worker",
+          "to": "prod.queue.items",
+          "via": "ITEMS_QUEUE_URL",
+          "kind": "input",
+          "source": "infra/envs/prod/main.tf:203",
+          "layer": "data"
+        },
+        {
+          "from": "prod.ecs_worker",
+          "to": "prod.queue.results",
+          "via": "RESULTS_QUEUE_URL",
+          "kind": "input",
+          "source": "infra/envs/prod/main.tf:203",
+          "layer": "data"
         },
         {
           "from": "prod.rds",
@@ -885,7 +970,7 @@
           "via": "targets",
           "kind": "network",
           "source": "infra/modules/alb/main.tf",
-          "layer": "network"
+          "layer": "traffic"
         },
         {
           "from": "prod.alb.tg_web",
@@ -893,13 +978,13 @@
           "via": "targets",
           "kind": "network",
           "source": "infra/modules/alb/main.tf",
-          "layer": "network"
+          "layer": "traffic"
         }
       ],
       "counts": {
         "nouns": 11,
         "parts": 7,
-        "edges": 31
+        "edges": 35
       }
     },
     "lab": {
@@ -911,7 +996,7 @@
           "label": "VPC",
           "service": "vpc",
           "lane": "network",
-          "layer": "network",
+          "layer": null,
           "resources": 6,
           "col": 0
         },
@@ -921,7 +1006,7 @@
           "label": "Secrets Manager",
           "service": "secretsmanager",
           "lane": "data",
-          "layer": "data",
+          "layer": null,
           "resources": 2,
           "col": 0
         },
@@ -931,7 +1016,7 @@
           "label": "RDS PostgreSQL",
           "service": "rds",
           "lane": "data",
-          "layer": "data",
+          "layer": null,
           "resources": 4,
           "col": 1
         },
@@ -941,7 +1026,7 @@
           "label": "SQS \u2014 items and results",
           "service": "sqs",
           "lane": "data",
-          "layer": "data",
+          "layer": null,
           "resources": 8,
           "col": 2
         },
@@ -951,7 +1036,7 @@
           "label": "EKS cluster",
           "service": "eks",
           "lane": "runtime",
-          "layer": "runtime",
+          "layer": null,
           "resources": 14,
           "col": 0
         },
@@ -961,7 +1046,7 @@
           "label": "Kubernetes \u2014 api",
           "service": "eks",
           "lane": "runtime",
-          "layer": "runtime",
+          "layer": "identity",
           "resources": 2,
           "col": 1
         },
@@ -971,7 +1056,7 @@
           "label": "Kubernetes \u2014 worker",
           "service": "eks",
           "lane": "runtime",
-          "layer": "runtime",
+          "layer": "identity",
           "resources": 2,
           "col": 2
         }
@@ -989,7 +1074,7 @@
             "alarm": "dead_letter_alarm"
           },
           "source": "infra/modules/queue (module \"queue\")",
-          "layer": "data"
+          "place": "inside"
         },
         {
           "id": "lab.queue.results",
@@ -1003,7 +1088,7 @@
             "alarm": "dead_letter_alarm"
           },
           "source": "infra/modules/queue (module \"results\")",
-          "layer": "data"
+          "place": "inside"
         },
         {
           "id": "lab.eks.control_plane",
@@ -1016,7 +1101,7 @@
             "want": null
           },
           "source": "infra/modules/eks/main.tf",
-          "layer": "runtime"
+          "place": "label"
         },
         {
           "id": "lab.eks.nodes",
@@ -1029,7 +1114,7 @@
             "want": "desired"
           },
           "source": "infra/modules/eks/main.tf",
-          "layer": "runtime"
+          "place": "label"
         },
         {
           "id": "lab.eks.pods_api",
@@ -1043,7 +1128,7 @@
             "want": "desired"
           },
           "source": "charts/demo/templates/api.yaml",
-          "layer": "runtime"
+          "place": "cluster"
         },
         {
           "id": "lab.eks.pods_web",
@@ -1057,7 +1142,7 @@
             "want": "desired"
           },
           "source": "charts/demo/templates/web.yaml",
-          "layer": "runtime"
+          "place": "cluster"
         },
         {
           "id": "lab.eks.pods_worker",
@@ -1071,7 +1156,7 @@
             "want": "desired"
           },
           "source": "charts/demo/templates/worker.yaml",
-          "layer": "runtime"
+          "place": "cluster"
         },
         {
           "id": "lab.eks.svc_api",
@@ -1081,7 +1166,7 @@
           "port": 8000,
           "observe": null,
           "source": "charts/demo/templates/api.yaml",
-          "layer": "runtime"
+          "place": "edge"
         },
         {
           "id": "lab.eks.svc_web",
@@ -1091,7 +1176,7 @@
           "port": 80,
           "observe": null,
           "source": "charts/demo/templates/web.yaml",
-          "layer": "runtime"
+          "place": "edge"
         },
         {
           "id": "lab.eks.ingress",
@@ -1104,7 +1189,7 @@
             "want": null
           },
           "source": "charts/demo/templates/ingress.yaml",
-          "layer": "runtime"
+          "place": "edge"
         },
         {
           "id": "lab.eks.hook_migrate",
@@ -1113,7 +1198,7 @@
           "label": "hook \u00b7 migrate",
           "observe": null,
           "source": "charts/demo/templates/hooks.yaml",
-          "layer": "runtime"
+          "place": "cluster"
         },
         {
           "id": "lab.eks.hook_worker-migrate",
@@ -1122,7 +1207,7 @@
           "label": "hook \u00b7 worker-migrate",
           "observe": null,
           "source": "charts/demo/templates/hooks.yaml",
-          "layer": "runtime"
+          "place": "cluster"
         },
         {
           "id": "lab.eks.hook_seed",
@@ -1131,7 +1216,7 @@
           "label": "hook \u00b7 seed",
           "observe": null,
           "source": "charts/demo/templates/hooks.yaml",
-          "layer": "runtime"
+          "place": "cluster"
         }
       ],
       "edges": [
@@ -1157,7 +1242,7 @@
           "via": "queue_arn",
           "kind": "input",
           "source": "infra/envs/lab/main.tf:113",
-          "layer": "data"
+          "layer": "identity"
         },
         {
           "from": "lab.eks",
@@ -1165,7 +1250,7 @@
           "via": "results_queue_arn",
           "kind": "input",
           "source": "infra/envs/lab/main.tf:113",
-          "layer": "data"
+          "layer": "identity"
         },
         {
           "from": "lab.rds",
@@ -1269,7 +1354,7 @@
           "via": "selector",
           "kind": "network",
           "source": "charts/demo/templates/api.yaml",
-          "layer": "network"
+          "layer": "traffic"
         },
         {
           "from": "lab.eks.svc_web",
@@ -1277,7 +1362,7 @@
           "via": "selector",
           "kind": "network",
           "source": "charts/demo/templates/web.yaml",
-          "layer": "network"
+          "layer": "traffic"
         },
         {
           "from": "lab.eks.ingress",
@@ -1285,7 +1370,7 @@
           "via": "/api",
           "kind": "network",
           "source": "charts/demo/templates/ingress.yaml",
-          "layer": "network"
+          "layer": "traffic"
         },
         {
           "from": "lab.eks.ingress",
@@ -1293,7 +1378,7 @@
           "via": "/health",
           "kind": "network",
           "source": "charts/demo/templates/ingress.yaml",
-          "layer": "network"
+          "layer": "traffic"
         },
         {
           "from": "lab.eks.ingress",
@@ -1301,7 +1386,7 @@
           "via": "/",
           "kind": "network",
           "source": "charts/demo/templates/ingress.yaml",
-          "layer": "network"
+          "layer": "traffic"
         },
         {
           "from": "lab.k8s_api",

@@ -68,6 +68,26 @@ itself now. The contrast contract carries the three part states on the
 chip's own background and the schema grid as a fourth ancestry: 4.26:1 at
 worst, both themes.
 
+## The owner's verdict, and the redraw
+
+The first picture — two boards side by side in five lanes, every edge —
+went to the owner and came back in one line: *мелко, громозда, ничего не
+понятно, стало хуже чем просто в ряд*. Right on every count: half the
+width per board, tiles carrying the rows' block counts and verbs, 54 edges
+of which half said only "it is in the VPC". Three options were put, the
+first recommended, and the owner asked for a mock before any code — with
+one rule: the marks never smaller; a picture that does not fit scrolls.
+The mock was agreed and the render followed it: one environment at a time,
+the VPC as the box everything sits in, three columns read the way a request
+travels — edge, runtime, data — the cluster as a second box with its pods as
+tiles and its hooks as a strip, the ops nouns outside the VPC; layers
+`traffic` and `data` on by default, `identity`, `network` and `ops` off, a
+layer off hiding its edges and its own nouns rather than dimming them. The
+generator learned the environment variables a service is given as data
+edges, which the first graph had not seen for ECS, and gave every part a
+place. The gate's claims follow the new geometry and hold on both states;
+ADR-0099 D1, D3 and D4 carry the amendment.
+
 ## Figures
 
 ```text

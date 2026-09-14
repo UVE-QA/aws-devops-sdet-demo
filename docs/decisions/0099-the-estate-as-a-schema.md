@@ -35,9 +35,15 @@ question.
 **D1. A second layout of the one board, not a second board.** The diagram's
 nodes are the board's own nouns, by the same ids as `site/data/topology.json`;
 their states, colours and figures are the board's, read from the same status
-documents through the same code. The rows stay as the compact view and the
-diagram is a way of laying the same tiles out — the visitor switches layout,
-never truth.
+documents through the same code, at the rows' own tile size — the marks do
+not shrink; a picture that does not fit scrolls. The rows stay as the
+compact view and the diagram is a way of laying the same tiles out — the
+visitor switches layout, never truth. *Amended 2026-09-14, after the owner
+saw the first picture (two boards side by side, five lanes, every edge):*
+one environment at a time, read left to right the way a request travels —
+edge, runtime, data — with the VPC drawn as the box everything sits in and
+the cluster as a second box inside the runtime column, the ops nouns in a
+strip below, outside the VPC.
 
 **D2. Edges are generated, never drawn.** `scripts/generate-schema.py`
 writes `site/data/schema.json` from three sources and nothing else: the
@@ -60,16 +66,23 @@ against desired, the queue's alarm — so the diagram's inside is as live as
 its outside. A part nothing observes on its own — a Service, a hook, a
 target group — is drawn dashed and says *declared*, never coloured on the
 strength of the Deployment beside it; the parts are drawn from the module
-and the chart, not typed. ECS and EKS are drawn
-side by side by the same rules, so the two runtimes read as one architecture
-with two insides.
+and the chart, not typed. ECS and EKS are drawn by the same rules in the
+same three columns, one environment at a time, so a switch from stage to
+the lab reads as one architecture with two insides.
 
-**D4. Layers, not objects.** The visitor switches layers — runtime,
-identity, data, network — never single tiles: a toggle per object is a
-puzzle, a toggle per concern is a question answered. Layout is lanes
-(network, edge, runtime, data, ops) and an order within each, as numbers the
-generator assigns; the page turns numbers into pixels and never decides what
-connects to what.
+**D4. Layers, not objects.** The visitor switches layers, never single
+tiles: a toggle per object is a puzzle, a toggle per concern is a question
+answered. *Amended 2026-09-14:* the layers are the generator's list, with a
+default each — **traffic** (the balancer's rule to the tasks, the Ingress to
+the Service to the pods) and **data** (who reads the database and the
+secret, who publishes to and consumes from each queue) on; **identity** (the
+policies and the IRSA roles), **network** (VPC, subnets, security groups,
+the target group's registration, the DNS alias) and **ops** (the log
+groups) off. A layer off draws none of its edges and hides the nouns that
+are its alone — the lab's two IRSA-role groups — rather than dimming them:
+a dimmed tile still takes its room. Lanes (network, edge, runtime, data,
+ops) and an order within each are the generator's numbers; the page turns
+them into columns and boxes and never decides what connects to what.
 
 **D5. Before the manifest.** The renderer takes a graph. Today the graph's
 source is the modules and the chart; when the services manifest (item 6)
@@ -117,11 +130,23 @@ says so rather than passing without the chart's half.
   the three part states on the chip's own background and the schema grid as
   a fourth ancestry: 4.26:1 at worst, both themes. `page-schema-check`
   stands beside `page-inflight-check` in CI.
+- **Redrawn 2026-09-14, the same night.** The owner's verdict on the first
+  picture — *мелко, громозда, ничего не понятно, стало хуже чем просто в
+  ряд* — was right: two boards in half the width, tiles carrying the rows'
+  block counts and verbs, 54 edges of which half said "it is in the VPC".
+  A mock was drawn first and agreed (*давай вариант 1, сначала макет*; the
+  marks never smaller, scroll rather than shrink), then the render: one
+  environment, the VPC as a frame, edge → runtime → data, the cluster as a
+  frame with its pods as tiles and its hooks as a strip, the ops nouns
+  outside, 8 of 33 edges drawn by default on stage and 11 of 25 on the lab.
+  The generator names the environment variables a service is given as data
+  edges (`ITEMS_QUEUE_URL` → the items queue), which the first graph lacked
+  for ECS, and gives every part a place. The gate's claims follow the new
+  geometry — one board per environment, a layer switched on adds its edges
+  and its nouns and moves nothing else — and hold on both states; the
+  contrast contract's schema ancestry is the frame's columns.
 - Not yet: a cycle from `next` with the layout live over real observations
-  (the merge rule of ADR-0093 D1), and the picture's routing - an edge from
-  the runtime lane to the VPC crosses the balancer's tile on its way, which
-  is legible and not pretty; a routed layout is a later slice if the owner
-  wants one.
+  (the merge rule of ADR-0093 D1).
 - What to watch: the generator reads Terraform by regular expression, not
   by parsing HCL; a module argument split over lines in a way the pattern
   does not expect would drop an edge silently rather than refuse. The gate

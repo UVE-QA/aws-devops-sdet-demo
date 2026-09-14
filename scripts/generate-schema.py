@@ -62,20 +62,39 @@ LANE_OF = {
     "rds": "data", "secrets": "data", "queue": "data",
     "cloudwatch": "ops", "budgets": "ops", "dnsrec": "ops",
 }
-# THE LAYERS THE VISITOR SWITCHES (ADR-0099 D4): a concern each, never an
-# object. A lane is where a noun is drawn; a layer is which switch dims it.
-# The ops lane belongs to no layer - budgets and logs are not a connection.
-LAYERS = ["network", "runtime", "data", "identity"]
-LAYER_OF_LANE = {"network": "network", "edge": "network", "runtime": "runtime", "data": "data", "ops": None}
-LAYER_OF_PART = {"queue": "data", "target-group": "network"}  # every other part is the runtime's
-# An input edge's layer from the argument that carries it, then from the lane
-# of what it points at. A log group is the runtime's concern, so it is not
-# left in ops with nothing to switch it.
-LAYER_OF_ARG = [
-    (re.compile(r"vpc|subnet|security_group|dns|zone"), "network"),
-    (re.compile(r"secret|queue|db_"), "data"),
-    (re.compile(r"target_group|log_group"), "runtime"),
+# THE LAYERS THE VISITOR SWITCHES (ADR-0099 D4, redrawn 2026-09-14 after the
+# owner saw the first picture): a concern each, never an object. `traffic`
+# is where a request goes - the balancer's rule to the tasks, the Ingress to
+# the Service to the pods; `data` is who reads and writes which store;
+# `identity` the policies and the IRSA roles; `network` the wiring Terraform
+# passes between modules - VPC, subnets, security groups, the target group's
+# registration, the DNS alias; `ops` the log groups. The first two are on by
+# default; the VPC itself is drawn as the box everything sits in, not as a
+# tile with eleven arrows into it.
+LAYERS = [
+    {"id": "traffic", "on": True, "what": "the balancer's rule to the tasks; the Ingress to the Service to the pods"},
+    {"id": "data", "on": True, "what": "who reads the database and the secret, who publishes to and consumes from each queue"},
+    {"id": "identity", "on": False, "what": "the IAM policies and the IRSA roles"},
+    {"id": "network", "on": False, "what": "VPC, subnets, security groups, the target group's registration, the DNS alias"},
+    {"id": "ops", "on": False, "what": "the log groups"},
 ]
+# A noun on a layer is hidden with it; the rest are always drawn. Only the
+# lab's two IRSA-role groups qualify - they are identity and nothing else.
+NOUN_LAYER = {"k8s_api": "identity", "k8s_worker": "identity"}
+# Where the page puts a part: inside its parent's tile, in the edge column
+# (an Ingress, with its Services inside), on the cluster's label line, or in
+# the cluster's box.
+PLACE_OF_PART = {"ingress": "edge", "service": "edge", "control-plane": "label", "nodes": "label",
+                 "pods": "cluster", "hook": "cluster"}
+LAYER_OF_ARG = [
+    (re.compile(r"queue_arn$"), "identity"),  # what the eks module writes IRSA policies from
+    (re.compile(r"vpc|subnet|security_group|target_group|dns|zone|^name$|^zone_id$"), "network"),
+    (re.compile(r"secret|queue|db_|_url$", re.I), "data"),
+    (re.compile(r"log_group"), "ops"),
+]
+# `{ name = "ITEMS_QUEUE_URL", value = module.queue.queue_url }` - the
+# environment a service is given, one object per line.
+ENV_ITEM = re.compile(r'\{\s*name\s*=\s*"([A-Za-z_]+)"\s*,\s*value\s*=\s*(.+?)\s*\}')
 # What the page reads a part's numbers from, in status/<env>.json.
 ECS_SERVICES = {
     "ecs_api": ("api", "resources.ecs_service"),
@@ -177,13 +196,15 @@ def terraform_edges(env: str, level: pathlib.Path, groups: dict[str, str], shown
                 here = groups.get(name)
                 if not here or here not in shown:
                     continue
-                for arg in ARG.finditer(body):
-                    for ref in MODULE_REF.finditer(arg.group(2)):
+                args = [(m.group(1), m.group(2)) for m in ARG.finditer(body)]
+                args += [(m.group(1), m.group(2)) for m in ENV_ITEM.finditer(body)]
+                for via, expr in args:
+                    for ref in MODULE_REF.finditer(expr):
                         there = groups.get(ref.group(1))
                         if not there or there not in shown or there == here:
                             continue
                         edges.append({"from": f"{env}.{here}", "to": f"{env}.{there}",
-                                      "via": arg.group(1), "kind": "input",
+                                      "via": via, "kind": "input",
                                       "source": f"{rel}:{line}"})
             elif kind.startswith("resource:") and kind != "resource:aws_iam_role_policy":
                 here = env_assign.get(f"{kind.split(':', 1)[1]}.{name}")
@@ -339,16 +360,17 @@ def chart_parts(env: str, cluster: str, irsa_group: dict[str, str]) -> tuple[lis
     return parts, edges
 
 
-def edge_layer(e: dict, lane_of: dict[str, str]) -> str:
+def edge_layer(e: dict) -> str:
     if e["kind"] in ("policy", "identity"):
         return "identity"
-    if e["kind"] in ("network", "data"):
-        return e["kind"]
+    if e["kind"] == "network":
+        return "traffic"  # the listener rule to the tasks, the Ingress paths, the Service selectors
+    if e["kind"] == "data":
+        return "data"
     for pattern, layer in LAYER_OF_ARG:
         if pattern.search(e["via"]):
             return layer
-    target = e["to"] if e["to"] in lane_of else e["to"].rsplit(".", 1)[0]
-    return LAYER_OF_LANE.get(lane_of.get(target, "runtime")) or "runtime"
+    raise Refusal(f"edge {e['from']} -> {e['to']} via {e['via']!r}: no layer for that argument; add a rule to LAYER_OF_ARG")
 
 
 # ---------------------------------------------------------------- the graph
@@ -370,7 +392,7 @@ def build() -> dict:
             if lane is None:
                 raise Refusal(f"{n['id']}: no lane for group {gid!r}; add it to LANE_OF")
             nouns.append({"id": n["id"], "group": gid, "label": n["label"], "service": n["service"],
-                          "lane": lane, "layer": LAYER_OF_LANE[lane], "resources": n.get("resources")})
+                          "lane": lane, "layer": NOUN_LAYER.get(gid), "resources": n.get("resources")})
         order = {lane: 0 for lane in LANES}
         for n in nouns:
             n["col"] = order[n["lane"]]
@@ -399,10 +421,10 @@ def build() -> dict:
                                   "source": "infra/modules/alb/main.tf"})
                     edges.append({"from": pid, "to": f"{eid}.ecs_{target}.tasks", "via": "targets",
                                   "kind": "network", "source": "infra/modules/alb/main.tf"})
-            # the policies name the queue tile; the parts say which queue
+            # the policies and the URLs name the queue tile; the parts say which queue
             for e in list(edges):
-                if e["kind"] == "policy" and e["to"].endswith(".queue"):
-                    which = "results" if "results" in e["via"] else "items"
+                if e["to"].endswith(".queue") and (e["kind"] == "policy" or e["via"].endswith("_QUEUE_URL")):
+                    which = "results" if "results" in e["via"].lower() else "items"
                     e["to"] = f"{eid}.queue.{which}"
         else:
             parts.append({"id": f"{eid}.eks.control_plane", "parent": f"{eid}.eks", "kind": "control-plane",
@@ -423,11 +445,10 @@ def build() -> dict:
                     which = "results" if "results" in e["via"] else "items"
                     e["to"] = f"{eid}.queue.{which}"
         ids = {n["id"] for n in nouns} | {p["id"] for p in parts}
-        lane_of = {n["id"]: n["lane"] for n in nouns}
         for p in parts:
-            p["layer"] = LAYER_OF_PART.get(p["kind"], "runtime")
+            p["place"] = PLACE_OF_PART.get(p["kind"], "inside")
         for e in edges:
-            e["layer"] = edge_layer(e, lane_of)
+            e["layer"] = edge_layer(e)
         for e in edges:
             for end in ("from", "to"):
                 if e[end] not in ids:

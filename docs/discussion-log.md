@@ -28,8 +28,17 @@ manifest can become its source later without the page changing.
 graph; `page-schema-check` renders the built page over a fixture with both
 runtimes up and holds the picture to the rows on seven claims - and on its
 first run found a part dashed on the strength of its noun's missing record,
-over a count the bucket had taken. On `next`; the cycle and the merge wait
-for the owner's word.
+over a count the bucket had taken.
+
+**And redrawn the same night, on the owner's verdict.** The first picture
+- two boards side by side, five lanes, every edge - was *мелко, громозда,
+ничего не понятно*. A mock was agreed before the second render, with one
+rule: the marks never smaller, scroll rather than shrink. Now one
+environment at a time, the VPC as the box everything sits in, three columns
+read the way a request travels - edge, runtime, data - the cluster as a
+second box with its pods as tiles, the ops nouns outside; layers `traffic`
+and `data` on by default, the rest off. On `next`; the cycle and the merge
+wait for the owner's word.
 
 **As of 2026-09-13 (44 — each service owns its data).** One record,
 **ADR-0098**, and the sentence the plan was written around made true in the

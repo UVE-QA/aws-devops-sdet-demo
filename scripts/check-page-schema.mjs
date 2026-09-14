@@ -5,18 +5,20 @@
  * The rows are checked by check-page-inflight.mjs. This renders the BUILT page
  * over tests/fixtures/page-schema/ - both runtimes up, with a count in every
  * part class the page can draw - switches the board to its schema layout, and
- * holds it to six claims:
+ * holds it to six claims, for stage (ECS) and for the lab (EKS):
  *
  *   1. the picture is the board: every noun the rows draw is drawn once, by
- *      the same id, carrying the SAME state word it carried in the rows (D1 -
- *      the visitor switches layout, never truth)
- *   2. every part and every edge the generated schema names is on the page,
- *      once, and every edge's ends resolve to something drawn (D2, D3)
+ *      the same id, carrying the SAME state word it carried in the rows, in
+ *      the place its lane puts it (D1 - the visitor switches layout, never
+ *      truth); a noun on a layer that is off is hidden, not missing
+ *   2. every part the generated schema names is on the page once; every edge
+ *      on a layer that is on is drawn, none on a layer that is off, and every
+ *      drawn edge's ends resolve to something drawn (D2, D3)
  *   3. a part's class and figure are what the fixture's own documents say -
  *      `0/1` is `short`, a dead letter is `alarm`, a Service is `declared`
  *   4. a destroyed environment's parts carry no counts
- *   5. a layer switched off hides its edges and dims its tiles, and nothing
- *      else moves; switched back on, everything returns (D4)
+ *   5. a layer switched on adds its edges and its nouns, and nothing else
+ *      moves; switched off again, they go (D4)
  *   6. back in the rows, the picture is gone and the tiles are not doubled
  *
  * and, over the `stale` state, a seventh: a count the panel would not draw as
@@ -152,29 +154,31 @@ const OBSERVE_TILES = () => [...document.querySelectorAll("#estate-envs .node[da
     ? ((n.closest(".estate-env").querySelector("header .envtag") || {}).textContent || "") : "" }));
 const OBSERVE_PICTURE = () => {
   const host = document.querySelector("#estate-schema");
-  const grids = [...host.querySelectorAll(".schema-grid")];
+  const boards = [...host.querySelectorAll(".schema-board")];
+  const shown = (el) => Boolean(el) && !el.hidden && !el.closest("[hidden]") && getComputedStyle(el).display !== "none";
   return {
     rowsHidden: document.querySelector("#estate-envs").hidden,
     pictureHidden: host.hidden,
     toolsHidden: document.querySelector("#estate-tools").hidden,
     note: (document.querySelector("#schema-note") || {}).textContent || "",
-    grids: grids.map((g) => ({
-      boards: JSON.parse(g.dataset.edges || "[]"),
-      off: g.dataset.off || "",
+    layersOn: [...document.querySelectorAll("#estate-tools [data-layer]")].filter((b) => b.getAttribute("aria-pressed") === "true").map((b) => b.dataset.layer),
+    boards: boards.map((g) => ({
+      env: g.dataset.env,
       tiles: [...g.querySelectorAll(".node[data-id]")].map((n) => ({
-        id: n.dataset.id, word: n.dataset.word || "", layer: n.dataset.layer || "",
-        opacity: Number(getComputedStyle(n).opacity), lane: (n.closest(".lane-cell") || {}).dataset ? n.closest(".lane-cell").dataset.lane : ""
+        id: n.dataset.id, word: n.dataset.word || "", layer: n.dataset.layer || "", shown: shown(n),
+        lane: (n.closest("[data-lane]") || { dataset: {} }).dataset.lane || ""
       })),
-      parts: [...g.querySelectorAll(".part[data-part]")].map((p) => ({
-        id: p.dataset.part, classes: [...p.classList].filter((c) => c !== "part"), text: p.textContent,
-        layer: p.dataset.layer || "", opacity: Number(getComputedStyle(p).opacity),
-        dashed: getComputedStyle(p).borderTopStyle === "dashed"
+      // A part is a chip, or the state line of a part drawn as a tile.
+      parts: [...g.querySelectorAll("[data-part]")].map((p) => ({
+        id: p.dataset.part, classes: [...p.classList].filter((c) => !["part", "nstate", "part-state"].includes(c)), text: p.textContent,
+        dashed: getComputedStyle(p).borderTopStyle === "dashed" || Boolean(p.closest(".node.pseudo") && p.classList.contains("declared")),
+        tile: Boolean(p.closest(".node.pseudo") && p.classList.contains("nstate"))
       })),
       edges: [...g.querySelectorAll("path.edge")].map((e) => ({
         from: e.dataset.from, to: e.dataset.to, layer: [...e.classList].filter((c) => c !== "edge")[0] || "",
-        shown: getComputedStyle(e).display !== "none", title: (e.querySelector("title") || {}).textContent || "",
-        resolves: Boolean((g.querySelector(`[data-part="${e.dataset.from}"]`) || g.querySelector(`.node[data-id="${e.dataset.from}"]`)) &&
-                          (g.querySelector(`[data-part="${e.dataset.to}"]`) || g.querySelector(`.node[data-id="${e.dataset.to}"]`)))
+        title: (e.querySelector("title") || {}).textContent || "",
+        resolves: ["from", "to"].every((k) => shown(g.querySelector(`[data-node="${e.dataset[k]}"]`) ||
+          g.querySelector(`.node[data-id="${e.dataset[k]}"]`) || g.querySelector(`[data-part="${e.dataset[k]}"]`)))
       }))
     })),
     allTiles: document.querySelectorAll(".node[data-id]").length
@@ -198,90 +202,97 @@ async function render(browser, origin, state, notFound, schema) {
   const rowsCount = await page.evaluate(() => document.querySelectorAll(".node[data-id]").length);
   await page.click('#estate-tools button[data-layout="schema"]');
   await page.waitForTimeout(SETTLE_MS);
-  const picture = await page.evaluate(OBSERVE_PICTURE);
-  await page.click('#estate-tools button[data-ecs="prod"]');
+  const pictures = {};
+  for (const env of ["stage", "lab", "prod"]) {
+    await page.click(`#estate-tools button[data-env="${env}"]`);
+    await page.waitForTimeout(400);
+    pictures[env] = await page.evaluate(OBSERVE_PICTURE);
+  }
+  await page.click('#estate-tools button[data-env="lab"]');
+  await page.click('#estate-tools button[data-layer="identity"]');
   await page.waitForTimeout(400);
-  const prod = await page.evaluate(OBSERVE_PICTURE);
-  await page.click('#estate-tools button[data-ecs="stage"]');
-  await page.click('#estate-tools button[data-layer="network"]');
+  const identityOn = await page.evaluate(OBSERVE_PICTURE);
+  await page.click('#estate-tools button[data-layer="identity"]');
   await page.waitForTimeout(400);
-  const networkOff = await page.evaluate(OBSERVE_PICTURE);
-  await page.click('#estate-tools button[data-layer="network"]');
-  await page.waitForTimeout(400);
-  const networkBack = await page.evaluate(OBSERVE_PICTURE);
+  const identityBack = await page.evaluate(OBSERVE_PICTURE);
   await page.click('#estate-tools button[data-layout="rows"]');
   await page.waitForTimeout(400);
   const back = await page.evaluate(OBSERVE_PICTURE);
   await context.close();
   if (unmocked.length) refuse("the page asked for a source nobody mocked:\n  " + [...new Set(unmocked)].join("\n  "));
   if (notFound.length) refuse("the page asked this gate's own server for documents it does not have:\n  " + [...new Set(notFound)].join("\n  "));
-  return { state, meta: src.meta, rows, rowsCount, picture, prod, networkOff, networkBack, back, schema };
+  return { state, meta: src.meta, rows, rowsCount, pictures, identityOn, identityBack, back, schema };
 }
 
 // ------------------------------------------------------------------ claims
-const one = (r) => r.picture.grids.length === 1 ? r.picture.grids[0] : null;
+const boardOf = (pic) => pic.boards.length === 1 ? pic.boards[0] : null;
+const offLayers = (r, pic) => (r.schema.layers || []).map((l) => l.id).filter((id) => !pic.layersOn.includes(id));
 
-function claimPictureIsTheBoard(r) {
+function claimPictureIsTheBoard(r, env) {
   const out = [];
-  const g = one(r);
-  if (!g) return [`expected one grid at ${VIEWPORT.width}px (both boards side by side); found ${r.picture.grids.length}`];
-  if (!r.picture.rowsHidden || r.picture.pictureHidden || r.picture.toolsHidden) out.push("the schema layout did not take the board over: rows shown, picture hidden, or the tools hidden");
-  const boards = g.boards;
-  if (boards.join(",") !== "stage,lab") out.push(`the picture draws ${boards.join(",")}, not stage beside the lab`);
-  const nouns = boards.reduce((a, e) => a.concat(r.schema.environments[e].nouns.map((n) => n.id)), []);
+  const pic = r.pictures[env];
+  const g = boardOf(pic);
+  if (!g) return [`expected one board for ${env}; found ${pic.boards.length}`];
+  if (!pic.rowsHidden || pic.pictureHidden || pic.toolsHidden) out.push("the schema layout did not take the board over: rows shown, picture hidden, or the tools hidden");
+  if (g.env !== env) out.push(`the picture draws ${g.env}, not ${env}`);
+  const nouns = r.schema.environments[env].nouns;
   const drawn = g.tiles.map((t) => t.id);
-  for (const id of nouns) {
-    const k = drawn.filter((d) => d === id).length;
-    if (k !== 1) out.push(`${id} is drawn ${k} times in the picture; once is the board`);
+  const off = offLayers(r, pic);
+  for (const n of nouns) {
+    const k = drawn.filter((d) => d === n.id).length;
+    if (k !== 1) out.push(`${n.id} is drawn ${k} times in the picture; once is the board`);
+    const t = g.tiles.find((x) => x.id === n.id);
+    if (t && n.layer && off.includes(n.layer) && t.shown) out.push(`${n.id} is on the ${n.layer} layer, which is off, and is shown`);
+    if (t && !(n.layer && off.includes(n.layer)) && !t.shown) out.push(`${n.id} is hidden and its layer is not off`);
+    if (t && t.lane !== n.lane) out.push(`${n.id} sits in ${t.lane || "no lane"}; the schema puts it in ${n.lane}`);
   }
-  for (const t of g.tiles) if (!nouns.includes(t.id)) out.push(`${t.id} is in the picture and not in the schema`);
+  for (const t of g.tiles) if (!nouns.some((n) => n.id === t.id)) out.push(`${t.id} is in the picture and not in the schema`);
   const rowWord = {};
   r.rows.forEach((t) => { rowWord[t.id] = t.word; });
   for (const t of g.tiles) {
     if (rowWord[t.id] !== undefined && rowWord[t.id] !== t.word) out.push(`${t.id} says "${t.word}" in the picture and "${rowWord[t.id]}" in the rows - a layout that changes the word is a second opinion`);
   }
-  for (const t of g.tiles) {
-    const lane = r.schema.environments[t.id.split(".")[0]].nouns.find((n) => n.id === t.id).lane;
-    if (t.lane !== lane) out.push(`${t.id} sits in lane ${t.lane}; the schema puts it in ${lane}`);
-  }
   return out;
 }
 
-function claimEveryPartAndEdge(r) {
+function claimEveryPartAndEdge(r, env) {
   const out = [];
-  const g = one(r); if (!g) return out;
-  const parts = g.boards.reduce((a, e) => a.concat(r.schema.environments[e].parts.map((p) => p.id)), []);
+  const pic = r.pictures[env];
+  const g = boardOf(pic); if (!g) return out;
+  const sch = r.schema.environments[env];
   const drawn = g.parts.map((p) => p.id);
-  for (const id of parts) {
-    const k = drawn.filter((d) => d === id).length;
-    if (k !== 1) out.push(`part ${id} is drawn ${k} times`);
+  for (const p of sch.parts) {
+    const k = drawn.filter((d) => d === p.id).length;
+    if (k !== 1) out.push(`part ${p.id} is drawn ${k} times`);
   }
-  const edges = g.boards.reduce((a, e) => a + r.schema.environments[e].edges.length, 0);
-  if (g.edges.length !== edges) out.push(`${g.edges.length} edges drawn, the schema names ${edges}`);
+  const off = offLayers(r, pic);
+  const wanted = sch.edges.filter((e) => !off.includes(e.layer));
+  if (g.edges.length !== wanted.length) out.push(`${g.edges.length} edges drawn; ${wanted.length} are on a layer that is on (${pic.layersOn.join(", ")})`);
   for (const e of g.edges) {
+    if (off.includes(e.layer)) out.push(`edge ${e.from} -> ${e.to} is drawn and its layer ${e.layer} is off`);
     if (!e.resolves) out.push(`edge ${e.from} -> ${e.to} points at something the picture does not draw`);
     if (!/(infra|charts)\//.test(e.title)) out.push(`edge ${e.from} -> ${e.to} carries no source in its title: "${e.title}"`);
-    if (!["network", "runtime", "data", "identity"].includes(e.layer)) out.push(`edge ${e.from} -> ${e.to} is on no layer (${e.layer || "none"})`);
+    if (!(r.schema.layers || []).some((l) => l.id === e.layer)) out.push(`edge ${e.from} -> ${e.to} is on no layer (${e.layer || "none"})`);
   }
-  if (!new RegExp(`^${edges} edges`).test(r.picture.note)) out.push(`the note says "${r.picture.note.slice(0, 40)}…", not ${edges} edges`);
+  if (!new RegExp(`^${wanted.length} of ${sch.edges.length} edges`).test(pic.note)) out.push(`the note says "${pic.note.slice(0, 40)}…", not ${wanted.length} of ${sch.edges.length}`);
   return out;
 }
 
-function claimPartsReadTheCounts(r) {
+function claimPartsReadTheCounts(r, env) {
   const out = [];
-  const g = one(r); if (!g) return out;
+  const g = boardOf(r.pictures[env]); if (!g) return out;
   const by = {}; g.parts.forEach((p) => { by[p.id] = p; });
   for (const [id, want] of Object.entries(r.meta.expect.parts)) {
+    if (!id.startsWith(env + ".")) continue;
     const p = by[id];
     if (!p) { out.push(`expected part ${id} is not drawn`); continue; }
     if (!p.classes.includes(want.class)) out.push(`${id} is [${p.classes.join(" ")}], the documents say ${want.class}`);
     if (!p.text.includes(want.figure)) out.push(`${id} prints "${p.text}", which does not carry "${want.figure}"`);
     const dashedWanted = want.class === "declared" || want.class === "absent";
-    if (p.dashed !== dashedWanted) out.push(`${id} is ${p.dashed ? "dashed" : "solid"}; ${want.class} is drawn ${dashedWanted ? "dashed" : "solid"}`);
+    if (!p.tile && p.dashed !== dashedWanted) out.push(`${id} is ${p.dashed ? "dashed" : "solid"}; ${want.class} is drawn ${dashedWanted ? "dashed" : "solid"}`);
   }
-  // Every declared part says so, and none is coloured.
   for (const p of g.parts) {
-    const spec = r.schema.environments[p.id.split(".")[0]].parts.find((x) => x.id === p.id);
+    const spec = r.schema.environments[env].parts.find((x) => x.id === p.id);
     if (spec && !spec.observe && !(p.classes.includes("declared") && p.text.includes("declared"))) {
       out.push(`${p.id} has no observation and is drawn [${p.classes.join(" ")}] "${p.text}" rather than declared`);
     }
@@ -291,9 +302,9 @@ function claimPartsReadTheCounts(r) {
 
 function claimDestroyedHasNoCounts(r) {
   const out = [];
-  const g = r.prod.grids[0];
-  if (!g || g.boards[0] !== "prod") return [`switching the ECS side to prod drew ${g ? g.boards.join(",") : "nothing"}`];
-  for (const p of g.parts.filter((x) => x.id.startsWith("prod."))) {
+  const g = boardOf(r.pictures.prod);
+  if (!g || g.env !== "prod") return [`switching to prod drew ${g ? g.env : "nothing"}`];
+  for (const p of g.parts) {
     const spec = r.schema.environments.prod.parts.find((x) => x.id === p.id);
     if (spec.observe && !p.classes.includes("absent")) out.push(`prod is destroyed and ${p.id} is [${p.classes.join(" ")}] "${p.text}"`);
     if (spec.observe && /\d\/\d/.test(p.text)) out.push(`prod is destroyed and ${p.id} prints a count: "${p.text}"`);
@@ -301,42 +312,46 @@ function claimDestroyedHasNoCounts(r) {
   return out;
 }
 
-function claimLayerOff(r) {
+function claimLayerSwitch(r) {
   const out = [];
-  const on = one(r), off = r.networkOff.grids[0], back = r.networkBack.grids[0];
-  if (!on || !off || !back) return out;
-  if (!/\bnetwork\b/.test(off.off)) out.push(`the grid does not say network is off (data-off="${off.off}")`);
-  const hidden = off.edges.filter((e) => !e.shown);
-  if (hidden.length !== off.edges.filter((e) => e.layer === "network").length || hidden.some((e) => e.layer !== "network")) {
-    out.push(`with network off, ${hidden.length} edges are hidden and ${hidden.filter((e) => e.layer !== "network").length} of them are not network's`);
+  const before = boardOf(r.pictures.lab), on = boardOf(r.identityOn), back = boardOf(r.identityBack);
+  if (!before || !on || !back) return ["the lab's picture was not drawn through the identity switch"];
+  if (!r.identityOn.layersOn.includes("identity")) out.push("the identity button did not switch the layer on");
+  const sch = r.schema.environments.lab;
+  const identityEdges = sch.edges.filter((e) => e.layer === "identity").length;
+  if (on.edges.filter((e) => e.layer === "identity").length !== identityEdges) out.push(`with identity on, ${on.edges.filter((e) => e.layer === "identity").length} identity edges are drawn; the schema has ${identityEdges}`);
+  if (before.edges.some((e) => e.layer === "identity")) out.push("an identity edge is drawn with the layer off");
+  if (on.edges.length - before.edges.length !== identityEdges) out.push("switching identity on changed edges of another layer");
+  const identityNouns = sch.nouns.filter((n) => n.layer === "identity").map((n) => n.id);
+  for (const id of identityNouns) {
+    const b = before.tiles.find((t) => t.id === id), a = on.tiles.find((t) => t.id === id);
+    if (!b || b.shown) out.push(`${id} is on the identity layer and shown with it off`);
+    if (!a || !a.shown) out.push(`${id} is on the identity layer and hidden with it on`);
   }
-  if (off.edges.filter((e) => e.shown && e.layer === "network").length) out.push("a network edge is still shown with the layer off");
-  if (on.edges.some((e) => !e.shown)) out.push("an edge is hidden with every layer on");
-  // Dimmed RELATIVE to the same tile with every layer on: an absent noun is
-  // already faint, and that is its own statement, not the switch's.
-  const before = {}; on.tiles.forEach((t) => { before[t.id] = t.opacity; });
-  const dimmed = off.tiles.filter((t) => t.opacity < before[t.id] - 0.01);
-  if (!dimmed.length || dimmed.some((t) => t.layer !== "network")) out.push(`with network off, the dimmed tiles are ${dimmed.map((t) => t.id).join(", ") || "none"}`);
-  if (off.tiles.filter((t) => t.layer === "network").some((t) => t.opacity >= before[t.id] - 0.01)) out.push("a network tile is not dimmed with the layer off");
-  if (back.edges.some((e) => !e.shown) || back.off) out.push("switching network back on did not bring its edges back");
-  if (off.tiles.length !== on.tiles.length || off.parts.length !== on.parts.length) out.push("a layer switch removed something; it may only dim");
+  const others = before.tiles.filter((t) => !identityNouns.includes(t.id));
+  for (const t of others) {
+    const a = on.tiles.find((x) => x.id === t.id);
+    if (!a || a.shown !== t.shown || a.word !== t.word) out.push(`${t.id} moved when identity was switched on`);
+  }
+  if (on.parts.length !== before.parts.length) out.push("a layer switch changed the parts; it may only add its own nouns and edges");
+  if (back.edges.length !== before.edges.length || back.tiles.filter((t) => t.shown).length !== before.tiles.filter((t) => t.shown).length) out.push("switching identity off again did not restore the picture");
   return out;
 }
 
 function claimRowsComeBackAlone(r) {
   const out = [];
   if (!r.back.pictureHidden || r.back.rowsHidden) out.push("back in the rows, the picture is still shown or the rows still hidden");
-  if (r.back.grids.length) out.push(`back in the rows, ${r.back.grids.length} grid(s) are still in the document - a hidden second copy of the estate`);
+  if (r.back.boards.length) out.push(`back in the rows, ${r.back.boards.length} board(s) are still in the document - a hidden second copy of the estate`);
   if (r.back.allTiles !== r.rowsCount) out.push(`${r.back.allTiles} tiles after the round trip, ${r.rowsCount} before it`);
   return out;
 }
 
 function claimStaleIsGrey(r) {
   const out = [];
-  const g = one(r); if (!g) return out;
   for (const [env, stale] of Object.entries(r.meta.expect.stale || {})) {
     if (!stale) continue;
-    for (const p of g.parts.filter((x) => x.id.startsWith(env + "."))) {
+    const g = boardOf(r.pictures[env]); if (!g) continue;
+    for (const p of g.parts) {
       const spec = r.schema.environments[env].parts.find((x) => x.id === p.id);
       if (spec.observe && !p.classes.includes("unobserved")) out.push(`${env}'s reading is stale and ${p.id} is drawn as current: [${p.classes.join(" ")}]`);
     }
@@ -374,11 +389,13 @@ async function main() {
   };
   console.log("page-schema-check:");
   for (const r of readings) {
-    say(r.state, "the picture is the board, same ids, same words, in the schema's lanes", claimPictureIsTheBoard(r));
-    say(r.state, "every part and every edge the schema names, once, with a source", claimEveryPartAndEdge(r));
-    say(r.state, "a part's class and figure are what the documents say", claimPartsReadTheCounts(r));
+    for (const env of ["stage", "lab"]) {
+      say(r.state, `${env}: the picture is the board, same ids, same words, each in its lane`, claimPictureIsTheBoard(r, env));
+      say(r.state, `${env}: every part once; every edge on a layer that is on, with a source`, claimEveryPartAndEdge(r, env));
+      say(r.state, `${env}: a part's class and figure are what the documents say`, claimPartsReadTheCounts(r, env));
+    }
     say(r.state, "a destroyed environment's parts carry no counts", claimDestroyedHasNoCounts(r));
-    say(r.state, "a layer off hides its edges and dims its tiles, and nothing else moves", claimLayerOff(r));
+    say(r.state, "a layer switched on adds its edges and its nouns, and nothing else moves", claimLayerSwitch(r));
     say(r.state, "back in the rows, the picture is gone and the tiles are not doubled", claimRowsComeBackAlone(r));
     if (r.meta.expect.stale && Object.keys(r.meta.expect.stale).length) {
       say(r.state, "a stale reading is grey in the picture too", claimStaleIsGrey(r));
@@ -388,8 +405,9 @@ async function main() {
     console.error("\npage-schema-check: FAILED\n  " + findings.join("\n  "));
     process.exit(1);
   }
-  const g = readings[0].picture.grids[0];
-  console.log(`page-schema-check: ${readings.length} states, ${g.tiles.length} tiles, ${g.parts.length} parts, ${g.edges.length} edges; every claim holds`);
+  const g = readings[0].pictures.stage.boards[0], l = readings[0].pictures.lab.boards[0];
+  console.log(`page-schema-check: ${readings.length} states; stage ${g.tiles.length} tiles, ${g.parts.length} parts, ${g.edges.length} edges; ` +
+    `lab ${l.tiles.length} tiles, ${l.parts.length} parts, ${l.edges.length} edges; every claim holds`);
 }
 
 main().catch((e) => refuse(e.stack || String(e)));
