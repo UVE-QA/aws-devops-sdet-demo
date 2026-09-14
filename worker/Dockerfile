@@ -2,7 +2,13 @@
 # the row. Its own image, its own dependencies, none of the api's code - the
 # two share a database today and a message contract always, and the second is
 # what plan item 4 keeps.
-FROM python:3.12-slim
+# FROM ECR PUBLIC, NOT DOCKER HUB (2026-09-14). Two builds in one night on
+# GitHub's runners died in two seconds on `failed to fetch oauth token: Post
+# https://auth.docker.io/token: connection reset by peer` - the first public
+# launch after ADR-0100 and the image scan on the fix for it. The image is
+# the same official one, mirrored by AWS at public.ecr.aws/docker/library,
+# pulled anonymously without Docker Hub's token dance or its rate limit.
+FROM public.ecr.aws/docker/library/python:3.12-slim
 
 # Debian's fixes at build time, for the reason app/Dockerfile gives.
 RUN apt-get update \

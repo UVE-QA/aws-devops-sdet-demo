@@ -1,6 +1,12 @@
 # Single image for v0: serves web, runs migrations, runs seed.
 # psycopg2-binary is used so no libpq-dev/gcc build step is needed on slim.
-FROM python:3.12-slim
+# FROM ECR PUBLIC, NOT DOCKER HUB (2026-09-14). Two builds in one night on
+# GitHub's runners died in two seconds on `failed to fetch oauth token: Post
+# https://auth.docker.io/token: connection reset by peer` - the first public
+# launch after ADR-0100 and the image scan on the fix for it. The image is
+# the same official one, mirrored by AWS at public.ecr.aws/docker/library,
+# pulled anonymously without Docker Hub's token dance or its rate limit.
+FROM public.ecr.aws/docker/library/python:3.12-slim
 
 # TAKE DEBIAN'S FIXES, WHATEVER THE BASE TAG CARRIES. The base image is
 # rebuilt on its own schedule and lags the distribution: on 2026-09-12

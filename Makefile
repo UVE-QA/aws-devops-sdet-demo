@@ -634,8 +634,13 @@ action-pins:
 docker-build:
 	# Every image (ADR-0095, ADR-0096): the scan iterates over IMAGES and
 	# refuses one it cannot find, so a build of one image alone is a red gate,
-	# not a fast one.
-	docker compose build app web worker
+	# not a fast one. Three tries with a pause: a reset connection to a
+	# registry is weather, not a verdict (the same rule as
+	# scripts/build-and-push-image.sh, for the same night).
+	@for attempt in 1 2 3; do \
+	  docker compose build app web worker && exit 0; \
+	  [ "$$attempt" -lt 3 ] && { echo "docker-build: attempt $$attempt failed; again in $$((attempt*20))s" >&2; sleep $$((attempt*20)); }; \
+	done; echo "docker-build: failed three times" >&2; exit 1
 
 # Terraform formatting check across the whole tree.
 tf-fmt:

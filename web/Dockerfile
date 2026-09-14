@@ -2,7 +2,13 @@
 # used to serve from its own `/`. Nothing else - no server-side rendering, no
 # calls to the api from here. The browser calls /api/* on the same origin, and
 # the load balancer routes it; locally, Compose mounts a proxy into conf.d/local.
-FROM nginx:1.27-alpine
+# FROM ECR PUBLIC, NOT DOCKER HUB (2026-09-14). Two builds in one night on
+# GitHub's runners died in two seconds on `failed to fetch oauth token: Post
+# https://auth.docker.io/token: connection reset by peer` - the first public
+# launch after ADR-0100 and the image scan on the fix for it. The image is
+# the same official one, mirrored by AWS at public.ecr.aws/docker/library,
+# pulled anonymously without Docker Hub's token dance or its rate limit.
+FROM public.ecr.aws/docker/library/nginx:1.27-alpine
 
 # Take the distribution's fixes at build time, for the reason app/Dockerfile
 # gives: the base tag lags its distribution, and the image scan gates on what
