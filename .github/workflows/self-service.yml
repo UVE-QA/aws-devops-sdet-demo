@@ -213,57 +213,27 @@ jobs:
           ECR_URL: ${{ steps.repo.outputs.ecr_url }}
           ECR_REPOSITORY: aws-devops-sdet-demo-app
           IMAGE_TAG: ${{ github.sha }}
-        run: |
-          set -euo pipefail
-          # The registry is IMMUTABLE (ADR-0029), so an existing tag is reused
-          # rather than rebuilt. On the public path that is also the common case:
-          # every launch runs the same commit.
-          if aws ecr describe-images --region "$AWS_REGION" \
-               --repository-name "$ECR_REPOSITORY" \
-               --image-ids imageTag="$IMAGE_TAG" >/dev/null 2>&1; then
-            echo "$IMAGE_TAG is already in $ECR_REPOSITORY - reusing it, not rebuilding"
-            exit 0
-          fi
-          docker build -t "$ECR_URL:$IMAGE_TAG" ./app
-          docker push "$ECR_URL:$IMAGE_TAG"
+        # One copy of the build, with a second and a third try (the public
+        # launch #34 met one reset connection to Docker Hub and died in 2 s).
+        run: scripts/build-and-push-image.sh "$ECR_URL" "$ECR_REPOSITORY" "$IMAGE_TAG" ./app
 
       - name: Build, tag, and push the web image
         env:
           ECR_URL: ${{ steps.repo.outputs.web_ecr_url }}
           ECR_REPOSITORY: aws-devops-sdet-demo-web
           IMAGE_TAG: ${{ github.sha }}
-        run: |
-          set -euo pipefail
-          # The registry is IMMUTABLE (ADR-0029), so an existing tag is reused
-          # rather than rebuilt. On the public path that is also the common case:
-          # every launch runs the same commit.
-          if aws ecr describe-images --region "$AWS_REGION" \
-               --repository-name "$ECR_REPOSITORY" \
-               --image-ids imageTag="$IMAGE_TAG" >/dev/null 2>&1; then
-            echo "$IMAGE_TAG is already in $ECR_REPOSITORY - reusing it, not rebuilding"
-            exit 0
-          fi
-          docker build -t "$ECR_URL:$IMAGE_TAG" ./web
-          docker push "$ECR_URL:$IMAGE_TAG"
+        # One copy of the build, with a second and a third try (the public
+        # launch #34 met one reset connection to Docker Hub and died in 2 s).
+        run: scripts/build-and-push-image.sh "$ECR_URL" "$ECR_REPOSITORY" "$IMAGE_TAG" ./web
 
       - name: Build, tag, and push the worker image
         env:
           ECR_URL: ${{ steps.repo.outputs.worker_ecr_url }}
           ECR_REPOSITORY: aws-devops-sdet-demo-worker
           IMAGE_TAG: ${{ github.sha }}
-        run: |
-          set -euo pipefail
-          # The registry is IMMUTABLE (ADR-0029), so an existing tag is reused
-          # rather than rebuilt. On the public path that is also the common case:
-          # every launch runs the same commit.
-          if aws ecr describe-images --region "$AWS_REGION" \
-               --repository-name "$ECR_REPOSITORY" \
-               --image-ids imageTag="$IMAGE_TAG" >/dev/null 2>&1; then
-            echo "$IMAGE_TAG is already in $ECR_REPOSITORY - reusing it, not rebuilding"
-            exit 0
-          fi
-          docker build -t "$ECR_URL:$IMAGE_TAG" ./worker
-          docker push "$ECR_URL:$IMAGE_TAG"
+        # One copy of the build, with a second and a third try (the public
+        # launch #34 met one reset connection to Docker Hub and died in 2 s).
+        run: scripts/build-and-push-image.sh "$ECR_URL" "$ECR_REPOSITORY" "$IMAGE_TAG" ./worker
 
       - name: Terraform apply
         working-directory: infra/envs/stage
