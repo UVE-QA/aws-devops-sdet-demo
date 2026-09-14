@@ -2287,11 +2287,17 @@
       // branch where it is not the released line - and at rest they draw the
       // released line's newest, as before. The HISTORY and its verdict stay
       // the released line's: that table is what this project has shipped.
+      // AND AT REST, THE NEWEST LIFECYCLE RUN OF ANY BRANCH (the owner,
+      // 2026-09-14, on a page whose "current cycle" was #23 from two days
+      // before while #33 had ended an hour ago: "нужно подключить сегодня
+      // текущий цикл, чтоб завтра он отображал реальные прогоны"). The cycle
+      // views answer "what did the pipeline do last", from whichever branch
+      // did it, named with that branch; the HISTORY table stays the released
+      // line's, because it is the record of what shipped.
       function currentRun() {
-        var flying = (state.allRuns || []).filter(function (r) {
-          return runEnvironments(r).length > 0 && r.status !== "completed";
-        })[0];
-        return flying || lifecycleRuns()[0] || null;
+        var lifecycle = (state.allRuns || []).filter(function (r) { return runEnvironments(r).length > 0; });
+        var flying = lifecycle.filter(function (r) { return r.status !== "completed"; })[0];
+        return flying || lifecycle[0] || lifecycleRuns()[0] || null;
       }
       // The newest run that touches THIS environment, from any branch - the
       // staleness judgement is about the environment, not about the released

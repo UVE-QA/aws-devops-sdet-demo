@@ -43,6 +43,12 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    # The publish role trusts the workflows of the deployed environments and
+    # nothing else - no branch subject, deliberately (infra/public-site). This
+    # job deploys nothing; it publishes to the dashboard the way stage's own
+    # jobs do, so it wears stage's environment. The first dispatch found this
+    # out the honest way: `Not authorized to perform sts:AssumeRoleWithWebIdentity`.
+    environment: stage
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 

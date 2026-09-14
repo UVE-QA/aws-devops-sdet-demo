@@ -916,17 +916,27 @@ function claimReleasedLineOnly({ meta, seen }, index, dir) {
     out.push(`${unstamped.length} run(s) in the fixture carry no head_branch; the page is strict ` +
              "about that field and so is this.");
   }
+  // The newest lifecycle run of any branch, which is what the cycle view
+  // draws since the 2026-09-14 amendments (in flight first; at rest the
+  // newest). WRITERS' shape is not re-derived: a lifecycle run is one whose
+  // workflow file the fixture's own list names as one.
+  const LIFECYCLE = [".github/workflows/deploy-stage.yml", ".github/workflows/promote-prod.yml",
+                     ".github/workflows/self-service.yml", ".github/workflows/destroy.yml"];
+  const lifecycle = list.filter((r) => LIFECYCLE.includes(r.path));
+  const subject = lifecycle.find((r) => r.status !== "completed") || lifecycle[0] || null;
   for (const r of foreign) {
-    // ADR-0093 D2, amended 2026-09-14: a foreign run IN FLIGHT is the cycle
-    // view's subject, named with its branch; the history and its verdict
-    // are still the released line's. A finished foreign run is named nowhere.
+    // ADR-0093 D2, amended 2026-09-14: the cycle view's subject is the
+    // newest lifecycle run of any branch, named with its branch; the history
+    // and its verdict are still the released line's. Any other foreign run
+    // is named nowhere.
+    const isSubject = subject && subject.id === r.id;
     const texts = [seen.history || "", seen.verdict || ""]
-      .concat(r.status === "completed" ? [seen.cycle || ""] : [])
+      .concat(isSubject ? [] : [seen.cycle || ""])
       .concat((seen.rows || []).map((rw) => rw.join(" ")));
     const marks = [`#${r.run_number}`, String(r.id)];
-    if (r.status !== "completed") {
+    if (isSubject) {
       if (!(seen.cycle || "").includes(`#${r.run_number}`)) {
-        out.push(`run #${r.run_number} is in flight from ${r.head_branch} and the cycle view does not draw it: "${(seen.cycle || "").slice(0, 120)}"`);
+        out.push(`run #${r.run_number} from ${r.head_branch} is the newest lifecycle run and the cycle view does not draw it: "${(seen.cycle || "").slice(0, 120)}"`);
       } else if (!new RegExp(`from branch ${r.head_branch}`).test(seen.cycle || "")) {
         out.push(`the cycle view draws #${r.run_number} without naming its branch: "${(seen.cycle || "").slice(0, 120)}"`);
       }

@@ -1,6 +1,6 @@
 {
   "label": "foreign-writer",
-  "description": "at-rest, plus one run off the released line: self-service #101 from `next`, newest of all, finished, and the writer of stage's status file (stage is `destroyed`, as a self-service cycle leaves it). The cycle's views are at-rest's exactly; the stage panel is the test - it must read #101's file as current, and name #101 with its branch if it names it at all.",
+  "description": "at-rest, plus one run off the released line: self-service #101 from `next`, newest of all, finished, and the writer of stage's status file (stage is `destroyed`, as a self-service cycle leaves it). The cycle's views are at-rest's exactly; the stage panel is the test - it must read #101's file as current, and name #101 with its branch if it names it at all. the cycle view draws #101 with its branch, the newest lifecycle run there is (ADR-0093 D2, amended 2026-09-14); the history and its verdict are at-rest's exactly.",
   "now": "2026-08-11T04:25:00Z",
   "provenance": {
     "runs.json": "SYNTHETIC. at-rest's history with #101 prepended: completed/success, head_branch next.",
