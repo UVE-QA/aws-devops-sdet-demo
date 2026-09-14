@@ -88,11 +88,40 @@ says so rather than passing without the chart's half.
   — 49 input edges, 16 policy edges, 9 network, 6 data, 2 identity across
   the three. The gate refuses a dropped edge (proven by dropping one). The
   page does not read the file yet.
-- Slice 5b, the render: an SVG layout in lanes with the stage / prod / lab
-  switch and the four layers; parts drawn as parts, nouns as the board's
-  tiles.
-- Slice 5c, the measurements: contrast, the in-flight and destroyed states
-  through the second layout, fixtures for the page check.
+- Slice 5b, written 2026-09-14: the board's `layout` switch - rows, the
+  default and the compact view, or schema: one grid, a row per lane, the
+  chosen ECS environment beside the lab so VPC sits beside VPC and the tasks
+  beside the pods. The tiles are the rows' own elements from the same
+  function; the parts inside a runtime tile are coloured from the counts the
+  dashboard hands the map verbatim; the edges are drawn over the grid once
+  the browser has laid it out, each leaving a tile through a port of its own
+  in the colour of its layer, the argument and the source line on hover.
+  Four layer switches dim a layer's tiles and hide its edges and remove
+  nothing. The generator gives every noun, part and edge a layer, reads a
+  level's own resources (prod's Route 53 record → the balancer) and names a
+  Helm value by its `set` name: stage 29 edges, prod 31, lab 25. Proven
+  locally over synthetic observations in both themes and stacked below
+  1180px; a schema that fails to load leaves the rows as they are and the
+  switch hidden.
+- Slice 5c, written 2026-09-14: `tests/fixtures/page-schema/` with both
+  runtimes up and a count in every part class, plus a `stale` state;
+  `scripts/check-page-schema.mjs` holds the picture to the rows on seven
+  claims (same ids and words in the schema's lanes; every part and edge,
+  once, with a source; the counts as the documents say; a destroyed
+  environment with none; a layer off dims and hides and removes nothing;
+  the rows come back alone; a stale reading is grey). Its first run found
+  two things: a part inside a tile no cycle had measured was dashed on the
+  strength of the noun's missing record, over a count the bucket had taken
+  - gone, the part says what the bucket says; and the claim mistook an
+  absent tile's own dimming for the switch's. The contrast contract carries
+  the three part states on the chip's own background and the schema grid as
+  a fourth ancestry: 4.26:1 at worst, both themes. `page-schema-check`
+  stands beside `page-inflight-check` in CI.
+- Not yet: a cycle from `next` with the layout live over real observations
+  (the merge rule of ADR-0093 D1), and the picture's routing - an edge from
+  the runtime lane to the VPC crosses the balancer's tile on its way, which
+  is legible and not pretty; a routed layout is a later slice if the owner
+  wants one.
 - What to watch: the generator reads Terraform by regular expression, not
   by parsing HCL; a module argument split over lines in a way the pattern
   does not expect would drop an edge silently rather than refuse. The gate

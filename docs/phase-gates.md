@@ -4316,10 +4316,22 @@ graph and the manifest can become its source later.
   part with the status path it is coloured from. `make schema-check` refuses
   drift (proven by dropping one edge), registered in `assets/gates.json` and
   as a CI step after chart-check. The page does not read the file yet.
-- Next allowed step: **slice 5b** - the SVG layout in lanes on the estate
-  board, the stage / prod / lab switch and the four layers, rows kept as the
-  compact view; then 5c (contrast, in-flight and destroyed through the
-  second layout, fixtures for the page check) and ADR-0099's consequences.
+- **Slice 5b (the picture) 2026-09-14**: the board's `layout` switch, rows
+  or schema; one grid, a row per lane, the chosen ECS environment beside the
+  lab; the same tiles from the same function; parts coloured from the counts
+  the dashboard hands over; edges drawn over the laid-out grid, a port each,
+  a layer each, the argument and the source on hover; four layer switches
+  that dim and hide and remove nothing. Proven locally over synthetic
+  observations, both themes, stacked below 1180px.
+- **Slice 5c (the gate) 2026-09-14**: `tests/fixtures/page-schema/` (up,
+  stale), `scripts/check-page-schema.mjs` with seven claims, wired as
+  `page-schema-check` in CI; its first run found a part dashed for its
+  noun's missing record and a claim that mistook absent for dimmed, both
+  fixed. Three part states in the contrast contract, 4.26:1 at worst.
+  Gates 13/13 locally; CI green on `next`.
+- Next allowed step: **a cycle from `next`** on the owner's word (ADR-0093
+  D1), which is also the first look at the picture over real observations;
+  then **merge `next` → `main`** on the owner's word, then the record.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

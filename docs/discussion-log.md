@@ -6,6 +6,31 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
+**As of 2026-09-14 (45 — the estate as a schema).** One record, **ADR-0099**,
+and the board learns a second layout without learning a second truth. The
+owner asked for a static picture of the lab's inside, then the same beside
+ECS, then whether that should not be the estate board itself with things
+switched on and off — *согласен, так и делаем*. So the diagram's nodes are
+the board's own nouns by the same ids, drawn by the same function and
+carrying the same words; a row per lane, the chosen ECS environment beside
+the lab so VPC sits beside VPC and the tasks beside the pods; inside each
+runtime a finer grain — tasks against desired, pods against desired, a
+queue's depth and its alarm — coloured from the counts the bucket observed,
+by the path a generated file names; and the edges generated from the
+modules' inputs, the IAM policies, the balancer's listener rule and `helm
+template`, every one with the file and line it was read from, none drawn by
+hand. Layers to switch, never objects: a layer off dims its tiles, hides its
+edges and removes nothing. A part nothing observes on its own says
+*declared*. Before the manifest, because the renderer takes a graph and the
+manifest can become its source later without the page changing.
+
+**Gated like the topology, twice.** `schema-check` refuses drift of the
+graph; `page-schema-check` renders the built page over a fixture with both
+runtimes up and holds the picture to the rows on seven claims - and on its
+first run found a part dashed on the strength of its noun's missing record,
+over a count the bucket had taken. On `next`; the cycle and the merge wait
+for the owner's word.
+
 **As of 2026-09-13 (44 — each service owns its data).** One record,
 **ADR-0098**, and the sentence the plan was written around made true in the
 smallest way that is still true. The worker stops writing the api's table: it
