@@ -160,14 +160,14 @@ says so rather than passing without the chart's half.
   cycle itself, after this phase), and prod's public name answered blank
   for the first minute after `up` (negative DNS caching and target
   registration, which the panel already says).
-- **Routed, 2026-09-14, on the live picture.** The owner, with every layer
-  on: the tiles cover the lines and the arrows lose their direction. The
-  tiles stand in columns now, one per row, the cluster's pods in one column
-  and its roles in another; a line leaves its tile sideways, runs to the
-  corridor between the two columns - never a tile's edge inside a box - up
-  or down inside it, and turns into its target, with a port of its own on
-  each tile, a lane of its own in the corridor, and an arrow half-way along
-  the run. And the database, said as such: the rds module's admitted
+- **Tried and reverted the same hour, 2026-09-14.** The owner, on the live
+  picture with every layer on: the tiles cover the lines and the arrows
+  lose their direction. An orthogonal routing was drawn - tiles in columns,
+  lines through corridors between the columns, an arrow half-way along each
+  run - and the owner's verdict was immediate: *гораздо хуже, верни
+  обратно*. Reverted; the curved lines under the tiles stand, and the
+  complaint stands with them, to be answered another way. What did stay
+  from the same pass: the database said as such - the rds module's admitted
   security groups drawn from the client to the database on the data layer,
   the credentials edge at Secrets Manager, and in the lab the Deployments
   holding `DATABASE_URL` connecting themselves.
