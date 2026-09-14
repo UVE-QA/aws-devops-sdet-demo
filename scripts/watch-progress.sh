@@ -43,6 +43,15 @@ env_name="${1:?usage: watch-progress.sh <environment>}"
 : "${SITE_BUCKET:?SITE_BUCKET is not set}"
 : "${TF_STREAM_DIR:?TF_STREAM_DIR is not set}"
 every="${PROGRESS_EVERY:-15}"
+# THE RUN HISTORY RIDES ALONG (ADR-0100): once a minute, and once at the
+# start, status/runs.json is rewritten from the runner's token - so the page
+# learns of this job within a minute of its first step, from the bucket, and
+# never asks GitHub for it. Only when a token was handed in; the loop is the
+# apply's watcher first.
+runs_every="${RUNS_EVERY:-60}"
+runs_due=0
+runs_published=0
+runs_failed=0
 stop="${PROGRESS_STOP:-}"
 topology="${TOPOLOGY_JSON:-site/data/topology.json}"
 
@@ -66,6 +75,14 @@ echo "watch-progress: ${env_name}, every ${every}s, streams in ${TF_STREAM_DIR}"
 
 while :; do
   [ -n "$stop" ] && [ -e "$stop" ] && break
+  if [ -n "${GH_TOKEN:-}" ] && [ "$(date +%s)" -ge "$runs_due" ]; then
+    if scripts/publish-runs.sh watcher > /dev/null 2>&1; then
+      runs_published=$((runs_published + 1))
+    else
+      runs_failed=$((runs_failed + 1))
+    fi
+    runs_due=$(( $(date +%s) + runs_every ))
+  fi
 
   # Nothing to read yet is the NORMAL first state: terraform has not been
   # started, or has been started and has not emitted a resource. It is not a
@@ -92,7 +109,7 @@ while :; do
 done
 
 rm -rf "$work"
-echo "watch-progress: ${published} reading(s) published, ${failed} failed"
+echo "watch-progress: ${published} reading(s) published, ${failed} failed; run history ${runs_published} written, ${runs_failed} failed"
 
 # ALWAYS ZERO. Said out loud because a non-zero status here would fail a job
 # whose apply succeeded, over an instrument.

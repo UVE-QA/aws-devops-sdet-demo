@@ -309,3 +309,11 @@ id="$(aws cloudfront create-invalidation \
   --paths "${invalidate[@]}" \
   --query 'Invalidation.Id' --output text)"
 echo "invalidation $id for: ${invalidate[*]}"
+
+# THE RUN HISTORY, AT THE JOB'S END (ADR-0100). The watcher wrote it every
+# minute while the job ran; this is the reading with this job's last step in
+# it. Only when the step handed a token in, and never a reason to fail the
+# publish above: the status document is the fact, the history is the index.
+if [ -n "${GH_TOKEN:-}" ]; then
+  scripts/publish-runs.sh job-end || echo "publish-status: could not publish the run history (see above); the last snapshot stands" >&2
+fi

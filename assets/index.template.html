@@ -1543,7 +1543,7 @@
             <p class="why">Reading <code>status/stage.json</code> and <code>status/prod.json</code>&hellip;</p>
           </div>
           <div class="clocks">
-            <span>GitHub read <b id="clock-github">&hellip;</b></span>
+            <span>history read <b id="clock-github">&hellip;</b></span>
             <span>bucket read <b id="clock-bucket">&hellip;</b></span>
             <button id="refresh" type="button">Refresh</button>
             <span id="autorefresh"></span>
@@ -1794,8 +1794,10 @@
           <a href="https://github.com/UVE-QA/aws-devops-sdet-demo">github.com/UVE-QA/aws-devops-sdet-demo</a>
         </p>
         <p>
-          Two clocks, deliberately. One is GitHub's and one is this bucket's, so a viewer
-          can see not only the state but how recently each half was confirmed.
+          Two clocks, deliberately. One is the run history's &mdash; a snapshot the cycle
+          writes into this bucket, or GitHub's API when there is none &mdash; and one is
+          this bucket's status, so a viewer can see not only the state but how recently
+          each half was confirmed.
         </p>
       </footer>
     </main>
@@ -1885,6 +1887,10 @@
         lastGithubOk: null,
         rateRemaining: null,
         rateReset: null,
+        // WHERE THE RUN HISTORY CAME FROM this tick (ADR-0100): the bucket's
+        // snapshot, written by the cycle itself, or the GitHub API when there
+        // is none. The clocks and the budget line say which.
+        history: null,
         timer: null,
         nextGithubAt: 0,
         // What the run in flight is DOING to each environment - tearing it down,
@@ -1935,6 +1941,67 @@
       }
 
       // ---- reading the two sources -------------------------------------------
+      // THE RELEASED LINE IS THE UNION OF THE TWO LISTS, from whichever source
+      // answered: the by-name list is the long tail, the unfiltered list is
+      // this reading's, and a run from a week ago is still in the history
+      // when `next` has pushed forty runs past it (ADR-0093 D2, amended).
+      function useRuns(all, released) {
+        state.allRuns = all || [];
+        if (released) {
+          state.releasedRuns = released.filter(function (r) { return r.head_branch === RELEASED_BRANCH; });
+        }
+        var byId = {};
+        (state.releasedRuns || []).concat(state.allRuns.filter(function (r) {
+          return r.head_branch === RELEASED_BRANCH;
+        })).forEach(function (r) { byId[r.id] = r; });
+        state.runs = Object.keys(byId).map(function (id) { return byId[id]; })
+          .sort(function (a, b) { return (b.created_at || "") < (a.created_at || "") ? -1 : 1; });
+      }
+
+      // THE RUN HISTORY IS THE BUCKET'S (ADR-0100). The cycle writes
+      // status/runs.json itself - once a minute while a job runs, when a job
+      // ends, and when a workflow completes - from the runner's token, and
+      // this page reads it on the bucket's tick like every other document.
+      // Anonymous GitHub is 60 requests an hour PER IP ADDRESS, shared by every
+      // tab and every site that address reads GitHub from; on 2026-09-14 the
+      // owner's browser, with this dashboard and another open, met HTTP 403
+      // before its first successful read. GitHub is asked only when the
+      // snapshot is missing, and then exactly as before.
+      //
+      // Fetched with `no-cache`, not `no-store`: the browser sends the ETag
+      // and CloudFront answers 304 while the document has not changed, so a
+      // hundred kilobytes of history travel once and not every 30 seconds.
+      var RUNS_SNAPSHOT = "status/runs.json";
+      // A SNAPSHOT THAT SAYS A RUN IS STILL GOING, HOURS LATER, is a snapshot
+      // nobody replaced - a job killed before its last step, a completion
+      // hook that failed. It is not believed about the present; GitHub is
+      // asked instead, at the old cadence.
+      var SNAPSHOT_SUSPECT_MS = 3 * 3600000;
+      function readRunsSnapshot() {
+        return fetch(RUNS_SNAPSHOT, { cache: "no-cache" }).then(function (r) {
+          if (r.status === 403 || r.status === 404) return null;
+          if (!r.ok) throw new Error("HTTP " + r.status);
+          return r.json();
+        }).then(function (doc) {
+          if (!doc || doc.schema !== 1 || !Array.isArray(doc.all_runs)) return false;
+          var written = Date.parse(doc.written_at) || 0;
+          var claimsFlight = doc.all_runs.some(function (r) { return r.status !== "completed"; });
+          if (claimsFlight && Date.now() - written > SNAPSHOT_SUSPECT_MS) return false;
+          useRuns(doc.all_runs, Array.isArray(doc.released_runs) ? doc.released_runs : null);
+          var current = currentRun();
+          if (current && doc.jobs && String(doc.jobs.run_id) === String(current.id)) {
+            state.jobs = { runId: current.id, status: doc.jobs.status || current.status, jobs: doc.jobs.jobs || [] };
+          } else if (!(state.jobs && current && String(state.jobs.runId) === String(current.id))) {
+            state.jobs = null;
+          }
+          state.history = { source: "bucket", writtenAt: new Date(written), by: doc.written_by || {}, reason: doc.reason || "" };
+          state.githubError = null;
+          state.githubReadAt = new Date();
+          state.lastGithubOk = state.githubReadAt;
+          return true;
+        }).catch(function () { return false; });
+      }
+
       function readGitHub() {
         // TWO LIST CALLS, and one jobs call for the newest lifecycle run of the
         // released line. Anonymous GitHub allows 60 requests per hour per IP,
@@ -1999,28 +2066,12 @@
           // asked of every run, and only the questions about the CYCLE are
           // asked of the released line. Where an off-line run is named by the
           // first kind of question, it is named with its branch.
-          state.allRuns = data.workflow_runs || [];
           // Filtered again by field, deliberately: the API answered the
           // question, and a fixture that serves one file to both calls is
-          // still held to the rule.
-          if (released) {
-            state.releasedRuns = (released.workflow_runs || []).filter(function (r) {
-              return r.head_branch === RELEASED_BRANCH;
-            });
-          }
-          // THE RELEASED LINE IS THE UNION OF THE TWO. The by-name list is
-          // the long tail, ten minutes old at most; the unfiltered list is
-          // this poll's, and carries every `main` run new enough to be in
-          // the forty. Merged by id, newest first, so a run that started a
-          // minute ago is on the page at this poll's cadence and a run from
-          // a week ago is still in the history when `next` has pushed forty
-          // runs past it.
-          var byId = {};
-          (state.releasedRuns || []).concat(state.allRuns.filter(function (r) {
-            return r.head_branch === RELEASED_BRANCH;
-          })).forEach(function (r) { byId[r.id] = r; });
-          state.runs = Object.keys(byId).map(function (id) { return byId[id]; })
-            .sort(function (a, b) { return (b.created_at || "") < (a.created_at || "") ? -1 : 1; });
+          // still held to the rule. The merge is useRuns(), shared with the
+          // bucket's snapshot (ADR-0100).
+          useRuns(data.workflow_runs || [], released ? (released.workflow_runs || []) : null);
+          state.history = { source: "github" };
           state.githubError = null;
           state.githubReadAt = new Date();
           state.lastGithubOk = state.githubReadAt;
@@ -2109,9 +2160,16 @@
 
       // ---- rendering ----------------------------------------------------------
       function renderClocks() {
-        el("clock-github").textContent = state.githubError ? "failed at " + hhmmss(state.githubReadAt) : hhmmss(state.githubReadAt);
+        var h = state.history || {};
+        el("clock-github").textContent = h.source === "bucket"
+          ? hhmmss(state.githubReadAt) + " \u00b7 the bucket's snapshot" +
+            (h.by && h.by.run_number ? " from #" + h.by.run_number : "") +
+            ", written " + hhmmss(h.writtenAt)
+          : state.githubError ? "failed at " + hhmmss(state.githubReadAt) + " (GitHub API)" : hhmmss(state.githubReadAt) + " (GitHub API)";
         el("clock-bucket").textContent = hhmmss(state.bucketReadAt);
-        el("ratelimit").textContent = state.rateRemaining === null
+        el("ratelimit").textContent = h.source === "bucket"
+          ? "GitHub budget untouched: the cycle writes its own history into this bucket"
+          : state.rateRemaining === null
           ? ""
           : "GitHub budget: " + state.rateRemaining + " of 60 requests left this hour";
       }
@@ -3171,20 +3229,25 @@
       function scheduleRefresh() {
         if (state.timer) { clearTimeout(state.timer); state.timer = null; }
         var live = !state.githubError && currentRun() && currentRun().status !== "completed";
-        el("autorefresh").textContent = "auto: bucket every 30 s — status and figures, " +
-          "the figures up to a minute behind the write; GitHub every " +
-          Math.round(githubIntervalMs() / 1000) + " s" + (live ? " (paced by the remaining budget)" : "");
+        var fromBucket = state.history && state.history.source === "bucket";
+        el("autorefresh").textContent = "auto: bucket every 30 s — status, run history and figures, " +
+          "the figures up to a minute behind the write" +
+          (fromBucket
+            ? "; GitHub not asked while the bucket carries the history"
+            : "; GitHub every " + Math.round(githubIntervalMs() / 1000) + " s" + (live ? " (paced by the remaining budget)" : ""));
         state.timer = setTimeout(function () { tick(false); }, BUCKET_MS);
       }
 
       function tick(force) {
-        var reads = [readStatusFiles()];
         var readGh = force || Date.now() >= state.nextGithubAt;
-        if (readGh) reads.push(readGitHub());
-        return Promise.all(reads).then(function () {
-          if (readGh) state.nextGithubAt = Date.now() + githubIntervalMs();
-          renderAll();
-        });
+        return Promise.all([readStatusFiles(), readRunsSnapshot()]).then(function (res) {
+          // The bucket answered the history: GitHub is not asked (ADR-0100).
+          if (res[1]) return null;
+          if (!readGh) return null;
+          return readGitHub().then(function () {
+            state.nextGithubAt = Date.now() + githubIntervalMs();
+          });
+        }).then(function () { renderAll(); });
       }
 
       function load() { return tick(true); }

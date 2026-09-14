@@ -1,0 +1,20 @@
+{
+  "label": "snapshot",
+  "description": "THE HISTORY FROM THE BUCKET, THE API DOWN (ADR-0100). The in-flight state again, with status/runs.json present - written by the run in flight - and every GitHub request answering 403. The page must draw the same cycle the in-flight state draws, from the snapshot, ask GitHub for nothing, show no banner, and keep the button closed as busy (2026-09-14).",
+  "now": "2026-08-11T04:12:00Z",
+  "provenance": {
+    "runs.json": "SYNTHETIC. #64 in flight; every other lifecycle run completed and succeeded. Two non-lifecycle runs are present because a real answer contains them.",
+    "jobs.json": "SYNTHETIC. One job, 25 steps, the front on step 9; step 7 (the image push) is already over.",
+    "status-stage.json": "SYNTHETIC. Written by #63, so #64 makes it stale and the panel says `unknown`.",
+    "status-prod.json": "SYNTHETIC. Written by promote-prod #22, which is still the newest prod run, so prod reads `up`.",
+    "runs-snapshot.json": "SYNTHETIC. in-flight's runs.json and jobs.json in the publisher's shape."
+  },
+  "cycle": {
+    "_": "DECLARED, not re-derived. Which environments the run in flight is about is a fact this fixture already fixed when it chose the workflow; making the gate work it out again from runs.json would put the page's WRITERS table in a second place (one definition, two hosts).",
+    "in_flight": true,
+    "environments": [
+      "stage"
+    ]
+  },
+  "github_status": 403
+}

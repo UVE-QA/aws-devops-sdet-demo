@@ -4343,10 +4343,34 @@ graph and the manifest can become its source later.
   were up - real durations on the tiles, 1/1 on every service and
   Deployment, both queues observed; three status files `destroyed` from
   #32. Phase 45 is proven.
-- Next allowed step: **merge `next` → `main`** on the owner's word (ADR-0093
-  D1: a green cycle from `next`, and #32 is it). Then the run history into
-  the bucket (decided with the owner 2026-09-14: the anonymous GitHub budget
-  is per IP and shared with the zero-trust-lab dashboard).
+- Merged to `main` on the owner's *да, вливай* (fast-forward, ten commits);
+  publish-site and CI green on `main`; the live page carries the switch.
+
+### Phase 46 — The run history is the bucket's  🔧 IN PROGRESS (from 2026-09-14)
+
+**ADR-0100**, decided with the owner the same night, on `next`. The owner's
+screen read *Run history unavailable — HTTP 403 … none yet* over a cycle in
+flight, and the owner named the cause: a second dashboard, zero-trust-lab's,
+reads GitHub from the same browser, and the anonymous 60 an hour are per IP
+address. So the cycle publishes its own history - `status/runs.json` from
+the runner's token, by the progress watcher once a minute, by
+`publish-status.sh` at a job's end, by `publish-runs.yml` on
+`workflow_run: completed` - and the page reads the bucket first and GitHub
+only without it. The zero-trust-lab session was told, at the owner's word.
+
+- **Written 2026-09-14**: `scripts/publish-runs.sh` (run against the real
+  API for #32: 40 runs, 40 of `main`, 8 jobs, 111 KB), the watcher's minute,
+  the end-of-job call, the completion workflow, `actions: read` where it was
+  missing, the page's snapshot reader with the merge shared with the API
+  path, the clocks and the footer, the `snapshot` fixture state and its
+  claim - which on its first run held the button to `closed` and learned
+  from the in-flight reading that an owner's deploy-stage never closed it;
+  the claim compares the two readings now. Page checks green; gates 13/13.
+- Next allowed step: **a cycle from `next`** on the owner's word - the
+  proof is the snapshot appearing within a minute of the launch job, the
+  completion hook firing after `release-lock`, and a tab with its GitHub
+  budget spent drawing the cycle regardless; then **merge** on the owner's
+  word.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

@@ -232,6 +232,9 @@ const MIME = {
    prod.json - the two documents whose silent absence this guard exists for. */
 const OPTIONAL_ABSENT = new Set([
   "/status/countdown.json",
+  // ADR-0100: the run history the cycle writes; absent means the page asks
+  // GitHub, which is the path every older claim was written against.
+  "/status/runs.json",
   // ADR-0076. Written every few seconds WHILE an apply runs and removed
   // when the job ends, so absent is the state for all but a few minutes a
   // day - and absent for an environment no cycle is touching even then.

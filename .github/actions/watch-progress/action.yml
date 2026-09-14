@@ -46,6 +46,12 @@ inputs:
     required: false
     default: /tmp/progress.stop
     description: touch this to end the loop; the job's cleanup would kill it anyway
+  github-token:
+    required: false
+    default: ${{ github.token }}
+    description: >
+      the workflow's token, with actions: read, so the watcher can also
+      publish the run history to the bucket once a minute (ADR-0100)
 
 runs:
   using: composite
@@ -62,6 +68,7 @@ runs:
         SITE_BUCKET: ${{ inputs.site-bucket }}
         TF_STREAM_DIR: ${{ inputs.stream-dir }}
         PROGRESS_STOP: ${{ inputs.stop-file }}
+        GH_TOKEN: ${{ inputs.github-token }}
       run: |
         set -euo pipefail
         rm -f "$PROGRESS_STOP"

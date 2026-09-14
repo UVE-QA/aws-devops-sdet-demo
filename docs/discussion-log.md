@@ -6,6 +6,22 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
+**As of 2026-09-14 (46 — the run history is the bucket's).** One record,
+**ADR-0100**, and one read removed from the visitor's browser. The owner's
+screen read *Run history unavailable — HTTP 403* over a cycle in flight, and
+the owner named what the page could not know: a second dashboard,
+zero-trust-lab's, reads GitHub from the same browser, and the anonymous
+sixty requests an hour are per IP address, not per repository. So the cycle
+publishes its own history — `status/runs.json`, from the runner's token,
+written by the progress watcher once a minute, by every job at its end and
+by a `workflow_run` hook when a run completes, the one moment no job can
+see — and the page reads the bucket first, on its own tick, and GitHub only
+when the snapshot is missing. The history clock names the snapshot; the
+budget line says GitHub was left alone. Gated on a `snapshot` fixture state
+that answers 403 to every GitHub request and must draw the same cycle the
+API drew. On `next`; the cycle and the merge wait for the owner's word. The
+zero-trust-lab session was told.
+
 **As of 2026-09-14 (45 — the estate as a schema).** One record, **ADR-0099**,
 and the board learns a second layout without learning a second truth. The
 owner asked for a static picture of the lab's inside, then the same beside

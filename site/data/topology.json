@@ -10,8 +10,8 @@
     "resources_per_cycle": 154,
     "modules": 12,
     "suites": 5,
-    "workflows": 6,
-    "adrs": 100,
+    "workflows": 7,
+    "adrs": 101,
     "repeated_blocks": 12
   },
   "measured_cycle": null,

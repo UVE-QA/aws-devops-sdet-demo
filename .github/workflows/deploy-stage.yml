@@ -19,6 +19,9 @@ on:
 permissions:
   id-token: write
   contents: read
+  # ADR-0100: the run history is read with this token and published to the
+  # bucket, so the visitor's browser never has to ask GitHub for it.
+  actions: read
 
 jobs:
   deploy:
@@ -425,6 +428,8 @@ jobs:
           SITE_DISTRIBUTION_ID: ${{ vars.SITE_DISTRIBUTION_ID }}
           SITE_BASE_URL: ${{ vars.SITE_URL }}
           JOB_STATUS: ${{ job.status }}
+          # ADR-0100: the run history goes to the bucket with the status.
+          GH_TOKEN: ${{ github.token }}
           TIMELINE_JSON: /tmp/timeline-stage.json
           NODE_STATES_JSON: /tmp/nodes-stage.json
           RESULTS_JSON: /tmp/results-stage.json

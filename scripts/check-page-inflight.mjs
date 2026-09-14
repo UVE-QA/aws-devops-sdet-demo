@@ -184,7 +184,12 @@ const OPTIONAL_ABSENT = new Set([
   // countdown is: `status/` as a pattern would swallow stage.json and
   // prod.json, the two documents whose silent absence this guard is for.
   "/status/progress/stage.json",
-  "/status/progress/prod.json"
+  "/status/progress/prod.json",
+  "/status/progress/lab.json",
+  // ADR-0100: the run history the cycle writes. Served from a state's
+  // runs-snapshot.json when it has one; absent is the GitHub path, which every
+  // claim below was written against and still gates.
+  "/status/runs.json"
 ]);
 
 function serve(notFound, box) {
@@ -266,6 +271,9 @@ const OBSERVE = () => {
       const b = document.querySelector("#launch-button");
       return b ? { text: t(b), disabled: b.disabled } : null;
     })(),
+    // ADR-0100: which source the history clock names.
+    historyClock: t(document.querySelector("#clock-github")),
+    budgetLine: t(document.querySelector("#ratelimit")),
     nodes: [...document.querySelectorAll(".node")]
       .filter((n) => n.dataset.id)
       .map((n) => ({
@@ -313,7 +321,10 @@ function readState(state) {
       prod: readJSON(path.join(dir, "status-prod.json"), "what the bucket last observed of prod"),
       lab: readJSON(path.join(dir, "status-lab.json"), "what the bucket last observed of the lab")
     },
-    quota: readJSON(path.join(dir, "quota.json"), "what the endpoint says the day's cap has left")
+    quota: readJSON(path.join(dir, "quota.json"), "what the endpoint says the day's cap has left"),
+    // ADR-0100: the bucket's own run history, when the state carries one.
+    snapshot: fs.existsSync(path.join(dir, "runs-snapshot.json"))
+      ? readJSON(path.join(dir, "runs-snapshot.json"), "the run history the cycle wrote") : null
   };
 }
 
@@ -332,6 +343,10 @@ async function installRoutes(page, origin, src, unmocked) {
         const env = url.match(/\/status\/(stage|prod|lab)\.json/)[1];
         return route.fulfill({ status: 200, contentType: "application/json",
                                body: JSON.stringify(status[env]) });
+      }
+      if (/\/status\/runs\.json/.test(url) && src.current.snapshot) {
+        return route.fulfill({ status: 200, contentType: "application/json",
+                               body: JSON.stringify(src.current.snapshot) });
       }
       return route.continue();
     }
@@ -412,7 +427,7 @@ async function render(browser, origin, state, notFound) {
   if (seen.banner && !meta.github_status) {
     refuse(`the page drew a source-failure banner - "${seen.banner}".`);
   }
-  return { state, meta, runs, seen };
+  return { state, meta, runs, seen, githubReads: src.githubReads };
 }
 
 /* THE FIXTURE THAT PUBLISHES UNDERNEATH A RUNNING PAGE (Phase 29).
@@ -976,6 +991,36 @@ function claimBlindButtonClosed({ seen }) {
   return out;
 }
 
+/* THE HISTORY IS THE BUCKET'S (ADR-0100). The `snapshot` state is in-flight
+   with status/runs.json present and the API answering 403 to everything: the
+   page must draw the cycle from the snapshot exactly as it drew it from the
+   API, ask GitHub for nothing, show no banner, name the bucket on the clock,
+   and draw the button exactly as it drew it from the API. */
+function claimHistoryFromTheBucket(r, index, dir, inflight) {
+  const out = [];
+  const seen = r.seen;
+  if (seen.banner) out.push(`a banner was drawn although the history came from the bucket: "${seen.banner}"`);
+  if (r.githubReads) out.push(`the page asked GitHub ${r.githubReads} time(s) with the snapshot present`);
+  if (!/bucket/i.test(seen.historyClock || "")) out.push(`the history clock does not name the bucket: "${seen.historyClock}"`);
+  if (!/untouched/i.test(seen.budgetLine || "")) out.push(`the budget line does not say GitHub was left alone: "${seen.budgetLine}"`);
+  if (!seen.launch) out.push("no launch button was rendered");
+  if (inflight) {
+    // THE BUTTON SAYS WHAT IT SAID FROM THE API. The in-flight run is an
+    // owner's deploy-stage, not a public launch, and the busy rule is about
+    // launches and the bucket's pulse (ADR-0035, ADR-0093) - so the button
+    // may be open in both readings, and must not differ between them.
+    if (seen.launch && inflight.seen.launch &&
+        (seen.launch.disabled !== inflight.seen.launch.disabled || seen.launch.text !== inflight.seen.launch.text)) {
+      out.push(`the button reads "${seen.launch.text}" from the snapshot and "${inflight.seen.launch.text}" from the API`);
+    }
+    if ((seen.verdict || "") !== (inflight.seen.verdict || "")) out.push(`the verdict from the snapshot is "${seen.verdict}", from the API "${inflight.seen.verdict}"`);
+    if ((seen.cycle || "") !== (inflight.seen.cycle || "")) out.push("the current cycle drawn from the snapshot differs from the one drawn from the API");
+    const rowsA = JSON.stringify(seen.rows), rowsB = JSON.stringify(inflight.seen.rows);
+    if (rowsA !== rowsB) out.push("the history table drawn from the snapshot differs from the one drawn from the API");
+  }
+  return out;
+}
+
 /* THE CONTROL THAT MUST DIFFER. Two renderings that agree would make every claim
    above true of a page that draws nothing at all. What must differ is named
    rather than hashed: the verdict, because one state has a run in flight, and at
@@ -1005,7 +1050,7 @@ async function main() {
   if (!Object.keys(index).length) refuse("site/data/topology.json indexed no nodes at all.");
 
   const wanted = arg("--state");
-  const FOREIGN = ["foreign-writer", "foreign-in-flight", "blind"];
+  const FOREIGN = ["foreign-writer", "foreign-in-flight", "blind", "snapshot"];
   const states = wanted ? [wanted] : ["in-flight", "at-rest"];
   // The foreign-* states answer two claims and not the six: they are at-rest
   // with one run the cycle's views must not see, so every map claim would be
@@ -1078,8 +1123,10 @@ async function main() {
 
   let failed = 0;
   for (const r of readings) {
-    for (const [name, fn] of (r.state === "blind" ? BLIND_CLAIMS : r.foreign ? FOREIGN_CLAIMS : CLAIMS)) {
-      const findings = fn(r, fn === claimVerdict ? r.audit : index, r.dir);
+    const SNAPSHOT_CLAIMS = [["the history is the bucket's, and GitHub is not asked", claimHistoryFromTheBucket]];
+    const inflight = readings.find((x) => x.state === "in-flight") || null;
+    for (const [name, fn] of (r.state === "blind" ? BLIND_CLAIMS : r.state === "snapshot" ? SNAPSHOT_CLAIMS : r.foreign ? FOREIGN_CLAIMS : CLAIMS)) {
+      const findings = fn(r, fn === claimVerdict ? r.audit : index, r.dir, inflight);
       if (findings.length) {
         failed += 1;
         console.log(`FAIL  ${r.state}: ${name}`);

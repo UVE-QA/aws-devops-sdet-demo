@@ -461,6 +461,8 @@ jobs:
           SITE_DISTRIBUTION_ID: ${{ vars.SITE_DISTRIBUTION_ID }}
           SITE_BASE_URL: ${{ vars.SITE_URL }}
           JOB_STATUS: ${{ job.status }}
+          # ADR-0100: the run history goes to the bucket with the status.
+          GH_TOKEN: ${{ github.token }}
           TIMELINE_JSON: /tmp/timeline-${{ inputs.environment }}.json
           NODE_STATES_JSON: /tmp/nodes-${{ inputs.environment }}.json
           COST_JSON: /tmp/cost-${{ inputs.environment }}.json

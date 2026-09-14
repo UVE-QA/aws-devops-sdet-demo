@@ -46,7 +46,10 @@ const TOPOLOGY = path.join(SITE, "data/topology.json");
 const VIEWPORT = { width: 1440, height: 900 };
 const SETTLE_MS = 700;
 const OPTIONAL_ABSENT = new Set([
-  "/status/countdown.json", "/status/progress/stage.json", "/status/progress/prod.json", "/status/progress/lab.json"
+  "/status/countdown.json",
+  // ADR-0100: the run history the cycle writes; absent means the page asks
+  // GitHub, which is the path every older claim was written against.
+  "/status/runs.json", "/status/progress/stage.json", "/status/progress/prod.json", "/status/progress/lab.json"
 ]);
 
 function refuse(message) {

@@ -1,0 +1,94 @@
+# ADR-0100: The run history is the bucket's
+
+## Status
+Accepted (Phase 46, 2026-09-14). Amends **ADR-0026** (the page reads the
+Actions API anonymously and paces itself by the budget) and **ADR-0062 D2**
+(the idle interval derived from the remaining budget): both stay true of the
+fallback and stop being the page's normal state. Keeps **ADR-0093** (the
+page reports the released line) and **ADR-0035** (the button's refusals live
+server-side) exactly where they are.
+
+## Context
+
+The dashboard read the GitHub Actions API from the visitor's browser,
+anonymously: 60 requests an hour, and the page grew careful about them —
+one list per poll, the released line by name once in ten minutes, the jobs
+of a finished run never re-read, the interval derived from what was left.
+On 2026-09-14 the owner's screen read *Run history unavailable — HTTP 403 …
+Last successful read in this browser session: none yet*, over a cycle in
+flight. The budget was gone before the tab's first request.
+
+The number is **per IP address**, not per repository or per page. The
+owner's browser reads two dashboards from the same address — this one and
+zero-trust-lab's — and each pages the same sixty. Two open tabs during a
+cycle are enough. The page's own frugality cannot fix a budget it shares
+with a stranger, and conditional requests (a `304` is free) do not help in
+the one state that matters, a run in flight, when the list changes on every
+poll.
+
+> ты учитываешь, что у нас есть еще второй проект (зиро траст) который тоже
+> отображает живые данные из другого репо тогоже аккаунта ГХ
+
+## Decision
+
+**D1. The cycle publishes its own history.** `scripts/publish-runs.sh`
+writes `status/runs.json` — the forty newest runs of the repository, the
+forty newest of the released line, and the jobs and steps of one run —
+taken with the runner's `GITHUB_TOKEN` (`actions: read`, 1 000 requests an
+hour for the repository, none of them the visitor's) and put beside the
+status documents the page already trusts, under the site-publish role.
+
+**D2. Three writers, one document.** The progress watcher every job already
+runs (ADR-0076) writes it once a minute and once at its start, so the page
+learns of a job within a minute of its first step; `publish-status.sh`
+writes it when a job ends, with that job's last step in it; and
+`publish-runs.yml`, started by GitHub on `workflow_run: completed`, writes
+the one reading no job of a run can take — the run with its final
+conclusion, because a run is not complete until its last job is. The newest
+writing wins; the document is replaced whole, never appended.
+
+**D3. The page reads the bucket first and GitHub only without it.** On the
+bucket's tick, with the status documents, the page fetches the snapshot
+(`no-cache`, so the ETag makes an unchanged document a `304`). Present and
+well-formed, it is the history: the same merge the API's answer went
+through, the same jobs document, GitHub not asked at all. Absent, the page
+asks GitHub exactly as before, paced as before. A snapshot that claims a run
+still going three hours after it was written is a snapshot nobody replaced
+and is not believed about the present; GitHub is asked.
+
+**D4. The page says which.** The history clock names the bucket's snapshot,
+who wrote it and when; the budget line says GitHub was left alone; the
+footer's two clocks are the history's and the status's. The 403 banner is
+the fallback's and stays.
+
+**D5. Not a lifecycle workflow.** `publish-runs.yml` writes nothing but the
+snapshot; the page's WRITERS table does not name it and it makes no
+environment stale. It triggers from the default branch's copy of the file
+for runs of the four lifecycle workflows from any branch — a `next` cycle
+ending is news about the environments too (ADR-0093 D2, amended).
+
+**D6. Gated on the fixture, both ways.** The in-flight gate gains a
+`snapshot` state — in-flight with the document present and the API
+answering 403 to everything — and holds the page to drawing the same cycle,
+verdict and history it draws from the API, asking GitHub for nothing,
+showing no banner, naming the bucket, keeping the button closed. Every
+older state has no snapshot and gates the fallback, unchanged.
+
+## Consequences
+
+- Written 2026-09-14: the publisher (run against the real API for #32:
+  40 runs, 40 of `main`, 8 jobs with their steps, 111 KB), the watcher's
+  minute, the end-of-job call, `publish-runs.yml`, `actions: read` on the
+  two workflows that lacked it, the page's snapshot reader with the shared
+  merge, the clocks and the footer, the `snapshot` fixture state and its
+  claim, and every page check tolerant of the document's absence.
+- What to watch: the first cycle after this lands is the proof — the
+  snapshot appearing within a minute of the launch job, the completion hook
+  firing after `release-lock`, and a tab with the anonymous budget spent
+  drawing the cycle regardless. Until then the fallback is the page.
+- Relayed to the zero-trust-lab session at the owner's request: the same
+  shape applies there, and until it lands the two pages compete for the one
+  budget whenever both are open.
+- Still to consider: the document is ~110 KB because a job's steps travel
+  whole; if the bucket's egress ever matters, the steps of finished jobs can
+  be trimmed to their conclusions.

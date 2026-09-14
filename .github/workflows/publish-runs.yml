@@ -1,0 +1,50 @@
+name: publish-runs
+
+# THE MOMENT NO JOB OF A RUN CAN SEE (ADR-0100). A run is not `completed` until
+# its last job has ended, so the last snapshot a job publishes always shows the
+# run still going. GitHub starts this one when a lifecycle workflow completes,
+# and it writes the snapshot that says so - the runs list with the final
+# conclusion, and the jobs of the run that just ended.
+#
+# It triggers on the DEFAULT branch's copy of this file, for runs of the listed
+# workflows from any branch - which is what the page wants: a `next` cycle
+# ending is news about the environments too (ADR-0093 D2, amended).
+#
+# Not a lifecycle workflow itself: it writes nothing but status/runs.json, and
+# the page's WRITERS table does not name it, so it makes no environment stale.
+
+on:
+  workflow_run:
+    workflows: [self-service, deploy-stage, promote-prod, destroy]
+    types: [completed]
+
+permissions:
+  id-token: write
+  contents: read
+  actions: read
+
+concurrency:
+  # One writer at a time; the newest reading wins, older ones are dropped.
+  group: publish-runs
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56c8ae3a8f4bd3d1a6d9e # v6.0.2
+
+      - name: Configure AWS credentials (OIDC, publish role)
+        uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
+        with:
+          role-to-assume: ${{ vars.SITE_PUBLISH_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Publish the run history with the completed run's conclusion
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SITE_BUCKET: ${{ vars.SITE_BUCKET }}
+        run: |
+          scripts/publish-runs.sh completed --run-id "${{ github.event.workflow_run.id }}"
+          echo "completed: ${{ github.event.workflow_run.name }} #${{ github.event.workflow_run.run_number }} (${{ github.event.workflow_run.conclusion }})"

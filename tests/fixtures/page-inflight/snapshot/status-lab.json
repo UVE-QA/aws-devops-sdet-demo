@@ -1,0 +1,30 @@
+{
+  "_": "SYNTHETIC from the lab's own documents of cycle #29 (34777285974, 2026-09-13), the first cycle with a lab (ADR-0097): timestamps shifted onto this fixture's clock and the run renamed to the fixture's newest self-service run, which is the run that writes the lab here. Shapes are the publishers' own. Destroyed, as a self-service cycle leaves the lab.",
+  "schema": 1,
+  "environment": "lab",
+  "state": "destroyed",
+  "observed_at": "2026-08-11T04:38:00Z",
+  "account": "993912191738",
+  "region": "us-west-2",
+  "app_url": null,
+  "image": null,
+  "resources": {
+    "load_balancer": null,
+    "ecs_service": null,
+    "ecs_web_service": null,
+    "ecs_worker_service": null,
+    "queue": null,
+    "eks": null,
+    "db_instance": null
+  },
+  "report_url": null,
+  "written_at": "2026-08-11T04:38:00Z",
+  "run": {
+    "id": "31461000099",
+    "number": "99",
+    "attempt": "1",
+    "workflow": "self-service",
+    "status": "success",
+    "url": "https://github.com/UVE-QA/aws-devops-sdet-demo/actions/runs/31461000099"
+  }
+}
