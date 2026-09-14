@@ -916,10 +916,21 @@ function claimReleasedLineOnly({ meta, seen }, index, dir) {
     out.push(`${unstamped.length} run(s) in the fixture carry no head_branch; the page is strict ` +
              "about that field and so is this.");
   }
-  const texts = [seen.history || "", seen.verdict || "", seen.cycle || ""]
-    .concat((seen.rows || []).map((r) => r.join(" ")));
   for (const r of foreign) {
+    // ADR-0093 D2, amended 2026-09-14: a foreign run IN FLIGHT is the cycle
+    // view's subject, named with its branch; the history and its verdict
+    // are still the released line's. A finished foreign run is named nowhere.
+    const texts = [seen.history || "", seen.verdict || ""]
+      .concat(r.status === "completed" ? [seen.cycle || ""] : [])
+      .concat((seen.rows || []).map((rw) => rw.join(" ")));
     const marks = [`#${r.run_number}`, String(r.id)];
+    if (r.status !== "completed") {
+      if (!(seen.cycle || "").includes(`#${r.run_number}`)) {
+        out.push(`run #${r.run_number} is in flight from ${r.head_branch} and the cycle view does not draw it: "${(seen.cycle || "").slice(0, 120)}"`);
+      } else if (!new RegExp(`from branch ${r.head_branch}`).test(seen.cycle || "")) {
+        out.push(`the cycle view draws #${r.run_number} without naming its branch: "${(seen.cycle || "").slice(0, 120)}"`);
+      }
+    }
     for (const text of texts) {
       if (marks.some((m) => text.includes(m))) {
         out.push(`run #${r.run_number} is on branch ${r.head_branch} and the page names it: "${text.slice(0, 120)}"`);
@@ -944,7 +955,10 @@ function claimReleasedLineOnly({ meta, seen }, index, dir) {
                         cycle at a time is a property of the environments.
 
    Both states also pass claimReleasedLineOnly, which is the other half: the
-   cycle's views still do not know either run exists. */
+   history and its verdict do not know either run exists - and since the
+   2026-09-14 amendment the cycle view draws the one in flight, with its
+   branch, because a stranger watching stage being built deserves to see the
+   run that is building it. */
 function claimEnvironmentsAnyBranch({ state, seen }) {
   const out = [];
   const stage = (seen.envs || []).find((e) => e.name === "stage");

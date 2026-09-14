@@ -101,6 +101,22 @@ unavailable*: a question without an answer is a refusal, not a permission.
 A `blind` fixture state answers 403 to every GitHub request and holds the
 button closed, and was shown to fail with the button reopened.
 
+
+*Amended a fourth time, 2026-09-14, on the owner's condition.* The owner
+allowed the cycle views to follow `main` only while the `next` work fitted
+into one day: *если уйдет на рабочую неделю - надо будет поменять чтоб
+сторонний посетитель понимал что происходит*. It went into the week. The
+proof of ADR-0100, taken over cycle #33 from `next`, showed the shape: three
+environment panels saying *Run #33 … is in progress*, the button closed on
+it, and *Current cycle* showing a finished run of `main` from two days
+earlier. So a lifecycle run IN FLIGHT, from any branch, is the cycle view's
+and the map's subject, named with its branch where it is not the released
+line; at rest they draw the released line's newest as before. The HISTORY
+table and its verdict stay the released line's - that table is what the
+project has shipped, and a red row from an experiment is still the thing
+this record exists to keep off it. The in-flight gate's `foreign-in-flight`
+state holds the page to both halves.
+
 **D3. Experiments on the shared environments do not run while the demo is out.**
 This is the part no code enforces, and it is written here so that it is a rule
 rather than a habit. Page work needs no AWS at all — the browser gates render

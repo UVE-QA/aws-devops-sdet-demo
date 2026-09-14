@@ -4366,11 +4366,18 @@ only without it. The zero-trust-lab session was told, at the owner's word.
   claim - which on its first run held the button to `closed` and learned
   from the in-flight reading that an owner's deploy-stage never closed it;
   the claim compares the two readings now. Page checks green; gates 13/13.
-- Next allowed step: **a cycle from `next`** on the owner's word - the
-  proof is the snapshot appearing within a minute of the launch job, the
-  completion hook firing after `release-lock`, and a tab with its GitHub
-  budget spent drawing the cycle regardless; then **merge** on the owner's
-  word.
+- **#33 launched 2026-09-14 03:58 UTC** from `next` on the owner's word; the
+  first snapshot was in the bucket 75 seconds later, written by the launch
+  job's watcher, and the `next` page with every GitHub request answering
+  403 drew the cycle from it: zero reads, no banner, the button closed.
+- **Two more things on the way, both on `next`**: who talks to the database,
+  said as such (the rds module's admitted security groups drawn from the
+  client to the database on the data layer; `db_secret_arn` pointing at
+  Secrets Manager; in the lab the Deployments holding `DATABASE_URL`
+  connecting themselves); and the owner's condition come due - ADR-0093 D2
+  amended a fourth time, a run in flight from any branch is the cycle view's
+  subject, named with its branch, the history still the released line's.
+- Next allowed step: #33 green, then **merge** on the owner's word.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

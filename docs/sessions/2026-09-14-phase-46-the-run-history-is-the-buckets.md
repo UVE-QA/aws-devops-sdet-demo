@@ -53,6 +53,26 @@ Every older state has no snapshot and gates the fallback as before.
 Relayed to the zero-trust-lab session, at the owner's request, with the
 shape of the fix.
 
+## The proof, and what it showed beside itself
+
+Cycle #33 from `next`, launched on the owner's word: the first snapshot was
+in the bucket 75 seconds after the run began, written by the launch job's
+watcher, and the `next` page rendered over the live bucket with every
+GitHub request answering 403 drew the cycle from it — zero requests to
+GitHub, no banner, the history clock naming the snapshot, the button closed
+on the run. And beside it, *Current cycle* showed a finished run of `main`
+from two days earlier while three panels said #33 was in progress: the
+owner's condition on the released-line rule, come due on a Monday. ADR-0093
+D2 is amended a fourth time - a run in flight from any branch is the cycle
+view's subject, named with its branch; the history stays the released
+line's - and the `foreign-in-flight` state holds both halves.
+
+Also on the way, from the owner's reading of the redrawn picture: who talks
+to the database, said as such - the rds module's admitted security groups
+drawn from the client to the database, the credentials edge pointing at
+Secrets Manager, and in the lab the Deployments that hold `DATABASE_URL`
+connecting themselves, web among neither.
+
 ## What is still open
 
 A cycle from `next`, on the owner's word: the snapshot within a minute of

@@ -2261,8 +2261,22 @@
       function lifecycleRuns() {
         return (state.runs || []).filter(function (r) { return runEnvironments(r).length > 0; });
       }
+      // A RUN IN FLIGHT IS THE CYCLE'S SUBJECT, WHICHEVER BRANCH IT CAME FROM
+      // (ADR-0093 D2, amended 2026-09-14, on the owner's condition: "если
+      // уйдет на рабочую неделю - надо будет поменять чтоб сторонний
+      // посетитель понимал что происходит"). The work moved to `next` for a
+      // day and stayed a week; a stranger watching a `next` cycle build stage
+      // was shown a finished run of `main` as "the current cycle" while three
+      // panels beside it said #33 was in progress. So: something running, from
+      // any branch, is what the cycle views and the map draw - named with its
+      // branch where it is not the released line - and at rest they draw the
+      // released line's newest, as before. The HISTORY and its verdict stay
+      // the released line's: that table is what this project has shipped.
       function currentRun() {
-        return lifecycleRuns()[0] || null;
+        var flying = (state.allRuns || []).filter(function (r) {
+          return runEnvironments(r).length > 0 && r.status !== "completed";
+        })[0];
+        return flying || lifecycleRuns()[0] || null;
       }
       // The newest run that touches THIS environment, from any branch - the
       // staleness judgement is about the environment, not about the released
@@ -2635,7 +2649,9 @@
         var elapsed = dur(run.run_started_at || run.created_at, run.status === "completed" ? run.updated_at : null);
         var h = '<div class="runhead"><b>' + esc(run.name || run.display_title) + '</b>' +
           '<span class="small">#' + esc(run.run_number) +
-          (run.run_attempt > 1 ? " &middot; attempt " + esc(run.run_attempt) : "") + '</span>' +
+          (run.run_attempt > 1 ? " &middot; attempt " + esc(run.run_attempt) : "") +
+          (run.head_branch && run.head_branch !== RELEASED_BRANCH
+            ? " &middot; from branch " + esc(run.head_branch) + ", not the released line" : "") + '</span>' +
           '<span class="badge ' + cls + '">' + esc(concl) + ' &middot; ' + esc(elapsed) + '</span></div>';
         h += '<div class="small">started ' + esc(ago(run.run_started_at || run.created_at)) +
           ' &middot; <a href="' + esc(run.html_url) + '">run log</a></div>';

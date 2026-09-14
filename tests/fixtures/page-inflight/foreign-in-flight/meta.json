@@ -1,6 +1,6 @@
 {
   "label": "foreign-in-flight",
-  "description": "at-rest, plus one run off the released line: self-service #102 from `next`, newest of all and IN PROGRESS. Stage's file is still #64's, so stage is honestly `unknown` - a run is using it and has not reported - and the sentence must say which run and from which branch. The button must be closed. The cycle's views are at-rest's exactly.",
+  "description": "at-rest, plus one run off the released line: self-service #102 from `next`, newest of all and IN PROGRESS. Stage's file is still #64's, so stage is honestly `unknown` - a run is using it and has not reported - and the sentence must say which run and from which branch. The button must be closed. The history and its verdict are at-rest's exactly; the cycle view draws #102 with its branch (ADR-0093 D2, amended 2026-09-14).",
   "now": "2026-08-11T04:25:00Z",
   "provenance": {
     "runs.json": "SYNTHETIC. at-rest's history with #102 prepended: in_progress, head_branch next.",
@@ -9,7 +9,7 @@
     "status-prod.json": "SYNTHETIC. Byte-identical to at-rest's."
   },
   "cycle": {
-    "_": "DECLARED, not re-derived. The released line has nothing in flight; #102 is not on it.",
+    "_": "DECLARED, not re-derived. The released line has nothing in flight; #102 is not on it - the history's verdict stays at-rest's, the cycle view follows #102.",
     "in_flight": false,
     "environments": []
   }
