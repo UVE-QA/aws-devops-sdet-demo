@@ -707,6 +707,21 @@
       .edge.lit, .edge:hover { stroke-width: 3.5; stroke-opacity: 1; }
       .schema-board.hovering .edge:not(.lit) { stroke-opacity: 0.12; }
       .edges .arrow { fill: var(--muted); }
+      .edges .mid { stroke: var(--bg); stroke-width: 1.2; fill-opacity: 0.95; }
+      .edges .mid.traffic { fill: var(--edge-traffic); }
+      .edges .mid.data { fill: var(--edge-data); }
+      .edges .mid.identity { fill: var(--edge-identity); }
+      .edges .mid.network { fill: var(--edge-network); }
+      .edges .mid.ops { fill: var(--edge-ops); }
+      .schema-board.hovering .mid:not(.lit) { fill-opacity: 0.12; }
+      /* THE TILES LET THE LINES SHOW THROUGH, all of them alike (the owner,
+         2026-09-14): a line that runs under a tile is dimmed by it, not
+         swallowed. An absent tile keeps a faint background here rather than
+         none - fully see-through, the lines under it read as lines over it. */
+      .schema-board .node.tile, .schema-board .node.tile.pseudo { background: color-mix(in srgb, var(--panel) 70%, transparent); }
+      .schema-board .node.tile.absent, .schema-board .node.tile.gone { background: color-mix(in srgb, var(--panel) 45%, transparent); }
+      .schema-board .part { background: color-mix(in srgb, var(--off-bg) 70%, transparent); }
+      .schema-board .frame.cluster { background: transparent; }
             /* BELOW THE CROSSOVER THE GRID STOPS BEING ONE. At about 1000px eight
          columns are already down to --tile, the width at which `Application
          Load Balancer` stops breaking into four lines, so under it the board
@@ -5573,7 +5588,11 @@
         function partTile(part, env, service, parts) {
           const r = partReading(part, env);
           const el = document.createElement("div");
-          el.className = "node tile pseudo";
+          // ABSENT WITH ITS ENVIRONMENT (the owner, 2026-09-14: after the
+          // cycle the rows went dark and the lab's pods stayed bright). A
+          // part drawn as a tile is drawn the way an absent noun is when
+          // nothing observes it - faint, dashed, the mark grey.
+          el.className = "node tile pseudo" + (r.cls === "absent" ? " absent" : "");
           el.dataset.node = part.id;
           el.title = r.title;
           el.innerHTML = `<div class="head">${iconEl(service)}<span class="name">${esc(part.label)}</span></div>` +
@@ -5712,7 +5731,7 @@
           const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
           svg.setAttribute("class", "edges");
           svg.innerHTML = `<defs><marker id="arrow-${esc(env.id)}" viewBox="0 0 8 8" refX="7" refY="4" ` +
-            `markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="arrow" d="M0,0 L8,4 L0,8 z"/></marker></defs>`;
+            `markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path class="arrow" d="M0,0 L8,4 L0,8 z"/></marker></defs>`;
           sec.appendChild(svg);
           sec.dataset.env = env.id;
           // Hovering a tile lights its edges and fades the rest.
@@ -5720,7 +5739,7 @@
             const t = ev.target.closest("[data-part], [data-node], .node[data-id]");
             if (!t) return;
             const id = t.dataset.part || t.dataset.node || t.dataset.id;
-            const lit = sec.querySelectorAll(`.edge[data-from="${id}"], .edge[data-to="${id}"]`);
+            const lit = sec.querySelectorAll(`.edge[data-from="${id}"], .edge[data-to="${id}"], .mid[data-from="${id}"], .mid[data-to="${id}"]`);
             if (!lit.length) return;
             sec.classList.add("hovering");
             lit.forEach((p) => p.classList.add("lit"));
@@ -5728,7 +5747,7 @@
           sec.addEventListener("mouseout", (ev) => {
             if (ev.target.closest && ev.target.closest("[data-part], [data-node], .node[data-id]")) {
               sec.classList.remove("hovering");
-              sec.querySelectorAll(".edge.lit").forEach((p) => p.classList.remove("lit"));
+              sec.querySelectorAll(".edge.lit, .mid.lit").forEach((p) => p.classList.remove("lit"));
             }
           });
           host.appendChild(sec);
@@ -5774,9 +5793,15 @@
           // overlap in x - the flow of the picture - and up or down when they
           // do.
           const ends = [];
+          const elOf = (id) => sec.querySelector(`[data-node="${id}"]`) || sec.querySelector(`.node[data-id="${id}"]`) || sec.querySelector(`[data-part="${id}"]`);
           edges.forEach((e) => {
             const a = rect(e.from), b = rect(e.to);
             if (!a || !b) return;
+            // An edge between a tile and a part drawn inside it - the Ingress
+            // and its own Services - is the containment already drawn; a line
+            // from a box into itself says nothing.
+            const ea = elOf(e.from), eb = elOf(e.to);
+            if (ea && eb && (ea.contains(eb) || eb.contains(ea))) return;
             const overlapX = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x) > Math.min(a.w, b.w) * 0.4;
             const right = b.x + b.w / 2 > a.x + a.w / 2, down = b.y + b.h / 2 > a.y + a.h / 2;
             ends.push({ e, a, b, vertical: overlapX,
@@ -5815,12 +5840,21 @@
               c1x = x1 + dx; c1y = y1; c2x = x2 - dx; c2y = y2;
             }
             const title = `${e.from.split(".").slice(1).join(".")} → ${e.to.split(".").slice(1).join(".")} · ${e.via} · ${e.source}`;
-            paths.push(`<path class="edge ${esc(e.layer || e.kind)}" data-from="${esc(e.from)}" data-to="${esc(e.to)}" ` +
+            const layer = esc(e.layer || e.kind);
+            paths.push(`<path class="edge ${layer}" data-from="${esc(e.from)}" data-to="${esc(e.to)}" ` +
               `d="M${x1.toFixed(1)},${y1.toFixed(1)} C${c1x.toFixed(1)},${c1y.toFixed(1)} ${c2x.toFixed(1)},${c2y.toFixed(1)} ${x2.toFixed(1)},${y2.toFixed(1)}" ` +
               `marker-end="url(#${marker ? marker.id : ""})"><title>${esc(title)}</title></path>`);
+            // A SMALL ARROW HALF-WAY ALONG THE CURVE, on its tangent (the
+            // owner, 2026-09-14: the direction was lost where a tile hid the
+            // end). The curve's midpoint and tangent are the Bézier's own.
+            const mx = (x1 + 3 * c1x + 3 * c2x + x2) / 8, my = (y1 + 3 * c1y + 3 * c2y + y2) / 8;
+            const tx = (c2x + x2) - (x1 + c1x), ty = (c2y + y2) - (y1 + c1y);
+            const deg = Math.atan2(ty, tx) * 180 / Math.PI;
+            paths.push(`<path class="mid ${layer}" data-from="${esc(e.from)}" data-to="${esc(e.to)}" ` +
+              `transform="translate(${mx.toFixed(1)},${my.toFixed(1)}) rotate(${deg.toFixed(1)})" d="M-6,-4.5 L5,0 L-6,4.5 z"/>`);
           });
           svg.setAttribute("viewBox", `0 0 ${box.width} ${box.height}`);
-          svg.querySelectorAll("path.edge").forEach((p) => p.remove());
+          svg.querySelectorAll("path.edge, path.mid").forEach((p) => p.remove());
           svg.insertAdjacentHTML("beforeend", paths.join(""));
         }
         (() => {

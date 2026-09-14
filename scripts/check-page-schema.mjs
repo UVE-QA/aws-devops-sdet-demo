@@ -269,7 +269,12 @@ function claimEveryPartAndEdge(r, env) {
     if (k !== 1) out.push(`part ${p.id} is drawn ${k} times`);
   }
   const off = offLayers(r, pic);
-  const wanted = sch.edges.filter((e) => !off.includes(e.layer));
+  // An edge from the Ingress to a Service drawn inside its tile is the
+  // containment already drawn: the page draws no line from a box into
+  // itself, and this claim does not ask for one.
+  const placed = {}; sch.parts.forEach((p) => { placed[p.id] = p; });
+  const nested = (e) => placed[e.from] && placed[e.to] && placed[e.from].kind === "ingress" && placed[e.to].kind === "service";
+  const wanted = sch.edges.filter((e) => !off.includes(e.layer) && !nested(e));
   if (g.edges.length !== wanted.length) out.push(`${g.edges.length} edges drawn; ${wanted.length} are on a layer that is on (${pic.layersOn.join(", ")})`);
   for (const e of g.edges) {
     if (off.includes(e.layer)) out.push(`edge ${e.from} -> ${e.to} is drawn and its layer ${e.layer} is off`);
@@ -277,7 +282,10 @@ function claimEveryPartAndEdge(r, env) {
     if (!/(infra|charts)\//.test(e.title)) out.push(`edge ${e.from} -> ${e.to} carries no source in its title: "${e.title}"`);
     if (!(r.schema.layers || []).some((l) => l.id === e.layer)) out.push(`edge ${e.from} -> ${e.to} is on no layer (${e.layer || "none"})`);
   }
-  if (!new RegExp(`^${wanted.length} of ${sch.edges.length} edges`).test(pic.note)) out.push(`the note says "${pic.note.slice(0, 40)}…", not ${wanted.length} of ${sch.edges.length}`);
+  // The note counts the edges on the layers that are on - the nested ones
+  // among them, shown as containment rather than as lines.
+  const onLayer = sch.edges.filter((e) => !off.includes(e.layer)).length;
+  if (!new RegExp(`^${onLayer} of ${sch.edges.length} edges`).test(pic.note)) out.push(`the note says "${pic.note.slice(0, 40)}…", not ${onLayer} of ${sch.edges.length}`);
   return out;
 }
 
