@@ -2196,10 +2196,14 @@
       // ---- rendering ----------------------------------------------------------
       function renderClocks() {
         var h = state.history || {};
+        // Who wrote the snapshot is a workflow and its run number - the
+        // cycle's own job, or publish-runs after a run completed - and it is
+        // named as such, not as "#4", which reads as a cycle that never was.
         el("clock-github").textContent = h.source === "bucket"
-          ? hhmmss(state.githubReadAt) + " \u00b7 the bucket's snapshot" +
-            (h.by && h.by.run_number ? " from #" + h.by.run_number : "") +
-            ", written " + hhmmss(h.writtenAt)
+          ? hhmmss(state.githubReadAt) + " \u00b7 the bucket's snapshot, written " + hhmmss(h.writtenAt) +
+            (h.by && h.by.run_number
+              ? " by " + (h.by.workflow || "the cycle") + " #" + h.by.run_number + (h.by.job ? " (" + h.by.job + ")" : "")
+              : "")
           : state.githubError ? "failed at " + hhmmss(state.githubReadAt) + " (GitHub API)" : hhmmss(state.githubReadAt) + " (GitHub API)";
         el("clock-bucket").textContent = hhmmss(state.bucketReadAt);
         el("ratelimit").textContent = h.source === "bucket"
