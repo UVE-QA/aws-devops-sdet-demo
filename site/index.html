@@ -642,20 +642,10 @@
       .schema-board .node.strip .name { font-size: 0.92rem; }
       .schema-board .node.strip .nmeta, .schema-board .node.strip .nstate { display: inline; font-size: 0.78rem; }
       .framehead .parts { flex-direction: row; width: auto; margin: 0; }
-      /* COLUMNS OF TILES, CORRIDORS BETWEEN THEM (the owner, 2026-09-14: the
-         tiles covered the lines and the arrows lost their direction). Every
-         column stacks its tiles, so a line leaving a tile sideways meets
-         nothing before the corridor, runs up or down inside the corridor
-         where there is nothing to hide behind, and turns into its target.
-         The corridors are the grid's own gaps, wide on purpose. */
       .schema-cols {
         position: relative; z-index: 1; display: grid;
-        grid-template-columns: 13rem max-content 13rem; gap: 1.2rem 4.5rem;
-        align-items: start; justify-content: start;
+        grid-template-columns: 15rem 1.55fr 1fr; gap: 1.2rem 2.4rem; align-items: start;
       }
-      .schema-col > .schema-set { flex-direction: column; align-items: stretch; }
-      .cluster-cols { display: flex; align-items: flex-start; gap: 3.5rem; }
-      .cluster-cols > .schema-set { flex-direction: column; align-items: stretch; }
       .schema-col > .lane, .schema-ops > .lane {
         font-size: 0.66rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
         color: var(--muted); margin: 0 0 0.5rem;
@@ -666,7 +656,7 @@
          that belong to the rows: the block count and the verbs that point
          into the map. Here the room goes to the parts. */
       .schema-board .node.tile {
-        width: 13rem; align-items: center; text-align: center; padding: 0.8rem 0.7rem 0.7rem; gap: 0.3rem;
+        width: 15rem; align-items: center; text-align: center; padding: 0.8rem 0.7rem 0.7rem; gap: 0.3rem;
         border-radius: 12px;
       }
       .schema-board .node.tile::before { border-radius: 12px 0 0 12px; width: 5px; }
@@ -717,15 +707,6 @@
       .edge.lit, .edge:hover { stroke-width: 3.5; stroke-opacity: 1; }
       .schema-board.hovering .edge:not(.lit) { stroke-opacity: 0.12; }
       .edges .arrow { fill: var(--muted); }
-      /* The arrow half-way along a corridor run: the direction where a reader
-         looks for it, not only at the end. Coloured with its edge. */
-      .edges .mid { stroke: none; fill-opacity: 0.9; }
-      .edges .mid.traffic { fill: var(--edge-traffic); }
-      .edges .mid.data { fill: var(--edge-data); }
-      .edges .mid.identity { fill: var(--edge-identity); }
-      .edges .mid.network { fill: var(--edge-network); }
-      .edges .mid.ops { fill: var(--edge-ops); }
-      .schema-board.hovering .mid:not(.lit) { fill-opacity: 0.12; }
             /* BELOW THE CROSSOVER THE GRID STOPS BEING ONE. At about 1000px eight
          columns are already down to --tile, the width at which `Application
          Load Balancer` stops breaking into four lines, so under it the board
@@ -5691,22 +5672,13 @@
                 head.appendChild(chips);
               }
               box.appendChild(head);
-              // The pods in one column, the IRSA roles and whatever else the
-              // runtime lane holds in a second beside it, on their own layer -
-              // so a line from a pod meets a corridor, not another pod.
-              const inner = el("div", "cluster-cols");
-              const podsSet = el("div", "schema-set");
-              podsSet.dataset.lane = "runtime";
-              partsOf(n.id, "cluster").filter((p) => p.kind === "pods").forEach((p) => podsSet.appendChild(partTile(p, env.id, n.service)));
-              inner.appendChild(podsSet);
-              const others = nounsIn("runtime").filter((m) => m !== n);
-              if (others.length) {
-                const rolesSet = el("div", "schema-set");
-                rolesSet.dataset.lane = "runtime";
-                others.forEach((m) => rolesSet.appendChild(tileOf(m)));
-                inner.appendChild(rolesSet);
-              }
-              box.appendChild(inner);
+              const set = el("div", "schema-set");
+              set.dataset.lane = "runtime";
+              partsOf(n.id, "cluster").filter((p) => p.kind === "pods").forEach((p) => set.appendChild(partTile(p, env.id, n.service)));
+              // The IRSA roles and whatever else the runtime lane holds sit
+              // inside the cluster's box, on their own layer.
+              nounsIn("runtime").filter((m) => m !== n).forEach((m) => set.appendChild(tileOf(m)));
+              box.appendChild(set);
               const hooks = partsOf(n.id, "cluster").filter((p) => p.kind !== "pods");
               if (hooks.length) {
                 const strip = el("div", "parts");
@@ -5748,7 +5720,7 @@
             const t = ev.target.closest("[data-part], [data-node], .node[data-id]");
             if (!t) return;
             const id = t.dataset.part || t.dataset.node || t.dataset.id;
-            const lit = sec.querySelectorAll(`.edge[data-from="${id}"], .edge[data-to="${id}"], .mid[data-from="${id}"], .mid[data-to="${id}"]`);
+            const lit = sec.querySelectorAll(`.edge[data-from="${id}"], .edge[data-to="${id}"]`);
             if (!lit.length) return;
             sec.classList.add("hovering");
             lit.forEach((p) => p.classList.add("lit"));
@@ -5756,7 +5728,7 @@
           sec.addEventListener("mouseout", (ev) => {
             if (ev.target.closest && ev.target.closest("[data-part], [data-node], .node[data-id]")) {
               sec.classList.remove("hovering");
-              sec.querySelectorAll(".edge.lit, .mid.lit").forEach((p) => p.classList.remove("lit"));
+              sec.querySelectorAll(".edge.lit").forEach((p) => p.classList.remove("lit"));
             }
           });
           host.appendChild(sec);
@@ -5793,46 +5765,23 @@
             if (!el || el.hidden || el.closest("[hidden]")) return null;
             const r = el.getBoundingClientRect();
             if (!r.width) return null;
-            // The column the tile stands in: a corridor between two columns
-            // runs between the COLUMNS' edges, not the tiles', so it never
-            // crosses a box - the cluster's, the chips' - on its way.
-            const col = el.closest(".schema-col, .framehead, .schema-ops");
-            const c = col ? col.getBoundingClientRect() : r;
-            return { x: r.left - box.left, y: r.top - box.top, w: r.width, h: r.height,
-                     col, cx: c.left - box.left, cw: c.width };
+            return { x: r.left - box.left, y: r.top - box.top, w: r.width, h: r.height };
           };
           const edges = SCHEMA.environments[sec.dataset.env].edges.filter((e) => !off[e.layer]);
-          // ORTHOGONAL, THROUGH THE CORRIDORS. A line leaves its tile sideways
-          // when the target is in another column, runs to the corridor between
-          // the two columns, up or down inside it, and turns into the target;
-          // when the two overlap in x it leaves from the bottom or the top and
-          // runs through the gap between the rows. Every edge has a PORT of
-          // its own on each tile, spread along the side in the order of where
-          // it goes, and its own lane inside the corridor, so parallel edges
-          // read as parallel. An arrow half-way along the corridor run says
-          // the direction where the eye looks for it.
+          // EVERY EDGE HAS A PORT OF ITS OWN, spread along the side it leaves
+          // by in the order of where it goes, so parallel edges read as
+          // parallel and not as one line. Sideways when the two boxes do not
+          // overlap in x - the flow of the picture - and up or down when they
+          // do.
           const ends = [];
           edges.forEach((e) => {
             const a = rect(e.from), b = rect(e.to);
             if (!a || !b) return;
-            const gapRight = b.x - (a.x + a.w), gapLeft = a.x - (b.x + b.w);
-            const otherColumn = a.col && b.col && a.col !== b.col;
-            let mode, sa, sb, lo, hi;
-            if (gapRight > 10) {
-              mode = "h"; sa = "right"; sb = "left";
-              lo = otherColumn ? Math.max(a.x + a.w, a.cx + a.cw) : a.x + a.w;
-              hi = otherColumn ? Math.min(b.x, b.cx) : b.x;
-            } else if (gapLeft > 10) {
-              mode = "h"; sa = "left"; sb = "right";
-              lo = otherColumn ? Math.max(b.x + b.w, b.cx + b.cw) : b.x + b.w;
-              hi = otherColumn ? Math.min(a.x, a.cx) : a.x;
-            }
-            else {
-              const down = b.y + b.h / 2 > a.y + a.h / 2;
-              mode = "v"; sa = down ? "bottom" : "top"; sb = down ? "top" : "bottom";
-              lo = down ? a.y + a.h : b.y + b.h; hi = down ? b.y : a.y;
-            }
-            ends.push({ e, a, b, mode, sa, sb, lo, hi });
+            const overlapX = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x) > Math.min(a.w, b.w) * 0.4;
+            const right = b.x + b.w / 2 > a.x + a.w / 2, down = b.y + b.h / 2 > a.y + a.h / 2;
+            ends.push({ e, a, b, vertical: overlapX,
+                        sa: overlapX ? (down ? "bottom" : "top") : (right ? "right" : "left"),
+                        sb: overlapX ? (down ? "top" : "bottom") : (right ? "left" : "right") });
           });
           const ports = {};
           const ask = (id, sideName, order, slot) => {
@@ -5840,69 +5789,38 @@
             (ports[k] = ports[k] || []).push({ order, slot });
           };
           ends.forEach((x) => {
-            ask(x.e.from, x.sa, x.mode === "h" ? x.b.y + x.b.h / 2 : x.b.x + x.b.w / 2, x);
-            ask(x.e.to, x.sb, x.mode === "h" ? x.a.y + x.a.h / 2 : x.a.x + x.a.w / 2, x);
+            ask(x.e.from, x.sa, x.vertical ? x.b.x + x.b.w / 2 : x.b.y + x.b.h / 2, x);
+            ask(x.e.to, x.sb, x.vertical ? x.a.x + x.a.w / 2 : x.a.y + x.a.h / 2, x);
           });
           const at = {};
           Object.keys(ports).forEach((k) => {
             const list = ports[k].sort((p, q) => p.order - q.order);
             list.forEach((p, i) => { at[k + "|" + ends.indexOf(p.slot)] = (i + 1) / (list.length + 1); });
           });
-          // A lane per edge inside its corridor: the corridor is named by its
-          // two walls, and the edges in it are spread across its width in the
-          // order of where they are going.
-          const corridors = {};
-          ends.forEach((x, idx) => {
-            const k = x.mode + "|" + Math.round(x.lo) + "|" + Math.round(x.hi);
-            (corridors[k] = corridors[k] || []).push(idx);
-          });
-          const laneOf = {};
-          Object.keys(corridors).forEach((k) => {
-            const list = corridors[k].sort((i, j) => {
-              const p = ends[i], q = ends[j];
-              const key = (x) => x.mode === "h" ? (x.sa === "right" ? x.b.y : -x.b.y) : x.b.x;
-              return key(p) - key(q);
-            });
-            list.forEach((idx, i) => {
-              const x = ends[idx];
-              const span = Math.max(0, x.hi - x.lo);
-              const inset = Math.min(10, span / 4);
-              laneOf[idx] = x.lo + inset + (span - 2 * inset) * (i + 1) / (list.length + 1);
-            });
-          });
           const point = (r, sideName, t) => (
             sideName === "top" ? [r.x + r.w * t, r.y] :
             sideName === "bottom" ? [r.x + r.w * t, r.y + r.h] :
             sideName === "left" ? [r.x, r.y + r.h * t] : [r.x + r.w, r.y + r.h * t]);
-          const f = (n) => n.toFixed(1);
           const paths = [];
           ends.forEach((x, idx) => {
             const e = x.e;
             const [x1, y1] = point(x.a, x.sa, at[e.from + "|" + x.sa + "|" + idx]);
             const [x2, y2] = point(x.b, x.sb, at[e.to + "|" + x.sb + "|" + idx]);
-            const c = laneOf[idx];
-            let d, mid;
-            if (x.mode === "h") {
-              d = `M${f(x1)},${f(y1)} L${f(c)},${f(y1)} L${f(c)},${f(y2)} L${f(x2)},${f(y2)}`;
-              const my = (y1 + y2) / 2, down = y2 > y1;
-              mid = Math.abs(y2 - y1) > 24
-                ? `M${f(c - 4)},${f(my - (down ? 5 : -5))} L${f(c + 4)},${f(my - (down ? 5 : -5))} L${f(c)},${f(my + (down ? 4 : -4))} z`
-                : `M${f((x1 + x2) / 2 - (x2 > x1 ? 5 : -5))},${f(y1 - 4)} L${f((x1 + x2) / 2 - (x2 > x1 ? 5 : -5))},${f(y1 + 4)} L${f((x1 + x2) / 2 + (x2 > x1 ? 4 : -4))},${f(y1)} z`;
+            let c1x, c1y, c2x, c2y;
+            if (x.vertical) {
+              const dy = (y2 - y1) / 2;
+              c1x = x1; c1y = y1 + dy; c2x = x2; c2y = y2 - dy;
             } else {
-              d = `M${f(x1)},${f(y1)} L${f(x1)},${f(c)} L${f(x2)},${f(c)} L${f(x2)},${f(y2)}`;
-              const mx = (x1 + x2) / 2, right = x2 > x1;
-              mid = Math.abs(x2 - x1) > 24
-                ? `M${f(mx - (right ? 5 : -5))},${f(c - 4)} L${f(mx - (right ? 5 : -5))},${f(c + 4)} L${f(mx + (right ? 4 : -4))},${f(c)} z`
-                : `M${f(x1 - 4)},${f((y1 + y2) / 2 - (y2 > y1 ? 5 : -5))} L${f(x1 + 4)},${f((y1 + y2) / 2 - (y2 > y1 ? 5 : -5))} L${f(x1)},${f((y1 + y2) / 2 + (y2 > y1 ? 4 : -4))} z`;
+              const dx = (x2 - x1) / 2;
+              c1x = x1 + dx; c1y = y1; c2x = x2 - dx; c2y = y2;
             }
             const title = `${e.from.split(".").slice(1).join(".")} → ${e.to.split(".").slice(1).join(".")} · ${e.via} · ${e.source}`;
-            const layer = esc(e.layer || e.kind);
-            paths.push(`<path class="edge ${layer}" data-from="${esc(e.from)}" data-to="${esc(e.to)}" d="${d}" ` +
-              `marker-end="url(#${marker ? marker.id : ""})"><title>${esc(title)}</title></path>` +
-              `<path class="mid ${layer}" data-from="${esc(e.from)}" data-to="${esc(e.to)}" d="${mid}"/>`);
+            paths.push(`<path class="edge ${esc(e.layer || e.kind)}" data-from="${esc(e.from)}" data-to="${esc(e.to)}" ` +
+              `d="M${x1.toFixed(1)},${y1.toFixed(1)} C${c1x.toFixed(1)},${c1y.toFixed(1)} ${c2x.toFixed(1)},${c2y.toFixed(1)} ${x2.toFixed(1)},${y2.toFixed(1)}" ` +
+              `marker-end="url(#${marker ? marker.id : ""})"><title>${esc(title)}</title></path>`);
           });
           svg.setAttribute("viewBox", `0 0 ${box.width} ${box.height}`);
-          svg.querySelectorAll("path.edge, path.mid").forEach((p) => p.remove());
+          svg.querySelectorAll("path.edge").forEach((p) => p.remove());
           svg.insertAdjacentHTML("beforeend", paths.join(""));
         }
         (() => {
