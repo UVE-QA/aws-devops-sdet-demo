@@ -1628,8 +1628,12 @@ of it and the largest that a home project can carry without noise.
    `manifest-check`, the seven hand-written copies held to the one file in
    both directions (done 2026-09-15); 6b the schema and the topology generated
    from it, both refusing a declared service the estate would not draw (done
-   2026-09-15); whether the chart, the modules or the workflows are ever
-   generated from it is a separate decision each.
+   2026-09-15); 6c the workflows and the lab installer name a service and
+   nothing else about it - repositories, contexts, digests and the rollback
+   pointer through scripts/service-images.sh (2026-09-15, proven by a cycle
+   from `next`); whether the chart or the modules are ever generated from
+   it is a separate decision each, and a job-level build matrix would
+   reshape the page's phases first.
 ```
 
 What each of these costs is written where it is decided; the first three are

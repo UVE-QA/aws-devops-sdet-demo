@@ -83,6 +83,33 @@ generator the environment that draws none. `manifest-check` now holds
 `observe-environment.sh` to `status_key` in place of the table it no
 longer has to compare.
 
+## Slice 6c, the same session: the workflows
+
+*давай workflows, matrix по манифесту.* Before writing, one finding: the
+page lights the three `ECR push` nodes by the names of the build steps, and
+a GitHub matrix is a job, not a step. A `build` job per service would be a
+new job the page's phases, the progress watcher and `release-lock` do not
+know - the cycle reshaped, not the workflows. Said to the owner with both
+prices; the owner chose the steps: *да, делай второе, потом цикл*.
+
+So the three build steps stay three and each says one word:
+`scripts/build-service.sh api "$IMAGE_TAG"`. `scripts/service-images.sh`
+turns the manifest into what a workflow needs - `repos`, `tag <tag>`,
+`digests <json>` - as JSON keyed by name, and writes one step output per
+service beside the whole set, so `TF_VAR_api_image` can name a service and
+a loop names none. `promote-prod` resolves the release, records the last
+good set, tags every repository and resolves a rollback through it; the
+pointer arms only when its keys are exactly the manifest's names.
+`lab-install.sh` the same. Fifteen spellings of the repository names across
+four workflows and a script are gone, and `manifest-check` refuses one that
+comes back, a build step without a service, a service without a step, a
+step the page would not light, and a `build.*` node without a service.
+
+The SSO token had expired and the owner was asked to log in; meanwhile a
+stand-in `aws` in PATH proved every mode and every refusal of the script,
+the pointer in five shapes, the record, the tags and a build's reuse path.
+The cycle from `next` is the proof that counts, and the owner allowed it.
+
 ## What is still open
 
 One decision each, whether the chart, the modules or the workflows are

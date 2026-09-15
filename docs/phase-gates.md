@@ -4448,11 +4448,22 @@ writes none of them, and no cycle for it.
 - 6b: CI green on `next`; merged to `main` on the owner's second *да,
   вливай* (fast-forward, two commits); CI and publish-site green on `main`.
   Item 6's two slices are on the released line.
-- Next allowed step: on the owner's word - whether the chart, the modules
-  or the workflows are generated from the manifest, one decision each; and
-  what the plan band shows once item 6 closes, since the generator refuses
-  an empty plan (ADR-0094 D2). Merge 6b to `main` on green CI and the
-  owner's *да, вливай*.
+- **Slice 6c, 2026-09-15, on the owner's *давай workflows, matrix по
+  манифесту***: one finding first - the page lights the `ECR push` nodes by
+  the build steps' names, and a matrix is a job, not a step - so the three
+  steps stay and carry one word each (`scripts/build-service.sh api`);
+  `scripts/service-images.sh` turns the manifest into repositories, digests
+  by tag and digests by pointer, with one step output per service. Both
+  build workflows, `promote-prod` end to end (digests, record, tags,
+  rollback), `lab-install.sh`. Fifteen spellings of the repository names
+  gone; `manifest-check` holds the workflows and the page's `build.*`
+  bindings to the manifest. Proven on a stand-in `aws`: every mode and
+  refusal, the pointer in five shapes. ADR-0101 D6.
+- Next allowed step: the cycle from `next` that proves 6c (the owner's
+  *потом цикл*); merge on green and *да, вливай*. Then, on the owner's
+  word: the chart or the modules from the manifest, one decision each; a
+  job-level build matrix only with the page's phase model reshaped; what
+  the plan band shows once item 6 closes.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

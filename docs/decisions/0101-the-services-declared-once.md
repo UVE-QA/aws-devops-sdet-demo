@@ -118,6 +118,35 @@ separate reason. A manifest that generated everything on its first day
 would be a rewrite of four working decisions for the sake of a blueprint,
 and the demo is being handed to strangers this week.
 
+**D6. The workflows name a service and nothing else about it.** On the
+owner's *давай workflows, matrix по манифесту*, and after one finding
+changed the shape: the page lights the three `ECR push` nodes by the
+**names of the build steps** (`Build, tag, and push the api image`, in
+`launch` and in `deploy`), and a GitHub matrix is a job, not a step - a
+`build` job per service would be a new job the page's phases, the progress
+watcher and `release-lock` do not know, a reshaping of the cycle rather
+than of the workflows. So the three steps stay three, and each carries one
+word: `scripts/build-service.sh api "$IMAGE_TAG"`. The manifest says the
+repository and the context; `scripts/service-images.sh` - `repos`, `tag
+<tag>`, `digests <json>` - turns the manifest into what a workflow needs,
+JSON keyed by name, and with `--output <prefix>` one step output per
+service (`ref_api`) beside the whole set (`refs`), so an apply's image
+variables name one service and a loop names none. `promote-prod` resolves
+the release's digests, records the last good set, tags every repository
+and resolves a rollback target through it; the pointer is armed only when
+its keys are exactly the manifest's names, so a service added to the
+manifest disarms rollback until the first green release writes the whole
+set. `lab-install.sh` resolves its digests the same way. Fifteen spellings
+of the repository names across four workflow files and a script are gone;
+`manifest-check` refuses a spelled one, a build step for a service the
+manifest lacks, a service with no build step, a step not named the way the
+page lights it, an image variable for a service that does not exist, and a
+`build.<name>` node on the page with no service - or a service with no
+node. Proven before the cycle on a stand-in `aws` in PATH: every mode, every
+refusal, the pointer in five shapes, the record, the tags, the reuse path
+of a build. A real job-level matrix, with the page's phase model reshaped
+for it, stays a separate decision.
+
 **D5. Item 5 is done and leaves the page's plan band.** The schema layout
 has been on the released page since #32 (ADR-0099), so its roadmap item and
 its tile leave `assets/topology-groups.json` under ADR-0094 D2's own rule -
@@ -147,3 +176,13 @@ stays, with one tile that names this ADR, until item 6 is done.
   question the generator refuses to answer alone - it refuses an empty plan
   as an invented one (ADR-0094 D2) - and is the owner's to settle before
   item 6 is closed.
+- D6 changes what the cycle runs - every build, the promotion's digests,
+  the release record and the lab's install - so it is proven by a cycle
+  from `next` before it is merged, and the rollback path by the stand-in
+  alone: a failed prod smoke is not something a green cycle exercises, and
+  a deliberately broken release is a break test for another day.
+- Adding a service is now: `services.json`, a Dockerfile and a compose
+  service, the ecs-service module in stage and prod with its policies, the
+  chart's values and a Deployment, a build step named for the page and a
+  `build.<name>` node, the observer's key. Nine places, one gate naming
+  the one that was forgotten; before item 6 it was the same nine and hope.

@@ -23,7 +23,13 @@ topology generator refuses a declared service the estate would not draw,
 the regenerated schema identical but for a source line; the chart or the
 modules generated from it only by a decision each. Item 5 done and off the
 plan band; the manifest's tile on it. JSON over YAML: a local gate carries
-no dependency. No cycle, because the cycle runs nothing that changed.
+no dependency. Then 6c on *давай workflows, matrix по манифесту*: the
+workflows name a service and nothing else about it - one script turns the
+manifest into repositories and digests, the build steps carry one word
+each because the page lights them by name, promote-prod records, tags and
+rolls back by the set the manifest declares; a job-level matrix would
+reshape the page's phases and is refused for now. Proven on a stand-in
+registry; the cycle from `next` is the proof that counts.
 
 **As of 2026-09-14 (46 — the run history is the bucket's).** One record,
 **ADR-0100**, and one read removed from the visitor's browser. The owner's
