@@ -1,7 +1,11 @@
 # ADR-0094: The plan is on the page, and cannot outlive the plan
 
 ## Status
-Accepted (Phase 40, 2026-09-13). Adds an editorial band to `Details` beside
+Accepted (Phase 40, 2026-09-13). **D1 and D2 closed 2026-09-15 (Phase 47,
+ADR-0101 D7)**: the plan's last item was done and the owner's word on the
+empty band was *убрать блок совсем* - the band, its data and its refusals
+left the page; D3, the plan itself, stands in `docs/next-phases.md` as
+history, every item marked done. Adds an editorial band to `Details` beside
 **ADR-0047**'s *outside the cycle*, under **ADR-0085**'s rule for editorial
 text with two copies. Records, as a decision, the plan the owner set on
 2026-09-12; the plan itself is in `docs/next-phases.md`.
@@ -88,3 +92,10 @@ out, with the reason.
   earlier than this one): the work is on `next`, and the gates have to run
   where the work is. Nothing in `ci.yml` publishes or touches AWS, so a branch
   run costs a runner and nothing else; `publish-site.yml` stays on `main`.
+- **Closed 2026-09-15.** The band could not outlive the plan, and it did
+  not: with item 6 done the generator would have refused an empty plan as
+  an invented one, and the owner chose removal over a band that says
+  *done*. What remains of this decision is the rule it proved - a page
+  statement about the future is editorial data with a check against the
+  document that owns it - and the plan document, which is where a reader
+  asking *and then what?* is sent now.

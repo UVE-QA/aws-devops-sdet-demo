@@ -4413,7 +4413,7 @@ only without it. The zero-trust-lab session was told, at the owner's word.
   on the owner's word - slices 6a (the manifest and its reconciliation
   gate) and 6b (the generators read it) first.
 
-### Phase 47 — The services, declared once  🔧 IN PROGRESS (from 2026-09-15)
+### Phase 47 — The services, declared once  ✅ DONE 2026-09-15
 
 **ADR-0101**, item 6 of the plan, slice 6a, on `next`. The owner's word:
 *давай начнем насколько времени хватит, главное не оставить демо в
@@ -4467,10 +4467,16 @@ writes none of them, and no cycle for it.
   fb2092b` in all three repositories through the loop; the lab installed
   the digests the script resolved; every destroy and the lock green. 6c is
   proven. Merged to `main` on the owner's *да, вливай* (fast-forward).
-- Next allowed step: on the owner's word - the chart or the modules from
-  the manifest, one decision each; a job-level build matrix only with the
-  page's phase model reshaped; what the plan band shows once item 6
-  closes. The picture's translucency, still the owner's to judge.
+- **The two verdicts, 2026-09-15**: the picture's translucency *leave as is
+  for now* (ADR-0099 consequence); the plan band *убрать блок совсем* - so
+  the chart and the modules are declined as generator output (ADR-0101
+  D7), item 6 is DONE, the plan of 2026-09-12 is complete, and the `What
+  comes next` band leaves the page with its data and its refusals; a
+  `roadmap` key is refused now. Phase 47 is done.
+- Next allowed step: on the owner's word, from the tail the plan left
+  behind - per-service database users (ADR-0098 D2), a lab site, the
+  blunted break tests, the release-tag 403, the size of `runs.json` - or
+  whatever the owner names next. Nothing is planned on the page any more.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

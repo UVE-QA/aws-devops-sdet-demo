@@ -28,8 +28,12 @@ workflows name a service and nothing else about it - one script turns the
 manifest into repositories and digests, the build steps carry one word
 each because the page lights them by name, promote-prod records, tags and
 rolls back by the set the manifest declares; a job-level matrix would
-reshape the page's phases and is refused for now. Proven on a stand-in
-registry; the cycle from `next` is the proof that counts.
+reshape the page's phases and is refused for now. Proven by #36 from
+`next`, green in 66 minutes. Then item 6 closed on two verdicts: the chart
+and the modules weighed as generator output and declined, the `What comes
+next` band removed from the page with its data and its refusals - *убрать
+блок совсем* - and the picture left as it is. The plan of 2026-09-12 is
+complete; what remains is the tail, on the owner's word.
 
 **As of 2026-09-14 (46 — the run history is the bucket's).** One record,
 **ADR-0100**, and one read removed from the visitor's browser. The owner's

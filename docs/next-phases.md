@@ -1564,8 +1564,9 @@ The application has been deliberately boring so that the machinery around it
 could be the subject. The next stretch turns the application into a blueprint
 for something bigger, in an order chosen so that every step has a reason to
 exist on its own and a story to tell at an interview. The dashboard shows this
-list in `Details` and `scripts/generate-topology.py` refuses a page item that
-this document does not name (ADR-0094).
+list in `Details` from 2026-09-13 to 2026-09-15 (ADR-0094), refusing a page
+item this document did not name; with the last item done the band left the
+page on the owner's word (ADR-0101 D7), and this list is the record.
 
 **Front + back + database is not microservices; it is a three-tier
 application.** Splitting by layer shows nothing of the microservice story —
@@ -1619,7 +1620,7 @@ of it and the largest that a home project can carry without noise.
    because the renderer takes a graph and the manifest can become its source
    later without redrawing.
 
-6. A services manifest                          [IN PROGRESS 2026-09-15, ADR-0101]
+6. A services manifest                          [DONE 2026-09-15, ADR-0101]
    The pipeline, the estate and the dashboard derived from a declared list of
    services - name, Dockerfile, port, health, route, suites, database - instead
    of from one container. This is the blueprint: the observed teardown, the
@@ -1631,9 +1632,8 @@ of it and the largest that a home project can carry without noise.
    2026-09-15); 6c the workflows and the lab installer name a service and
    nothing else about it - repositories, contexts, digests and the rollback
    pointer through scripts/service-images.sh (2026-09-15, proven by a cycle
-   from `next`); whether the chart or the modules are ever generated from
-   it is a separate decision each, and a job-level build matrix would
-   reshape the page's phases first.
+   from `next`); the chart and the modules weighed and left hand-written
+   under the gate (D7). Done: the plan is complete.
 ```
 
 What each of these costs is written where it is decided; the first three are

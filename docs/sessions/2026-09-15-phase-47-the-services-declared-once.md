@@ -121,12 +121,25 @@ armed set of three, recorded `{api, web, worker}` and put
 the lab installed what the script resolved. Merged to `main` on the
 owner's *да, вливай*.
 
+## The two verdicts, and the plan closed
+
+The owner, asked the two questions that were the owner's: the picture's
+translucency - *leave as is for now*; the plan band once its last item is
+done - *убрать блок совсем*. And a correction worth keeping: *matrix* had
+been read as the GitHub construct, when what the owner wanted was only
+that the service tiles show what is really going on - which they do, by
+the steps' names and by the observations, and which is why the three build
+steps stayed three. The chart and the modules were weighed as generator
+output and declined (ADR-0101 D7); item 6 is done; the plan of 2026-09-12
+is complete. The `What comes next` band left the page with its data and
+its refusals, and `generate-topology.py` refuses a `roadmap` key now.
+
 ## What is still open
 
-One decision each, whether the chart, the modules or the workflows are
-generated from the manifest - and the honest answer may be *not the
-modules*. What the plan band shows once item 6 closes: the generator
-refuses an empty plan as an invented one, and the owner has not said.
+The tail the plan left behind, on the owner's word: per-service database
+users (ADR-0098 D2), a lab site, the blunted break tests, the release-tag
+403, the size of `runs.json`. The picture's translucency, open to a later
+verdict.
 The owner's verdict on the picture's translucency, still pending. Per-service
 database users (ADR-0098 D2), the lab site, the blunted break tests, the
 release-tag 403, the size of `runs.json`.

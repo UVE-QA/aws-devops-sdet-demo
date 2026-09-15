@@ -1125,12 +1125,6 @@
 
       /* The band above the cycle, and the text under the cut. Both are second
          renderings of data/topology.json - never maintained beside it. */
-      /* The plan (ADR-0094): a numbered list, the title carrying the weight,
-         what it is and why it is there in two quieter lines. Deliberately not
-         cards - cards are for things that exist. */
-      .roadmap .node.gone { opacity: 0.55; border-style: dashed; background: transparent; }
-      .roadmap .node.gone .icon.mark { filter: grayscale(1); }
-      .roadmap .node .nmeta { color: var(--muted); }
       .outside { display: grid; gap: var(--gap); grid-template-columns: repeat(auto-fit, minmax(var(--card-min), 1fr)); }
       .outside .node { opacity: 1; border-style: solid; background: var(--panel); }
       /* Same mark as everything else on this part. These two are not AWS
@@ -1773,19 +1767,11 @@
         <div class="outside" id="outside"></div>
       </section>
 
-      <!-- WHAT IS PLANNED, AND DELIBERATELY NOT BUILT (ADR-0094). Editorial, like
-           the band above it, and the heading says so: nothing here is in
-           infra/, the map draws none of it. It is on the page because a reader
-           who has followed the argument this far asks `and then what?`, and the
-           owner's answer is a better one than silence. The list is generated
-           from the same file as the map and refused by the same generator if
-           the plan document stops naming an item - so it cannot outlive the
-           plan it summarises. -->
-      <section data-part="detail" class="contour" id="roadmap-cut">
-        <h2>What comes next <span class="note">&mdash; planned, in this order; none of it is in <code>infra/</code> yet</span></h2>
-        <p class="sub" id="roadmap-note"></p>
-        <div class="outside roadmap" id="roadmap"></div>
-      </section>
+      <!-- THE BAND THAT STOOD HERE - `What comes next`, ADR-0094 - left with
+           the plan's last item on 2026-09-15 (ADR-0101 D7). The plan it showed
+           is history now, and history lives in docs/next-phases.md and the
+           decision records; the owner's word on an empty band was to remove
+           it rather than have it say `done`. -->
 
       <!-- THE ONE CUT LEFT (ADR-0079). Every other page-level <details> was
            flattened when the parts arrived, because a cut inside a part is the
@@ -6061,28 +6047,6 @@
               el.insertAdjacentHTML("beforeend", `<div class="asserts">${n.why}</div>`);
               outside.appendChild(el);
             });
-            // THE PLAN, IN THE ORDER IT WILL BE DONE (ADR-0094). Drawn from the
-            // generated file, never typed here: the generator has already
-            // refused any item the plan document does not name.
-            const roadmapNote = $("#roadmap-note");
-            const roadmap = $("#roadmap");
-            if (roadmapNote && roadmap && d.roadmap) {
-              roadmapNote.textContent = d.roadmap.note || "";
-              // TILES, GREYED, in the board's own vocabulary - the owner's call
-              // over a numbered list: `absent` is what this page already draws
-              // for a noun a cycle has not reached, and a planned service is
-              // exactly that. The step it arrives in is the tile's meta line.
-              const steps = {};
-              (d.roadmap.items || []).forEach((it, i) => { steps[it.id] = { n: i + 1, title: it.title }; });
-              roadmap.innerHTML = (d.roadmap.services || []).map((t) => {
-                const st = steps[t.step] || { n: "?", title: t.step };
-                return `<div class="node gone plan" data-plan="${esc(t.id)}" data-step="${esc(t.step)}">` +
-                  `<div class="head">${iconEl(t.service)}<span class="name">${esc(t.label)}</span></div>` +
-                  `<div class="nmeta">step ${st.n} &middot; ${esc(st.title)}</div>` +
-                  `<div class="asserts">${esc(t.why)}</div></div>`;
-              }).join("");
-            }
-
             const hidden = d.not_shown.reduce((a, g) => a + g.resources, 0);
             $("#counts").innerHTML =
               `${c.levels} Terraform state levels &mdash; ${c.permanent_levels} permanent, ` +

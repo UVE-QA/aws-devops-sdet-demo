@@ -176,3 +176,7 @@ says so rather than passing without the chart's half.
   does not expect would drop an edge silently rather than refuse. The gate
   catches the drift of the file, not the blindness of the reader — an
   edge-count floor per environment is the cheap guard if that ever bites.
+- The picture's translucency (tiles at 70%, absent at 45%, mid-line arrows)
+  was left to the owner's eye for a few days on 2026-09-14; on 2026-09-15
+  the word was *leave as is for now*. It stands, and stays open to a later
+  verdict.

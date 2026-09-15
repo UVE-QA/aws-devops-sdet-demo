@@ -147,6 +147,23 @@ refusal, the pointer in five shapes, the record, the tags, the reuse path
 of a build. A real job-level matrix, with the page's phase model reshaped
 for it, stays a separate decision.
 
+**D7. Item 6 is done; the chart and the modules stay hand-written; the
+plan band leaves the page.** With 6c the manifest drives everything the
+cycle runs and holds everything it does not; the two things left - the
+chart's three Deployment templates folded into one loop, the three
+`ecs-service` calls folded into one `for_each` - were weighed and declined:
+the chart's would trade three readable templates for one with conditions
+and an opaque diff, the modules' would move every address in three state
+files (`module.api` → `module.service["api"]`) and carry the HCL's
+argued comments into a generator, for a form that shows nothing new. Both
+stay under `manifest-check`. So the plan the owner set on 2026-09-12 is
+done, item by item, and the `What comes next` band ADR-0094 put on the page
+has nothing left to show. The owner's word: *убрать блок совсем*. It
+leaves - the section, its data, its refusals - and the generator refuses a
+`roadmap` key from now on, so it cannot come back by data alone. A plan
+that is done is history, and history is in `docs/next-phases.md` and the
+decision records.
+
 **D5. Item 5 is done and leaves the page's plan band.** The schema layout
 has been on the released page since #32 (ADR-0099), so its roadmap item and
 its tile leave `assets/topology-groups.json` under ADR-0094 D2's own rule -
@@ -174,8 +191,8 @@ stays, with one tile that names this ADR, until item 6 is done.
   derived from the manifest or refuse without it, the pipeline's copies are
   held to it. What the plan band shows once its last item is done is a
   question the generator refuses to answer alone - it refuses an empty plan
-  as an invented one (ADR-0094 D2) - and is the owner's to settle before
-  item 6 is closed.
+  as an invented one (ADR-0094 D2) - and was the owner's to settle before
+  item 6 was closed. Settled in D7: the band leaves.
 - D6 changes what the cycle runs - every build, the promotion's digests,
   the release record and the lab's install - so it is proven by a cycle
   from `next` before it is merged, and the rollback path by the stand-in
