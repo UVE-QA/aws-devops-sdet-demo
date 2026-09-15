@@ -4473,6 +4473,8 @@ writes none of them, and no cycle for it.
   D7), item 6 is DONE, the plan of 2026-09-12 is complete, and the `What
   comes next` band leaves the page with its data and its refusals; a
   `roadmap` key is refused now. Phase 47 is done.
+- Merged to `main` on the owner's *yes - go ahead* (fast-forward); CI and
+  publish-site green; the live page carries no plan band.
 - Next allowed step: on the owner's word, from the tail the plan left
   behind - per-service database users (ADR-0098 D2), a lab site, the
   blunted break tests, the release-tag 403, the size of `runs.json` - or
