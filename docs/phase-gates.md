@@ -4500,6 +4500,13 @@ Links to the repository are sent continuously, so in two steps.
   come: the page and the README already say how the project started, and
   a link to a repository under the first name is what the statement
   describes, not a contradiction of it.
+- **README, 2026-09-15**: *Why it is built this way* - the flow, identity,
+  secrets, the public path, what the page observes, supply chain and cost,
+  what is deliberately absent - in outline on the owner's word (*как форма
+  для README, no prose*), each line naming its record; drafted in the
+  scratchpad and discussed first, not published until agreed. Four README
+  lines that predated the lab and ADR-0068 corrected with it. Merged to
+  `main` on *да, вливай*; CI green.
 - Next allowed step: on the owner's word - step 2 above, or the tail the
   plan left behind: per-service database users (ADR-0098 D2, *leave it as
   is for now*), a lab site, the blunted break tests, the release-tag 403,
