@@ -44,7 +44,7 @@ stranger's. The trade is argued in ADR-0068 rather than glossed here.
 ## What it is meant to show
 
 ```text
-DevOps          Terraform modules and seven root state levels, OIDC-only CI/CD,
+DevOps          Terraform modules and nine root state levels, OIDC-only CI/CD,
                 promotion by digest, a guarded teardown that verifies itself
 Cloud           a dedicated AWS Organizations member account, IAM Identity
                 Center for humans, VPC/ALB/ECS/RDS, CloudWatch, Budgets
@@ -55,9 +55,91 @@ Security        no static AWS keys (see the qualifier above), prod's deploy
                 role trusts no branch, a database
                 that is not publicly accessible, a private site bucket behind
                 CloudFront with Origin Access Control
-FinOps          no NAT, no EKS, nothing always-on except cents of permanent
+FinOps          no NAT, EKS only in the lab and destroyed with it, nothing
+                always-on except cents of permanent
                 surface; a destroy workflow that is part of every cycle
 ```
+
+## Why it is built this way
+
+Every line is a decision record in `docs/decisions/`, with the argument or
+the incident behind it; the ones learned the hard way say so.
+
+**The flow**
+- build three images → stage → tests (contract, smoke, regression, a database
+  assertion) → the same digests to prod → prod smoke → a five-minute hold →
+  destroy everything, prod included
+- a Kubernetes lab beside stage, the same digests, destroyed with it (ADR-0097)
+- immutable registry; a release is the set of digests that passed the prod
+  smoke; rollback targets a pointer in SSM that outlives the environment
+  (ADR-0029)
+- the release tag is put on the commit through the API - no token here holds
+  `workflows: write` (ADR-0066)
+- three environments created and destroyed per cycle; six permanent levels
+  no workflow can destroy
+
+**Identity - no static keys**
+- humans: IAM Identity Center only, sessions expire (ADR-0002)
+- CI: GitHub OIDC, one role per environment, the provider at its own permanent
+  level (ADR-0003, ADR-0015)
+- prod's role trusts no branch - only the `prod` environment's subject
+  (ADR-0021); the page-publish role trusts environment subjects only, learned
+  from one `AssumeRoleWithWebIdentity` refusal
+- one task role per service, with rights on its own direction of its own queue;
+  the database secret readable by the execution role alone; the same rights as
+  IRSA on the cluster, where the chart refuses an empty role ARN (ADR-0097)
+- not done, and said so: both services connect to PostgreSQL as one user
+  (ADR-0098 D2)
+
+**Secrets - none in the repository, none in a workflow**
+- the database password: Terraform → Secrets Manager → the container, by ARN;
+  on the cluster a Kubernetes Secret filled from Secrets Manager (ADR-0005)
+- the button is a GitHub App; its private key is in Secrets Manager, readable
+  by two Lambdas (ADR-0034)
+- the runner's token is the only credential that talks to GitHub; it also
+  writes the run history into the page's bucket, so a visitor's browser never
+  calls GitHub (ADR-0100)
+- gitleaks over the full history on every push
+
+**The public path - anyone may press the button, nobody can hurt anything**
+- a Lambda behind a Function URL with a DynamoDB control store: one cycle at a
+  time, three a day, a 90-minute deadline written into every resource's tags;
+  five refusals, each with a break test that proves it fires (ADR-0035)
+- the lock is released by the last job after every destroy; a failed destroy
+  keeps it (ADR-0036)
+- a watchdog outside the devbox tears down by tag whatever outlives its
+  deadline; it once took a live stage because a default made the owner's
+  cycle look public - the default is empty now and the record keeps the
+  timeline
+- resources a cycle created and Terraform did not are adopted into state
+  before the teardown, not left for the bill (ADR-0038, ADR-0041)
+
+**The page says only what it observed**
+- every state is read back out of AWS after the run, never inferred from a
+  green check (ADR-0054); the released line is reported while a branch is
+  being proven (ADR-0093)
+- the cost of a cycle is folded from the real teardown and refuses a pair it
+  cannot vouch for (ADR-0046)
+- the estate diagram is generated from the modules' inputs and `helm template`,
+  every edge citing the file and line it was read from (ADR-0099); the services
+  are declared once, and seven hand-written copies are held to that file by a
+  gate (ADR-0101)
+- one list of gates serves CI and the end of a session, and discovers a gate
+  that went missing - it has caught this repository's own holes twice
+
+**Supply chain and cost**
+- third-party actions pinned by commit SHA, with a check that keeps them so
+  (ADR-0030); Trivy on the images, Checkov on the IaC, Dependabot on five
+  manifests
+- base images from AWS's mirror of the official ones, after one reset
+  connection to Docker Hub ended a public launch in two seconds
+- no NAT gateway; spot nodes in the lab; a budget with an alarm; everything
+  destroyed, and the price of a cycle on the page
+
+**Deliberately not here**
+- Argo CD or Flux; a WAF or CloudFront in front of the application;
+  per-service database users, yet - each with its reason at the end of
+  `docs/next-phases.md`
 
 ## The application
 
@@ -172,9 +254,9 @@ SSO session, in the order given in `docs/preflight-inventory.md`. On this
 account they are all applied already, so a cycle starts straight at
 `deploy-stage`.
 
-## The eight state levels
+## The nine state levels
 
-Six permanent, two per-cycle. The split is the design, not an accident of
+Six permanent, three per-cycle. The split is the design, not an accident of
 layout: **the exhibit cannot be destroyed by the thing it exhibits.**
 
 ```text
@@ -185,7 +267,8 @@ infra/dns              delegated zone + ALB certificate           permanent
 infra/public-site      the dashboard: S3 + CloudFront + OAC       permanent
 infra/self-service     the public launch button and its refusals  permanent
 infra/envs/stage       VPC, ALB, ECS, RDS                         per cycle
-infra/envs/prod        the same, behind an approval gate          per cycle
+infra/envs/prod        the same, from the digests stage tested     per cycle
+infra/envs/lab         VPC, EKS, RDS - the same digests by Helm    per cycle
 ```
 
 `infra/self-service` is applied and **the button is live**. Every refusal it
@@ -194,7 +277,8 @@ an anonymous visitor in 19c, and since 19g a launch cancelled mid-apply reclaims
 itself: the run's own teardown adopts what never entered Terraform state and
 destroys it, with no human and no watchdog (**ADR-0038**). What bounds a stranger
 is a 90-minute TTL per launch and three launches per UTC day, both enforced
-server-side, and the reach is stage only, by IAM rather than by an input.
+server-side; since **ADR-0068** the public path runs the whole cycle, prod and
+the lab included, and gives every environment back.
 
 Anything that must survive a teardown lives above the environments — including
 the container registry, whose image prod is running, and the dashboard, which is
