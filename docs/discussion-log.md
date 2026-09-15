@@ -6,6 +6,23 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
+**As of 2026-09-15 (47 — the services, declared once).** One record,
+**ADR-0101**, and the plan's last item begun the way the owner asked - *не
+оставить демо в промежуточном нерабочем состоянии*. By the end of item 4
+the three services were declared in seven places that had never met:
+compose, the ecs-service modules of stage and prod, the balancer's rule,
+the chart, six build steps, three Dockerfiles, the lab installer's list and
+the schema generator's table; the api's port agreed across them because one
+person typed it three times. Now `services.json` in the root says each
+fact once - name, image, context, port, health, routes, queues, database,
+suites - and `manifest-check` holds every copy to it in both directions, so
+a service added in one place and not the manifest is red, and so is the
+reverse. Proven on five corruptions before it was wired. Nothing is
+generated from it yet: that is 6b, the generators first, and the chart or
+the modules only by a decision each. Item 5 done and off the plan band; the
+manifest's tile on it. JSON over YAML: a local gate carries no dependency.
+On `next`; no cycle, because the cycle runs nothing that changed.
+
 **As of 2026-09-14 (46 — the run history is the bucket's).** One record,
 **ADR-0100**, and one read removed from the visitor's browser. The owner's
 screen read *Run history unavailable — HTTP 403* over a cycle in flight, and

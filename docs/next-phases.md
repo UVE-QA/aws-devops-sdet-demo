@@ -1607,7 +1607,7 @@ of it and the largest that a home project can carry without noise.
    Microservices is a statement about data, not about the number of
    containers.
 
-5. The estate as a schema                       [IN PROGRESS 2026-09-14, ADR-0099]
+5. The estate as a schema                       [DONE 2026-09-14, ADR-0099]
    A second layout of the estate board: the same observed tiles, laid out as
    a diagram with edges - and inside each runtime a finer grain than the
    nouns, tasks and target groups on ECS, nodes and pods on EKS, drawn side
@@ -1619,12 +1619,16 @@ of it and the largest that a home project can carry without noise.
    because the renderer takes a graph and the manifest can become its source
    later without redrawing.
 
-6. A services manifest
+6. A services manifest                          [IN PROGRESS 2026-09-15, ADR-0101]
    The pipeline, the estate and the dashboard derived from a declared list of
    services - name, Dockerfile, port, health, route, suites, database - instead
    of from one container. This is the blueprint: the observed teardown, the
    cost fold and the gates are the valuable part, and a new project should be
-   able to declare its way into them.
+   able to declare its way into them. In slices: 6a `services.json` and
+   `manifest-check`, the seven hand-written copies held to the one file in
+   both directions (done 2026-09-15); 6b the generators read it; whether the
+   chart, the modules or the workflows are ever generated from it is a
+   separate decision each.
 ```
 
 What each of these costs is written where it is decided; the first three are

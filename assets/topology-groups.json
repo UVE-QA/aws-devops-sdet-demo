@@ -1407,26 +1407,20 @@
     "note": "Planned, and deliberately not built yet. Nothing below is in infra/, the map draws none of it, and the order is the order it will be done in.",
     "items": [
       {
-        "id": "estate-schema",
-        "title": "The estate as a schema",
-        "what": "a second layout of the estate board: the same observed tiles as a diagram with edges, and inside each runtime the tasks and target groups, the nodes and pods, side by side; layers switch on and off",
-        "why": "two runtimes read as one architecture with two insides, from what is already generated and observed - nothing drawn by hand"
-      },
-      {
         "id": "services-manifest",
         "title": "A services manifest",
         "what": "the pipeline, the estate and this page derived from a declared list of services instead of from one container",
         "why": "so the machinery around the application - the observed teardown, the cost fold, the gates - becomes a blueprint another project can declare its way into"
       }
     ],
-    "_services": "THE TILES (ADR-0094 D1, as the owner chose it): the additional services the plan brings, drawn as greyed marks in the same board vocabulary as the estate - `absent` is what this page already draws for a noun a cycle has not reached, and a planned service is exactly that. Each tile names the step it arrives in, and the step must be an item above; the generator refuses one that is not. `sqs` and `eks` carry a project glyph until their Architecture Icons are added to assets/aws-icons/. A tile leaves the band the day the board draws the thing: web and api left with ADR-0095, the queue and the worker with ADR-0096.",
+    "_services": "THE TILES (ADR-0094 D1, as the owner chose it): the additional services the plan brings, drawn as greyed marks in the same board vocabulary as the estate - `absent` is what this page already draws for a noun a cycle has not reached, and a planned service is exactly that. Each tile names the step it arrives in, and the step must be an item above; the generator refuses one that is not. `sqs` and `eks` carry a project glyph until their Architecture Icons are added to assets/aws-icons/. A tile leaves the band the day the board draws the thing: web and api left with ADR-0095, the queue and the worker with ADR-0096, the schema layout with ADR-0099 (the board has drawn it since cycle #32).",
     "services": [
       {
-        "id": "plan.schema",
-        "label": "the estate as a schema",
-        "service": "eks",
-        "step": "estate-schema",
-        "why": "not a service - the board's second layout, drawn from what the two runtimes already declare; the one tile the band has left until the manifest"
+        "id": "plan.manifest",
+        "label": "a services manifest",
+        "service": "ecr",
+        "step": "services-manifest",
+        "why": "not a service - the one file the services are declared in; 6a exists (services.json, held to its seven copies by manifest-check, ADR-0101), and the tile stays until the generators read it"
       }
     ]
   }

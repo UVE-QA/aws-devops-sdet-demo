@@ -4413,6 +4413,32 @@ only without it. The zero-trust-lab session was told, at the owner's word.
   on the owner's word - slices 6a (the manifest and its reconciliation
   gate) and 6b (the generators read it) first.
 
+### Phase 47 — The services, declared once  🔧 IN PROGRESS (from 2026-09-15)
+
+**ADR-0101**, item 6 of the plan, slice 6a, on `next`. The owner's word:
+*давай начнем насколько времени хватит, главное не оставить демо в
+промежуточном нерабочем состоянии* - so a slice that reads the copies and
+writes none of them, and no cycle for it.
+
+- **Written 2026-09-15**: `services.json` in the root - three services,
+  every field a fact one of the seven copies already stated (compose, the
+  ecs-service modules of stage and prod with their queue policies, the
+  balancer's rule and target groups, the chart's values, Deployments and
+  Ingress, six build steps, three Dockerfiles, `lab-install.sh`'s
+  repositories, `generate-schema.py`'s table); `scripts/check-manifest.py`
+  holding all of them to it in both directions, as `manifest-check` in
+  `gates.json` (local, 14 runnable here). Proven on five corruptions of a
+  copy of the tree before it was wired - a chart port, a balancer route,
+  an undeclared module, the manifest drifted in two fields, a renamed
+  build step - each named by file. Item 5 set DONE; the schema's tile left
+  the plan band and the manifest's took its place. JSON over YAML on the
+  owner's *json ок*: no dependency for a local gate.
+- Next allowed step: slice 6b - `scripts/generate-schema.py` reads
+  `services.json` instead of its own `ECS_SERVICES` table - on the owner's
+  word; then whether the chart, the modules or the workflows are generated
+  from it, one decision each. Merge 6a to `main` on green CI and the
+  owner's *да, вливай*.
+
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,
 `phase complete`, `go next`, `ок`, `дальше`, `подтверждаю`.
