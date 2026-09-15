@@ -73,8 +73,12 @@ reads the first sentence of the README.
   page says why in one sentence. Anyone reading `aws-devops-sdet-demo-…` in
   a resource name has the explanation four lines under the `Details`
   heading.
-- The first step (page, README, this ADR) is on `next` and merged on the
-  owner's word; the second step is recorded here when it is done, with the
+- The first step (page, README, this ADR) was merged on the owner's word
+  the same day. The second - the repository's name - the owner held back:
+  *give me time, maybe its not needed, we already have description about
+  that changes*. It waits on the owner's word and may not come; until it
+  does, the repository keeps the first name, the page says how the project
+  started, and the two agree. If it comes, it is recorded here with the
   launch that proved it.
 - `docs/` keeps the first name wherever it is quoted from a log, a tag or
   a resource - those are records of what was, not statements of what is.

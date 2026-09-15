@@ -4492,14 +4492,18 @@ Links to the repository are sent continuously, so in two steps.
   the run history still address the repository as it is.
 - Step 1 merged to `main` on the owner's *да, вливай* (fast-forward); CI
   and publish-site green; the live page's title reads `aws-platform-demo`.
-- Next allowed step: step 2, this evening at the owner's hand - the
-  repository renamed in GitHub's settings; then, in the same hour, the
-  page's `REPO` constant, the button's repository, the links, the fixtures
-  and the documents on `next`, merged, and one launch from the button to
-  prove the dispatch. Then the tail the plan left behind, on the owner's
-  word: per-service database users (ADR-0098 D2, *leave it as is for
-  now*), a lab site, the blunted break tests, the release-tag 403, the
-  size of `runs.json`.
+- Then the owner: *give me time, maybe its not needed, we already have
+  description about that changes*. So step 2 - the repository renamed in
+  GitHub's settings at the owner's hand, then the page's `REPO` constant,
+  the button's repository, the links, the fixtures and the documents, and
+  one launch from the button - waits on the owner's word, and may never
+  come: the page and the README already say how the project started, and
+  a link to a repository under the first name is what the statement
+  describes, not a contradiction of it.
+- Next allowed step: on the owner's word - step 2 above, or the tail the
+  plan left behind: per-service database users (ADR-0098 D2, *leave it as
+  is for now*), a lab site, the blunted break tests, the release-tag 403,
+  the size of `runs.json`.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,
