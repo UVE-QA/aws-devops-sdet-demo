@@ -317,41 +317,68 @@ def check_chart(root: pathlib.Path, services: list[dict], findings: list[str]) -
 
 
 def check_workflows(root: pathlib.Path, services: list[dict], findings: list[str]) -> None:
-    by_image = {s["image"]: s for s in services}
+    """Since ADR-0101 D6 a workflow names a service and nothing else about it:
+    a build step runs `scripts/build-service.sh <name>`, the image variables
+    of an apply are `TF_VAR_<name>_image`, and the repositories and digests
+    come from scripts/service-images.sh. A repository name spelled in a
+    workflow is a copy that came back."""
+    names = {s["name"] for s in services}
+    for wf in WORKFLOWS_BUILDING + WORKFLOWS_NAMING:
+        text = (root / ".github" / "workflows" / wf).read_text()
+        for s in services:
+            if s["image"] in text:
+                fail(findings, f".github/workflows/{wf}: spells the repository {s['image']} - the manifest is the one copy (scripts/service-images.sh)")
+            if f"TF_VAR_{s['name']}_image:" not in text:
+                fail(findings, f".github/workflows/{wf}: no TF_VAR_{s['name']}_image for {s['name']}")
+        for m in re.finditer(r'TF_VAR_([a-z_]+)_image:', text):
+            if m.group(1) not in names:
+                fail(findings, f".github/workflows/{wf}: TF_VAR_{m.group(1)}_image is a service services.json does not declare")
+        if "scripts/service-images.sh" not in text:
+            fail(findings, f".github/workflows/{wf}: resolves no image through scripts/service-images.sh")
     for wf in WORKFLOWS_BUILDING:
         text = (root / ".github" / "workflows" / wf).read_text()
-        built = []
-        repo = None
-        for line in text.splitlines():
-            m = re.match(r'\s*ECR_REPOSITORY:\s*(\S+)', line)
-            if m:
-                repo = m.group(1)
-            m = re.search(r'build-and-push-image\.sh\s+.*\s(\S+)\s*$', line)
-            if m:
-                built.append((repo, m.group(1)))
-        for repo, context in built:
-            s = by_image.get(repo)
-            if s is None:
-                fail(findings, f".github/workflows/{wf}: builds `{repo}` from {context}, which services.json does not declare")
-            elif context != f"./{s['context']}":
-                fail(findings, f".github/workflows/{wf}: builds {s['name']} from {context}, the manifest says ./{s['context']}")
+        built = re.findall(r'build-service\.sh\s+(\S+)', text)
+        for name in built:
+            if name not in names:
+                fail(findings, f".github/workflows/{wf}: builds `{name}`, which services.json does not declare")
         for s in services:
-            if s["image"] not in [r for r, _ in built]:
-                fail(findings, f".github/workflows/{wf}: no build step pushes {s['image']}")
-    for wf in WORKFLOWS_NAMING:
-        text = (root / ".github" / "workflows" / wf).read_text()
-        for s in services:
-            if s["image"] not in text:
-                fail(findings, f".github/workflows/{wf}: never names {s['image']}")
+            if s["name"] not in built:
+                fail(findings, f".github/workflows/{wf}: no build step for {s['name']}")
+            elif f"- name: Build, tag, and push the {s['name']} image" not in text:
+                fail(findings, f".github/workflows/{wf}: the build step for {s['name']} is not named the way the page lights it")
 
 
 def check_lab_install(root: pathlib.Path, services: list[dict], findings: list[str]) -> None:
     text = (root / "scripts" / "lab-install.sh").read_text()
-    m = re.search(r'^REPOS=\((.*?)\)', text, re.M | re.S)
-    entries = dict(e.split(":", 1) for e in m.group(1).split()) if m else {}
-    want = {s["name"]: s["image"] for s in services}
-    if entries != want:
-        fail(findings, f"scripts/lab-install.sh: REPOS is {entries}, the manifest says {want}")
+    if "scripts/service-images.sh tag" not in text:
+        fail(findings, "scripts/lab-install.sh: does not resolve its digests through scripts/service-images.sh")
+    for s in services:
+        if s["image"] in text:
+            fail(findings, f"scripts/lab-install.sh: spells the repository {s['image']} - the manifest is the one copy")
+
+
+def check_page_bindings(root: pathlib.Path, services: list[dict], findings: list[str]) -> None:
+    """The page lights an `ECR push` node by the name of the step that builds
+    the service (assets/topology-groups.json, `live`); one node per service."""
+    spec = json.loads((root / "assets" / "topology-groups.json").read_text())
+    nodes = {}
+    for phase in spec.get("phases", []):
+        for n in phase.get("nodes", []):
+            if n.get("id", "").startswith("build."):
+                nodes[n["id"].split(".", 1)[1]] = n
+    names = {s["name"] for s in services}
+    for name in nodes:
+        if name not in names:
+            fail(findings, f"assets/topology-groups.json: node build.{name} builds a service services.json does not declare")
+    for s in services:
+        n = nodes.get(s["name"])
+        if n is None:
+            fail(findings, f"assets/topology-groups.json: no build.{s['name']} node for the page to light when {s['name']} is built")
+            continue
+        want = f"Build, tag, and push the {s['name']} image"
+        for live in n.get("live", []):
+            if want not in live.get("steps", []):
+                fail(findings, f"assets/topology-groups.json: build.{s['name']} is lit by {live.get('steps')} in {live.get('workflow')}, not by `{want}`")
 
 
 def check_observation(root: pathlib.Path, services: list[dict], findings: list[str]) -> None:
@@ -401,7 +428,7 @@ def main() -> int:
             print(f"manifest-check: {f}")
         return 1
     for check in (check_dockerfiles, check_compose, check_terraform, check_alb, check_chart,
-                  check_workflows, check_lab_install, check_observation, check_database_and_suites):
+                  check_workflows, check_lab_install, check_page_bindings, check_observation, check_database_and_suites):
         check(root, services, findings)
     if findings:
         for f in findings:

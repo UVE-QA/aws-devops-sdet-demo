@@ -20,7 +20,6 @@ set -euo pipefail
 REGION="${AWS_REGION:-us-west-2}"
 ENV_DIR="infra/envs/lab"
 RELEASE="demo"
-REPOS=(api:aws-devops-sdet-demo-app web:aws-devops-sdet-demo-web worker:aws-devops-sdet-demo-worker)
 
 out() { terraform -chdir="$ENV_DIR" output -raw "$1"; }
 
@@ -56,20 +55,14 @@ if [ "${1:-}" = "--uninstall" ]; then
 fi
 
 tag="${IMAGE_TAG:?set IMAGE_TAG to the commit whose images stage tested}"
+# The services and their repositories come from the manifest (ADR-0101 D6);
+# a tag missing from any repository is refused there, with the reason.
+refs="$(scripts/service-images.sh tag "$tag")"
 sets=()
-for entry in "${REPOS[@]}"; do
-  svc="${entry%%:*}"; repo="${entry#*:}"
-  url="$(aws ecr describe-repositories --region "$REGION" --repository-names "$repo" \
-           --query 'repositories[0].repositoryUri' --output text)"
-  digest="$(aws ecr describe-images --region "$REGION" --repository-name "$repo" \
-              --image-ids imageTag="$tag" --query 'imageDetails[0].imageDigest' --output text 2>/dev/null || true)"
-  if [ -z "$digest" ] || [ "$digest" = "None" ]; then
-    echo "::error::tag '$tag' is not in $repo - the lab runs what stage tested, and stage has not pushed this" >&2
-    exit 1
-  fi
-  echo "$svc: $url@$digest"
-  sets+=(--set "images.$svc.repository=$url" --set "images.$svc.digest=$digest")
-done
+while IFS=$'\t' read -r svc ref; do
+  echo "$svc: $ref"
+  sets+=(--set "images.$svc.repository=${ref%%@*}" --set "images.$svc.digest=${ref##*@}")
+done < <(jq -r 'to_entries[] | [.key, .value] | @tsv' <<<"$refs")
 
 helm upgrade --install "$RELEASE" charts/demo \
   --namespace "$namespace" \

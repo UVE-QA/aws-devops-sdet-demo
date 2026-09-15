@@ -76,74 +76,40 @@ jobs:
       - name: Resolve the shared ECR repositories
         id: repo
         shell: bash
-        env:
-          # Deterministic names, duplicated from infra/shared-ecr deliberately:
-          # a workflow derives them without reading Terraform state (ADR-0018).
-          # One repository per service since ADR-0095.
-          ECR_REPOSITORY: aws-devops-sdet-demo-app
-          WEB_ECR_REPOSITORY: aws-devops-sdet-demo-web
-          WORKER_ECR_REPOSITORY: aws-devops-sdet-demo-worker
-        run: |
-          set -euo pipefail
-          # `|| true` so a missing repository reaches the check below and gets
-          # the actionable message, instead of dying on the raw AWS exception.
-          resolve() {
-            local url
-            url="$(aws ecr describe-repositories \
-                     --region "$AWS_REGION" \
-                     --repository-names "$1" \
-                     --query 'repositories[0].repositoryUri' --output text 2>/dev/null || true)"
-            if [ -z "$url" ] || [ "$url" = "None" ]; then
-              echo "::error::shared ECR repository $1 not found — apply infra/shared-ecr first (ADR-0018, ADR-0095)"
-              exit 1
-            fi
-            echo "$url"
-          }
-          echo "ecr_url=$(resolve "$ECR_REPOSITORY")" >> "$GITHUB_OUTPUT"
-          echo "web_ecr_url=$(resolve "$WEB_ECR_REPOSITORY")" >> "$GITHUB_OUTPUT"
-          echo "worker_ecr_url=$(resolve "$WORKER_ECR_REPOSITORY")" >> "$GITHUB_OUTPUT"
+        # One URL per service in services.json (ADR-0101 D6): `url_<name>` as
+        # step outputs, for the apply's image variables below. The names are
+        # deterministic and duplicated from infra/shared-ecr deliberately - a
+        # workflow derives them without reading Terraform state (ADR-0018) -
+        # and since 6a the one copy of them is the manifest.
+        run: scripts/service-images.sh repos --output url
 
-      # ONE RELEASE, THREE IMAGES (ADR-0095, ADR-0096), built one after the other under
-      # the same tag. A matrix would build them in parallel and pass their
-      # digests to the next job through artifacts; that plumbing belongs with
-      # the services manifest of plan item 5, which is where the list of
-      # services it needs will live.
+      # ONE RELEASE, THREE IMAGES (ADR-0095, ADR-0096), built one after the other
+      # under the same tag. Each step names its service and the manifest says
+      # the repository and the build context (ADR-0101 D6); the page lights the
+      # step by its name, which is why three steps stay three rather than one
+      # loop. The three tries and the immutable-registry reuse live in
+      # scripts/build-and-push-image.sh, behind scripts/build-service.sh.
       - name: Build, tag, and push the api image
         env:
-          ECR_URL: ${{ steps.repo.outputs.ecr_url }}
-          ECR_REPOSITORY: aws-devops-sdet-demo-app
           IMAGE_TAG: ${{ github.sha }}
-        # One copy of the build, with a second and a third try (the public
-        # launch #34 met one reset connection to Docker Hub and died in 2 s).
-        # The immutable-registry reuse (ADR-0029) lives in the script too.
-        run: scripts/build-and-push-image.sh "$ECR_URL" "$ECR_REPOSITORY" "$IMAGE_TAG" ./app
+        run: scripts/build-service.sh api "$IMAGE_TAG"
 
       - name: Build, tag, and push the web image
         env:
-          ECR_URL: ${{ steps.repo.outputs.web_ecr_url }}
-          ECR_REPOSITORY: aws-devops-sdet-demo-web
           IMAGE_TAG: ${{ github.sha }}
-        # One copy of the build, with a second and a third try (the public
-        # launch #34 met one reset connection to Docker Hub and died in 2 s).
-        # The immutable-registry reuse (ADR-0029) lives in the script too.
-        run: scripts/build-and-push-image.sh "$ECR_URL" "$ECR_REPOSITORY" "$IMAGE_TAG" ./web
+        run: scripts/build-service.sh web "$IMAGE_TAG"
 
       - name: Build, tag, and push the worker image
         env:
-          ECR_URL: ${{ steps.repo.outputs.worker_ecr_url }}
-          ECR_REPOSITORY: aws-devops-sdet-demo-worker
           IMAGE_TAG: ${{ github.sha }}
-        # One copy of the build, with a second and a third try (the public
-        # launch #34 met one reset connection to Docker Hub and died in 2 s).
-        # The immutable-registry reuse (ADR-0029) lives in the script too.
-        run: scripts/build-and-push-image.sh "$ECR_URL" "$ECR_REPOSITORY" "$IMAGE_TAG" ./worker
+        run: scripts/build-service.sh worker "$IMAGE_TAG"
 
       - name: Terraform plan
         working-directory: infra/envs/stage
         env:
-          TF_VAR_api_image: ${{ steps.repo.outputs.ecr_url }}:${{ github.sha }}
-          TF_VAR_web_image: ${{ steps.repo.outputs.web_ecr_url }}:${{ github.sha }}
-          TF_VAR_worker_image: ${{ steps.repo.outputs.worker_ecr_url }}:${{ github.sha }}
+          TF_VAR_api_image: ${{ steps.repo.outputs.url_api }}:${{ github.sha }}
+          TF_VAR_web_image: ${{ steps.repo.outputs.url_web }}:${{ github.sha }}
+          TF_VAR_worker_image: ${{ steps.repo.outputs.url_worker }}:${{ github.sha }}
         run: terraform plan -input=false -out=tfplan
 
       # `-json` replaces terraform's human-readable output with an event stream,

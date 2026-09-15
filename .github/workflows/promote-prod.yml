@@ -106,49 +106,14 @@ jobs:
         id: image
         shell: bash
         env:
-          # Deterministic names, duplicated from infra/shared-ecr deliberately
-          # (ADR-0018): one repository per service since ADR-0095.
-          ECR_REPOSITORY: aws-devops-sdet-demo-app
-          WEB_ECR_REPOSITORY: aws-devops-sdet-demo-web
-          WORKER_ECR_REPOSITORY: aws-devops-sdet-demo-worker
           IMAGE_TAG: ${{ inputs.image_tag }}
-        run: |
-          set -euo pipefail
-          # ONE TAG, THREE DIGESTS (ADR-0095, ADR-0096). The tag is the release's name - the
-          # commit stage tested - and the digests are what prod pins: one per
-          # repository, resolved here and never guessed. `|| true` so a missing
-          # repository or tag reaches the checks below and gets an actionable
-          # message instead of a raw AWS exception.
-          resolve() {  # resolve <repository> -> url@digest on stdout
-            local url digest
-            url="$(aws ecr describe-repositories \
-                     --region "$AWS_REGION" \
-                     --repository-names "$1" \
-                     --query 'repositories[0].repositoryUri' --output text 2>/dev/null || true)"
-            if [ -z "$url" ] || [ "$url" = "None" ]; then
-              echo "::error::shared ECR repository $1 not found - apply infra/shared-ecr first (ADR-0018, ADR-0095)" >&2
-              exit 1
-            fi
-            digest="$(aws ecr describe-images \
-                        --region "$AWS_REGION" \
-                        --repository-name "$1" \
-                        --image-ids imageTag="$IMAGE_TAG" \
-                        --query 'imageDetails[0].imageDigest' --output text 2>/dev/null || true)"
-            if [ -z "$digest" ] || [ "$digest" = "None" ]; then
-              echo "::error::tag '$IMAGE_TAG' is not in $1 - promote a tag that a green deploy-stage run pushed" >&2
-              exit 1
-            fi
-            echo "$url@$digest"
-          }
-          api="$(resolve "$ECR_REPOSITORY")"
-          web="$(resolve "$WEB_ECR_REPOSITORY")"
-          worker="$(resolve "$WORKER_ECR_REPOSITORY")"
-          echo "promoting api $api"
-          echo "promoting web $web"
-          echo "promoting worker $worker"
-          echo "ref=$api" >> "$GITHUB_OUTPUT"
-          echo "web_ref=$web" >> "$GITHUB_OUTPUT"
-          echo "worker_ref=$worker" >> "$GITHUB_OUTPUT"
+        # ONE TAG, ONE DIGEST PER SERVICE (ADR-0095, ADR-0096, ADR-0101 D6). The
+        # tag is the release's name - the commit stage tested - and the digests
+        # are what prod pins: one per repository in services.json, resolved here
+        # and never guessed. `ref_<name>` per service for the apply's variables,
+        # `refs` as one object for the steps that need the whole set; a tag
+        # missing from any repository is refused there, with the reason.
+        run: scripts/service-images.sh tag "$IMAGE_TAG" --output ref
 
       - name: Read the rollback pointer
         id: pointer
@@ -176,24 +141,22 @@ jobs:
             echo "::error::rollback pointer $PARAM does not exist - apply infra/shared-ecr first (ADR-0029)"
             exit 1
           fi
-          api="none"; web="none"; worker="none"
+          # ARMED ONLY BY A RELEASE OF EVERY SERVICE THE MANIFEST DECLARES
+          # (ADR-0101 D6): the pointer's keys must be exactly services.json's
+          # names. A shape from before the split - a bare digest, or two
+          # services from ADR-0095's day - is reported and not used; the first
+          # green release writes the whole set.
+          names="$(jq -c '[.services[].name] | sort' services.json)"
+          pointer="none"
           if [ "$value" = "none" ]; then
             echo "::warning::no previous release recorded - rollback is NOT armed for this run"
-          elif printf '%s' "$value" | jq -e 'type == "object" and .api and .web and .worker' >/dev/null 2>&1; then
-            api="$(printf '%s' "$value" | jq -r .api)"
-            web="$(printf '%s' "$value" | jq -r .web)"
-            worker="$(printf '%s' "$value" | jq -r .worker)"
-            echo "rollback target if this release fails: api $api, web $web, worker $worker"
-          elif printf '%s' "$value" | jq -e 'type == "object" and .api and .web' >/dev/null 2>&1; then
-            # The shape ADR-0095 wrote: two services. A release is three now
-            # (ADR-0096), and a set that is missing one is not the set.
-            echo "::warning::the pointer names two services ($value) and a release is three since the worker - rollback is NOT armed for this run; the first green release writes all three"
+          elif printf '%s' "$value" | jq -e --argjson names "$names" 'type == "object" and (keys | sort) == $names and all(.[]; type == "string" and length > 0)' >/dev/null 2>&1; then
+            pointer="$(printf '%s' "$value" | jq -c .)"
+            echo "rollback target if this release fails: $(jq -r 'to_entries | map("\(.key) \(.value)") | join(", ")' <<<"$pointer")"
           else
-            echo "::warning::the pointer holds a single digest from before the service split ($value) - it names the api alone, so rollback is NOT armed for this run; the first green release writes all three"
+            echo "::warning::the pointer ($value) does not name every service in services.json ($names) - rollback is NOT armed for this run; the first green release writes the whole set"
           fi
-          echo "api_digest=$api" >> "$GITHUB_OUTPUT"
-          echo "web_digest=$web" >> "$GITHUB_OUTPUT"
-          echo "worker_digest=$worker" >> "$GITHUB_OUTPUT"
+          echo "pointer=$pointer" >> "$GITHUB_OUTPUT"
 
       - name: Terraform init (S3 backend)
         working-directory: infra/envs/prod
@@ -202,9 +165,9 @@ jobs:
       - name: Terraform plan
         working-directory: infra/envs/prod
         env:
-          TF_VAR_api_image: ${{ steps.image.outputs.ref }}
-          TF_VAR_web_image: ${{ steps.image.outputs.web_ref }}
-          TF_VAR_worker_image: ${{ steps.image.outputs.worker_ref }}
+          TF_VAR_api_image: ${{ steps.image.outputs.ref_api }}
+          TF_VAR_web_image: ${{ steps.image.outputs.ref_web }}
+          TF_VAR_worker_image: ${{ steps.image.outputs.ref_worker }}
         run: terraform plan -input=false -out=tfplan
 
       # `-json` replaces terraform's human-readable output with an event stream
@@ -318,15 +281,14 @@ jobs:
       - name: Record these digests as the last good release
         env:
           PARAM: /release/aws-devops-sdet-demo/prod/last-good-image-digest
-          IMAGE_REF: ${{ steps.image.outputs.ref }}
-          WEB_IMAGE_REF: ${{ steps.image.outputs.web_ref }}
-          WORKER_IMAGE_REF: ${{ steps.image.outputs.worker_ref }}
+          REFS: ${{ steps.image.outputs.refs }}
         run: |
           set -euo pipefail
-          # The release is the SET (ADR-0095, three since ADR-0096): one JSON
-          # object, written in one put, so the pointer never names a web from
-          # one release beside an api from another.
-          release="$(jq -nc --arg api "${IMAGE_REF##*@}" --arg web "${WEB_IMAGE_REF##*@}" --arg worker "${WORKER_IMAGE_REF##*@}" '{api: $api, web: $web, worker: $worker}')"
+          # The release is the SET (ADR-0095, three since ADR-0096, whatever
+          # services.json declares since ADR-0101): one JSON object keyed by
+          # service name, written in one put, so the pointer never names a web
+          # from one release beside an api from another.
+          release="$(jq -c 'map_values(sub("^.*@"; ""))' <<<"$REFS")"
           aws ssm put-parameter --region "$AWS_REGION" --name "$PARAM" \
             --type String --overwrite --value "$release" >/dev/null
           echo "last good prod release is now $release"
@@ -351,20 +313,16 @@ jobs:
         # tidied away.
         continue-on-error: true
         env:
-          ECR_REPOSITORY: aws-devops-sdet-demo-app
-          WEB_ECR_REPOSITORY: aws-devops-sdet-demo-web
-          WORKER_ECR_REPOSITORY: aws-devops-sdet-demo-worker
-          IMAGE_REF: ${{ steps.image.outputs.ref }}
-          WEB_IMAGE_REF: ${{ steps.image.outputs.web_ref }}
-          WORKER_IMAGE_REF: ${{ steps.image.outputs.worker_ref }}
+          REFS: ${{ steps.image.outputs.refs }}
           PROMOTED_SHA: ${{ inputs.image_tag }}
           # For the two `gh api` calls below. The same token `git push` was
           # using; what changes is the call, not the credential.
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          digest="${IMAGE_REF##*@}"
           name="release-$(date -u +%Y%m%d-%H%M)-${PROMOTED_SHA:0:7}"
+          # "api sha256:..., web sha256:..., worker sha256:..." - the set, named.
+          digests="$(jq -r 'to_entries | map("\(.key) \(.value | sub("^.*@"; ""))") | join(", ")' <<<"$REFS")"
 
           # The `git config` that used to stand here is gone with the `git tag`
           # it existed for (ADR-0066): an annotated tag needed a committer and a
@@ -394,9 +352,11 @@ jobs:
               --image-manifest "$manifest" \
               --image-manifest-media-type "$media" >/dev/null
           }
-          tag_in "$ECR_REPOSITORY" "$digest"
-          tag_in "$WEB_ECR_REPOSITORY" "${WEB_IMAGE_REF##*@}"
-          tag_in "$WORKER_ECR_REPOSITORY" "${WORKER_IMAGE_REF##*@}"
+          # Every service in the manifest: its repository from services.json,
+          # its digest from the set resolved above (ADR-0101 D6).
+          while IFS=$'\t' read -r svc image; do
+            tag_in "$image" "$(jq -r --arg n "$svc" '.[$n] | sub("^.*@"; "")' <<<"$REFS")"
+          done < <(jq -r '.services[] | [.name, .image] | @tsv' services.json)
 
           # On the commit the IMAGE was built from - the dispatched tag - not on
           # this workflow's own head. They are usually the same commit, and the
@@ -429,13 +389,13 @@ jobs:
           # smoked green and the run was still marked failed by this line alone.
           obj="$(gh api "repos/$GITHUB_REPOSITORY/git/tags" \
                    -f tag="$name" \
-                   -f message="prod release $name, api $digest, web ${WEB_IMAGE_REF##*@}" \
+                   -f message="prod release $name, $digests" \
                    -f object="$PROMOTED_SHA" \
                    -f type=commit \
                    --jq .sha)"
           gh api "repos/$GITHUB_REPOSITORY/git/refs" \
             -f ref="refs/tags/$name" -f sha="$obj" >/dev/null
-          echo "released $name -> api $digest, web ${WEB_IMAGE_REF##*@}"
+          echo "released $name -> $digests"
           echo "name=$name" >> "$GITHUB_OUTPUT"
 
       # ----------------------------------------------------------------------
@@ -460,51 +420,29 @@ jobs:
         id: rollback
         if: failure() && steps.apply.outcome == 'success' && steps.smoke.outcome != 'success'
         env:
-          ECR_REPOSITORY: aws-devops-sdet-demo-app
-          WEB_ECR_REPOSITORY: aws-devops-sdet-demo-web
-          WORKER_ECR_REPOSITORY: aws-devops-sdet-demo-worker
-          ROLLBACK_API: ${{ steps.pointer.outputs.api_digest }}
-          ROLLBACK_WEB: ${{ steps.pointer.outputs.web_digest }}
-          ROLLBACK_WORKER: ${{ steps.pointer.outputs.worker_digest }}
+          POINTER: ${{ steps.pointer.outputs.pointer }}
         run: |
           set -euo pipefail
-          if [ "$ROLLBACK_API" = "none" ] || [ "$ROLLBACK_WEB" = "none" ] || [ "$ROLLBACK_WORKER" = "none" ]; then
-            echo "::error::this release failed and no previous release of ALL THREE services exists to roll back to. prod is left standing for inspection - tear it down with the destroy workflow (environment: prod)."
+          if [ "$POINTER" = "none" ]; then
+            echo "::error::this release failed and no previous release of EVERY service exists to roll back to. prod is left standing for inspection - tear it down with the destroy workflow (environment: prod)."
             exit 1
           fi
           # The pointer can outlive the images it names: the lifecycle policy
           # expires by count and cannot protect a prefix (ADR-0029 s5). Checked
           # against each registry, not assumed - and the set rolls back or
-          # nothing does (ADR-0095).
-          target() {  # target <repository> <digest> -> url@digest
-            if ! aws ecr describe-images --region "$AWS_REGION" \
-                   --repository-name "$1" \
-                   --image-ids imageDigest="$2" >/dev/null 2>&1; then
-              echo "::error::rollback target $2 is no longer in $1 - the lifecycle policy expired it. prod is left standing for inspection." >&2
-              exit 1
-            fi
-            local url
-            url="$(aws ecr describe-repositories --region "$AWS_REGION" \
-                     --repository-names "$1" \
-                     --query 'repositories[0].repositoryUri' --output text)"
-            echo "$url@$2"
-          }
-          api="$(target "$ECR_REPOSITORY" "$ROLLBACK_API")"
-          web="$(target "$WEB_ECR_REPOSITORY" "$ROLLBACK_WEB")"
-          worker="$(target "$WORKER_ECR_REPOSITORY" "$ROLLBACK_WORKER")"
-          echo "rolling prod back to api $api, web $web, worker $worker"
-          echo "ref=$api" >> "$GITHUB_OUTPUT"
-          echo "web_ref=$web" >> "$GITHUB_OUTPUT"
-          echo "worker_ref=$worker" >> "$GITHUB_OUTPUT"
+          # nothing does (ADR-0095). One digest per service in services.json,
+          # resolved to url@digest the same way the release was (ADR-0101 D6).
+          refs="$(scripts/service-images.sh digests "$POINTER" --output ref)"
+          echo "rolling prod back to $(jq -r 'to_entries | map("\(.key) \(.value)") | join(", ")' <<<"$refs")"
 
       - name: Apply the rollback
         id: rollback_apply
         if: failure() && steps.rollback.outcome == 'success'
         working-directory: infra/envs/prod
         env:
-          TF_VAR_api_image: ${{ steps.rollback.outputs.ref }}
-          TF_VAR_web_image: ${{ steps.rollback.outputs.web_ref }}
-          TF_VAR_worker_image: ${{ steps.rollback.outputs.worker_ref }}
+          TF_VAR_api_image: ${{ steps.rollback.outputs.ref_api }}
+          TF_VAR_web_image: ${{ steps.rollback.outputs.ref_web }}
+          TF_VAR_worker_image: ${{ steps.rollback.outputs.ref_worker }}
         run: |
           set -euo pipefail
           # A second apply, NOT `aws ecs update-service`. update-service would
@@ -553,10 +491,10 @@ jobs:
             echo "| field | value |"
             echo "| --- | --- |"
             echo "| tag promoted | ${{ inputs.image_tag }} |"
-            echo "| image | ${{ steps.image.outputs.ref }} |"
+            echo "| images | ${{ steps.image.outputs.refs }} |"
             echo "| prod URL | ${{ steps.tf.outputs.app_url }} |"
             echo "| release | ${{ steps.release.outputs.name || '(none - this release did not pass)' }} |"
-            echo "| rollback target | api ${{ steps.pointer.outputs.api_digest }}, web ${{ steps.pointer.outputs.web_digest }}, worker ${{ steps.pointer.outputs.worker_digest }} |"
+            echo "| rollback target | ${{ steps.pointer.outputs.pointer }} |"
             echo "| rollback applied | ${{ steps.rollback_apply.outcome || 'no' }} |"
             echo ""
             echo "prod is billable while it is up. Tear it down with the destroy workflow (environment: prod)."
