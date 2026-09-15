@@ -221,6 +221,10 @@
       ]
     },
     {
+      "target": "manifest-check",
+      "local": true
+    },
+    {
       "target": "schema-check",
       "local": false,
       "needs": "helm, for the chart's half of the graph",

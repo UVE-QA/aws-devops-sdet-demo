@@ -8,7 +8,7 @@
         site-data site-data-check timeline-check node-states-check \
         suite-inventory suite-inventory-check results-check live-state-check \
         page-tense-check page-freshness-check page-inflight-check page-schema-check \
-        publish-prefixes-check claim-chain contrast-check measure-page gates gates-full gates-check
+        publish-prefixes-check claim-chain contrast-check measure-page manifest-check gates gates-full gates-check
 
 # Bring up postgres + app (build app image if needed), detached.
 local-up:
@@ -559,6 +559,14 @@ CHART_PLACEHOLDERS := --set images.api.repository=r --set images.api.digest=sha2
 # the topology. Needs helm for the chart's half, as chart-check does.
 schema:
 	python3 scripts/generate-schema.py
+
+# THE SERVICES, DECLARED ONCE (ADR-0101). services.json against its copies:
+# compose, the ecs-service modules of stage and prod, the load balancer's
+# rules, the chart, the build steps, the Dockerfiles, lab-install's repositories
+# and the schema generator's table - both directions, so a service added in
+# one place and not the manifest is red, and so is the reverse.
+manifest-check:
+	python3 scripts/check-manifest.py
 
 schema-check:
 	@command -v helm >/dev/null 2>&1 || { echo "schema-check: helm is not on PATH. Refusing to pass without reading the chart."; exit 1; }
