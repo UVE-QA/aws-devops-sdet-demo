@@ -95,20 +95,28 @@ LAYER_OF_ARG = [
 # `{ name = "ITEMS_QUEUE_URL", value = module.queue.queue_url }` - the
 # environment a service is given, one object per line.
 ENV_ITEM = re.compile(r'\{\s*name\s*=\s*"([A-Za-z_]+)"\s*,\s*value\s*=\s*(.+?)\s*\}')
-# What the page reads a part's numbers from, in status/<env>.json.
-ECS_SERVICES = {
-    "ecs_api": ("api", "resources.ecs_service"),
-    "ecs_web": ("web", "resources.ecs_web_service"),
-    "ecs_worker": ("worker", "resources.ecs_worker_service"),
-}
-CHART_PLACEHOLDERS = [
-    "--set", "images.api.repository=r", "--set", "images.api.digest=sha256:a",
-    "--set", "images.web.repository=r", "--set", "images.web.digest=sha256:b",
-    "--set", "images.worker.repository=r", "--set", "images.worker.digest=sha256:c",
-    "--set", "itemsQueueUrl=https://sqs.example/q", "--set", "resultsQueueUrl=https://sqs.example/r",
-    "--set", "serviceAccounts.api.roleArn=arn:aws:iam::0:role/api-irsa",
-    "--set", "serviceAccounts.worker.roleArn=arn:aws:iam::0:role/worker-irsa",
-]
+# THE SERVICES COME FROM THE MANIFEST (ADR-0101, slice 6b). Until 2026-09-15
+# this file carried its own table of the three services - which module is
+# which group, where the page reads each one's numbers, which chart values
+# helm needs - and manifest-check compared that table with services.json.
+# Now it reads the file, and there is nothing left to compare.
+MANIFEST = ROOT / "services.json"
+SERVICES: list[dict] = []
+
+
+def chart_placeholders(services: list[dict]) -> list[str]:
+    """What `helm template` needs to render the chart at all: an image per
+    service (the templates refuse an empty one), the queue URLs, and a role
+    ARN per service account the chart's values declare - read from the
+    values file, so the chart says which of the services carry one."""
+    args = []
+    for i, s in enumerate(services):
+        args += ["--set", f"images.{s['name']}.repository=r", "--set", f"images.{s['name']}.digest=sha256:{i:x}"]
+    args += ["--set", "itemsQueueUrl=https://sqs.example/q", "--set", "resultsQueueUrl=https://sqs.example/r"]
+    values = yaml.safe_load((CHART / "values.yaml").read_text(encoding="utf-8"))
+    for sa in (values.get("serviceAccounts") or {}):
+        args += ["--set", f"serviceAccounts.{sa}.roleArn=arn:aws:iam::0:role/{sa}-irsa"]
+    return args
 
 
 class Refusal(Exception):
@@ -247,14 +255,18 @@ def terraform_edges(env: str, level: pathlib.Path, groups: dict[str, str], shown
 
 
 def alb_paths() -> list[tuple[str, str]]:
-    """The listener rule's paths and where they go, from the ALB module."""
-    text = (ROOT / "infra/modules/alb/main.tf").read_text(encoding="utf-8")
-    rule = re.search(r'resource "aws_lb_listener_rule" "api" \{(.*?)\n\}', text, re.S)
-    if not rule:
-        raise Refusal("infra/modules/alb/main.tf has no listener rule `api`")
-    values = re.search(r'values\s*=\s*\[([^\]]+)\]', rule.group(1))
-    paths = [v.strip().strip('"') for v in values.group(1).split(",")] if values else []
-    return [(", ".join(paths), "api"), ("everything else", "web")]
+    """The balancer's rules and where they go, from the manifest's routes -
+    which manifest-check holds to the listener rule in infra/modules/alb."""
+    out = []
+    for s in SERVICES:
+        if s["routes"] and s["routes"] != ["default"]:
+            out.append((", ".join(s["routes"]), s["name"]))
+    for s in SERVICES:
+        if s["routes"] == ["default"]:
+            out.append(("everything else", s["name"]))
+    if not out:
+        raise Refusal("services.json routes nothing to any service; the balancer would have no rules")
+    return out
 
 
 def irsa_edges(env: str) -> list[dict]:
@@ -262,7 +274,8 @@ def irsa_edges(env: str) -> list[dict]:
     `aws_iam_role_policy` whose document names var.queue_arn or
     var.results_queue_arn is an edge from that role's group to that queue."""
     text = (ROOT / "infra/modules/eks/irsa.tf").read_text(encoding="utf-8")
-    role_group = {"api": "k8s_api", "worker": "k8s_worker", "controller": "eks"}
+    role_group = {s["name"]: f"k8s_{s['name']}" for s in SERVICES}
+    role_group["controller"] = "eks"
     docs = {}
     for kind, name, body, _ in blocks(text):
         if kind == "data:aws_iam_policy_document":
@@ -286,7 +299,7 @@ def irsa_edges(env: str) -> list[dict]:
 def rendered_chart() -> list[dict]:
     if not shutil.which("helm"):
         raise Refusal("helm is not on PATH; the chart's half of the schema cannot be read")
-    result = subprocess.run(["helm", "template", "demo", str(CHART), *CHART_PLACEHOLDERS],
+    result = subprocess.run(["helm", "template", "demo", str(CHART), *chart_placeholders(SERVICES)],
                             capture_output=True, text=True)
     if result.returncode != 0:
         raise Refusal("helm template failed:\n" + result.stderr[-800:])
@@ -387,10 +400,13 @@ def edge_layer(e: dict) -> str:
 def build() -> dict:
     topology = read_json(TOPOLOGY)
     spec = read_json(GROUPS)
+    SERVICES[:] = read_json(MANIFEST)["services"]
+    if not SERVICES:
+        raise Refusal("services.json declares no services")
     shown = {g["id"] for g in spec["groups"] if g.get("shown")}
     assign = spec["assign"]
     out = {"schema": "schema/1", "lanes": LANES, "layers": LAYERS, "environments": {}}
-    irsa_group = {"api-irsa": "k8s_api", "worker-irsa": "k8s_worker"}
+    irsa_group = {f"{s['name']}-irsa": f"k8s_{s['name']}" for s in SERVICES}
     for env in topology["estate"]["environments"]:
         eid = env["id"]
         level = ROOT / env["level"]
@@ -417,18 +433,20 @@ def build() -> dict:
                               "observe": {"path": path, "have": "visible", "want": None, "alarm": "dead_letter_alarm"},
                               "source": f"infra/modules/queue (module \"{'queue' if q == 'items' else 'results'}\")"})
         if runtime == "ecs":
-            for gid, (svc, path) in ECS_SERVICES.items():
-                if any(n["group"] == gid for n in nouns):
-                    parts.append({"id": f"{eid}.{gid}.tasks", "parent": f"{eid}.{gid}", "kind": "tasks",
-                                  "label": f"tasks · {svc}",
-                                  "observe": {"path": path, "have": "running", "want": "desired"},
-                                  "source": "infra/modules/ecs-service/main.tf"})
+            for s in SERVICES:
+                gid = f"ecs_{s['name']}"
+                if not any(n["group"] == gid for n in nouns):
+                    raise Refusal(f"{eid}: services.json declares {s['name']} and the estate draws no {gid}")
+                parts.append({"id": f"{eid}.{gid}.tasks", "parent": f"{eid}.{gid}", "kind": "tasks",
+                              "label": f"tasks · {s['name']}",
+                              "observe": {"path": f"resources.{s['status_key']}", "have": "running", "want": "desired"},
+                              "source": "infra/modules/ecs-service/main.tf"})
             if any(n["group"] == "alb" for n in nouns):
                 for paths, target in alb_paths():
                     pid = f"{eid}.alb.tg_{target}"
                     parts.append({"id": pid, "parent": f"{eid}.alb", "kind": "target-group",
                                   "label": f"{paths} → {target}", "observe": None,
-                                  "source": "infra/modules/alb/main.tf"})
+                                  "source": "services.json (routes), held to infra/modules/alb/main.tf by manifest-check"})
                     edges.append({"from": pid, "to": f"{eid}.ecs_{target}.tasks", "via": "targets",
                                   "kind": "network", "source": "infra/modules/alb/main.tf"})
             # the policies and the URLs name the queue tile; the parts say which queue
@@ -487,9 +505,9 @@ def build() -> dict:
                 raise Refusal(f"{eid}: part {p['id']} hangs off {p['parent']}, which nothing draws")
         out["environments"][eid] = {"runtime": runtime, "nouns": nouns, "parts": parts, "edges": edges,
                                     "counts": {"nouns": len(nouns), "parts": len(parts), "edges": len(edges)}}
-    out["_"] = ("GENERATED by scripts/generate-schema.py from site/data/topology.json, the modules' inputs in "
-                "infra/envs/*, the listener rule in infra/modules/alb and `helm template` over charts/demo "
-                "(ADR-0099). Do not edit; `make schema` regenerates it and `make schema-check` refuses drift.")
+    out["_"] = ("GENERATED by scripts/generate-schema.py from services.json, site/data/topology.json, the modules' "
+                "inputs in infra/envs/* and `helm template` over charts/demo (ADR-0099, ADR-0101). Do not edit; "
+                "`make schema` regenerates it and `make schema-check` refuses drift.")
     return out
 
 

@@ -2,43 +2,84 @@
   "_": "THE SERVICES, DECLARED ONCE (ADR-0101, item 6 of the plan). Before this file the three services were declared in seven places that never met: docker-compose.yml, the ecs-service modules of infra/envs/stage and prod, the load balancer's listener rule, the Helm chart's values and templates, the build steps of two workflows, the Dockerfiles, and the ECS_SERVICES table of scripts/generate-schema.py. Nothing compared them. The api's port lives as a Terraform default, a chart literal and a Dockerfile EXPOSE, and they agree today because one person typed all three. This file is the declaration those copies must agree with, and scripts/check-manifest.py is the comparison - ONE FACT, N COPIES, ONE CHECK (ADR-0085). In this slice nothing is generated from it yet; the copies stay hand-written and the gate refuses when one of them disagrees, or when a copy declares a service this file does not name.",
   "schema": 1,
   "project": "aws-devops-sdet-demo",
-  "_services": "One entry per service the cycle builds, deploys and observes. `name` is what the estate calls it and what the ecs-service module's `service` argument and the chart's `images.<name>` key say. `image` is the ECR repository, `context` the directory the build steps hand to scripts/build-and-push-image.sh; `compose` is the service's name in docker-compose.yml, kept because the api's is historically `app`. `port` is null for a service behind no load balancer. `health` is a path when the runtime probes over HTTP, else the command every copy runs. `routes` are the load balancer's rules that reach the service; `default` means the listener's default action. `queues` name the queue modules, `database.schema` the PostgreSQL schema the service's migrations own, `suites` the Makefile targets that exercise it.",
+  "_services": "One entry per service the cycle builds, deploys and observes. `name` is what the estate calls it and what the ecs-service module's `service` argument and the chart's `images.<name>` key say. `image` is the ECR repository, `context` the directory the build steps hand to scripts/build-and-push-image.sh; `compose` is the service's name in docker-compose.yml, kept because the api's is historically `app`. `port` is null for a service behind no load balancer. `health` is a path when the runtime probes over HTTP, else the command every copy runs. `routes` are the load balancer's rules that reach the service; `default` means the listener's default action. `queues` name the queue modules, `database.schema` the PostgreSQL schema the service's migrations own, `suites` the Makefile targets that exercise it. `status_key` is the key under `resources` in status/<env>.json that scripts/observe-environment.sh writes the service's ECS reading to - the api's is the historical `ecs_service`, from the days of one container - and where the page and the schema read its tasks from.",
   "services": [
     {
       "name": "api",
       "image": "aws-devops-sdet-demo-app",
       "context": "app",
       "compose": "app",
+      "status_key": "ecs_service",
       "port": 8000,
       "health": "/health",
-      "routes": ["/api/*", "/health"],
-      "queues": {"publishes": ["items"], "consumes": ["results"]},
-      "database": {"schema": "public", "migrations": "app/alembic"},
-      "suites": ["test-api", "test-smoke", "test-regression", "test-db"]
+      "routes": [
+        "/api/*",
+        "/health"
+      ],
+      "queues": {
+        "publishes": [
+          "items"
+        ],
+        "consumes": [
+          "results"
+        ]
+      },
+      "database": {
+        "schema": "public",
+        "migrations": "app/alembic"
+      },
+      "suites": [
+        "test-api",
+        "test-smoke",
+        "test-regression",
+        "test-db"
+      ]
     },
     {
       "name": "web",
       "image": "aws-devops-sdet-demo-web",
       "context": "web",
       "compose": "web",
+      "status_key": "ecs_web_service",
       "port": 80,
       "health": "/healthz",
-      "routes": ["default"],
-      "queues": {"publishes": [], "consumes": []},
+      "routes": [
+        "default"
+      ],
+      "queues": {
+        "publishes": [],
+        "consumes": []
+      },
       "database": null,
-      "suites": ["test-smoke", "test-regression"]
+      "suites": [
+        "test-smoke",
+        "test-regression"
+      ]
     },
     {
       "name": "worker",
       "image": "aws-devops-sdet-demo-worker",
       "context": "worker",
       "compose": "worker",
+      "status_key": "ecs_worker_service",
       "port": null,
       "health": "find /tmp/heartbeat -mmin -1 | grep -q .",
       "routes": [],
-      "queues": {"publishes": ["results"], "consumes": ["items"]},
-      "database": {"schema": "worker", "migrations": "worker/alembic"},
-      "suites": ["test-api"]
+      "queues": {
+        "publishes": [
+          "results"
+        ],
+        "consumes": [
+          "items"
+        ]
+      },
+      "database": {
+        "schema": "worker",
+        "migrations": "worker/alembic"
+      },
+      "suites": [
+        "test-api"
+      ]
     }
   ]
 }

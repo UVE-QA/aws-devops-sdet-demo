@@ -396,6 +396,13 @@ def build():
         if g["id"] in groups:
             raise Refusal(f"two display groups share the id {g['id']}")
         groups[g["id"]] = g
+    # THE MANIFEST'S SERVICES EACH HAVE A TILE (ADR-0101 slice 6b). services.json
+    # declares what the cycle builds; the estate draws a group per ECS service
+    # by the name `ecs_<name>`. A declared service the board would not draw is
+    # the plan band's defect in reverse - built, and never put on the map.
+    for s in json.loads((ROOT / "services.json").read_text())["services"]:
+        if f"ecs_{s['name']}" not in groups:
+            raise Refusal(f"services.json declares {s['name']} and {GROUPS_FILE.relative_to(ROOT)} has no group ecs_{s['name']} to draw it")
 
     lv = levels()
     rel = {d: str(d.relative_to(ROOT)) for d in lv}

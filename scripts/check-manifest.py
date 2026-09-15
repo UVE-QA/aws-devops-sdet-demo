@@ -11,8 +11,9 @@ same image, context, port, health, routes, queues and database; and a
 service any copy declares must be in the manifest - the ecs-service modules
 of stage and prod, the compose services that build, the chart's `images.*`
 keys and Deployment templates, the build steps of the two workflows, the
-repositories scripts/lab-install.sh resolves, the ECS_SERVICES table of
-scripts/generate-schema.py. Add a service in one place and forget the
+repositories scripts/lab-install.sh resolves, the keys observe-environment.sh
+writes a service's reading under. scripts/generate-schema.py is not a copy
+any more: it reads this file (slice 6b). Add a service in one place and forget the
 manifest, and this is red; add it to the manifest and forget one copy, and
 this is red. That is the whole point: the copies stay hand-written in this
 slice, and the file is the one place they must agree with.
@@ -110,7 +111,7 @@ def check_manifest_shape(manifest: dict, findings: list[str]) -> list[dict]:
     names = [s.get("name") for s in services]
     if len(set(names)) != len(names):
         fail(findings, f"services.json: a name repeats: {names}")
-    required = ("name", "image", "context", "compose", "port", "health", "routes", "queues", "database", "suites")
+    required = ("name", "image", "context", "compose", "status_key", "port", "health", "routes", "queues", "database", "suites")
     for s in services:
         for k in required:
             if k not in s:
@@ -353,17 +354,17 @@ def check_lab_install(root: pathlib.Path, services: list[dict], findings: list[s
         fail(findings, f"scripts/lab-install.sh: REPOS is {entries}, the manifest says {want}")
 
 
-def check_schema_generator(root: pathlib.Path, services: list[dict], findings: list[str]) -> None:
-    text = (root / "scripts" / "generate-schema.py").read_text()
-    m = re.search(r'^ECS_SERVICES = \{(.*?)^\}', text, re.M | re.S)
-    entries = re.findall(r'"ecs_(\w+)":\s*\("(\w+)"', m.group(1)) if m else []
-    names = {s["name"] for s in services}
-    for gid, svc in entries:
-        if gid != svc or svc not in names:
-            fail(findings, f"scripts/generate-schema.py: ECS_SERVICES has ecs_{gid} -> {svc}, which services.json does not declare")
-    for n in names:
-        if n not in {svc for _, svc in entries}:
-            fail(findings, f"scripts/generate-schema.py: ECS_SERVICES has no row for {n}")
+def check_observation(root: pathlib.Path, services: list[dict], findings: list[str]) -> None:
+    """status/<env>.json is written by observe-environment.sh, and the page and
+    the schema read a service's tasks from `resources.<status_key>`."""
+    text = (root / "scripts" / "observe-environment.sh").read_text()
+    written = set(re.findall(r'^\s+(ecs_\w+):\s*\$', text, re.M))
+    for s in services:
+        if s["status_key"] not in written:
+            fail(findings, f"scripts/observe-environment.sh never writes resources.{s['status_key']}, where the manifest says {s['name']}'s tasks are read from")
+    for key in written:
+        if key not in {s["status_key"] for s in services}:
+            fail(findings, f"scripts/observe-environment.sh writes resources.{key}, a service reading services.json does not declare")
 
 
 def check_database_and_suites(root: pathlib.Path, services: list[dict], findings: list[str]) -> None:
@@ -400,7 +401,7 @@ def main() -> int:
             print(f"manifest-check: {f}")
         return 1
     for check in (check_dockerfiles, check_compose, check_terraform, check_alb, check_chart,
-                  check_workflows, check_lab_install, check_schema_generator, check_database_and_suites):
+                  check_workflows, check_lab_install, check_observation, check_database_and_suites):
         check(root, services, findings)
     if findings:
         for f in findings:
