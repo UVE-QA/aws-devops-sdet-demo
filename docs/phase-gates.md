@@ -4490,6 +4490,8 @@ Links to the repository are sent continuously, so in two steps.
   path without dates and why the AWS names keep the first name; the README
   the same. Nothing that talks to GitHub by name changed - the button and
   the run history still address the repository as it is.
+- Step 1 merged to `main` on the owner's *да, вливай* (fast-forward); CI
+  and publish-site green; the live page's title reads `aws-platform-demo`.
 - Next allowed step: step 2, this evening at the owner's hand - the
   repository renamed in GitHub's settings; then, in the same hour, the
   page's `REPO` constant, the button's repository, the links, the fixtures
