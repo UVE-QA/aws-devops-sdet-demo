@@ -110,6 +110,17 @@ stand-in `aws` in PATH proved every mode and every refusal of the script,
 the pointer in five shapes, the record, the tags and a build's reuse path.
 The cycle from `next` is the proof that counts, and the owner allowed it.
 
+Then the owner logged in and the real registry answered the same way as
+the stand-in: three URLs, three digests for the last green launch's tag,
+the live pointer resolving to three images, a never-built tag refused with
+the reason. #36 from `next`, launched at 06:00 UTC: green end to end in 66
+minutes, every job. The three images built by name on the first attempt;
+promote resolved the release through the manifest, saw the pointer as an
+armed set of three, recorded `{api, web, worker}` and put
+`release-20260915-0634-fb2092b` in all three repositories through the loop;
+the lab installed what the script resolved. Merged to `main` on the
+owner's *да, вливай*.
+
 ## What is still open
 
 One decision each, whether the chart, the modules or the workflows are

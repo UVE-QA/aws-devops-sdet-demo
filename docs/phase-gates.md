@@ -4459,11 +4459,18 @@ writes none of them, and no cycle for it.
   gone; `manifest-check` holds the workflows and the page's `build.*`
   bindings to the manifest. Proven on a stand-in `aws`: every mode and
   refusal, the pointer in five shapes. ADR-0101 D6.
-- Next allowed step: the cycle from `next` that proves 6c (the owner's
-  *потом цикл*); merge on green and *да, вливай*. Then, on the owner's
-  word: the chart or the modules from the manifest, one decision each; a
-  job-level build matrix only with the page's phase model reshaped; what
-  the plan band shows once item 6 closes.
+- **#36 from `next`, green end to end, 66 minutes** (launch 19 m, promote
+  16 m, lab 28 m, destroy 12 m, destroy-lab 14 m, hold 5 m, destroy-prod
+  12 m): three images built by name on the first attempt; promote resolved
+  the release through the manifest, read the pointer as an armed set of
+  three, recorded `{api, web, worker}` and put `release-20260915-0634-
+  fb2092b` in all three repositories through the loop; the lab installed
+  the digests the script resolved; every destroy and the lock green. 6c is
+  proven. Merged to `main` on the owner's *да, вливай* (fast-forward).
+- Next allowed step: on the owner's word - the chart or the modules from
+  the manifest, one decision each; a job-level build matrix only with the
+  page's phase model reshaped; what the plan band shows once item 6
+  closes. The picture's translucency, still the owner's to judge.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

@@ -181,6 +181,10 @@ stays, with one tile that names this ADR, until item 6 is done.
   from `next` before it is merged, and the rollback path by the stand-in
   alone: a failed prod smoke is not something a green cycle exercises, and
   a deliberately broken release is a break test for another day.
+  Proven by #36 from `next` on 2026-09-15: 66 minutes green, the pointer
+  written as the set of three by the new record step, the release tag in
+  all three repositories by the loop, the lab installed from the script's
+  digests.
 - Adding a service is now: `services.json`, a Dockerfile and a compose
   service, the ecs-service module in stage and prod with its policies, the
   chart's values and a Deployment, a build step named for the page and a
