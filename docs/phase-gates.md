@@ -4433,6 +4433,10 @@ writes none of them, and no cycle for it.
   build step - each named by file. Item 5 set DONE; the schema's tile left
   the plan band and the manifest's took its place. JSON over YAML on the
   owner's *json ок*: no dependency for a local gate.
+- CI green on `next` (terraform-checks, local-ci, image-scan, secret-scan);
+  merged to `main` on the owner's *да, вливай* (fast-forward, two commits);
+  publish-site and CI green on `main`. The live page's plan band carries
+  the manifest's tile. Slice 6a is done.
 - Next allowed step: slice 6b - `scripts/generate-schema.py` reads
   `services.json` instead of its own `ECS_SERVICES` table - on the owner's
   word; then whether the chart, the modules or the workflows are generated
