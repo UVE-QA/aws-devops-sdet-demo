@@ -66,11 +66,29 @@ Item 5 set DONE in the plan; its roadmap item and tile left
 `topology-groups.json` under ADR-0094's own rule, and the manifest's tile
 took the band.
 
+## Slice 6b, the same session
+
+*давай 6b, пока время есть.* `scripts/generate-schema.py` carried its own
+table of the three services - group, observation path, chart placeholders,
+the balancer's targets, the IRSA groups - and 6a had compared it with the
+manifest. Now it reads the manifest: the ECS parts and their observation
+paths from `status_key`, the target groups from `routes`, the IRSA groups
+from the names, the `helm template` placeholders from the names and the
+chart's own `serviceAccounts` values. The regenerated `schema.json` is
+byte-identical to the hand-tabled one except the target groups' source
+line and the header. Both generators refuse a declared service the estate
+would not draw - proven with a `sidecar` appended to the manifest: the
+topology generator names the missing `ecs_sidecar` group, the schema
+generator the environment that draws none. `manifest-check` now holds
+`observe-environment.sh` to `status_key` in place of the table it no
+longer has to compare.
+
 ## What is still open
 
-Slice 6b: `generate-schema.py` reads the manifest instead of its own table.
-Then, one decision each, whether the chart, the modules or the workflows
-are generated from it - and the honest answer may be *not the modules*.
+One decision each, whether the chart, the modules or the workflows are
+generated from the manifest - and the honest answer may be *not the
+modules*. What the plan band shows once item 6 closes: the generator
+refuses an empty plan as an invented one, and the owner has not said.
 The owner's verdict on the picture's translucency, still pending. Per-service
 database users (ADR-0098 D2), the lab site, the blunted break tests, the
 release-tag 403, the size of `runs.json`.

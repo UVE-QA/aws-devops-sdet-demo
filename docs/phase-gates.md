@@ -4437,10 +4437,18 @@ writes none of them, and no cycle for it.
   merged to `main` on the owner's *да, вливай* (fast-forward, two commits);
   publish-site and CI green on `main`. The live page's plan band carries
   the manifest's tile. Slice 6a is done.
-- Next allowed step: slice 6b - `scripts/generate-schema.py` reads
-  `services.json` instead of its own `ECS_SERVICES` table - on the owner's
-  word; then whether the chart, the modules or the workflows are generated
-  from it, one decision each. Merge 6a to `main` on green CI and the
+- **Slice 6b, 2026-09-15, on the owner's *давай 6b***: `generate-schema.py`
+  reads `services.json` - the ECS parts, the balancer's target groups, the
+  IRSA groups and the chart placeholders come from it, the service accounts
+  from the chart's own values - and its table is gone; the regenerated
+  schema is identical except the target groups' source line. Both
+  generators refuse a declared service the estate would not draw (proven
+  with a `sidecar` added to the manifest). `status_key` in the manifest,
+  `observe-environment.sh` held to it.
+- Next allowed step: on the owner's word - whether the chart, the modules
+  or the workflows are generated from the manifest, one decision each; and
+  what the plan band shows once item 6 closes, since the generator refuses
+  an empty plan (ADR-0094 D2). Merge 6b to `main` on green CI and the
   owner's *да, вливай*.
 
 ## Confirmation protocol

@@ -1420,7 +1420,7 @@
         "label": "a services manifest",
         "service": "ecr",
         "step": "services-manifest",
-        "why": "not a service - the one file the services are declared in; 6a exists (services.json, held to its seven copies by manifest-check, ADR-0101), and the tile stays until the generators read it"
+        "why": "not a service - the one file the services are declared in (services.json, ADR-0101): the schema and the topology are generated from it and manifest-check holds the seven hand-written copies to it; the tile stays until the item is closed"
       }
     ]
   }

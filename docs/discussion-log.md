@@ -17,11 +17,13 @@ person typed it three times. Now `services.json` in the root says each
 fact once - name, image, context, port, health, routes, queues, database,
 suites - and `manifest-check` holds every copy to it in both directions, so
 a service added in one place and not the manifest is red, and so is the
-reverse. Proven on five corruptions before it was wired. Nothing is
-generated from it yet: that is 6b, the generators first, and the chart or
-the modules only by a decision each. Item 5 done and off the plan band; the
-manifest's tile on it. JSON over YAML: a local gate carries no dependency.
-On `next`; no cycle, because the cycle runs nothing that changed.
+reverse. Proven on five corruptions before it was wired. Then 6b the same
+day: the schema generator drops its own table and reads the manifest, the
+topology generator refuses a declared service the estate would not draw,
+the regenerated schema identical but for a source line; the chart or the
+modules generated from it only by a decision each. Item 5 done and off the
+plan band; the manifest's tile on it. JSON over YAML: a local gate carries
+no dependency. No cycle, because the cycle runs nothing that changed.
 
 **As of 2026-09-14 (46 — the run history is the bucket's).** One record,
 **ADR-0100**, and one read removed from the visitor's browser. The owner's

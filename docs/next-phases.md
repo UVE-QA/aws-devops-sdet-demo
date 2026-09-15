@@ -1626,9 +1626,10 @@ of it and the largest that a home project can carry without noise.
    cost fold and the gates are the valuable part, and a new project should be
    able to declare its way into them. In slices: 6a `services.json` and
    `manifest-check`, the seven hand-written copies held to the one file in
-   both directions (done 2026-09-15); 6b the generators read it; whether the
-   chart, the modules or the workflows are ever generated from it is a
-   separate decision each.
+   both directions (done 2026-09-15); 6b the schema and the topology generated
+   from it, both refusing a declared service the estate would not draw (done
+   2026-09-15); whether the chart, the modules or the workflows are ever
+   generated from it is a separate decision each.
 ```
 
 What each of these costs is written where it is decided; the first three are

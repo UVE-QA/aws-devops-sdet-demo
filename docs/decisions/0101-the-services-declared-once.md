@@ -96,10 +96,23 @@ between `chart-check` and `schema-check`; `make gates` runs it on the
 devbox and in CI's gates step, `session-close` runs it. `gates-check`
 discovers it by its name.
 
-**D4. Nothing is generated from it yet.** This is the slice that makes the
-fact exist and holds the copies to it. The generators reading it - the
-schema first, since `generate-schema.py` today carries its own table of the
-same three names - is slice 6b; whether the chart, the modules or the
+**D4. Nothing is generated from it in 6a; the generators read it in 6b.**
+The first slice makes the fact exist and holds the copies to it. The second,
+the same day on the owner's *давай 6b*: `scripts/generate-schema.py` drops
+its own table of the three services - which module is which group, where
+the page reads each one's numbers, which chart values `helm template` needs,
+where the balancer's rules go, which IRSA role is which group - and reads
+`services.json` instead; the service-account placeholders come from the
+chart's own values file, so the chart says which services carry a role. The
+regenerated `schema.json` is byte-identical to the hand-tabled one except
+the target groups' source line, which now says where the routes were read
+from. Both generators refuse a declared service the estate would not draw:
+`generate-topology.py` when `topology-groups.json` has no `ecs_<name>`
+group, `generate-schema.py` when an ECS environment draws none. The
+manifest gained `status_key` - the key under `resources` the observer
+writes a service's ECS reading to, the api's the historical `ecs_service` -
+and `manifest-check` holds `observe-environment.sh` to it, in place of the
+table it no longer needs to compare. Whether the chart, the modules or the
 workflows are ever generated from it is a separate decision each, with a
 separate reason. A manifest that generated everything on its first day
 would be a rewrite of four working decisions for the sake of a blueprint,
@@ -128,4 +141,9 @@ stays, with one tile that names this ADR, until item 6 is done.
   said out loud.
 - Slice 6a on `next`, merged on the owner's word after green CI; no cycle
   launched for it, because nothing the cycle runs changed - the copies were
-  read, not written.
+  read, not written. Slice 6b the same day: the schema and the topology are
+  derived from the manifest or refuse without it, the pipeline's copies are
+  held to it. What the plan band shows once its last item is done is a
+  question the generator refuses to answer alone - it refuses an empty plan
+  as an invented one (ADR-0094 D2) - and is the owner's to settle before
+  item 6 is closed.
