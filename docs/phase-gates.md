@@ -4445,6 +4445,9 @@ writes none of them, and no cycle for it.
   generators refuse a declared service the estate would not draw (proven
   with a `sidecar` added to the manifest). `status_key` in the manifest,
   `observe-environment.sh` held to it.
+- 6b: CI green on `next`; merged to `main` on the owner's second *да,
+  вливай* (fast-forward, two commits); CI and publish-site green on `main`.
+  Item 6's two slices are on the released line.
 - Next allowed step: on the owner's word - whether the chart, the modules
   or the workflows are generated from the manifest, one decision each; and
   what the plan band shows once item 6 closes, since the generator refuses
