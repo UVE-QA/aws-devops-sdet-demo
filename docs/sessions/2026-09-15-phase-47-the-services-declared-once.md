@@ -134,6 +134,20 @@ output and declined (ADR-0101 D7); item 6 is done; the plan of 2026-09-12
 is complete. The `What comes next` band left the page with its data and
 its refusals, and `generate-topology.py` refuses a `roadmap` key now.
 
+## After the plan: the name
+
+The owner asked what the name says now that the plan is done -
+`aws-devops-sdet-demo` names two roles, the repository shows platform
+work - and for a paragraph about the path, *just in general*, no dates.
+Two constraints decided the shape: links are sent to reviewers all the
+time, so nothing may break an old one; and the first name is an identifier
+in three permanent state levels and in the tag the sweep selects on. So
+the page and the repository become `aws-platform-demo`, the AWS names keep
+the first one and the page says so in one sentence (ADR-0102). Step 1 this
+session: the page, the README, the record. Step 2 this evening: the
+repository at the owner's hand, then the page's constants, the button, the
+links and the fixtures, and one launch to prove it.
+
 ## What is still open
 
 The tail the plan left behind, on the owner's word: per-service database

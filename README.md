@@ -1,7 +1,9 @@
-# aws-devops-sdet-demo
+# aws-platform-demo
 
 A deploy → test → promote → destroy pipeline on AWS, which reports on
-itself and then deletes almost all of itself.
+itself and then deletes almost all of itself. Started as a one-container
+DevOps/SDET demo under the name `aws-devops-sdet-demo`; the AWS names
+underneath keep that name (ADR-0102).
 
 **Live dashboard: https://demo.uveapp.net** — it stays online when every
 workload environment is gone, which is most of the time and is the point of it.

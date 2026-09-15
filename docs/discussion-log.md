@@ -33,7 +33,14 @@ reshape the page's phases and is refused for now. Proven by #36 from
 and the modules weighed as generator output and declined, the `What comes
 next` band removed from the page with its data and its refusals - *убрать
 блок совсем* - and the picture left as it is. The plan of 2026-09-12 is
-complete; what remains is the tail, on the owner's word.
+complete; what remains is the tail, on the owner's word. After it the
+name: **ADR-0102** - the page and the repository become `aws-platform-demo`
+because the first name says two roles and the repository shows platform
+work; the AWS names keep the first one, being identifiers in three
+permanent levels; a paragraph under the `Details` heading says the path
+without dates - *the shape of a platform, at demo scale*. The page first,
+the repository in the evening at the owner's hand, because links are sent
+continuously and an old one must land.
 
 **As of 2026-09-14 (46 — the run history is the bucket's).** One record,
 **ADR-0100**, and one read removed from the visitor's browser. The owner's

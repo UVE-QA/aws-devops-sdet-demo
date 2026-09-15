@@ -4475,10 +4475,29 @@ writes none of them, and no cycle for it.
   `roadmap` key is refused now. Phase 47 is done.
 - Merged to `main` on the owner's *yes - go ahead* (fast-forward); CI and
   publish-site green; the live page carries no plan band.
-- Next allowed step: on the owner's word, from the tail the plan left
-  behind - per-service database users (ADR-0098 D2), a lab site, the
-  blunted break tests, the release-tag 403, the size of `runs.json` - or
-  whatever the owner names next. Nothing is planned on the page any more.
+- Then the owner: *отдельные DB-пользователи на сервис* explained (one
+  role per service with rights on its own schema, ADR-0098 D2) and left -
+  *leave it as is for now, may be in next steps*.
+### The name and the statement  🔧 IN PROGRESS (2026-09-15, ADR-0102)
+
+The owner, with the plan done: *rename project to something like
+aws-platform-demo to avoid pointed to sdet or devops*, and a paragraph in
+`Details` about the path - *dont point to exact dates, just in general*.
+Links to the repository are sent continuously, so in two steps.
+
+- **Step 1, on `next`**: the page's title, mark and heading read
+  `aws-platform-demo`; a paragraph under the `Details` heading says the
+  path without dates and why the AWS names keep the first name; the README
+  the same. Nothing that talks to GitHub by name changed - the button and
+  the run history still address the repository as it is.
+- Next allowed step: step 2, this evening at the owner's hand - the
+  repository renamed in GitHub's settings; then, in the same hour, the
+  page's `REPO` constant, the button's repository, the links, the fixtures
+  and the documents on `next`, merged, and one launch from the button to
+  prove the dispatch. Then the tail the plan left behind, on the owner's
+  word: per-service database users (ADR-0098 D2, *leave it as is for
+  now*), a lab site, the blunted break tests, the release-tag 403, the
+  size of `runs.json`.
 
 ## Confirmation protocol
 Advance only on explicit confirmation: `continue`, `confirmed`, `done`,

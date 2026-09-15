@@ -10,7 +10,7 @@
   to the public bucket, so a template left there would be published too - and
   served without its sprite it renders a map with no icons.
 
-  The public dashboard for aws-devops-sdet-demo. Phase 11.1c; the map is 20a.
+  The public dashboard for aws-platform-demo (started as aws-devops-sdet-demo). Phase 11.1c; the map is 20a.
 
   ONE FILE AT THE FAR END, WITH NO RUNTIME DEPENDENCY. The build step arrived
   with the map and buys the inline sprite. What has not changed is the property
@@ -52,7 +52,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>aws-devops-sdet-demo &mdash; public dashboard</title>
+    <title>aws-platform-demo &mdash; public dashboard</title>
     <!-- EVERY LINK LEAVES IN A NEW TAB. Decided from live use on 2026-08-09:
          following a run log took the reader off the dashboard they were in the
          middle of watching, and a status page is a thing you keep open.
@@ -292,7 +292,8 @@
         display: flex; flex-wrap: wrap; gap: 0.35rem 1rem; font-size: 0.84rem;
       }
       .ident-mark b { font-weight: 700; }
-      /* THE NAME IS AN IDENTIFIER; THIS IS THE STATEMENT. `aws-devops-sdet-demo`
+      /* THE NAME IS AN IDENTIFIER; THIS IS THE STATEMENT. `aws-platform-demo`
+         (`aws-devops-sdet-demo` until 2026-09-15, ADR-0102)
          ties the page to the link in a CV and tells a stranger nothing, which is
          what ADR-0082 D3 gave up when the claim went to `Details`. One clause of
          it comes back - the shortest true one - and the paragraph stays there.
@@ -1492,7 +1493,7 @@
              that stops competing for the same pixels. -->
         <div class="identrow">
           <div class="ident-mark">
-            <b>aws-devops-sdet-demo</b>
+            <b>aws-platform-demo</b>
             <!-- THE ONE THING THIS PAGE SAYS ABOUT ITSELF (ADR-0091 D5): that it
                  is up while everything it reports on is gone, which is the
                  property the whole exhibit turns on. It was in the identity bar
@@ -1707,7 +1708,7 @@
            the last thing on the page (ADR-0047 D1). The footer keeps them; it
            stops being the only place they are. -->
       <div data-part="detail" class="idbar">
-        <h1>aws-devops-sdet-demo</h1>
+        <h1>aws-platform-demo</h1>
         <!-- THE SENTENCE THIS ONE ANSWERS TO IS IN THE HEADER (ADR-0091), on
              every part, four lines above this paragraph wherever it is read.
              `that sentence` is not a dangling reference: it points at the line
@@ -1716,6 +1717,20 @@
              chain out of the header copy now; this paragraph carries what the
              chain COSTS to be true, which is the half that was never going to
              fit on a control row. -->
+        <!-- WHAT IT GREW INTO (ADR-0102). The one paragraph about the project's
+             path, and the reason the name on this page and the names in AWS
+             differ: the page and the repository were renamed when the plan of
+             2026-09-12 was done, the AWS prefix was not - a prefix is an
+             identifier in three permanent state levels, and renaming it would
+             recreate them for nobody's benefit. No dates, on the owner's word:
+             the statement has to stay true without being maintained. -->
+        <p class="claim">
+          Started as a one-container DevOps/SDET demo under the name
+          <code>aws-devops-sdet-demo</code>: build, deploy, test, tear down. Now
+          three services on two runtimes, declared once in a manifest, with the
+          pipeline, the estate and this page derived from it &mdash; the shape of
+          a platform, at demo scale. The AWS names underneath keep the first name.
+        </p>
         <p class="claim">
           There is no manual AWS operation anywhere in that sentence,
           teardown included, and every state it leaves is read back out of AWS afterwards
