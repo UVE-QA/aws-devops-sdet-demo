@@ -148,6 +148,25 @@ session: the page, the README, the record. Step 2 this evening: the
 repository at the owner's hand, then the page's constants, the button, the
 links and the fixtures, and one launch to prove it.
 
+## The commits nobody counted
+
+The owner's GitHub profile showed no activity from this repository, ever.
+Ten author addresses over 496 commits: two iCloud relay addresses of the
+owner's (345 commits, one of them the devbox's global `user.email` since
+the first commit in June), five `chat@…` and `claude@…` addresses and
+`noreply@anthropic.com` from chat sessions (182), a stranger's
+`uve@users.noreply.github.com` guessed from the owner's name (6), and
+dependabot. GitHub counts a commit toward a profile only when its author
+address is verified on the account; none of these were. The owner added
+and verified the two relays - the only ones that can be - and this
+repository's local `user.email` is the account's own
+`142263604+UVE-QA@users.noreply.github.com` now, which also keeps a
+private address out of a public log; the `chat@…`, `claude@…` and
+`uve@…` commits cannot be reclaimed without rewriting pushed history, and
+are not. GitHub linked the commits to the account within the hour
+(`contributors`: UVE-QA 345); the profile's graph had not recounted by the
+next morning.
+
 ## What is still open
 
 The tail the plan left behind, on the owner's word: per-service database
