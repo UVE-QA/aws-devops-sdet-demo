@@ -45,6 +45,10 @@
       "local": true
     },
     {
+      "target": "lifecycle-list-check",
+      "local": true
+    },
+    {
       "target": "claim-chain",
       "local": true
     },

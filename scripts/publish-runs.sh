@@ -6,8 +6,8 @@
 # zero-trust-lab one open, met HTTP 403 before its first successful read.
 #
 # So the cycle publishes its own history. This writes status/runs.json - the
-# forty newest runs of the repository, the forty newest of the released line,
-# and the jobs and steps of one run - taken with the runner's token (1000
+# forty newest LIFECYCLE runs of the repository, the forty newest of the
+# released line, and the jobs and steps of one run - taken with the runner's token (1000
 # requests an hour for the repository, none of them the visitor's) and put
 # beside the status documents the page already trusts. Called by the progress
 # watcher every minute while a job runs, by publish-status.sh when a job ends,
@@ -39,6 +39,16 @@ done
 : "${GITHUB_REPOSITORY:?GITHUB_REPOSITORY is not set}"
 released="${RELEASED_BRANCH:-main}"
 per_page="${RUNS_PER_PAGE:-40}"
+# THE LIFECYCLE WORKFLOWS, AND ONLY THEM (ADR-0100 D1, amended 2026-09-18).
+# The first shape of this script took the newest forty runs of everything,
+# and four days later those were 18 CI runs, 10 dependabot updates and 9
+# publishes: three cycles were left in the window, and the page's history
+# read `1 of 3 failed` over a span of days. The page draws only the runs of
+# these four workflows (its WRITERS table), so these four are what is
+# listed - each asked for by name, merged, newest first, cut at per_page.
+# The same four are named by publish-runs.yml's trigger and by the page;
+# scripts/check-lifecycle-list.py holds the three copies together.
+lifecycle_workflows="${LIFECYCLE_WORKFLOWS:-self-service.yml deploy-stage.yml promote-prod.yml destroy.yml}"
 
 # The fields the page reads and nothing else, so the document stays small
 # (a raw run is ~5 KB, forty of them twice over is 400 KB; trimmed, ~30 KB).
@@ -50,10 +60,17 @@ job_fields='[.jobs[] | {id, name, status, conclusion, started_at, completed_at, 
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 
-gh api "repos/${GITHUB_REPOSITORY}/actions/runs?per_page=${per_page}" \
-  --jq "[.workflow_runs[] | ${run_fields}]" > "${work}/all.json"
-gh api "repos/${GITHUB_REPOSITORY}/actions/runs?branch=${released}&per_page=${per_page}" \
-  --jq "[.workflow_runs[] | ${run_fields}]" > "${work}/released.json"
+# list_runs <query> -> the newest per_page lifecycle runs matching the query,
+# one API call per workflow, merged and sorted by created_at descending.
+list_runs() {
+  local query="$1" wf
+  for wf in $lifecycle_workflows; do
+    gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/${wf}/runs?per_page=${per_page}${query}" \
+      --jq "[.workflow_runs[] | ${run_fields}]"
+  done | jq -s --argjson n "$per_page" 'add | sort_by(.created_at) | reverse | .[:$n]'
+}
+list_runs "" > "${work}/all.json"
+list_runs "&branch=${released}" > "${work}/released.json"
 if [ -n "$run_id" ]; then
   gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}/jobs?per_page=100" \
     --jq "${job_fields}" > "${work}/jobs.json"

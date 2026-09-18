@@ -8,7 +8,7 @@
         site-data site-data-check timeline-check node-states-check \
         suite-inventory suite-inventory-check results-check live-state-check \
         page-tense-check page-freshness-check page-inflight-check page-schema-check \
-        publish-prefixes-check claim-chain contrast-check measure-page manifest-check gates gates-full gates-check
+        publish-prefixes-check lifecycle-list-check claim-chain contrast-check measure-page manifest-check gates gates-full gates-check
 
 # Bring up postgres + app (build app image if needed), detached.
 local-up:
@@ -565,6 +565,11 @@ schema:
 # rules, the chart, the build steps, the Dockerfiles, lab-install's repositories
 # and the schema generator's table - both directions, so a service added in
 # one place and not the manifest is red, and so is the reverse.
+# THE FOUR LIFECYCLE WORKFLOWS, NAMED IN THREE PLACES (ADR-0100 D1 amended):
+# the page's WRITERS, publish-runs.yml's trigger, publish-runs.sh's list.
+lifecycle-list-check:
+	python3 scripts/check-lifecycle-list.py
+
 manifest-check:
 	python3 scripts/check-manifest.py
 
