@@ -6,6 +6,21 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
+**As of 2026-09-18 (Ops — the button's cycle after the plan).** No code
+changed. The owner pressed the button from a private window to refresh the
+dashboard's figures after the plan closed and the page was renamed: #37
+green in 67 minutes, watched from the devbox as a visitor sees it - no
+banner, the button closed on the bucket's pulse, stage `measured` with 1/1
+on every service at the 22nd minute, three `destroyed` after, the hook's
+`completed` seconds after the lock, zero GitHub requests. Two days earlier
+the owner's profile was found to show no activity from this repository:
+ten author addresses over the history, none verified on the account; the
+two relays were verified, the local `user.email` is the account's own, a
+new commit counted at once and the older 345 have not - a support request
+is drafted. One finding from #37, proposed and not taken: the bucket's
+forty newest runs of `main` are crowded by CI, and the lifecycle history
+should be listed by workflow.
+
 **As of 2026-09-15 (47 — the services, declared once).** One record,
 **ADR-0101**, and the plan's last item begun the way the owner asked - *не
 оставить демо в промежуточном нерабочем состоянии*. By the end of item 4
