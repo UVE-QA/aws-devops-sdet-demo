@@ -6,7 +6,7 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
-**As of 2026-09-18 (Ops — the button's cycle after the plan).** No code
+**As of 2026-09-18 (47 — the button's cycle after the plan).** No code
 changed. The owner pressed the button from a private window to refresh the
 dashboard's figures after the plan closed and the page was renamed: #37
 green in 67 minutes, watched from the devbox as a visitor sees it - no
