@@ -18,8 +18,10 @@ ten author addresses over the history, none verified on the account; the
 two relays were verified, the local `user.email` is the account's own, a
 new commit counted at once and the older 345 have not - a support request
 is drafted. One finding from #37, proposed and not taken: the bucket's
-forty newest runs of `main` are crowded by CI, and the lifecycle history
-should be listed by workflow.
+forty newest runs of `main` were crowded by CI - fixed the same day: the
+lists asked for by lifecycle workflow name (ADR-0100 D1 amended), forty
+cycles of `main` back to August in the window, a gate holding the four
+names in the page, the hook and the script together.
 
 **As of 2026-09-15 (47 — the services, declared once).** One record,
 **ADR-0101**, and the plan's last item begun the way the owner asked - *не

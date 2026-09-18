@@ -38,6 +38,18 @@ taken with the runner's `GITHUB_TOKEN` (`actions: read`, 1 000 requests an
 hour for the repository, none of them the visitor's) and put beside the
 status documents the page already trusts, under the site-publish role.
 
+*Amended 2026-09-18.* The two lists are the runs of the four lifecycle
+workflows - `self-service`, `deploy-stage`, `promote-prod`, `destroy` -
+asked for by name, merged and cut at forty, not the newest forty runs of
+everything. Four days of the first shape were enough: 18 CI runs, 10
+dependabot updates and 9 publishes had pushed all but three cycles out of
+the released line's window, and the page's history read *1 of 3 failed*
+over a span of days, worse with every push. The page never drew a
+non-lifecycle run (its `WRITERS` table is the filter), so nothing on it
+changes but the depth: forty cycles of `main` reach back five weeks. The
+four names are now in three places - the page, the hook's trigger, the
+script - and `lifecycle-list-check` holds them together.
+
 **D2. Three writers, one document.** The progress watcher every job already
 runs (ADR-0076) writes it once a minute and once at its start, so the page
 learns of a job within a minute of its first step; `publish-status.sh`
@@ -123,3 +135,8 @@ older state has no snapshot and gates the fallback, unchanged.
 - Still to consider: the document is ~110 KB because a job's steps travel
   whole; if the bucket's egress ever matters, the steps of finished jobs can
   be trimmed to their conclusions.
+- 2026-09-18: the window's finding from #37, the button's first cycle after
+  the plan. Fixed by listing the four workflows by name (D1 amended); proven
+  against the real API from the devbox - 40 lifecycle runs of `main` back
+  to 2026-08-09 where the snapshot held three - and by a hand dispatch of
+  `publish-runs` after the merge.

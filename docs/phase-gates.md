@@ -4518,7 +4518,13 @@ Links to the repository are sent continuously, so in two steps.
   dependabot and the publishers crowd them out - so the history reads *1
   of 3 failed* over a window of days; `publish-runs.sh` should list the
   four lifecycle workflows rather than the newest forty, proven by a hand
-  dispatch of `publish-runs`. Proposed, not taken.
+  dispatch of `publish-runs`. Taken the same day on the owner's *давай,
+  чини окно истории*: ADR-0100 D1 amended, the lists asked for by
+  workflow name and merged; proven from the devbox against the real API
+  (40 lifecycle runs of `main` back to 2026-08-09, the same 111 KB);
+  `lifecycle-list-check` holds the four names in the page, the hook and
+  the script together, and refused a forgotten `destroy` and an invented
+  `sweep` before it was wired. Gates 15/15.
 - Next allowed step: on the owner's word - step 2 above, or the tail the
   plan left behind: per-service database users (ADR-0098 D2, *leave it as
   is for now*), a lab site, the blunted break tests, the release-tag 403,

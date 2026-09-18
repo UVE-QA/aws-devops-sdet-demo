@@ -39,4 +39,17 @@ publisher runs: three lifecycle runs are left in the window, so the
 history reads *1 of 3 failed* over a span of days and will read worse as
 CI runs accumulate. `publish-runs.sh` should list the four lifecycle
 workflows rather than the newest forty; a hand dispatch of `publish-runs`
-proves it without a cycle. Proposed to the owner, not taken.
+proves it without a cycle. Proposed, and taken the same day - *давай, чини
+окно истории в publish-runs*.
+
+## The window, fixed
+
+`publish-runs.sh` asks for the runs of each lifecycle workflow by name,
+merges them newest first and cuts at forty (ADR-0100 D1 amended). Run from
+the devbox against the real API before any merge: 40 lifecycle runs of
+`main` reaching back to 2026-08-09 where the bucket held three, 33 green,
+7 not, the same 111 KB. The four names now live in three places - the
+page's `WRITERS`, the hook's trigger, the script - and a new
+`lifecycle-list-check` holds them together; before it was wired it refused
+a `destroy` forgotten in the script and a `sweep` invented in the hook.
+Proven after the merge by a hand dispatch of `publish-runs` for #37.
