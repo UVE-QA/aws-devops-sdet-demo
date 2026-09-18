@@ -4507,6 +4507,18 @@ Links to the repository are sent continuously, so in two steps.
   scratchpad and discussed first, not published until agreed. Four README
   lines that predated the lab and ADR-0068 corrected with it. Merged to
   `main` on *да, вливай*; CI green.
+- **#37 from the button, 2026-09-18, green in 67 minutes** (launch 21 m,
+  promote 16 m, lab 21 m, destroys, hold, lock), pressed by the owner from
+  a private window to refresh the dashboard's figures: no banner, the
+  button closed on the bucket's pulse, the first snapshot 12 s after the
+  press, stage `measured` with 1/1 on every service and both queues empty
+  while up, three `destroyed` after, the hook's `completed` 13 s after
+  `release-lock`, zero GitHub requests from the visitor. One finding: the
+  bucket's forty newest runs of `main` hold three lifecycle runs - CI,
+  dependabot and the publishers crowd them out - so the history reads *1
+  of 3 failed* over a window of days; `publish-runs.sh` should list the
+  four lifecycle workflows rather than the newest forty, proven by a hand
+  dispatch of `publish-runs`. Proposed, not taken.
 - Next allowed step: on the owner's word - step 2 above, or the tail the
   plan left behind: per-service database users (ADR-0098 D2, *leave it as
   is for now*), a lab site, the blunted break tests, the release-tag 403,
