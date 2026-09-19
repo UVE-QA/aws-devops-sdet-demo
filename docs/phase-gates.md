@@ -4525,6 +4525,11 @@ Links to the repository are sent continuously, so in two steps.
   `lifecycle-list-check` holds the four names in the page, the hook and
   the script together, and refused a forgotten `destroy` and an invented
   `sweep` before it was wired. Gates 15/15.
+- Merged to `main` on the owner's *да, вливай*; CI green; `publish-runs`
+  dispatched by hand for #37 (its run #9): the bucket holds 40 lifecycle
+  runs of `main` back to 2026-08-09, the four workflows and nothing else,
+  #37's 8 jobs `completed`; the live page's history reads *1 of 12 failed*
+  where it read *1 of 3*. Proven without a cycle.
 - Next allowed step: on the owner's word - step 2 above, or the tail the
   plan left behind: per-service database users (ADR-0098 D2, *leave it as
   is for now*), a lab site, the blunted break tests, the release-tag 403,
