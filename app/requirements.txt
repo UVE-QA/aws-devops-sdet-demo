@@ -1,6 +1,6 @@
 fastapi==0.141.1
-uvicorn[standard]==0.52.3
-sqlalchemy==2.0.52
-alembic==1.19.1
-psycopg2-binary==2.9.12
-boto3==1.42.29
+uvicorn[standard]==0.53.0
+sqlalchemy==2.0.54
+alembic==1.20.0
+psycopg2-binary==2.9.13
+boto3==1.43.98
