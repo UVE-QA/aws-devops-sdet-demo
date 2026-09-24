@@ -4530,6 +4530,12 @@ Links to the repository are sent continuously, so in two steps.
   runs of `main` back to 2026-08-09, the four workflows and nothing else,
   #37's 8 jobs `completed`; the live page's history reads *1 of 12 failed*
   where it read *1 of 3*. Proven without a cycle.
+- **#38 from the button, 2026-09-24, green in 70 minutes**, watched as a
+  visitor sees it: no banner, the button closed on the bucket's pulse, the
+  first snapshot 25 s after the press, stage `measured` at the 23rd
+  minute, three `destroyed` after, the hook 16 s after the lock, zero
+  GitHub requests. The first cycle over the amended history window: forty
+  cycles of `main` throughout. Nothing to fix.
 - Next allowed step: on the owner's word - step 2 above, or the tail the
   plan left behind: per-service database users (ADR-0098 D2, *leave it as
   is for now*), a lab site, the blunted break tests, the release-tag 403,

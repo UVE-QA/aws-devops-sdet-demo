@@ -6,6 +6,14 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
+**As of 2026-09-24 (47 — the button's cycle #38).** No code changed. The
+owner pressed the button; #38 green in 70 minutes, watched as a visitor
+sees it - no banner, the button closed on the bucket's pulse, stage
+`measured` at the 23rd minute, three `destroyed` after, zero GitHub
+requests - and the first cycle over the amended history window, forty
+cycles of `main` throughout. Nothing to fix; the tail waits on the owner's
+word.
+
 **As of 2026-09-18 (47 — the button's cycle after the plan).** No code
 changed. The owner pressed the button from a private window to refresh the
 dashboard's figures after the plan closed and the page was renamed: #37
