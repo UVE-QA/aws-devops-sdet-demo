@@ -480,6 +480,10 @@
       "aws_sqs_queue.dead_letter": "queue",
       "aws_sqs_queue_redrive_allow_policy.dead_letter": "queue",
       "aws_cloudwatch_metric_alarm.dead_letter_not_empty": "queue"
+    },
+    "infra/bootstrap-oidc": {
+      "aws_iam_role.ci_pull": "perm.oidc",
+      "aws_iam_role_policy.ci_pull": "perm.oidc"
     }
   },
   "_phases": "The order the cycle happens in, and - in `live` - how each phase is recognised WHILE IT RUNS. Every workflow here holds one job, so a job name cannot tell Build from Apply; the binding names a STEP, and scripts/generate-topology.py refuses if that step does not exist in that job of that workflow. A renamed step would otherwise break the pulse silently, which no other gate in this repository can see. `when: waiting` is the approval, which is not a step at all: it is the gap before the job starts, and the runs API reports it as a run in the waiting state. A SUITE NODE carries its own `live` in exactly the same shape, and must: which phase box a suite is drawn in is a layout decision, and on 2026-08-08 the two disagreed - suite.db.stage sits in the quality gate while its step runs in Provision, and prod's copy of the same suite sat in a phase that does bind that step. A node bound to its own step cannot inherit a phase's answer about a different one.",
