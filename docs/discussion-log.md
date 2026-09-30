@@ -15,8 +15,10 @@ The deploy roles may now sign in to ECR Public, two token reads applied to
 the permanent OIDC level on the owner's yes after the plan was shown; the
 build jobs sign in before building and fall back to anonymous with a
 warning; the four updates came along. #39 from `next` green in 70 minutes,
-three images on the first attempt as this account. CI has no AWS
-credentials and still pulls anonymously - a CI role is named, not taken.
+three images on the first attempt as this account. CI got a role of its
+own the same evening, the same two reads; its first signed-in scan found
+HIGH findings in `web` that the anonymous failures had hidden, and `web`
+moved to `nginx:1.29-alpine`, which scans clean.
 
 **As of 2026-09-24 (47 — the button's cycle #38).** No code changed. The
 owner pressed the button; #38 green in 70 minutes, watched as a visitor

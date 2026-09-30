@@ -4546,6 +4546,13 @@ Links to the repository are sent continuously, so in two steps.
   70 minutes, `Login Succeeded`, three images on the first attempt. Merge
   to `main` on *да, вливай*. CI still pulls anonymously - a CI role with
   the same two reads is the owner's choice.
+- **The same evening, CI**: `image-scan` on `main` red twice on the same
+  429; a role of CI's own, `aws-devops-sdet-demo-ci-pull` (two token
+  reads, trusted by `main`, `next` and pull requests; plan 2/0/0 applied
+  on the owner's word; `CI_PULL_ROLE_ARN` a repository variable). The
+  first signed-in scan found HIGH findings in `web`; `nginx:1.29-alpine`
+  scans clean. CI on `next` green. The web image changed: a cycle from
+  `next` before `main`, on the owner's word.
 - Next allowed step: on the owner's word - step 2 above, or the tail the
   plan left behind: per-service database users (ADR-0098 D2, *leave it as
   is for now*), a lab site, the blunted break tests, the release-tag 403,

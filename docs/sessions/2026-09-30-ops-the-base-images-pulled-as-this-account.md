@@ -51,10 +51,27 @@ pulled as this account*, three images built on the first attempt; green end
 to end in 70 minutes with the dependabot updates on every runtime. CI on
 `next` green after one rerun of `local-ci`.
 
+## And CI
+
+Merged to `main` on the owner's *да, вливай*; CI on `main` went red twice -
+`image-scan` on the same anonymous 429, eight tries - and nothing else. The
+owner's *yes* to a CI role: `aws-devops-sdet-demo-ci-pull` in
+`infra/bootstrap-oidc`, the same two token reads, trusted by pushes to
+`main` and `next` and by pull requests; the plan shown - 2 to add, 0 to
+change, 0 to destroy - and applied on *go*; `CI_PULL_ROLE_ARN` set as a
+repository variable. The first CI run with it: `Login Succeeded` in both
+building jobs - and two things the anonymous failures had been hiding. The
+map refused the role's two records, belonging to no display group; they
+belong to the OIDC group now. And the image scan, pulling for the first
+time in two days, found four HIGH OpenSSL findings in `web` with a fix
+that `nginx:1.27-alpine`'s Alpine 3.21 does not carry yet; `1.28-alpine`
+took them and kept five HIGH nginx CVEs that Alpine patches only in its
+own package; the mainline `1.29-alpine` scans clean, and `web` is on it.
+CI on `next` green on every job.
+
 ## What is still open
 
-CI has no AWS credentials and still pulls anonymously. A small OIDC role
-for CI with the same two token reads would fix it the way the cycle is
-fixed; whether dependabot's runs get an OIDC token is unverified. Until the
-owner chooses, a red rerun is the answer. The old `stage-app:22` revision
-could be deregistered; it costs nothing.
+The web image changed, so a cycle from `next` proves it before `main`
+gets it - on the owner's word. Whether dependabot's runs get an OIDC token
+is unverified; if not, they pull anonymously with a warning. The old
+`stage-app:22` revision could be deregistered; it costs nothing.

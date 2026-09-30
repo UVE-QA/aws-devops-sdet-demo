@@ -156,4 +156,17 @@ older state has no snapshot and gates the fallback, unchanged.
   in 70 minutes. CI has no AWS credentials and still pulls anonymously;
   its retries are four, 30/60/120 s apart, and a red rerun is the answer
   there for now.
+- 2026-09-30, the same evening: CI too. `image-scan` on `main` met the
+  anonymous 429 eight times over two runs after the merge, so CI got the
+  cycle's answer through a role of its own in `infra/bootstrap-oidc`,
+  `aws-devops-sdet-demo-ci-pull` - the same two token reads and nothing
+  else, trusted by pushes to `main` and `next` and by pull requests; plan
+  shown, 2 to add, applied on the owner's word; `CI_PULL_ROLE_ARN` a
+  repository variable. `local-ci` and `image-scan` sign in before building
+  and fall back to anonymous with a warning for a run the role does not
+  trust. The first scan that could pull again found HIGH findings in `web`:
+  OpenSSL fixes that `nginx:1.27-alpine`'s Alpine 3.21 does not carry yet,
+  and on `1.28-alpine` five HIGH nginx CVEs that Alpine patches only in its
+  own package. `web` moved to the mainline `nginx:1.29-alpine`, which scans
+  clean.
 
