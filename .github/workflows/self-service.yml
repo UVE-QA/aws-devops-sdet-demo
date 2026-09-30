@@ -173,6 +173,22 @@ jobs:
         id: ecr
         uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2.1.7
 
+      # THE BASE IMAGES AS THIS ACCOUNT, NOT AS A SHARED ADDRESS. python and
+      # nginx come from ECR Public, whose anonymous limit is per IP, and the
+      # runners' IPs are everyone's: on 2026-09-28 dependabot's builds met
+      # `429 Data limit exceeded`. Signed in, the limit is the account's. ECR
+      # Public issues its tokens in us-east-1 whatever region the rest is in.
+      # A failed sign-in is a warning and not a stop: the build then pulls
+      # anonymously, as every cycle before this one did.
+      - name: Login to Amazon ECR Public (the base images)
+        run: |
+          if aws ecr-public get-login-password --region us-east-1 \
+               | docker login --username AWS --password-stdin public.ecr.aws; then
+            echo "base images will be pulled as this account"
+          else
+            echo "::warning::could not sign in to ECR Public - the base images will be pulled anonymously, and a shared runner address may be rate-limited"
+          fi
+
       - name: Terraform init (S3 backend)
         working-directory: infra/envs/stage
         run: terraform init -input=false

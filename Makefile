@@ -650,10 +650,13 @@ docker-build:
 	# not a fast one. Three tries with a pause: a reset connection to a
 	# registry is weather, not a verdict (the same rule as
 	# scripts/build-and-push-image.sh, for the same night).
-	@for attempt in 1 2 3; do \
+	# Four tries, 30/60/120 s apart since 2026-09-28: ECR Public's anonymous
+	# `429 Data limit exceeded` is per runner address and lasts minutes, and
+	# CI has no AWS credentials to sign in with the way the cycle does.
+	@for attempt in 1 2 3 4; do \
 	  docker compose build app web worker && exit 0; \
-	  [ "$$attempt" -lt 3 ] && { echo "docker-build: attempt $$attempt failed; again in $$((attempt*20))s" >&2; sleep $$((attempt*20)); }; \
-	done; echo "docker-build: failed three times" >&2; exit 1
+	  [ "$$attempt" -lt 4 ] && { p=$$((30 * (1 << (attempt - 1)))); echo "docker-build: attempt $$attempt failed; again in $${p}s" >&2; sleep $$p; }; \
+	done; echo "docker-build: failed four times" >&2; exit 1
 
 # Terraform formatting check across the whole tree.
 tf-fmt:

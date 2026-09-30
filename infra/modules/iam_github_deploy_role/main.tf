@@ -106,6 +106,24 @@ data "aws_iam_policy_document" "deploy" {
     resources = ["*"]
   }
 
+  # THE BASE IMAGES, PULLED AS THIS ACCOUNT (2026-09-30). The Dockerfiles take
+  # python and nginx from ECR Public (after Docker Hub reset a connection on
+  # public launch #34), and an anonymous pull there is limited per IP address.
+  # GitHub's runners share their addresses, so on 2026-09-28 four dependabot
+  # builds met `429 Too Many Requests - Data limit exceeded` and one met it
+  # again on a rerun two days later. Signed in, the limit is this account's.
+  # `ecr:*` above is the private registry only; ECR Public is its own
+  # namespace, and its token is issued through STS's bearer-token call. Both
+  # are token reads - no repository of anyone's can be changed with them.
+  statement {
+    sid = "PublicRegistryPull"
+    actions = [
+      "ecr-public:GetAuthorizationToken",
+      "sts:GetServiceBearerToken",
+    ]
+    resources = ["*"]
+  }
+
   statement {
     sid       = "ReadDbSecret"
     actions   = ["secretsmanager:GetSecretValue"]

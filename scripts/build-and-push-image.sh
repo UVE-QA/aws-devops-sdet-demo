@@ -27,14 +27,16 @@ if aws ecr describe-images --region "$AWS_REGION" \
   exit 0
 fi
 
-attempts="${BUILD_ATTEMPTS:-3}"
+# Four tries, 30 s, 60 s, 120 s apart: a reset connection clears in seconds, a
+# registry's `429 Data limit exceeded` (2026-09-28) takes minutes.
+attempts="${BUILD_ATTEMPTS:-4}"
 for attempt in $(seq 1 "$attempts"); do
   if docker build -t "${ecr_url}:${tag}" "$context" && docker push "${ecr_url}:${tag}"; then
     echo "built and pushed ${repository}:${tag} on attempt ${attempt}"
     exit 0
   fi
   if [ "$attempt" -lt "$attempts" ]; then
-    pause=$((attempt * 20))
+    pause=$((30 * (1 << (attempt - 1))))
     echo "attempt ${attempt} of ${attempts} failed for ${repository}; trying again in ${pause}s" >&2
     sleep "$pause"
   fi
