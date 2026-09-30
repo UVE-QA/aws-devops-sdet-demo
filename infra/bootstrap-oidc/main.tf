@@ -141,6 +141,62 @@ module "deploy_role_lab" {
 # the prod role added and NOTHING destroyed; a destroy/recreate of the provider
 # or the stage role means a move below is wrong — stop and fix it rather than
 # applying, because recreating the provider invalidates the stage role's trust.
+# CI'S ONE RIGHT: PULL THE BASE IMAGES AS THIS ACCOUNT (2026-09-30). ci.yml
+# builds the three images to test and to scan them, and it pulled python and
+# nginx from ECR Public anonymously - a limit per IP address, on runners whose
+# addresses are everyone's. On 2026-09-30 `image-scan` on `main` met
+# `429 Too Many Requests - Data limit exceeded` on eight tries over two runs.
+# The cycle's deploy roles got the same two token reads the same day; this
+# role is those two reads and nothing else - no state, no registry of ours, no
+# environment. Trusted by pushes to `main` and `next` and by pull requests of
+# this repository only; not by an environment, because CI deploys nothing.
+data "aws_iam_policy_document" "ci_pull_trust" {
+  statement {
+    actions = ["sts:AssumeRoleWithWebIdentity"]
+    principals {
+      type        = "Federated"
+      identifiers = [module.oidc_provider.arn]
+    }
+    condition {
+      test     = "StringEquals"
+      variable = "token.actions.githubusercontent.com:aud"
+      values   = ["sts.amazonaws.com"]
+    }
+    condition {
+      test     = "StringLike"
+      variable = "token.actions.githubusercontent.com:sub"
+      values = [
+        "repo:${var.github_owner}/${var.github_repo}:ref:refs/heads/main",
+        "repo:${var.github_owner}/${var.github_repo}:ref:refs/heads/next",
+        "repo:${var.github_owner}/${var.github_repo}:pull_request",
+      ]
+    }
+  }
+}
+
+resource "aws_iam_role" "ci_pull" {
+  name               = "${local.project_name}-ci-pull"
+  description        = "ci.yml only: sign in to ECR Public to pull the base images. Nothing else."
+  assume_role_policy = data.aws_iam_policy_document.ci_pull_trust.json
+}
+
+data "aws_iam_policy_document" "ci_pull" {
+  statement {
+    sid = "PublicRegistryPull"
+    actions = [
+      "ecr-public:GetAuthorizationToken",
+      "sts:GetServiceBearerToken",
+    ]
+    resources = ["*"]
+  }
+}
+
+resource "aws_iam_role_policy" "ci_pull" {
+  name   = "${local.project_name}-ci-pull"
+  role   = aws_iam_role.ci_pull.id
+  policy = data.aws_iam_policy_document.ci_pull.json
+}
+
 moved {
   from = module.iam_github_oidc.aws_iam_openid_connect_provider.github
   to   = module.oidc_provider.aws_iam_openid_connect_provider.github

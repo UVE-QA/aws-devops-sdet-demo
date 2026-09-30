@@ -17,3 +17,8 @@ output "lab_deploy_role_arn" {
   description = "ARN of the lab deploy role (ADR-0097); goes into the GitHub Environment `lab` as OIDC_ROLE_ARN."
   value       = module.deploy_role_lab.deploy_role_arn
 }
+
+output "ci_pull_role_arn" {
+  description = "The role ci.yml assumes to sign in to ECR Public (2026-09-30). Set as the repository variable CI_PULL_ROLE_ARN."
+  value       = aws_iam_role.ci_pull.arn
+}

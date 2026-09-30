@@ -10,8 +10,10 @@ on:
   push:
     # `next` as well as `main` (ADR-0093): the work happens on `next` and the
     # gates have to run where the work is, or a broken branch is found at the
-    # merge. Nothing here publishes or touches AWS - no `id-token`, no
-    # environment - so a branch run costs the same as a main run: a runner.
+    # merge. Nothing here publishes or deploys - no environment - so a branch
+    # run costs the same as a main run: a runner. The one AWS call is the
+    # sign-in to ECR Public for the base images, below, through a role that
+    # can do that and nothing else.
     # publish-site.yml stays on main alone; that one publishes.
     branches: [main, next]
 
@@ -21,6 +23,9 @@ permissions:
 jobs:
   local-ci:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -50,6 +55,29 @@ jobs:
       # 5xx alarm reads can be asserted at all (ADR-0032).
       - name: In-process tests (log shape, request id)
         run: make test-unit
+
+      # THE BASE IMAGES AS THIS ACCOUNT (2026-09-30). ECR Public limits
+      # anonymous pulls per IP address and the runners share theirs; on
+      # 2026-09-30 this job met `429 Data limit exceeded` eight times over two
+      # runs. The role CI_PULL_ROLE_ARN can sign in to ECR Public and do
+      # nothing else. A run the role does not trust - dependabot's, if GitHub
+      # gives it no OIDC token - is a warning and an anonymous pull, as before.
+      - name: Configure AWS credentials (OIDC, the base-image pull role)
+        id: pullrole
+        continue-on-error: true
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.CI_PULL_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Login to Amazon ECR Public (the base images)
+        run: |
+          if [ "${{ steps.pullrole.outcome }}" = success ] && aws ecr-public get-login-password --region us-east-1 \
+               | docker login --username AWS --password-stdin public.ecr.aws; then
+            echo "base images will be pulled as this account"
+          else
+            echo "::warning::could not sign in to ECR Public - the base images will be pulled anonymously, and a shared runner address may be rate-limited"
+          fi
 
       - name: Build the images
         run: make docker-build
@@ -231,6 +259,9 @@ jobs:
 
   image-scan:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -252,6 +283,29 @@ jobs:
           echo "${TRIVY_SHA256}  /tmp/${tarball}" | sha256sum -c -
           tar -xzf "/tmp/${tarball}" -C /tmp trivy
           sudo install -m 0755 /tmp/trivy /usr/local/bin/trivy
+
+      # THE BASE IMAGES AS THIS ACCOUNT (2026-09-30). ECR Public limits
+      # anonymous pulls per IP address and the runners share theirs; on
+      # 2026-09-30 this job met `429 Data limit exceeded` eight times over two
+      # runs. The role CI_PULL_ROLE_ARN can sign in to ECR Public and do
+      # nothing else. A run the role does not trust - dependabot's, if GitHub
+      # gives it no OIDC token - is a warning and an anonymous pull, as before.
+      - name: Configure AWS credentials (OIDC, the base-image pull role)
+        id: pullrole
+        continue-on-error: true
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.CI_PULL_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Login to Amazon ECR Public (the base images)
+        run: |
+          if [ "${{ steps.pullrole.outcome }}" = success ] && aws ecr-public get-login-password --region us-east-1 \
+               | docker login --username AWS --password-stdin public.ecr.aws; then
+            echo "base images will be pulled as this account"
+          else
+            echo "::warning::could not sign in to ECR Public - the base images will be pulled anonymously, and a shared runner address may be rate-limited"
+          fi
 
       - name: Build the app image
         # Built here rather than reused from local-ci: a separate job gives the
