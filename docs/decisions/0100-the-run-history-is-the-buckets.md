@@ -140,3 +140,20 @@ older state has no snapshot and gates the fallback, unchanged.
   against the real API from the devbox - 40 lifecycle runs of `main` back
   to 2026-08-09 where the snapshot held three - and by a hand dispatch of
   `publish-runs` after the merge.
+- 2026-09-30: the base images' second weather. ECR Public - where the
+  Dockerfiles moved after #34 met a reset connection to Docker Hub - limits
+  anonymous pulls per IP address, and GitHub's runners share theirs: on
+  2026-09-28 four dependabot builds met `429 Too Many Requests - Data limit
+  exceeded`, one met it again two days later, and `local-ci` failed four
+  tries 30/60/120 s apart on 2026-09-30. A public launch builds on every
+  new commit of `main`, so a stranger's press could have died at the second
+  minute. The deploy roles may now sign in to ECR Public (a
+  `PublicRegistryPull` statement in `iam_github_deploy_role`: two token
+  reads, applied to `infra/bootstrap-oidc` on the owner's word after the
+  plan was shown - 0 to add, 3 to change), and both build jobs sign in
+  before building, falling back to anonymous with a warning. Proven by #39
+  from `next`: `Login Succeeded`, three images on the first attempt, green
+  in 70 minutes. CI has no AWS credentials and still pulls anonymously;
+  its retries are four, 30/60/120 s apart, and a red rerun is the answer
+  there for now.
+

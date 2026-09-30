@@ -4536,6 +4536,16 @@ Links to the repository are sent continuously, so in two steps.
   minute, three `destroyed` after, the hook 16 s after the lock, zero
   GitHub requests. The first cycle over the amended history window: forty
   cycles of `main` throughout. Nothing to fix.
+- **2026-09-30, the base images as this account**: ECR Public's anonymous
+  `429 Data limit exceeded` on shared runner addresses reddened three of
+  four dependabot PRs and one `local-ci` through four tries. The deploy
+  roles got `PublicRegistryPull` (plan shown, 0/3/0, applied on the
+  owner's yes), the build jobs sign in before building, the retries are
+  four 30/60/120 s apart; the four dependabot updates merged into `next`.
+  The account read directly: nothing that costs. #39 from `next` green in
+  70 minutes, `Login Succeeded`, three images on the first attempt. Merge
+  to `main` on *да, вливай*. CI still pulls anonymously - a CI role with
+  the same two reads is the owner's choice.
 - Next allowed step: on the owner's word - step 2 above, or the tail the
   plan left behind: per-service database users (ADR-0098 D2, *leave it as
   is for now*), a lab site, the blunted break tests, the release-tag 403,

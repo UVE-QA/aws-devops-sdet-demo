@@ -6,6 +6,18 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
+**As of 2026-09-30 (47 — the base images, pulled as this account).** The
+owner asked whether everything works; it did, and one thing was about to
+not. Dependabot's rebased PRs went red on ECR Public's anonymous limit -
+`429 Data limit exceeded`, per IP address, on runners whose addresses are
+everyone's - and a public launch rebuilds on every new commit of `main`.
+The deploy roles may now sign in to ECR Public, two token reads applied to
+the permanent OIDC level on the owner's yes after the plan was shown; the
+build jobs sign in before building and fall back to anonymous with a
+warning; the four updates came along. #39 from `next` green in 70 minutes,
+three images on the first attempt as this account. CI has no AWS
+credentials and still pulls anonymously - a CI role is named, not taken.
+
 **As of 2026-09-24 (47 — the button's cycle #38).** No code changed. The
 owner pressed the button; #38 green in 70 minutes, watched as a visitor
 sees it - no banner, the button closed on the bucket's pulse, stage
