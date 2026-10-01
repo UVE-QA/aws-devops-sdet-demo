@@ -4555,7 +4555,8 @@ Links to the repository are sent continuously, so in two steps.
   `next` before `main`, on the owner's word - #40, 2026-10-01, green in 69
   minutes, signed in to ECR Public, three images on the first attempt,
   `web` on nginx 1.29 through stage's suites and prod's and the lab's
-  smoke. Merge to `main` on *да, вливай*.
+  smoke. Merged to `main` on the owner's *yes merge*; CI on `main` green
+  again, signed in, and publish-site green.
 - Next allowed step: on the owner's word - step 2 above, or the tail the
   plan left behind: per-service database users (ADR-0098 D2, *leave it as
   is for now*), a lab site, the blunted break tests, the release-tag 403,
