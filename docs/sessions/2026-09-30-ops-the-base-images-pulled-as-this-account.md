@@ -71,7 +71,9 @@ CI on `next` green on every job.
 
 ## What is still open
 
-The web image changed, so a cycle from `next` proves it before `main`
-gets it - on the owner's word. Whether dependabot's runs get an OIDC token
+The web image changed, so a cycle from `next` proved it before `main` got
+it: #40 on 2026-10-01, on the owner's *yes*, green in 69 minutes - signed
+in, three images on the first attempt, nginx 1.29 through every suite.
+Whether dependabot's runs get an OIDC token
 is unverified; if not, they pull anonymously with a warning. The old
 `stage-app:22` revision could be deregistered; it costs nothing.
