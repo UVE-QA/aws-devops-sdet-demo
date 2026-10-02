@@ -4557,6 +4557,15 @@ Links to the repository are sent continuously, so in two steps.
   `web` on nginx 1.29 through stage's suites and prod's and the lab's
   smoke. Merged to `main` on the owner's *yes merge*; CI on `main` green
   again, signed in, and publish-site green.
+- **2026-10-02, the application drawn (ADR-0103)**: after the owner asked
+  what the api and the worker each do, a picture of one item through both
+  services - ten steps, the outbox, both queues, the receipt, the
+  projection, the dead-letter path - mocked first, corrected on the
+  owner's eye, then placed in `Details` as a second cut, closed by default,
+  on the owner's word. Drawn and labelled as drawn; the page's own sprite
+  and theme, 9 KB. Gates 15/15; contrast and the page checks green.
+  Found on the way: `measure-page` (manual, not a gate) refuses on `main`
+  too - its fixture lacks the lab's progress file.
 - Next allowed step: on the owner's word - step 2 above, or the tail the
   plan left behind: per-service database users (ADR-0098 D2, *leave it as
   is for now*), a lab site, the blunted break tests, the release-tag 403,

@@ -6,6 +6,16 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
+**As of 2026-10-02 (47 — the application, drawn).** One record,
+**ADR-0103**, and the first picture on the page that is drawn rather than
+derived. The owner asked what the worker is for; the answer was the shape, not
+the work - and then a picture of it: one item through both services, the
+transaction that writes the item with its event, the relay, both queues, the
+receipt, the projection, the dead-letter path. Mocked, corrected on the owner's
+eye, then put in `Details` closed until asked for, on the owner's word. It
+says on itself that it is drawn; it is drawn in the page's own sprite and
+theme. A derived version waits until this one earns its place.
+
 **As of 2026-09-30 (47 — the base images, pulled as this account).** The
 owner asked whether everything works; it did, and one thing was about to
 not. Dependabot's rebased PRs went red on ECR Public's anonymous limit -
