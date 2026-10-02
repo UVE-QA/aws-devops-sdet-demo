@@ -49,3 +49,20 @@ proves inconvenient.
   and after the apply and are identical; Terraform's own count was one change.
 - The bucket is permanent and costs cents. The data in it is personal - IP
   addresses - and is kept 90 days and read by nothing but the script.
+- **What the traffic was, and what was done about it (2026-10-02).** The
+  owner asked why the dashboard had served 2.55 GB. Metered on the live page:
+  27 requests and 194 KB to open it, then 23 documents every 30 seconds,
+  every one a full `200` - about 5 MB an hour for each open tab, visible or
+  not, and the CloudWatch totals are some 500 tab-hours, mostly the owner's
+  and this repository's own during cycles. It cost nothing - CloudFront's
+  first terabyte a month is free - but it was waste a reviewer with a
+  network panel would see. Two changes to the page, nothing else: the status
+  and run-layer documents are fetched with `no-cache` instead of `no-store`,
+  as `runs.json` already was, so an unchanged document is a `304` with no
+  body; and a hidden tab stops polling and reads everything again the moment
+  it is shown. Metered after: 31 KB in three visible minutes instead of 255,
+  nothing at all while hidden, the same requests and the same cadence - a
+  new cycle is noticed exactly as fast. The slower idle cadence and the
+  progress files' `403`s were left as they are: they decide how soon the
+  page sees a cycle start (ADR-0062), which is behaviour, not waste.
+

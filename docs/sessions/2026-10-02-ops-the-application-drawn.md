@@ -47,6 +47,16 @@ read from AWS before and after, identical. `make visitors` was tested on a
 synthetic log first, which caught the referrer being taken from a visitor's
 first view only; it now counts every source a visitor came through.
 
+## Why 2.55 GB
+
+*отдано трафика 2,55 ГБ - why so much?* Metered on the live page rather
+than guessed: 23 documents every 30 seconds, all full `200`s, about 5 MB an
+hour per open tab whether visible or not. Free, and still waste. On the
+owner's word the page now revalidates instead of re-downloading - CloudFront
+answers `304` with no body - and stops polling in a hidden tab; metered again,
+31 KB per three visible minutes instead of 255 and nothing while hidden, with
+the same cadence and every page check green.
+
 ## What is still open
 
 A derived version, if this one earns its place. `measure-page`'s fixture,

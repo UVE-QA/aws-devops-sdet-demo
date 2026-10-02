@@ -2180,7 +2180,13 @@
 
       function readStatusFiles() {
         return Promise.all(ENVIRONMENTS.map(function (env) {
-          return fetch("status/" + env + ".json", { cache: "no-store" })
+          // `no-cache`, not `no-store` (2026-10-02), for the reason
+          // RUNS_SNAPSHOT gives: the browser sends the ETag and CloudFront
+          // answers 304 with no body while the document has not changed - and
+          // between cycles nothing here changes for days. Measured on the live
+          // page before the change: every one of 138 requests in three idle
+          // minutes was a full 200.
+          return fetch("status/" + env + ".json", { cache: "no-cache" })
             .then(function (r) {
               if (r.status === 403 || r.status === 404) return { env: env, missing: true };
               if (!r.ok) throw new Error("HTTP " + r.status);
@@ -3329,13 +3335,25 @@
         if (state.timer) { clearTimeout(state.timer); state.timer = null; }
         var live = !state.githubError && currentRun() && currentRun().status !== "completed";
         var fromBucket = state.history && state.history.source === "bucket";
-        el("autorefresh").textContent = "auto: bucket every 30 s — status, run history and figures, " +
+        el("autorefresh").textContent = "auto: bucket every 30 s while this tab is visible — status, run history and figures, " +
           "the figures up to a minute behind the write" +
           (fromBucket
             ? "; GitHub not asked while the bucket carries the history"
             : "; GitHub every " + Math.round(githubIntervalMs() / 1000) + " s" + (live ? " (paced by the remaining budget)" : ""));
-        state.timer = setTimeout(function () { tick(false); }, BUCKET_MS);
+        // A HIDDEN TAB DOES NOT POLL (2026-10-02). It read the same 23
+        // documents every 30 seconds whether anyone could see them or not -
+        // about 5 MB an hour a tab, and a tab forgotten in the background over
+        // a day was a hundred megabytes nobody looked at. The tick that finds
+        // the tab hidden reads nothing and stops; the tab coming back reads at
+        // once, so what a person sees is never older than when they looked.
+        state.timer = setTimeout(function () {
+          if (document.hidden) { state.pausedHidden = true; return; }
+          tick(false);
+        }, BUCKET_MS);
       }
+      document.addEventListener("visibilitychange", function () {
+        if (!document.hidden && state.pausedHidden) { state.pausedHidden = false; load(); }
+      });
 
       function tick(force) {
         var readGh = force || Date.now() >= state.nextGithubAt;
@@ -4083,7 +4101,7 @@
         };
 
         function readJSON(path) {
-          return fetch(path, { cache: "no-store" })
+          return fetch(path, { cache: "no-cache" })  // a 304 while unchanged; see readStatusFiles
             .then((r) => (r.ok ? r.json() : null))
             .catch(() => null);
         }
