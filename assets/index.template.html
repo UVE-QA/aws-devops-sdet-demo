@@ -1425,6 +1425,36 @@
         align-items: baseline; gap: 0.5rem; padding: 0.6rem 0; font-size: 0.85rem; font-weight: 600;
       }
       details.cut > summary::-webkit-details-marker { display: none; }
+      /* THE APPLICATION, INSIDE (ADR-0103). A drawn picture in the page's own
+         vocabulary: the marks are the sprite's, the colours are the theme's, so
+         it follows light and dark with everything else. Wide, so it scrolls
+         inside its own box rather than shrinking - the same rule as the schema:
+         never smaller, scroll instead. */
+      .appflow-wrap { overflow-x: auto; margin-top: var(--gap); }
+      .appflow { display: block; width: 100%; min-width: 72rem; height: auto; }
+      .appflow .af-tile { fill: var(--panel); stroke: var(--line); stroke-width: 1.2; }
+      .appflow .af-part { fill: var(--off-bg); stroke: var(--line); }
+      .appflow .af-schema { fill: none; stroke: var(--line); stroke-dasharray: 5 4; stroke-width: 1.2; }
+      .appflow .af-fail { fill: var(--bad-bg); stroke: color-mix(in srgb, var(--bad) 40%, var(--line)); stroke-width: 1.2; }
+      .appflow text { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+      .appflow .af-t { font-size: 16px; font-weight: 600; fill: var(--fg); }
+      .appflow .af-s, .appflow .af-lg { font-size: 13px; fill: var(--muted); }
+      .appflow .af-pt { font-size: 13.5px; font-weight: 600; fill: var(--fg); }
+      .appflow .af-ps, .appflow .af-el, .appflow .af-psbad { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; fill: var(--muted); }
+      .appflow .af-psbad { fill: var(--bad); }
+      .appflow .af-sync { fill: none; stroke: var(--accent); stroke-width: 1.8; }
+      .appflow .af-back { opacity: 0.5; }
+      .appflow .af-async { fill: none; stroke: var(--ok); stroke-width: 1.8; stroke-dasharray: 7 5; }
+      .appflow .af-failp { fill: none; stroke: var(--bad); stroke-width: 1.5; stroke-dasharray: 4 4; }
+      .appflow .af-cred { fill: none; stroke: var(--warn); stroke-width: 1.4; stroke-dasharray: 2 4; }
+      .appflow .af-step { fill: var(--accent); }
+      .appflow .af-sn { font-size: 12px; font-weight: 700; fill: var(--bg); text-anchor: middle; }
+      .appflow .af-ma { fill: var(--accent); }
+      .appflow .af-mg { fill: var(--ok); }
+      .appflow .af-mb { fill: var(--bad); }
+      .appflow .af-mc { fill: var(--warn); }
+      .appflow-steps { margin: var(--gap) 0 0; padding-left: 1.6rem; color: var(--fg); }
+      .appflow-steps li { margin: 0.15rem 0; }
       details.cut > summary::before { content: "▸"; color: var(--muted); font-weight: 400; }
       details.cut[open] > summary::before { content: "▾"; }
       details.cut > summary .small { margin-left: auto; font-weight: 400; }
@@ -1745,6 +1775,33 @@
         <div class="path" id="path"></div>
         <div class="strip" id="strip"></div>
       </section>
+
+      <!-- THE APPLICATION, INSIDE (ADR-0103). The page's second cut, and it earns
+           it the way the first one does: it is a reference, the height of a
+           screen, and a part that opened with it flat would bury what is above
+           it. The owner's word: *чтоб она открывалась по запросу а не постоянно
+           портянка на весь экран*. DRAWN, NOT GENERATED - every other picture
+           here is derived and gated, and this one says so in its summary line;
+           the facts were read from the code the day it was drawn, and
+           scripts/draw-app-flow.py says which files to read again when they
+           change. -->
+      <details data-part="detail" class="cut detail" id="app-flow-cut">
+        <summary>The application, inside <span class="small">one item followed through both services &mdash; drawn by hand from the code, not generated</span></summary>
+        <div class="appflow-wrap"><!--APP-FLOW--></div>
+        <ol class="appflow-steps">
+          <li>The browser asks.</li>
+          <li>The load balancer sends <code>/api/*</code> to the api and everything else to web.</li>
+          <li>The api writes the item and its event in one transaction: both or neither.</li>
+          <li>And answers 201. The visitor's wait ends here.</li>
+          <li>A thread of the api sends the event from the outbox to the <code>items</code> queue.</li>
+          <li>The worker receives it.</li>
+          <li>And writes its receipt in its own schema. A second delivery of the same event changes nothing.</li>
+          <li>It publishes <code>item.processed</code> to the <code>results</code> queue, and only then deletes the event.</li>
+          <li>A thread of the api receives the report.</li>
+          <li>And records it beside the item, where the next read finds it.</li>
+        </ol>
+        <p class="sub">A worker that is down loses nothing: the events wait in the queue. An event that fails three times moves to its dead-letter queue, where an alarm waits.</p>
+      </details>
 
       <section data-part="detail" class="contour" id="c-permanent">
         <h2>Permanent <span class="note">&mdash; <span id="perm-note">no destroy workflow touches these</span></span></h2>

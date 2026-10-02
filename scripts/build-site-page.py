@@ -46,6 +46,10 @@ ICON_DIRS = [ROOT / "assets/aws-icons", ROOT / "assets/vendor-icons"]
 TEMPLATE = ROOT / "assets/index.template.html"
 OUT = ROOT / "site/index.html"
 MARKER = "<!--ICON-SPRITE-->"
+# THE APPLICATION, INSIDE (ADR-0103): a drawn picture, kept as its own file so
+# that scripts/draw-app-flow.py owns it and the template only says where it goes.
+APP_FLOW = ROOT / "assets/app-flow.svg"
+APP_FLOW_MARKER = "<!--APP-FLOW-->"
 
 # The service keys the page asks for, by <use href="#ic-KEY">. A key here with no
 # file is an error rather than a silently empty box.
@@ -102,7 +106,11 @@ def build() -> str:
         + ["</svg>"]
     )
     print(f"{len(KEYS)} icons, {len(sprite.encode()):,} bytes of sprite", file=sys.stderr)
-    return template.replace(MARKER, sprite)
+    if APP_FLOW_MARKER not in template:
+        raise SystemExit(f"{TEMPLATE} no longer contains {APP_FLOW_MARKER}; the application's picture has nowhere to go")
+    if not APP_FLOW.is_file():
+        raise SystemExit(f"{APP_FLOW} is missing - run scripts/draw-app-flow.py")
+    return template.replace(MARKER, sprite).replace(APP_FLOW_MARKER, APP_FLOW.read_text().strip())
 
 
 def main(argv: list[str]) -> int:
