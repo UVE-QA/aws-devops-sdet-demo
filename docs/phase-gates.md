@@ -4592,6 +4592,11 @@ Links to the repository are sent continuously, so in two steps.
   first attempt, the first snapshot 25 s after the press and the quiet page
   showing the cycle within the next half-minute, three `destroyed` after,
   the hook's `completed` 25 s after the lock, zero GitHub requests.
+- **The visitor report marks the owner** (ADR-0104, amended): `/?me` once
+  from a browser makes that address and browser `me`, its address or its
+  network `probably me`, the rest `someone`. The first real report, over
+  2 October: 5 visitors, 8 page views, nobody marked yet. Merged to `main`
+  on *yes go*; CI green.
 - Next allowed step: on the owner's word - step 2 above, or the tail the
   plan left behind: per-service database users (ADR-0098 D2, *leave it as
   is for now*), a lab site, the blunted break tests, the release-tag 403,
