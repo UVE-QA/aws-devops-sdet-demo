@@ -164,6 +164,72 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "site" {
 }
 
 # ---------------------------------------------------------------------------
+# WHO LOOKED (2026-10-02). The owner asked how to tell whether anyone opens the
+# page without pressing the button - how many, and roughly from where. The
+# button leaves a record; a visit did not. CloudFront's standard access logs,
+# into a bucket of their own: private, encrypted, nothing read from it but by
+# scripts/visitors.py on the devbox, and every object gone after 90 days.
+# The logs hold viewers' IP addresses; the repository is public and the bucket
+# is not, and the script prints counts and regions, never an address.
+#
+# Standard logging writes through the bucket's ACL - CloudFront grants its own
+# log-delivery account access when logging is switched on - so this bucket,
+# unlike the site's, keeps ACLs enabled with the owner preferred. Public access
+# stays blocked: the log-delivery grant is not a public one.
+# ---------------------------------------------------------------------------
+data "aws_caller_identity" "current" {}
+
+resource "aws_s3_bucket" "logs" {
+  # checkov:skip=CKV_AWS_21: No versioning on purpose. These are CloudFront's own append-only log objects, written once and expired after 90 days by the lifecycle below; a second version of a log line is not a thing that exists, and keeping deleted ones would only stretch the 90 days the owner was told.
+  bucket = "${local.name_prefix}-logs-${data.aws_caller_identity.current.account_id}"
+
+  tags = {
+    Name = "${local.name_prefix}-logs"
+  }
+}
+
+resource "aws_s3_bucket_ownership_controls" "logs" {
+  # checkov:skip=CKV2_AWS_65: ACLs stay enabled on this bucket and no other. CloudFront's standard logging delivers through the bucket ACL - it grants its log-delivery account write access when logging is switched on - and refuses a bucket with ACLs disabled. Public access is still blocked in full; the grant is to AWS's log-delivery account, not to the public.
+  bucket = aws_s3_bucket.logs.id
+  rule {
+    object_ownership = "BucketOwnerPreferred"
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "logs" {
+  bucket                  = aws_s3_bucket.logs.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "logs" {
+  bucket = aws_s3_bucket.logs.id
+  rule {
+    apply_server_side_encryption_by_default {
+      # SSE-S3: CloudFront's log delivery cannot write into a KMS-encrypted bucket.
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
+resource "aws_s3_bucket_lifecycle_configuration" "logs" {
+  bucket = aws_s3_bucket.logs.id
+  rule {
+    id     = "expire-after-90-days"
+    status = "Enabled"
+    filter {}
+    expiration {
+      days = 90
+    }
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 1
+    }
+  }
+}
+
+# ---------------------------------------------------------------------------
 # Certificate, in us-east-1 because CloudFront accepts nothing else.
 # The apex is here and NOT in the infra/dns wildcard: a wildcard does not cover
 # the apex, and that certificate is regional anyway.
@@ -261,6 +327,14 @@ resource "aws_cloudfront_distribution" "site" {
     # the GUID above: a wrong name fails at plan time with something readable,
     # where a wrong GUID fails at apply with an id nobody can look up.
     response_headers_policy_id = data.aws_cloudfront_response_headers_policy.security_headers.id
+  }
+
+  # Every request, one line each, into the logs bucket above (2026-10-02).
+  # No cookies: the page sets none, and a log should not start collecting them.
+  logging_config {
+    bucket          = aws_s3_bucket.logs.bucket_domain_name
+    prefix          = "cloudfront/"
+    include_cookies = false
   }
 
   restrictions {

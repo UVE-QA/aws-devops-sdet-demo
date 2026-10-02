@@ -27,3 +27,8 @@ output "certificate_arn" {
   description = "ARN of the us-east-1 certificate CloudFront terminates TLS with. Distinct from the regional wildcard in infra/dns that the prod ALB uses."
   value       = aws_acm_certificate_validation.site.certificate_arn
 }
+
+output "logs_bucket" {
+  description = "CloudFront's access logs for the dashboard (2026-10-02); read by scripts/visitors.py, kept 90 days."
+  value       = aws_s3_bucket.logs.bucket
+}

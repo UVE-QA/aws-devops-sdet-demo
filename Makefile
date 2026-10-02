@@ -8,7 +8,7 @@
         site-data site-data-check timeline-check node-states-check \
         suite-inventory suite-inventory-check results-check live-state-check \
         page-tense-check page-freshness-check page-inflight-check page-schema-check \
-        publish-prefixes-check lifecycle-list-check claim-chain contrast-check measure-page manifest-check gates gates-full gates-check
+        publish-prefixes-check lifecycle-list-check claim-chain contrast-check measure-page manifest-check visitors gates gates-full gates-check
 
 # Bring up postgres + app (build app image if needed), detached.
 local-up:
@@ -569,6 +569,14 @@ schema:
 # the page's WRITERS, publish-runs.yml's trigger, publish-runs.sh's list.
 lifecycle-list-check:
 	python3 scripts/check-lifecycle-list.py
+
+# WHO LOOKED (2026-10-02): unique visitors, page views and rough places from
+# CloudFront's access logs. Not a gate - it reads AWS and prints a report.
+#   make visitors            the last 7 days
+#   make visitors DAYS=30    a month; HTML=report.html also writes a page
+DAYS ?= 7
+visitors:
+	AWS_PROFILE=$${AWS_PROFILE:-demo-admin} python3 scripts/visitors.py --days $(DAYS) $(if $(HTML),--html $(HTML),)
 
 manifest-check:
 	python3 scripts/check-manifest.py

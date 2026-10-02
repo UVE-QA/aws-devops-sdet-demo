@@ -340,7 +340,12 @@
       "aws_route53_record.site_a": "perm.site",
       "aws_route53_record.site_aaaa": "perm.site",
       "aws_iam_role.publish": "perm.site",
-      "aws_iam_role_policy.publish": "perm.site"
+      "aws_iam_role_policy.publish": "perm.site",
+      "aws_s3_bucket.logs": "perm.site",
+      "aws_s3_bucket_ownership_controls.logs": "perm.site",
+      "aws_s3_bucket_public_access_block.logs": "perm.site",
+      "aws_s3_bucket_server_side_encryption_configuration.logs": "perm.site",
+      "aws_s3_bucket_lifecycle_configuration.logs": "perm.site"
     },
     "infra/self-service": {
       "aws_cloudwatch_log_group.launch": "perm.selfservice",
