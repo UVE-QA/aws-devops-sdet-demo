@@ -4586,6 +4586,12 @@ Links to the repository are sent continuously, so in two steps.
   the same cadence. Gates 15/15; contrast, freshness, in-flight and schema
   page checks green. Merged to `main` on *yes - go ahead*; CI and
   publish-site green, the live page carries it.
+- **#41 from the button, 2026-10-02, green in 68 minutes**, pressed by the
+  owner over everything merged that day - the drawn picture, the access
+  logs, the quiet polling: signed in to ECR Public, three images on the
+  first attempt, the first snapshot 25 s after the press and the quiet page
+  showing the cycle within the next half-minute, three `destroyed` after,
+  the hook's `completed` 25 s after the lock, zero GitHub requests.
 - Next allowed step: on the owner's word - step 2 above, or the tail the
   plan left behind: per-service database users (ADR-0098 D2, *leave it as
   is for now*), a lab site, the blunted break tests, the release-tag 403,

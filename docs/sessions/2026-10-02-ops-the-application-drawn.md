@@ -57,6 +57,14 @@ answers `304` with no body - and stops polling in a hidden tab; metered again,
 31 KB per three visible minutes instead of 255 and nothing while hidden, with
 the same cadence and every page check green.
 
+## #41
+
+The owner pressed the button over the day's work. Green in 68 minutes:
+signed in to ECR Public, three images on the first attempt; the first snapshot
+in the bucket 25 seconds after the press, and the page - polling quietly now -
+closing the button and drawing the cycle within the next half-minute, exactly
+as fast as before; three `destroyed` after.
+
 ## What is still open
 
 A derived version, if this one earns its place. `measure-page`'s fixture,
