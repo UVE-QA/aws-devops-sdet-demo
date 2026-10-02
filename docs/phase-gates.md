@@ -4566,6 +4566,8 @@ Links to the repository are sent continuously, so in two steps.
   and theme, 9 KB. Gates 15/15; contrast and the page checks green.
   Found on the way: `measure-page` (manual, not a gate) refuses on `main`
   too - its fixture lacks the lab's progress file.
+- Merged to `main` on the owner's *да, вливай*; CI and publish-site green;
+  the live page carries the closed section.
 - Next allowed step: on the owner's word - step 2 above, or the tail the
   plan left behind: per-service database users (ADR-0098 D2, *leave it as
   is for now*), a lab site, the blunted break tests, the release-tag 403,
