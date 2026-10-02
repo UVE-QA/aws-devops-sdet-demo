@@ -34,6 +34,19 @@ page's icon sprite and theme variables - light and dark both photographed -
 and the page builder injects it, so `site-page-check` holds the copy. The ten
 steps are an HTML list under it.
 
+## Who looked (ADR-0104)
+
+The owner asked how to tell whether anyone opens the page without pressing
+the button. Three ways weighed - CloudFront's console reports, its access logs
+with a script, a third-party analytics script - and the owner chose the logs,
+read on request. The logs bucket and the distribution's logging were applied to
+`infra/public-site` after the owner signed in by device code from a phone and
+said yes to the plan: 5 to add, and two policies Terraform showed as changing
+only because it defers reading documents that name a changing distribution -
+read from AWS before and after, identical. `make visitors` was tested on a
+synthetic log first, which caught the referrer being taken from a visitor's
+first view only; it now counts every source a visitor came through.
+
 ## What is still open
 
 A derived version, if this one earns its place. `measure-page`'s fixture,

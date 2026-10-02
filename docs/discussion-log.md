@@ -14,7 +14,11 @@ transaction that writes the item with its event, the relay, both queues, the
 receipt, the projection, the dead-letter path. Mocked, corrected on the owner's
 eye, then put in `Details` closed until asked for, on the owner's word. It
 says on itself that it is drawn; it is drawn in the page's own sprite and
-theme. A derived version waits until this one earns its place.
+theme. A derived version waits until this one earns its place. Then
+**ADR-0104**, who looked: a visit used to leave no record. CloudFront's
+access logs now go to a private bucket for 90 days, and `make visitors`
+counts visitors, places and referrers on request, printing no address; the
+counts stay off the page.
 
 **As of 2026-09-30 (47 — the base images, pulled as this account).** The
 owner asked whether everything works; it did, and one thing was about to

@@ -4568,6 +4568,12 @@ Links to the repository are sent continuously, so in two steps.
   too - its fixture lacks the lab's progress file.
 - Merged to `main` on the owner's *да, вливай*; CI and publish-site green;
   the live page carries the closed section.
+- **2026-10-02, who looked (ADR-0104)**: CloudFront's access logs into a
+  private bucket at `infra/public-site` (90 days, no cookies), applied on
+  the owner's yes after the plan - 5 to add; the two policies the plan
+  showed as changing read back identical. `make visitors` reports visitors
+  per day, page views, the edge, the referrer and the device, and prints no
+  address; read on request, not on the page.
 - Next allowed step: on the owner's word - step 2 above, or the tail the
   plan left behind: per-service database users (ADR-0098 D2, *leave it as
   is for now*), a lab site, the blunted break tests, the release-tag 403,
