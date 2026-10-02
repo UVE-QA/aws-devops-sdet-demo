@@ -28,6 +28,15 @@ What counts, and why:
 - FROM is the referrer's site: the link someone followed, or `direct`. A
   visitor is counted once under every source they came through.
 
+- WHO is the owner's question, answered by a mark the owner leaves: open the
+  page once as `https://demo.uveapp.net/?me` from a browser, and that address
+  with that browser is `me` for the whole period read. The same address with
+  another browser, or the same browser from the same network (the first three
+  parts of an IPv4 address, the first three groups of an IPv6 one) at another
+  address, is `probably me`. Anything else is someone else - a different place
+  and a different browser cannot be told apart from a stranger, and the report
+  does not pretend to.
+
 Nothing printed or written by this script contains an IP address.
 """
 from __future__ import annotations
@@ -142,11 +151,42 @@ def read(since: dt.date, skip: set[str]):
                 continue
             if NOT_PEOPLE.search(ua) or row.get("c-ip") in skip:
                 continue
+            q = urllib.parse.parse_qs(row.get("cs-uri-query", "-") if row.get("cs-uri-query") != "-" else "",
+                                      keep_blank_values=True)
             yield {"day": day, "who": (row.get("c-ip"), ua), "where": where(row.get("x-edge-location", "")),
-                   "from": came_from(row.get("cs(Referer)", "-")), "device": device(ua)}
+                   "from": came_from(row.get("cs(Referer)", "-")), "device": device(ua), "me": "me" in q}
+
+
+def network(ip: str) -> str:
+    """The provider's network an address belongs to, roughly: a /24 for IPv4,
+    a /48 for IPv6. Two addresses in one of these are very likely one place."""
+    if ":" in ip:
+        return ":".join(ip.split(":")[:3])
+    return ".".join(ip.split(".")[:3])
+
+
+def classify(views: list[dict]) -> dict:
+    """me / probably me / someone, per visitor (ip, browser) - see the module
+    docstring for the rules."""
+    mine = {v["who"] for v in views if v["me"]}
+    my_ips = {ip for ip, _ in mine}
+    my_nets_by_ua = {(network(ip), ua) for ip, ua in mine}
+    out = {}
+    for ip, ua in {v["who"] for v in views}:
+        if (ip, ua) in mine:
+            out[(ip, ua)] = "me"
+        elif ip in my_ips or (network(ip), ua) in my_nets_by_ua:
+            out[(ip, ua)] = "probably me"
+        else:
+            out[(ip, ua)] = "someone"
+    return out
+
+
+WHOS = ("someone", "probably me", "me")
 
 
 def report(views: list[dict], days: int) -> dict:
+    cls = classify(views)
     by_day = collections.OrderedDict()
     for v in sorted(views, key=lambda v: v["day"]):
         d = by_day.setdefault(v["day"].isoformat(), {"views": 0, "who": set()})
@@ -155,42 +195,65 @@ def report(views: list[dict], days: int) -> dict:
     first = {}
     for v in sorted(views, key=lambda v: v["day"]):
         first.setdefault(v["who"], v)
-    count = lambda key: collections.Counter(v[key] for v in first.values()).most_common()
+
+    def count(key):
+        # a value, with how many of its visitors are the owner - never a name
+        c = collections.Counter(); m = collections.Counter()
+        for who, v in first.items():
+            c[v[key]] += 1
+            if cls[who] != "someone":
+                m[v[key]] += 1
+        return [(k, n, m[k]) for k, n in c.most_common()]
+
+    split = lambda whos: {w: sum(1 for x in whos if cls[x] == w) for w in WHOS}
     return {
-        "days": days, "page_views": len(views), "visitors": len(first),
-        "by_day": [{"day": k, "visitors": len(d["who"]), "views": d["views"]} for k, d in by_day.items()],
+        "days": days, "page_views": len(views), "visitors": len(first), "split": split(first),
+        "by_day": [{"day": k, "visitors": len(d["who"]), "views": d["views"], **split(d["who"])}
+                   for k, d in by_day.items()],
         "where": count("where"), "device": count("device"),
         # every source a visitor came through, once each: a visitor who came
         # back from a LinkedIn post counts there even if their first visit was
         # typed in
-        "from": collections.Counter(src for _, src in {(v["who"], v["from"]) for v in views
-                                                        if v["from"] != "this site"}).most_common(),
+        "from": (lambda pairs: [(k, n, sum(1 for w, s in pairs if s == k and cls[w] != "someone"))
+                                for k, n in collections.Counter(s for _, s in pairs).most_common()])(
+            {(v["who"], v["from"]) for v in views if v["from"] != "this site"}),
     }
 
 
 def text(r: dict) -> str:
-    out = [f"last {r['days']} days: {r['visitors']} visitors, {r['page_views']} page views",
-           "(a visitor is one address with one browser; where is the CloudFront edge that answered)", ""]
-    out.append("day         visitors  views")
-    out += [f"{d['day']}  {d['visitors']:>8}  {d['views']:>5}" for d in r["by_day"]] or ["(no visits)"]
+    s = r["split"]
+    out = [f"last {r['days']} days: {r['visitors']} visitors - {s['someone']} someone, "
+           f"{s['probably me']} probably me, {s['me']} me - {r['page_views']} page views",
+           "(a visitor is one address with one browser; where is the CloudFront edge that answered;",
+           " `me` is a browser that opened /?me, `probably me` its address or its network)", ""]
+    out.append("day         visitors  someone  prob.me  me   views")
+    out += [f"{d['day']}  {d['visitors']:>8}  {d['someone']:>7}  {d['probably me']:>7}  {d['me']:>2}  {d['views']:>6}"
+            for d in r["by_day"]] or ["(no visits)"]
     for title, key in (("where", "where"), ("from", "from"), ("device", "device")):
-        out += ["", title] + [f"  {n:>4}  {k}" for k, n in r[key]]
+        out += ["", title] + [f"  {n:>4}  {k}" + (f"   ({m} of them you)" if m else "") for k, n, m in r[key]]
     return "\n".join(out)
 
 
 def page(r: dict) -> str:
-    rows = "".join(f"<tr><td>{d['day']}</td><td>{d['visitors']}</td><td>{d['views']}</td></tr>" for d in r["by_day"])
-    lists = "".join(f"<h2>{t}</h2><table>" + "".join(f"<tr><td>{html.escape(str(k))}</td><td>{n}</td></tr>"
-                                                    for k, n in r[key]) + "</table>"
-                    for t, key in (("Where", "where"), ("From", "from"), ("Device", "device")))
+    s = r["split"]
+    rows = "".join(f"<tr><td>{d['day']}</td><td>{d['visitors']}</td><td>{d['someone']}</td><td>{d['probably me']}</td>"
+                   f"<td>{d['me']}</td><td>{d['views']}</td></tr>" for d in r["by_day"])
+    lists = "".join(f"<h2>{t}</h2><table><tr><th></th><th>visitors</th><th>of them you</th></tr>"
+                    + "".join(f"<tr><td>{html.escape(str(k))}</td><td>{n}</td><td>{m or ''}</td></tr>" for k, n, m in r[key])
+                    + "</table>" for t, key in (("Where", "where"), ("From", "from"), ("Device", "device")))
     return ("<!doctype html><meta charset=utf-8><meta name=viewport content='width=device-width'>"
             "<title>Visitors</title><style>body{font:15px system-ui;margin:1.2rem;color:#16181d}"
             "table{border-collapse:collapse;margin:.4rem 0 1rem}td,th{padding:.25rem .8rem;border-bottom:1px solid #d8dbe2;"
-            "text-align:left}h1{font-size:1.2rem}h2{font-size:1rem;margin-top:1.2rem}p{color:#5c6370}</style>"
-            f"<h1>{r['visitors']} visitors, {r['page_views']} page views - last {r['days']} days</h1>"
-            "<p>A visitor is one address with one browser. Where is the CloudFront edge that answered, near the "
-            "visitor and not the visitor. Crawlers and this repository's own headless checks are not counted.</p>"
-            f"<table><tr><th>day</th><th>visitors</th><th>views</th></tr>{rows}</table>{lists}")
+            "text-align:left}h1{font-size:1.2rem}h2{font-size:1rem;margin-top:1.2rem}p{color:#5c6370}"
+            "@media (prefers-color-scheme:dark){body{background:#14161a;color:#e6e8ee}td,th{border-color:#2b2f38}p{color:#9aa2b1}}</style>"
+            f"<h1>{r['visitors']} visitors in the last {r['days']} days: {s['someone']} someone, "
+            f"{s['probably me']} probably you, {s['me']} you</h1>"
+            f"<p>{r['page_views']} page views. A visitor is one address with one browser. <b>You</b> is a browser that "
+            "opened <code>/?me</code>; <b>probably you</b> is the same address with another browser, or the same browser "
+            "from the same network. Where is the CloudFront edge that answered, near the visitor and not the visitor. "
+            "Crawlers and this repository's own headless checks are not counted.</p>"
+            "<table><tr><th>day</th><th>visitors</th><th>someone</th><th>probably you</th><th>you</th><th>views</th></tr>"
+            f"{rows}</table>{lists}")
 
 
 def main() -> int:

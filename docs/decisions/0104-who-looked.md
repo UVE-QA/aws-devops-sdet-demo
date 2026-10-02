@@ -65,4 +65,12 @@ proves inconvenient.
   new cycle is noticed exactly as fast. The slower idle cadence and the
   progress files' `403`s were left as they are: they decide how soon the
   page sees a cycle start (ADR-0062), which is behaviour, not waste.
+- **The owner, counted and marked (2026-10-02).** *let it count but with
+  mark "me" or "probably me" if not clear, because I access demo from
+  different places and browsers.* Every visitor is counted; the owner leaves a
+  mark by opening `/?me` once from a browser, and the report calls that
+  address with that browser `me`, the same address with another browser or the
+  same browser from the same network `probably me`, and everything else
+  `someone`. Proven on a synthetic log with each case before it was run on the
+  real one.
 
