@@ -4574,6 +4574,11 @@ Links to the repository are sent continuously, so in two steps.
   showed as changing read back identical. `make visitors` reports visitors
   per day, page views, the edge, the referrer and the device, and prints no
   address; read on request, not on the page.
+- Merged to `main` on the owner's *да, вливай*; CI and publish-site green.
+  The traffic since 26 July was read from CloudWatch for the owner as a
+  one-off report: 1.34 million requests in 69 days, nearly all of them open
+  tabs' minute polls on cycle days; a median of 441 on the 42 days with no
+  cycle. Summaries on request for now; a schedule later, if wanted.
 - Next allowed step: on the owner's word - step 2 above, or the tail the
   plan left behind: per-service database users (ADR-0098 D2, *leave it as
   is for now*), a lab site, the blunted break tests, the release-tag 403,
