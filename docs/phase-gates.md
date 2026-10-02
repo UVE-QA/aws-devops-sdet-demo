@@ -4584,7 +4584,8 @@ Links to the repository are sent continuously, so in two steps.
   while unchanged) and no polling in a hidden tab. Metered on the live
   data: 31 KB per three visible minutes instead of 255, zero while hidden,
   the same cadence. Gates 15/15; contrast, freshness, in-flight and schema
-  page checks green.
+  page checks green. Merged to `main` on *yes - go ahead*; CI and
+  publish-site green, the live page carries it.
 - Next allowed step: on the owner's word - step 2 above, or the tail the
   plan left behind: per-service database users (ADR-0098 D2, *leave it as
   is for now*), a lab site, the blunted break tests, the release-tag 403,
