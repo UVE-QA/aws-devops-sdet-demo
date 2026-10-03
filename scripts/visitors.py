@@ -37,6 +37,12 @@ What counts, and why:
   and a different browser cannot be told apart from a stranger, and the report
   does not pretend to.
 
+- LINK is the code a link may carry as `?s=<code>`. What a code names is
+  not in this repository; it is read from
+  ~/.config/aws-devops-sdet-demo/visitor-sources on the devbox, one
+  `<code> = <name>` per line, and a code with no line is printed as
+  `link <code>`.
+
 Nothing printed or written by this script contains an IP address.
 """
 from __future__ import annotations
@@ -56,6 +62,18 @@ import urllib.parse
 
 CACHE = pathlib.Path(os.environ.get("VISITORS_CACHE", pathlib.Path.home() / ".cache/aws-devops-sdet-demo/cf-logs"))
 EXCLUDE_FILE = pathlib.Path.home() / ".config/aws-devops-sdet-demo/visitors-exclude"
+SOURCES_FILE = pathlib.Path.home() / ".config/aws-devops-sdet-demo/visitor-sources"
+
+
+def sources() -> dict[str, str]:
+    if not SOURCES_FILE.is_file():
+        return {}
+    out = {}
+    for ln in SOURCES_FILE.read_text().splitlines():
+        if "=" in ln and not ln.lstrip().startswith("#"):
+            k, v = ln.split("=", 1)
+            out[k.strip()] = v.strip()
+    return out
 PAGES = {"/", "/index.html"}
 NOT_PEOPLE = re.compile(r"bot|crawl|spider|slurp|preview|facebookexternalhit|embedly|monitor|uptime|curl|wget|"
                         r"python-|go-http|okhttp|java/|headlesschrome|lighthouse|pingdom|scan", re.I)
@@ -154,7 +172,8 @@ def read(since: dt.date, skip: set[str]):
             q = urllib.parse.parse_qs(row.get("cs-uri-query", "-") if row.get("cs-uri-query") != "-" else "",
                                       keep_blank_values=True)
             yield {"day": day, "who": (row.get("c-ip"), ua), "where": where(row.get("x-edge-location", "")),
-                   "from": came_from(row.get("cs(Referer)", "-")), "device": device(ua), "me": "me" in q}
+                   "from": came_from(row.get("cs(Referer)", "-")), "device": device(ua), "me": "me" in q,
+                   "link": (q.get("s") or [None])[0]}
 
 
 def network(ip: str) -> str:
@@ -214,6 +233,9 @@ def report(views: list[dict], days: int) -> dict:
         # every source a visitor came through, once each: a visitor who came
         # back from a LinkedIn post counts there even if their first visit was
         # typed in
+        "link": (lambda names, pairs: [(names.get(k, f"link {k}"), n, sum(1 for w, s in pairs if s == k and cls[w] != "someone"))
+                                       for k, n in collections.Counter(s for _, s in pairs).most_common()])(
+            sources(), {(v["who"], v["link"]) for v in views if v["link"]}),
         "from": (lambda pairs: [(k, n, sum(1 for w, s in pairs if s == k and cls[w] != "someone"))
                                 for k, n in collections.Counter(s for _, s in pairs).most_common()])(
             {(v["who"], v["from"]) for v in views if v["from"] != "this site"}),
@@ -229,8 +251,9 @@ def text(r: dict) -> str:
     out.append("day         visitors  someone  prob.me  me   views")
     out += [f"{d['day']}  {d['visitors']:>8}  {d['someone']:>7}  {d['probably me']:>7}  {d['me']:>2}  {d['views']:>6}"
             for d in r["by_day"]] or ["(no visits)"]
-    for title, key in (("where", "where"), ("from", "from"), ("device", "device")):
-        out += ["", title] + [f"  {n:>4}  {k}" + (f"   ({m} of them you)" if m else "") for k, n, m in r[key]]
+    for title, key in (("link", "link"), ("where", "where"), ("from", "from"), ("device", "device")):
+        rows = [f"  {n:>4}  {k}" + (f"   ({m} of them you)" if m else "") for k, n, m in r[key]]
+        out += ["", title] + (rows or (["  (no marked link followed)"] if key == "link" else []))
     return "\n".join(out)
 
 
@@ -240,7 +263,7 @@ def page(r: dict) -> str:
                    f"<td>{d['me']}</td><td>{d['views']}</td></tr>" for d in r["by_day"])
     lists = "".join(f"<h2>{t}</h2><table><tr><th></th><th>visitors</th><th>of them you</th></tr>"
                     + "".join(f"<tr><td>{html.escape(str(k))}</td><td>{n}</td><td>{m or ''}</td></tr>" for k, n, m in r[key])
-                    + "</table>" for t, key in (("Where", "where"), ("From", "from"), ("Device", "device")))
+                    + "</table>" for t, key in (("Link", "link"), ("Where", "where"), ("From", "from"), ("Device", "device")))
     return ("<!doctype html><meta charset=utf-8><meta name=viewport content='width=device-width'>"
             "<title>Visitors</title><style>body{font:15px system-ui;margin:1.2rem;color:#16181d}"
             "table{border-collapse:collapse;margin:.4rem 0 1rem}td,th{padding:.25rem .8rem;border-bottom:1px solid #d8dbe2;"
