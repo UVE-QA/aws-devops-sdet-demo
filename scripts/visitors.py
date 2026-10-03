@@ -143,7 +143,31 @@ def came_from(ref: str) -> str:
 
 
 def device(ua: str) -> str:
-    return "mobile" if re.search(r"Mobile|Android|iPhone|iPad", ua) else "desktop"
+    """phone, tablet or desktop, from the user agent alone. An iPad that asks
+    for the desktop site says Macintosh and is counted as a desktop - the
+    browser does not tell, and no request is made to find out."""
+    if re.search(r"iPad|Tablet|Android(?!.*Mobile)", ua):
+        return "tablet"
+    if re.search(r"Mobile|iPhone|Android", ua):
+        return "phone"
+    return "desktop"
+
+
+def system(ua: str) -> str:
+    for pat, name in ((r"iPhone|iPod", "iOS"), (r"iPad", "iPadOS"), (r"Android", "Android"), (r"CrOS", "ChromeOS"),
+                      (r"Windows", "Windows"), (r"Mac OS X|Macintosh", "macOS"), (r"Linux", "Linux")):
+        if re.search(pat, ua):
+            return name
+    return "other"
+
+
+def browser(ua: str) -> str:
+    # order matters: Edge, Opera and Samsung all say Chrome too, and Chrome says Safari
+    for pat, name in ((r"Edg(e|A|iOS)?/", "Edge"), (r"OPR/|Opera", "Opera"), (r"SamsungBrowser", "Samsung Internet"),
+                      (r"Firefox/|FxiOS", "Firefox"), (r"Chrome/|CriOS", "Chrome"), (r"Safari/", "Safari")):
+        if re.search(pat, ua):
+            return name
+    return "other"
 
 
 def read(since: dt.date, skip: set[str]):
@@ -172,7 +196,7 @@ def read(since: dt.date, skip: set[str]):
             q = urllib.parse.parse_qs(row.get("cs-uri-query", "-") if row.get("cs-uri-query") != "-" else "",
                                       keep_blank_values=True)
             yield {"day": day, "who": (row.get("c-ip"), ua), "where": where(row.get("x-edge-location", "")),
-                   "from": came_from(row.get("cs(Referer)", "-")), "device": device(ua), "me": "me" in q,
+                   "from": came_from(row.get("cs(Referer)", "-")), "device": device(ua), "system": system(ua), "browser": browser(ua), "me": "me" in q,
                    "link": (q.get("s") or [None])[0]}
 
 
@@ -229,7 +253,7 @@ def report(views: list[dict], days: int) -> dict:
         "days": days, "page_views": len(views), "visitors": len(first), "split": split(first),
         "by_day": [{"day": k, "visitors": len(d["who"]), "views": d["views"], **split(d["who"])}
                    for k, d in by_day.items()],
-        "where": count("where"), "device": count("device"),
+        "where": count("where"), "device": count("device"), "system": count("system"), "browser": count("browser"),
         # every source a visitor came through, once each: a visitor who came
         # back from a LinkedIn post counts there even if their first visit was
         # typed in
@@ -251,7 +275,8 @@ def text(r: dict) -> str:
     out.append("day         visitors  someone  prob.me  me   views")
     out += [f"{d['day']}  {d['visitors']:>8}  {d['someone']:>7}  {d['probably me']:>7}  {d['me']:>2}  {d['views']:>6}"
             for d in r["by_day"]] or ["(no visits)"]
-    for title, key in (("link", "link"), ("where", "where"), ("from", "from"), ("device", "device")):
+    for title, key in (("link", "link"), ("where", "where"), ("from", "from"), ("device", "device"),
+                       ("system", "system"), ("browser", "browser")):
         rows = [f"  {n:>4}  {k}" + (f"   ({m} of them you)" if m else "") for k, n, m in r[key]]
         out += ["", title] + (rows or (["  (no marked link followed)"] if key == "link" else []))
     return "\n".join(out)
@@ -263,7 +288,8 @@ def page(r: dict) -> str:
                    f"<td>{d['me']}</td><td>{d['views']}</td></tr>" for d in r["by_day"])
     lists = "".join(f"<h2>{t}</h2><table><tr><th></th><th>visitors</th><th>of them you</th></tr>"
                     + "".join(f"<tr><td>{html.escape(str(k))}</td><td>{n}</td><td>{m or ''}</td></tr>" for k, n, m in r[key])
-                    + "</table>" for t, key in (("Link", "link"), ("Where", "where"), ("From", "from"), ("Device", "device")))
+                    + "</table>" for t, key in (("Link", "link"), ("Where", "where"), ("From", "from"), ("Device", "device"),
+                                     ("System", "system"), ("Browser", "browser")))
     return ("<!doctype html><meta charset=utf-8><meta name=viewport content='width=device-width'>"
             "<title>Visitors</title><style>body{font:15px system-ui;margin:1.2rem;color:#16181d}"
             "table{border-collapse:collapse;margin:.4rem 0 1rem}td,th{padding:.25rem .8rem;border-bottom:1px solid #d8dbe2;"

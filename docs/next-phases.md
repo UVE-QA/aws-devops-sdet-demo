@@ -1556,6 +1556,19 @@ bucket versioning          CLOSED 2026-09-13: it had been Enabled since the
                            apply of 2026-08-12, the state agrees, and the 403
                            did not recur. A lifecycle rule for non-current
                            versions was applied the same day (Phase 40).
+screen sizes of visitors   NAMED 2026-10-03, NOT TAKEN, on the owner's word:
+                           not now, no extra requests that could be blocked or
+                           scare anyone off. The access logs give the device
+                           class, the system and the browser from the user
+                           agent, and that is what `make visitors` reports.
+                           Screen and window size, pixel density and the
+                           colour scheme are known only to the page: the shape
+                           ready for later is one request per page load for a
+                           43-byte `px.gif` that the site publishes, the sizes
+                           in its query string, joined to the visitor in the
+                           report by address and browser. Costs: one request
+                           visible in a reviewer's network panel, and the page
+                           checks' servers taught to expect it.
 ```
 
 ## The plan from here — set by the owner on 2026-09-12

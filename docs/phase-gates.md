@@ -4601,6 +4601,10 @@ Links to the repository are sent continuously, so in two steps.
   `?s=<code>`, named from a local file on the devbox and nowhere in this
   repository; the page drops `s` from the address bar on load and keeps
   `me`, on the owner's word.
+- **The visitor report reads the device from the user agent**: phone,
+  tablet or desktop, the system and the browser, tested on eleven real agent
+  strings. Screen sizes named for later and not taken - the owner's word: no
+  extra requests for now (`docs/next-phases.md`, still open).
 - Next allowed step: on the owner's word - step 2 above, or the tail the
   plan left behind: per-service database users (ADR-0098 D2, *leave it as
   is for now*), a lab site, the blunted break tests, the release-tag 403,
