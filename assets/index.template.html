@@ -1878,16 +1878,15 @@
     <script>
       "use strict";
 
-      // The page reads no query parameters. `s` and `me` are taken out of the
-      // address bar on load, so the address shown is the plain one; anything
-      // else in it is left as it was.
+      // The page reads no query parameters. `s` is taken out of the address
+      // bar on load, so the address shown is the plain one; anything else in
+      // it, `me` included, is left as it was.
       (function () {
         try {
-          var q = new URLSearchParams(location.search);
-          if (!q.has("s") && !q.has("me")) return;
-          q.delete("s"); q.delete("me");
-          var rest = q.toString();
-          history.replaceState(history.state, "", location.pathname + (rest ? "?" + rest : "") + location.hash);
+          var parts = location.search.replace(/^\?/, "").split("&").filter(Boolean);
+          var kept = parts.filter(function (p) { return p.split("=")[0] !== "s"; });
+          if (kept.length === parts.length) return;
+          history.replaceState(history.state, "", location.pathname + (kept.length ? "?" + kept.join("&") : "") + location.hash);
         } catch (e) { /* an address the browser will not rewrite stays as it is */ }
       })();
 

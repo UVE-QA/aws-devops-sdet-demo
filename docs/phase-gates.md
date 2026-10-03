@@ -4599,7 +4599,8 @@ Links to the repository are sent continuously, so in two steps.
   on *yes go*; CI green.
 - **A link code in the visitor report**, 2026-10-03: visits counted per
   `?s=<code>`, named from a local file on the devbox and nowhere in this
-  repository; the page drops `s` and `me` from the address bar on load.
+  repository; the page drops `s` from the address bar on load and keeps
+  `me`, on the owner's word.
 - Next allowed step: on the owner's word - step 2 above, or the tail the
   plan left behind: per-service database users (ADR-0098 D2, *leave it as
   is for now*), a lab site, the blunted break tests, the release-tag 403,
