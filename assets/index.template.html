@@ -306,7 +306,19 @@
         font-size: 0.95rem;
       }
       .identrow .links {
-        display: flex; flex-wrap: wrap; gap: 0.35rem 1rem; font-size: 0.84rem;
+        display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.35rem 1rem; font-size: 0.84rem;
+      }
+      /* THE WAY IN TO THE APPLICATION (2026-10-05, on the owner's word: *иначе
+         могут и не дойти до нее*). The picture lives in Details behind a cut, two
+         clicks from a stranger who does not know it is there; this is the one
+         link in the row drawn as a thing to press. */
+      .identrow .links a.to-app {
+        font-weight: 600; color: var(--accent); text-decoration: none;
+        border: 1px solid var(--accent); border-radius: 999px; padding: 0.12rem 0.7rem;
+        background: color-mix(in srgb, var(--accent) 10%, transparent);
+      }
+      .identrow .links a.to-app:hover, .identrow .links a.to-app:focus-visible {
+        background: color-mix(in srgb, var(--accent) 20%, transparent);
       }
       .ident-mark b { font-weight: 700; }
       /* THE NAME IS AN IDENTIFIER; THIS IS THE STATEMENT. `aws-platform-demo`
@@ -1586,6 +1598,7 @@
                part except one. Opposite the name on the same line: what this is
                at one end, where to verify it at the other. -->
           <nav class="links" id="idlinks">
+            <a href="#app-flow-cut" class="to-app" data-to-app-flow>How the application works &rarr;</a>
             <a href="https://github.com/UVE-QA/aws-devops-sdet-demo">repository &rarr;</a>
             <a href="https://github.com/UVE-QA/aws-devops-sdet-demo/tree/main/docs/decisions"><b id="adr-count">&hellip;</b> decision records &rarr;</a>
             <a href="https://github.com/UVE-QA/aws-devops-sdet-demo/actions">Actions &rarr;</a>
@@ -3381,15 +3394,18 @@
       });
       // From the estate to the application's picture: the Details part, the
       // cut opened, the picture in view.
+      // The header's link does the same, and so does an address that ends in
+      // #app-flow-cut, so a link from elsewhere can land on the picture.
       (function () {
-        const a = document.getElementById("to-app-flow");
-        if (!a) return;
-        a.addEventListener("click", (ev) => {
-          ev.preventDefault();
+        function toAppFlow() {
           showPart("detail");
           const cut = document.getElementById("app-flow-cut");
           if (cut) { cut.open = true; cut.scrollIntoView({ block: "start" }); }
+        }
+        document.querySelectorAll("#to-app-flow, [data-to-app-flow]").forEach((a) => {
+          a.addEventListener("click", (ev) => { ev.preventDefault(); toAppFlow(); });
         });
+        if (location.hash === "#app-flow-cut") toAppFlow();
       })();
 
       function renderAll() {
