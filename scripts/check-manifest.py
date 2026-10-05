@@ -394,6 +394,81 @@ def check_observation(root: pathlib.Path, services: list[dict], findings: list[s
             fail(findings, f"scripts/observe-environment.sh writes resources.{key}, a service reading services.json does not declare")
 
 
+TABLE_DECL = re.compile(r'(?:__tablename__\s*=\s*|create_table\(\s*)"([a-z_][a-z0-9_]*)"')
+
+
+MANIFEST_EVENTS: dict = {}
+
+
+def check_events(root: pathlib.Path, events: dict, findings: list[str]) -> None:
+    for q, f in events.items():
+        if q not in QUEUE_MODULE:
+            fail(findings, f"services.json: `events` names queue `{q}`, which has no module")
+        if not (root / f).is_file():
+            fail(findings, f"services.json: the contract for `{q}` is {f}, which does not exist")
+
+
+def check_parts(root: pathlib.Path, services: list[dict], findings: list[str]) -> None:
+    """The inside of each service (2026-10-04): the tables its code declares,
+    and the parts that run in it. Both directions for the tables; and a part
+    may read and write only its own service's tables (ADR-0098) and use only
+    the queues its service publishes or consumes."""
+    for s in services:
+        db = s.get("database")
+        declared = set()
+        for f in (root / s["context"]).rglob("*.py"):
+            if "tests" in f.parts:
+                continue
+            declared |= set(TABLE_DECL.findall(f.read_text(errors="replace")))
+        declared.discard("alembic_version")
+        owned = set((db or {}).get("tables", []))
+        if db is not None and "tables" not in db:
+            fail(findings, f"services.json: {s['name']} has a database and names no tables")
+        for tname in sorted(declared - owned):
+            fail(findings, f"{s['context']}: declares table `{tname}`, which services.json does not give {s['name']}")
+        for tname in sorted(owned - declared):
+            fail(findings, f"services.json: {s['name']} owns table `{tname}`, which no model or migration in {s['context']}/ declares")
+        parts = s.get("parts")
+        if not parts:
+            fail(findings, f"services.json: {s['name']} names no parts")
+            continue
+        pub = set(s["queues"]["publishes"]); con = set(s["queues"]["consumes"])
+        seen_pub, seen_con = set(), set()
+        for part in parts:
+            where = f"services.json: {s['name']} part `{part.get('name')}`"
+            if part.get("kind") not in ("http", "loop"):
+                fail(findings, f"{where}: kind is {part.get('kind')!r}, not http or loop")
+            f = root / part.get("file", "")
+            if not f.is_file():
+                fail(findings, f"{where}: no file {part.get('file')}")
+                continue
+            body = f.read_text(errors="replace")
+            sym = part.get("symbol", "")
+            if re.fullmatch(r"[A-Za-z_]\w*", sym):
+                if not re.search(rf"^(?:class|def|async def)\s+{sym}\b", body, re.M):
+                    fail(findings, f"{where}: {part['file']} defines no `{sym}`")
+            elif sym not in body:
+                fail(findings, f"{where}: {part['file']} does not contain `{sym}`")
+            for tname in part.get("reads", []) + part.get("writes", []):
+                if tname not in owned:
+                    fail(findings, f"{where}: touches table `{tname}`, which {s['name']} does not own - a service reads and writes its own data only (ADR-0098)")
+            for q in part.get("publishes", []):
+                seen_pub.add(q)
+                if q not in pub:
+                    fail(findings, f"{where}: publishes `{q}`, which {s['name']} does not publish")
+            for q in part.get("consumes", []):
+                seen_con.add(q)
+                if q not in con:
+                    fail(findings, f"{where}: consumes `{q}`, which {s['name']} does not consume")
+        for q in sorted(pub | con):
+            if q not in (MANIFEST_EVENTS or {}):
+                fail(findings, f"services.json: queue `{q}` has no contract under `events`")
+        for q in sorted(pub - seen_pub):
+            fail(findings, f"services.json: {s['name']} publishes `{q}` and no part of it does")
+        for q in sorted(con - seen_con):
+            fail(findings, f"services.json: {s['name']} consumes `{q}` and no part of it does")
+
+
 def check_database_and_suites(root: pathlib.Path, services: list[dict], findings: list[str]) -> None:
     makefile = (root / "Makefile").read_text()
     targets = set(re.findall(r'^([a-z][\w-]*):', makefile, re.M))
@@ -423,12 +498,14 @@ def main() -> int:
     findings: list[str] = []
     manifest = json.loads((root / "services.json").read_text())
     services = check_manifest_shape(manifest, findings)
+    MANIFEST_EVENTS.update(manifest.get("events") or {})
+    check_events(root, MANIFEST_EVENTS, findings)
     if findings:
         for f in findings:
             print(f"manifest-check: {f}")
         return 1
     for check in (check_dockerfiles, check_compose, check_terraform, check_alb, check_chart,
-                  check_workflows, check_lab_install, check_page_bindings, check_observation, check_database_and_suites):
+                  check_workflows, check_lab_install, check_page_bindings, check_observation, check_parts, check_database_and_suites):
         check(root, services, findings)
     if findings:
         for f in findings:

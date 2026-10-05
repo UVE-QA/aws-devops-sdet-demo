@@ -53,6 +53,23 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>aws-platform-demo &mdash; public dashboard</title>
+    <!-- THE LINK CARD (2026-10-04, on the owner's request): what a link to this
+         page shows when it is shared - LinkedIn, Slack, a messenger. Static and
+         generic: a name, one sentence, one picture, the plain address.
+         site/og.png is a composed card, 1200x627: the deploy pipeline drawn
+         with the same AWS Architecture Icons the page uses, unmodified - a
+         screenshot of the page was tried first and said nothing in a feed. -->
+    <meta name="description" content="A deploy, test, promote and destroy pipeline on AWS: three services on ECS and on Kubernetes, built, tested, promoted and torn down from one button, every state read back from AWS." />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="aws-platform-demo" />
+    <meta property="og:title" content="aws-platform-demo &mdash; a delivery pipeline on AWS that reports on itself" />
+    <meta property="og:description" content="Three services on ECS and on Kubernetes, built, tested, promoted to prod and torn down from one button; this live page shows every state, read back from AWS." />
+    <meta property="og:url" content="https://demo.uveapp.net/" />
+    <meta property="og:image" content="https://demo.uveapp.net/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="627" />
+    <meta property="og:image:alt" content="The deploy pipeline: GitHub Actions, ECR, stage on ECS with SQS and RDS, then prod on ECS and a lab on Kubernetes with the same images, observed and destroyed." />
+    <meta name="twitter:card" content="summary_large_image" />
     <!-- EVERY LINK LEAVES IN A NEW TAB. Decided from live use on 2026-08-09:
          following a run log took the reader off the dashboard they were in the
          middle of watching, and a status page is a thing you keep open.
@@ -1658,7 +1675,7 @@
             <span class="swlabel">environment</span>
             <button type="button" data-env="stage" aria-pressed="true">stage</button>
             <button type="button" data-env="prod" aria-pressed="false">prod</button>
-            <button type="button" data-env="lab" aria-pressed="false">lab</button>
+            <button type="button" data-env="lab" aria-pressed="false">lab &middot; Kubernetes</button>
           </span>
           <!-- The layer buttons are drawn from the schema's own list, with
                the colour each layer's edges are drawn in. -->
@@ -1669,6 +1686,12 @@
         </div>
         <div id="estate-envs"></div>
         <div id="estate-schema" hidden></div>
+        <!-- WHAT RUNS INSIDE (2026-10-04): the estate shows what exists and its
+             state; how one request travels through the services is the
+             application's picture in Details (ADR-0104). One line pointing
+             there, in both layouts, rather than a second copy. -->
+        <p class="sub estate-inside">What runs inside each service, and how one request travels through them:
+          <a href="#app-flow-cut" id="to-app-flow">Details &rarr; The application, inside</a>.</p>
       </section>
 
       <!-- CONTOUR 2 OF 3 - THE CYCLE. The verbs, in the order they happen. A
@@ -1776,31 +1799,16 @@
         <div class="strip" id="strip"></div>
       </section>
 
-      <!-- THE APPLICATION, INSIDE (ADR-0103). The page's second cut, and it earns
-           it the way the first one does: it is a reference, the height of a
-           screen, and a part that opened with it flat would bury what is above
-           it. The owner's word: *чтоб она открывалась по запросу а не постоянно
-           портянка на весь экран*. DRAWN, NOT GENERATED - every other picture
-           here is derived and gated, and this one says so in its summary line;
-           the facts were read from the code the day it was drawn, and
-           scripts/draw-app-flow.py says which files to read again when they
-           change. -->
+      <!-- THE APPLICATION, INSIDE (ADR-0104, replacing ADR-0103's drawing). The
+           page's second cut, closed until asked for, as the owner chose. Not
+           drawn any more: scripts/generate-app-flow.py derives every tile,
+           arrow, step and sentence from services.json and the code, and
+           assets/app-flow-layout.json only places them. It describes the
+           repository, not the moment - which is why it lives in Details and is
+           whole whether or not a cycle is running. -->
       <details data-part="detail" class="cut detail" id="app-flow-cut">
-        <summary>The application, inside <span class="small">one item followed through both services &mdash; drawn by hand from the code, not generated</span></summary>
-        <div class="appflow-wrap"><!--APP-FLOW--></div>
-        <ol class="appflow-steps">
-          <li>The browser asks.</li>
-          <li>The load balancer sends <code>/api/*</code> to the api and everything else to web.</li>
-          <li>The api writes the item and its event in one transaction: both or neither.</li>
-          <li>And answers 201. The visitor's wait ends here.</li>
-          <li>A thread of the api sends the event from the outbox to the <code>items</code> queue.</li>
-          <li>The worker receives it.</li>
-          <li>And writes its receipt in its own schema. A second delivery of the same event changes nothing.</li>
-          <li>It publishes <code>item.processed</code> to the <code>results</code> queue, and only then deletes the event.</li>
-          <li>A thread of the api receives the report.</li>
-          <li>And records it beside the item, where the next read finds it.</li>
-        </ol>
-        <p class="sub">A worker that is down loses nothing: the events wait in the queue. An event that fails three times moves to its dead-letter queue, where an alarm waits.</p>
+        <summary>The application, inside <span class="small">one request followed through every service it reaches &mdash; generated from the services manifest and the code</span></summary>
+        <!--APP-FLOW-->
       </details>
 
       <section data-part="detail" class="contour" id="c-permanent">
@@ -1883,6 +1891,13 @@
       // Three since the lab (ADR-0097): the third has a cluster where the
       // other two have services, and its status file says so in `eks`.
       var ENVIRONMENTS = ["stage", "prod", "lab"];
+      // THE LAB SAYS WHAT IT IS (2026-10-04, on the owner's word). Its id stays
+      // `lab` everywhere - Terraform, the GitHub environment, the status file,
+      // the tags, this page's own data - and only the words a reader sees carry
+      // the runtime, so it is plain at a glance why the lab sits beside prod and
+      // not after it.
+      var ENV_LABEL = { lab: "lab \u00b7 Kubernetes" };
+      function envLabel(env) { return ENV_LABEL[env] || env; }
       // The branch this page describes (ADR-0093). It is also the branch that
       // publishes the page and the one the button dispatches, and those three
       // being the same branch is the whole arrangement.
@@ -2180,7 +2195,13 @@
 
       function readStatusFiles() {
         return Promise.all(ENVIRONMENTS.map(function (env) {
-          return fetch("status/" + env + ".json", { cache: "no-store" })
+          // `no-cache`, not `no-store` (2026-10-02), for the reason
+          // RUNS_SNAPSHOT gives: the browser sends the ETag and CloudFront
+          // answers 304 with no body while the document has not changed - and
+          // between cycles nothing here changes for days. Measured on the live
+          // page before the change: every one of 138 requests in three idle
+          // minutes was a full 200.
+          return fetch("status/" + env + ".json", { cache: "no-cache" })
             .then(function (r) {
               if (r.status === 403 || r.status === 404) return { env: env, missing: true };
               if (!r.ok) throw new Error("HTTP " + r.status);
@@ -2388,9 +2409,12 @@
         var stateName = o.stateName, cls = o.cls, unverified = o.unverified;
 
         var h = '<div class="env' + (stale ? " stale" : "") + '">';
-        h += '<div class="envrow"><b>' + esc(env) + '</b>' +
+        h += '<div class="envrow"><b>' + esc(envLabel(env)) + '</b>' +
           '<span class="badge ' + cls + '">' + esc(stateName) +
           (unverified ? " &middot; unverified" : "") + '</span></div>';
+        if (env === "lab") {
+          h += '<p class="small">The same images stage tested, on EKS: beside prod, not after it.</p>';
+        }
 
         if (entry.missing) {
           h += '<p class="small">No <code>status/' + esc(env) + '.json</code> in the bucket. ' +
@@ -2785,7 +2809,7 @@
           var concl = r.status !== "completed" ? r.status.replace("_", " ") : (r.conclusion || "unknown");
           var cls = r.status !== "completed" ? "warn" : (r.conclusion === "success" ? "ok" : "bad");
           h += "<tr><td><a href='" + esc(r.html_url) + "'>" + esc(r.name || r.display_title) + " #" + esc(r.run_number) + "</a></td>" +
-            "<td>" + esc(runEnvironments(r).join(", ")) + "</td>" +
+            "<td>" + esc(runEnvironments(r).map(envLabel).join(", ")) + "</td>" +
             "<td class='" + cls + "'>" + esc(concl) + "</td>" +
             "<td>" + esc(dur(r.run_started_at || r.created_at, r.status === "completed" ? r.updated_at : null)) + "</td>" +
             "<td>" + esc(ago(r.updated_at)) + "</td></tr>";
@@ -3198,6 +3222,18 @@
       document.querySelectorAll("#parts button").forEach((b) => {
         b.addEventListener("click", () => showPart(b.dataset.show));
       });
+      // From the estate to the application's picture: the Details part, the
+      // cut opened, the picture in view.
+      (function () {
+        const a = document.getElementById("to-app-flow");
+        if (!a) return;
+        a.addEventListener("click", (ev) => {
+          ev.preventDefault();
+          showPart("detail");
+          const cut = document.getElementById("app-flow-cut");
+          if (cut) { cut.open = true; cut.scrollIntoView({ block: "start" }); }
+        });
+      })();
 
       function renderAll() {
         renderClocks();
@@ -3329,13 +3365,25 @@
         if (state.timer) { clearTimeout(state.timer); state.timer = null; }
         var live = !state.githubError && currentRun() && currentRun().status !== "completed";
         var fromBucket = state.history && state.history.source === "bucket";
-        el("autorefresh").textContent = "auto: bucket every 30 s — status, run history and figures, " +
+        el("autorefresh").textContent = "auto: bucket every 30 s while this tab is visible — status, run history and figures, " +
           "the figures up to a minute behind the write" +
           (fromBucket
             ? "; GitHub not asked while the bucket carries the history"
             : "; GitHub every " + Math.round(githubIntervalMs() / 1000) + " s" + (live ? " (paced by the remaining budget)" : ""));
-        state.timer = setTimeout(function () { tick(false); }, BUCKET_MS);
+        // A HIDDEN TAB DOES NOT POLL (2026-10-02). It read the same 23
+        // documents every 30 seconds whether anyone could see them or not -
+        // about 5 MB an hour a tab, and a tab forgotten in the background over
+        // a day was a hundred megabytes nobody looked at. The tick that finds
+        // the tab hidden reads nothing and stops; the tab coming back reads at
+        // once, so what a person sees is never older than when they looked.
+        state.timer = setTimeout(function () {
+          if (document.hidden) { state.pausedHidden = true; return; }
+          tick(false);
+        }, BUCKET_MS);
       }
+      document.addEventListener("visibilitychange", function () {
+        if (!document.hidden && state.pausedHidden) { state.pausedHidden = false; load(); }
+      });
 
       function tick(force) {
         var readGh = force || Date.now() >= state.nextGithubAt;
@@ -3695,7 +3743,7 @@
           el.innerHTML = `<div class="head">
               ${iconEl(n.service)}
               <span class="name">${n.label}</span>
-              ${n.env && !(shared && shared.env) ? `<span class="envtag ${n.env}">${n.env}</span>` : ""}
+              ${n.env && !(shared && shared.env) ? `<span class="envtag ${n.env}">${envLabel(n.env)}</span>` : ""}
             </div>${meta ? `<div class="nmeta">${meta}</div>` : ""}${body}`;
           el.dataset.word = stateWord;
           // WHICH CYCLE THIS TILE IS A READING OF (ADR-0076). A figure drawn
@@ -4012,7 +4060,7 @@
               : drawn;
             if (sharedEnv) {
               ph.querySelector("header").insertAdjacentHTML(
-                "afterbegin", `<span class="envtag ${sharedEnv} phase-env">${sharedEnv}</span>`);
+                "afterbegin", `<span class="envtag ${sharedEnv} phase-env">${envLabel(sharedEnv)}</span>`);
             }
             if (sharedWord) {
               ph.querySelector("header").insertAdjacentHTML(
@@ -4083,7 +4131,7 @@
         };
 
         function readJSON(path) {
-          return fetch(path, { cache: "no-store" })
+          return fetch(path, { cache: "no-cache" })  // a 304 while unchanged; see readStatusFiles
             .then((r) => (r.ok ? r.json() : null))
             .catch(() => null);
         }
@@ -5370,7 +5418,7 @@
                   { word: sharedWord, note: sharedNote, tool: sharedTool }))
               : drawn;
             const hdr = document.createElement("header");
-            hdr.innerHTML = `<span class="envtag ${esc(e.id)}">${esc(e.id)}</span>` +
+            hdr.innerHTML = `<span class="envtag ${esc(e.id)}">${esc(envLabel(e.id))}</span>` +
               `<span class="wf">${esc(e.level)}</span>`;
             if (sharedTool) hdr.insertAdjacentHTML("beforeend", `<span class="tool">${esc(sharedTool)}</span>`);
             if (sharedWord) hdr.insertAdjacentHTML("beforeend", `<span class="shared">${esc(sharedWord)}</span>`);

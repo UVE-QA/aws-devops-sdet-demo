@@ -26,13 +26,54 @@
       },
       "database": {
         "schema": "public",
-        "migrations": "app/alembic"
+        "migrations": "app/alembic",
+        "tables": [
+          "demo_items",
+          "outbox",
+          "item_processing"
+        ]
       },
       "suites": [
         "test-api",
         "test-smoke",
         "test-regression",
         "test-db"
+      ],
+      "parts": [
+        {
+          "name": "HTTP handlers",
+          "kind": "http",
+          "file": "app/src/main.py",
+          "symbol": "create_item",
+          "writes": [
+            "demo_items",
+            "outbox"
+          ]
+        },
+        {
+          "name": "outbox relay",
+          "kind": "loop",
+          "file": "app/src/outbox.py",
+          "symbol": "Relay",
+          "reads": [
+            "outbox"
+          ],
+          "publishes": [
+            "items"
+          ]
+        },
+        {
+          "name": "results consumer",
+          "kind": "loop",
+          "file": "app/src/results.py",
+          "symbol": "Consumer",
+          "consumes": [
+            "results"
+          ],
+          "writes": [
+            "item_processing"
+          ]
+        }
       ]
     },
     {
@@ -54,6 +95,14 @@
       "suites": [
         "test-smoke",
         "test-regression"
+      ],
+      "parts": [
+        {
+          "name": "static interface",
+          "kind": "http",
+          "file": "web/nginx.conf",
+          "symbol": "location /"
+        }
       ]
     },
     {
@@ -75,11 +124,37 @@
       },
       "database": {
         "schema": "worker",
-        "migrations": "worker/alembic"
+        "migrations": "worker/alembic",
+        "tables": [
+          "receipts"
+        ]
       },
       "suites": [
         "test-api"
+      ],
+      "parts": [
+        {
+          "name": "consumer",
+          "kind": "loop",
+          "file": "worker/consumer/main.py",
+          "symbol": "Worker",
+          "consumes": [
+            "items"
+          ],
+          "writes": [
+            "receipts"
+          ],
+          "publishes": [
+            "results"
+          ]
+        }
       ]
     }
-  ]
+  ],
+  "_parts": "THE INSIDE OF EACH SERVICE (2026-10-04), for the application's picture in Details, which is generated from this file and the code rather than drawn. `database.tables` names the tables the service's migrations own, held by manifest-check to app/src/models.py and the worker's migrations. `parts` are what runs inside: `http` answers requests, `loop` is a thread or process that works on its own; each names the file and the class or function it is, and the tables and queues it reads and writes - manifest-check refuses a symbol the file does not define, a table the service does not own, a queue the service does not publish or consume. The picture's steps are not written anywhere: they are the walk from the request through what each part writes and the next part reads.",
+  "_events": "What each queue carries: the contract of its event, a JSON Schema in contracts/ (ADR-0098). manifest-check refuses a queue a service uses with no contract here, and a contract file that does not exist.",
+  "events": {
+    "items": "contracts/item.created.v1.json",
+    "results": "contracts/item.processed.v1.json"
+  }
 }
