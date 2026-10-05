@@ -6,6 +6,13 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
+**As of 2026-10-05 (47 — the picture answers back).** The application's
+picture in `Details` is no longer only looked at: a step lights its arrows,
+one request can be followed through all ten, and a box opens a card with what
+the manifest and the code say it is, linked to the lines. The header links
+to it, so a stranger finds it. Still generated, still structure and not state
+(ADR-0104 D5).
+
 **As of 2026-10-05 (47 — the link card).** A link to the demo now shows a
 card: a title in the page's own name, one sentence, and a picture of the
 deploy pipeline drawn in the page's AWS icons - the owner turned down a

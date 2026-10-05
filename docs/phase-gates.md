@@ -4603,6 +4603,18 @@ Links to the repository are sent continuously, so in two steps.
   in a feed, and chose the pipeline over the application's request path.
   Merged to `main` on *да, вливай*; CI and publish-site green; the tags
   and `og.png` are served live.
+- **The picture answers back (ADR-0104 D5)**, on the owner's choice of three
+  of four options: a step lights its arrows, one request can be followed
+  through all ten, a box opens a card generated from the manifest and the
+  code with links to the lines. The fourth - live queue depths on the
+  picture - left for later. Then a link to it in the header, on the
+  owner's *иначе могут и не дойти до нее*, and `#app-flow-cut` as an
+  address that opens it. Gates 33/33 on the devbox (a local `image-scan`
+  red from a stale build cache, clean on a fresh build); the first CI run
+  lost two jobs to a GitHub Actions incident - queued 15 minutes, cancelled
+  without a step - and was green on the rerun. Merged to `main` on
+  *да, вливай*; publish-site green, the live page byte-identical to the
+  build and clicked through.
 - Next allowed step: on the owner's word - step 2 above, or the tail the
   plan left behind: per-service database users (ADR-0098 D2, *leave it as
   is for now*), a lab site, the blunted break tests, the release-tag 403,

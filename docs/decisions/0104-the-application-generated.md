@@ -52,6 +52,22 @@ carry none and are told apart by colour and dash.
 the same whether or not a cycle is up; what is running now stays the estate's
 to show (ADR-0099).
 
+**D5. The picture answers back (2026-10-05, on the owner's word).** Three
+ways in, and none of them knows the geometry. Pointing at a step lights its
+arrows and the boxes at their ends and dims the rest; *Follow one request*
+walks the ten steps in order, a dot running along each arrow (not with
+reduced motion); a box opens a card with what it is - a table's columns and
+who writes and reads it, a queue's event and its contract's fields, a part's
+class and file, a service's image, port, health and suites - with links to
+the exact lines on GitHub. All of it is generated beside the picture from the
+same sources: which arrows a step speaks of, the columns from the model or,
+where there is none, the migration, the line each link points at. A class that
+moves or a column that is added reddens `app-flow-check` until the picture is
+regenerated, as a renamed table already did. And the picture is found: the header carries a
+link to it on every part, drawn as the one thing in that row to press, and an
+address ending in `#app-flow-cut` opens it - the owner's point being that a
+stranger who does not know it is behind a cut in Details never gets there.
+
 ## Consequences
 
 - A fourth service, a renamed table, a new queue or a part that starts writing
@@ -62,3 +78,6 @@ to show (ADR-0099).
 - The layout is still placed by hand. A service added for real needs its
   places written, which the refusal says; automatic layout is not attempted.
 - `scripts/draw-app-flow.py` and `assets/app-flow.svg` are gone.
+- (D5) The cards link to line numbers, so an edit that only moves code also
+  asks for a regenerated picture; that is the price of links that cannot point
+  at the wrong line.
