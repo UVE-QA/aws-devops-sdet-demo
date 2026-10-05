@@ -28,6 +28,7 @@ exists - the picture cannot quietly drop a new queue or keep a dead one.
 """
 from __future__ import annotations
 
+import ast
 import html
 import json
 import pathlib
@@ -39,6 +40,7 @@ MANIFEST = ROOT / "services.json"
 LAYOUT = ROOT / "assets/app-flow-layout.json"
 OUT = ROOT / "assets/app-flow.html"
 QUEUE_MODULE = ROOT / "infra/modules/queue"
+TEMPLATE = ROOT / "assets/index.template.html"
 
 
 class Refusal(Exception):
@@ -193,15 +195,167 @@ def build():
     problems += [f"note on {k} names an arrow that is not drawn" for k in notes if k not in drawn]
     if problems:
         raise Refusal("\n".join(problems))
-    return man, lay, services, by_name, parts, table_owner, events, edges, steps, max_receive, alarm_silent, default[0]
+
+    # ---- what each step lights: its arrow, the unnumbered arrows its sentence
+    # also speaks of, and the boxes at their ends
+    groups = {}
+    for n, (eid, _) in enumerate(steps, 1):
+        ids = [eid]
+        if eid.startswith("route:"):
+            ids += [e["id"] for e in edges if e["id"].startswith("route-default:")]
+        if eid.startswith("tx:"):
+            ids += [e["id"] for e in edges if e["id"].startswith(f"write:{eid[3:]}->")]
+        if eid.startswith("response:"):
+            ids.append("response-browser")
+        ends = []
+        for e in edges:
+            if e["id"] in ids:
+                for k in (e["src"], e["dst"]):
+                    if k and k not in ends:
+                        ends.append(k)
+        groups[n] = {"e": ids, "n": ends}
+    return man, lay, services, by_name, parts, table_owner, events, edges, steps, max_receive, alarm_silent, default[0], groups
+
+
+# ---- the cards: what a box is, read from the same sources as the picture
+
+def repo() -> str:
+    m = re.search(r'var REPO = "([^"]+)"', TEMPLATE.read_text())
+    if not m:
+        raise Refusal(f"{TEMPLATE.name}: no `var REPO = \"owner/name\"` to link the code from")
+    return m.group(1)
+
+
+def line_of(path: str, needle: str) -> int:
+    for i, ln in enumerate((ROOT / path).read_text(errors="replace").splitlines(), 1):
+        if needle in ln:
+            return i
+    raise Refusal(f"{path} does not contain {needle!r} - a card would link to a line that is not there")
+
+
+def columns(service: dict, table: str) -> tuple[str, int, list[str]]:
+    """The table's columns, from the model or the migration that declares it -
+    the same declarations manifest-check holds the table names to."""
+    files = sorted((ROOT / service["context"]).rglob("*.py"))
+    trees = [(str(f.relative_to(ROOT)), ast.parse(f.read_text(errors="replace"))) for f in files]
+    # a model says what the table is now; a first migration only what it was
+    for rel, tree in trees:
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ClassDef):
+                named = any(isinstance(b, ast.Assign) and any(getattr(t, "id", "") == "__tablename__" for t in b.targets)
+                            and isinstance(b.value, ast.Constant) and b.value.value == table for b in node.body)
+                if named:
+                    cols = [b.target.id for b in node.body if isinstance(b, ast.AnnAssign) and isinstance(b.target, ast.Name)
+                            and isinstance(b.value, ast.Call) and getattr(b.value.func, "id", "") in ("mapped_column", "Column")]
+                    if cols:
+                        return rel, node.lineno, cols
+    for rel, tree in trees:
+        for node in ast.walk(tree):
+            if (isinstance(node, ast.Call) and getattr(node.func, "attr", "") == "create_table" and node.args
+                    and isinstance(node.args[0], ast.Constant) and node.args[0].value == table):
+                cols = [a.args[0].value for a in node.args[1:] if isinstance(a, ast.Call) and getattr(a.func, "attr", "") == "Column"
+                        and a.args and isinstance(a.args[0], ast.Constant)]
+                if cols:
+                    return rel, node.lineno, cols
+    raise Refusal(f"no model or migration under {service['context']}/ declares the columns of {table}")
+
+
+def contract_fields(path: str) -> list[str]:
+    def walk(sch, prefix):
+        out = []
+        for k, v in (sch.get("properties") or {}).items():
+            out += walk(v, f"{prefix}{k}.") if v.get("type") == "object" and v.get("properties") else [prefix + k]
+        return out
+    return walk(json.loads((ROOT / path).read_text()), "")
+
+
+def cards(services, parts, table_owner, events, edges, max_receive, alarm_silent):
+    base = f"https://github.com/{repo()}"
+    blob = lambda path, line=None: f"{base}/blob/main/{path}" + (f"#L{line}" if line else "")
+    tree = lambda path: f"{base}/tree/main/{path}"
+    code = lambda xs: ", ".join(f"<code>{esc(x)}</code>" for x in xs)
+    by_part = lambda what, x: [k for k, (_, p) in parts.items() if x in p.get(what, [])]
+    pname = lambda k: f"{esc(parts[k][0]['name'])} · {esc(parts[k][1]['name'])}"
+    out = {}
+    alb_file = "infra/modules/alb/main.tf"
+    routed = [s for s in services if s["routes"] and s["routes"] != ["default"]]
+    out["alb"] = {"t": "Load balancer", "s": "routes by path",
+                  "r": [[f"{code(s['routes'])}", f"to the {esc(s['name'])}"] for s in routed]
+                  + [["everything else", f"to the {esc(s['name'])}"] for s in services if s["routes"] == ["default"]],
+                  "l": [["the listener and its rules", blob(alb_file, line_of(alb_file, 'resource "aws_lb_listener'))]]}
+    for s in services:
+        db = s.get("database")
+        rows = [["image", f"<code>{esc(s['image'])}</code>, built from <code>{esc(s['context'])}/</code>"],
+                ["port", esc(s["port"]) if s["port"] else "none, behind no balancer"],
+                ["health", f"<code>{esc(s['health'])}</code>"]]
+        if s["routes"]:
+            rows.append(["answers", code(s["routes"]) if s["routes"] != ["default"] else "everything the others do not"])
+        rows.append(["inside", ", ".join(esc(p["name"]) for p in s.get("parts", []))])
+        rows.append(["data", f"schema <code>{esc(db['schema'])}</code>: {code(db['tables'])}" if db else "no database"])
+        if s.get("suites"):
+            rows.append(["tested by", code(s["suites"])])
+        links = [["its code", tree(s["context"])]]
+        if db:
+            links.append(["its migrations", tree(db["migrations"])])
+        out[f"service:{s['name']}"] = {"t": s["name"], "s": "a service", "r": rows, "l": links}
+    for k, (s, p) in parts.items():
+        if not p.get("writes") and not p.get("publishes") and not p.get("consumes") and not p.get("reads") and p["kind"] == "http" and not s.get("database"):
+            continue
+        rows = [["runs", "answers requests" if p["kind"] == "http" else "on its own, in a loop"],
+                ["code", f"<code>{esc(p['symbol'])}</code> in <code>{esc(p['file'])}</code>"]]
+        for what, label in (("consumes", "receives from"), ("reads", "reads"), ("writes", "writes"), ("publishes", "publishes to")):
+            if p.get(what):
+                rows.append([label, code(p[what])])
+        needle = p["symbol"] if p["kind"] == "http" and " " in p["symbol"] else None
+        line = line_of(p["file"], needle) if needle else next(
+            (i for i, ln in enumerate((ROOT / p["file"]).read_text().splitlines(), 1)
+             if re.match(rf"\s*(async\s+def|def|class)\s+{re.escape(p['symbol'])}\b", ln)), None)
+        if line is None:
+            raise Refusal(f"{p['file']} defines no {p['symbol']} - the card would link nowhere")
+        out[f"part:{k}"] = {"t": p["name"], "s": f"inside the {s['name']}", "r": rows, "l": [["open the code", blob(p["file"], line)]]}
+    queue_main = str((QUEUE_MODULE / "main.tf").relative_to(ROOT))
+    for q in sorted({e["src"].split(":", 1)[1] for e in edges if e["kind"] == "failp"}):
+        rows = [["carries", f"<code>{esc(event_name(events[q]))}</code>"],
+                ["fields", code(contract_fields(events[q]))],
+                ["from", ", ".join(pname(k) for k in by_part("publishes", q))],
+                ["to", ", ".join(pname(k) for k in by_part("consumes", q))],
+                ["on failure", f"after {max_receive} failed receipts, to its dead-letter queue"]]
+        out[f"queue:{q}"] = {"t": f"SQS · {q}", "s": "a queue", "r": rows,
+                             "l": [["the event's contract", blob(events[q])], ["the queue module", blob(queue_main)]]}
+    out["dlq"] = {"t": "dead-letter queues", "s": "one per queue",
+                  "r": [["receives", f"an event that failed {max_receive} times"],
+                        ["watched by", "an alarm on each, with no action yet" if alarm_silent else "an alarm on each"]],
+                  "l": [["the queue module", blob(queue_main, line_of(queue_main, "redrive_policy"))]]}
+    rds = "infra/modules/rds/main.tf"
+    holders = [s["name"] for s in services if s.get("database")]
+    out["secrets"] = {"t": "Secrets Manager", "s": "database credentials",
+                      "r": [["read by", ", ".join(esc(h) for h in holders) + ", once, at start"]],
+                      "l": [["where the secret is made", blob(rds, line_of(rds, 'resource "aws_secretsmanager_secret"'))]]}
+    out["db"] = {"t": "RDS PostgreSQL", "s": "one database",
+                 "r": [[f"schema <code>{esc(s['database']['schema'])}</code>", f"the {esc(s['name'])}'s only: {code(s['database']['tables'])}"]
+                       for s in services if s.get("database")] + [["rule", "no service reads another's schema"]],
+                 "l": [["the database module", blob(rds, line_of(rds, 'resource "aws_db_instance"'))]]}
+    for t, s in table_owner.items():
+        f, line, cols = columns(s, t)
+        rows = [["owner", f"the {esc(s['name'])}, schema <code>{esc(s['database']['schema'])}</code>"],
+                ["columns", code(cols)]]
+        w, r = by_part("writes", t), by_part("reads", t)
+        if w:
+            rows.append(["written by", ", ".join(pname(k) for k in w)])
+        if r:
+            rows.append(["read by", ", ".join(pname(k) for k in r)])
+        out[f"table:{t}"] = {"t": t, "s": "a table", "r": rows, "l": [["where it is declared", blob(f, line)]]}
+    return out
 
 
 def render():
-    man, lay, services, by_name, parts, table_owner, events, edges, steps, max_receive, alarm_silent, web = build()
+    man, lay, services, by_name, parts, table_owner, events, edges, steps, max_receive, alarm_silent, web, groups = build()
     N, E = lay["nodes"], lay["edges"]
     s = []
     A = s.append
 
+    # Every box sits in a group named by its key and every arrow carries its id,
+    # so the page can light one step and dim the rest without knowing geometry.
     def box(key, cls="af-tile"):
         x, y, w, h = N[key]
         A(f'<rect class="{cls}" x="{x}" y="{y}" width="{w}" height="{h}" rx="8"/>')
@@ -215,30 +369,41 @@ def render():
         if sub:
             A(f'<text class="af-s" x="{tx}" y="{y + 52}">{esc(sub)}</text>')
 
-    def text(x, y, t, cls, anchor="start"):
-        A(f'<text class="{cls}" x="{x}" y="{y}" text-anchor="{anchor}">{esc(t)}</text>')
+    def text(x, y, t, cls, anchor="start", edge=None):
+        de = f' data-e="{esc(edge)}"' if edge else ""
+        A(f'<text class="{cls}" x="{x}" y="{y}" text-anchor="{anchor}"{de}>{esc(t)}</text>')
+
+    def group(key):
+        A(f'<g data-n="{esc(key)}">')
+
+    def end():
+        A("</g>")
 
     def part_box(key, title, lines):
         x, y, w, h = N[key]
+        group(key)
         A(f'<rect class="af-part" x="{x}" y="{y}" width="{w}" height="{h}" rx="5"/>')
         text(x + 12, y + 22, title, "af-pt")
         for i, ln in enumerate(lines):
             text(x + 12, y + 40 + i * 18, ln, "af-ps")
+        end()
 
     for i, (cls, t) in enumerate((("af-sync", "a request someone waits for"), ("af-async", "a message nobody waits for"),
                                   ("af-failp", "a message that keeps failing"), ("af-cred", "credentials, read at start"))):
         x = 40 + i * 260
         A(f'<path class="{cls}" d="M{x},29 L{x + 34},29"/>'); text(x + 42, 34, t, "af-lg")
 
-    x, y, *_ = box("browser"); head(x, y, "Browser", "the visitor")
-    x, y, *_ = box("alb"); head(x, y, "Load balancer", "routes by path", "elb")
+    group("browser"); x, y, *_ = box("browser"); head(x, y, "Browser", "the visitor"); end()
+    group("alb"); x, y, *_ = box("alb"); head(x, y, "Load balancer", "routes by path", "elb"); end()
     for sv in services:
+        group(f"service:{sv['name']}")
         x, y, w, h = box(f"service:{sv['name']}")
         head(x, y, sv["name"], lay["labels"].get(sv["name"], ""), "ecs")
         if sv is web:
             what = " · ".join([f"serves {r}" if r != "default" else "serves /" for r in sv["routes"]]
                               + ["no database" if not sv.get("database") else "a database"])
             text(x + 66, y + 80, what, "af-ps")
+        end()
     for k, (sv, p) in parts.items():
         if sv is web:
             continue
@@ -251,27 +416,37 @@ def render():
         title = p["name"] + (" · a thread" if p["kind"] == "loop" and len([1 for _, (s2, _) in parts.items() if s2 is sv]) > 1 else "")
         part_box(f"part:{k}", title, lines[:3] if N[f"part:{k}"][3] < 100 else lines)
     for q in sorted({e["src"].split(":", 1)[1] for e in edges if e["kind"] == "failp"}):
-        x, y, *_ = box(f"queue:{q}"); head(x, y, f"SQS · {q}", event_name(man["events"][q]), "sqs")
+        group(f"queue:{q}"); x, y, *_ = box(f"queue:{q}"); head(x, y, f"SQS · {q}", event_name(man["events"][q]), "sqs"); end()
+    group("dlq")
     x, y, *_ = box("dlq", "af-fail"); head(x, y, "dead-letter queues", "one per queue", "sqs", 34)
     text(x + 16, y + 70, f"after {max_receive} failed receipts", "af-psbad")
     if alarm_silent:
         A(f'<use href="#ic-cloudwatch" x="{x + 14}" y="{y + 76}" width="20" height="20"/>')
         text(x + 40, y + 90, "an alarm on each · no action", "af-ps")
-    x, y, *_ = box("secrets"); head(x, y, "Secrets Manager", "database credentials", "secretsmanager")
+    end()
+    group("secrets"); x, y, *_ = box("secrets"); head(x, y, "Secrets Manager", "database credentials", "secretsmanager"); end()
+    group("db")
     x, y, w, h = box("db")
     owners = [sv for sv in services if sv.get("database")]
+    end()
     for sv in owners:
         sch = sv["database"]["schema"]
         sx, sy, sw, sh = N[f"schema:{sch}"]
+        group(f"schema:{sch}")
         A(f'<rect class="af-schema" x="{sx}" y="{sy}" width="{sw}" height="{sh}" rx="6"/>')
         text(sx + 16, sy + sh - 18, f"schema {sch} · {sv['name']} only", "af-pt")
+        end()
         for t in sv["database"]["tables"]:
             tx, ty, tw, th = N[f"table:{t}"]
+            group(f"table:{t}")
             A(f'<rect class="af-part" x="{tx}" y="{ty}" width="{tw}" height="{th}" rx="5"/>')
             text(tx + 12, ty + 22, t, "af-pt")
+            end()
+    group("db")
     A(f'<use href="#ic-rds" x="{x + 16}" y="{y + h - 72}" width="40" height="40"/>')
     text(x + 68, y + h - 50, "RDS PostgreSQL", "af-t")
     text(x + 68, y + h - 30, f"one database · {len(owners)} schemas · no service reads another's", "af-s")
+    end()
 
     marker = {"sync": "a", "sync back": "a", "tx": None, "async": "g", "failp": "b", "cred": "c"}
     cls = {"sync": "af-sync", "sync back": "af-sync af-back", "tx": "af-sync", "async": "af-async", "failp": "af-failp", "cred": "af-cred"}
@@ -279,25 +454,38 @@ def render():
         r = E[e["id"]]
         d = "M" + " L".join(f"{a},{b}" for a, b in r["path"])
         m = marker[e["kind"]]
-        A(f'<path class="{cls[e["kind"]]}" d="{d}"' + (f' marker-end="url(#af-{m})"' if m else "") + "/>")
+        A(f'<path class="{cls[e["kind"]]}" data-e="{esc(e["id"])}" d="{d}"' + (f' marker-end="url(#af-{m})"' if m else "") + "/>")
+    notes = lay.get("notes", {})
     for e in edges:
         r = E[e["id"]]
         if e["id"].startswith("route:") and "label" in r:
             sv = by_name[e["id"].split(":", 1)[1]]
-            text(*r["label"], " ".join(rr for rr in sv["routes"] if rr.endswith("*")) or sv["routes"][0], "af-el")
+            text(*r["label"], " ".join(rr for rr in sv["routes"] if rr.endswith("*")) or sv["routes"][0], "af-el", edge=e["id"])
         if e["id"].startswith("route-default:") and "label" in r:
-            text(*r["label"], f"everything else → {e['id'].split(':', 1)[1]}", "af-el")
+            text(*r["label"], f"everything else → {e['id'].split(':', 1)[1]}", "af-el", edge=e["id"])
         if e["id"].startswith("tx:") and "label" in r:
             lx, ly = r["label"]
             for i, ln in enumerate(("one transaction:", "both or neither")):
-                text(lx, ly + i * 18, ln, "af-el", "end")
-        notes = json.loads(LAYOUT.read_text()).get("notes", {})
+                text(lx, ly + i * 18, ln, "af-el", "end", edge=e["id"])
         if e["id"] in notes and notes[e["id"]].get("label") and "label" in r:
-            text(*r["label"], notes[e["id"]]["label"], "af-el", "end")
+            text(*r["label"], notes[e["id"]]["label"], "af-el", "end", edge=e["id"])
+
+    # What can be opened, drawn last so a box inside another is picked first:
+    # the database under its tables, a service under its parts.
+    info = cards(services, parts, table_owner, events, edges, max_receive, alarm_silent)
+    order = (["db"] + [f"service:{sv['name']}" for sv in services] + ["alb", "secrets", "dlq"]
+             + sorted(k for k in info if k.startswith("queue:")) + [f"part:{k}" for k in parts]
+             + sorted(k for k in info if k.startswith("table:")))
+    for k in order:
+        if k in info:
+            x, y, w, h = N[k]
+            A(f'<rect class="af-hit" data-card="{esc(k)}" x="{x}" y="{y}" width="{w}" height="{h}" rx="6" tabindex="0" '
+              f'role="button" aria-label="{esc(info[k]["t"])}: what it is"/>')
     for e in edges:
         if e["n"]:
             sx, sy = E[e["id"]]["step"]
-            A(f'<circle class="af-step" cx="{sx}" cy="{sy}" r="12"/><text class="af-sn" x="{sx}" y="{sy + 4.5}">{e["n"]}</text>')
+            A(f'<g class="af-mark" data-s="{e["n"]}" tabindex="0" role="button" aria-label="Step {e["n"]}">'
+              f'<circle class="af-step" cx="{sx}" cy="{sy}" r="12"/><text class="af-sn" x="{sx}" y="{sy + 4.5}">{e["n"]}</text></g>')
 
     def mk(i, c, sz=8):
         return (f'<marker id="af-{i}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="{sz}" markerHeight="{sz}" '
@@ -306,12 +494,20 @@ def render():
     defs = "<defs>" + mk("a", "af-ma") + mk("g", "af-mg") + mk("b", "af-mb") + mk("c", "af-mc", 7) + "</defs>"
     svg = (f'<svg class="appflow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {lay["width"]} {lay["height"]}" role="img" '
            f'aria-label="The application, inside: one request followed through every service it reaches">' + defs + "".join(s) + "</svg>")
-    ol = "<ol class=\"appflow-steps\">" + "".join(f"<li>{t}</li>" for _, t in steps) + "</ol>"
+    bar = ('<div class="af-bar"><button type="button" id="af-play">Follow one request</button>'
+           '<button type="button" id="af-prev" aria-label="Previous step">&lsaquo;</button>'
+           '<button type="button" id="af-next" aria-label="Next step">&rsaquo;</button>'
+           '<button type="button" id="af-all">Show all</button>'
+           '<span class="af-caption" id="af-caption" aria-live="polite">Point at a step to see its arrow. Select a box to see what it is.</span></div>')
+    ol = "<ol class=\"appflow-steps\">" + "".join(f'<li data-s="{n}">{t}</li>' for n, (_, t) in enumerate(steps, 1)) + "</ol>"
     tail = (f'<p class="sub">A service that is down loses nothing: its events wait in the queue. An event that fails '
             f'{max_receive} times moves to its dead-letter queue' + (", where an alarm waits." if alarm_silent else ".") + "</p>")
+    data = json.dumps({"steps": groups, "edges": [[e["id"], e["src"], e["dst"]] for e in edges], "cards": info},
+                      separators=(",", ":"), ensure_ascii=False).replace("</", "<\\/")
     return ('<!-- GENERATED by scripts/generate-app-flow.py from services.json, infra/modules/queue and the code it cites, '
             'placed by assets/app-flow-layout.json. Do not edit. -->\n'
-            f'<div class="appflow-wrap">{svg}</div>\n{ol}\n{tail}\n')
+            f'{bar}\n<div class="appflow-wrap">{svg}</div>\n<div class="af-card" id="af-card" hidden></div>\n{ol}\n{tail}\n'
+            f'<script type="application/json" id="af-data">{data}</script>\n')
 
 
 def main(argv):
@@ -327,7 +523,7 @@ def main(argv):
         print("app-flow: clean")
         return 0
     OUT.write_text(out)
-    print(f"app-flow: wrote {OUT.relative_to(ROOT)} - {out.count('<li>')} steps, {len(out.encode()):,} bytes")
+    print(f"app-flow: wrote {OUT.relative_to(ROOT)} - {out.count('<li data-s=')} steps, {len(out.encode()):,} bytes")
     return 0
 
 

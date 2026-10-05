@@ -1472,6 +1472,38 @@
       .appflow .af-mc { fill: var(--warn); }
       .appflow-steps { margin: var(--gap) 0 0; padding-left: 1.6rem; color: var(--fg); }
       .appflow-steps li { margin: 0.15rem 0; }
+      /* THE PICTURE ANSWERS BACK (2026-10-05): a step lights its arrows and the
+         boxes at their ends and dims the rest; a box opens a card with what the
+         manifest and the code say it is. The generator marks what belongs to
+         what (data-n, data-e, data-s); nothing here knows the geometry. */
+      .af-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.5rem; margin-top: var(--gap); }
+      .af-bar button { font-size: 0.85rem; padding: 0.2rem 0.7rem; }
+      .af-caption { flex: 1 1 22rem; min-width: 0; min-height: 2.9em; color: var(--muted); font-size: 0.88rem; }
+      .af-caption b { color: var(--fg); font-variant-numeric: tabular-nums; margin-right: 0.3rem; }
+      .appflow [data-n], .appflow [data-e], .appflow .af-mark { transition: opacity 0.2s; }
+      .appflow.af-focus [data-n]:not(.af-on), .appflow.af-focus [data-e]:not(.af-on),
+      .appflow.af-focus .af-mark:not(.af-on) { opacity: 0.16; }
+      .appflow .af-hit { fill: transparent; stroke: none; cursor: pointer; }
+      .appflow .af-hit:hover, .appflow .af-hit:focus-visible, .appflow .af-hit.af-open { stroke: var(--accent); stroke-width: 2.5; outline: none; }
+      .appflow .af-mark { cursor: pointer; }
+      .appflow .af-mark:focus-visible { outline: none; }
+      .appflow .af-mark:focus-visible circle, .appflow .af-mark.af-on circle { stroke: var(--fg); stroke-width: 2.5; }
+      .appflow .af-dot { fill: var(--accent); stroke: var(--bg); stroke-width: 3; pointer-events: none; }
+      .appflow-steps li[data-s] { cursor: pointer; border-radius: 4px; padding: 0.05rem 0.35rem; margin-left: -0.35rem; }
+      .appflow-steps li[data-s]:hover, .appflow-steps li.af-on { background: color-mix(in srgb, var(--accent) 13%, transparent); }
+      .af-card { margin-top: var(--gap); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 6px;
+                 background: var(--panel); padding: 0.7rem 0.9rem; max-width: 44rem; }
+      .af-card h3 { margin: 0; font-size: 1rem; display: flex; gap: 0.6rem; align-items: baseline; }
+      .af-card h3 .small { color: var(--muted); font-weight: 400; }
+      .af-card h3 button { margin-left: auto; font-size: 0.8rem; padding: 0.05rem 0.55rem; }
+      /* inside .detail, whose own dt/dd are a stacked list of terraform addresses */
+      .detail .af-card dl { display: grid; grid-template-columns: max-content 1fr; gap: 0.3rem 0.9rem; margin: 0.55rem 0 0.3rem; font-size: 0.9rem; }
+      .detail .af-card dl > dt { margin: 0; font-size: 0.86rem; font-weight: 400; color: var(--muted); }
+      .detail .af-card dl > dd { margin: 0; min-width: 0; font: inherit; color: var(--fg); overflow-wrap: anywhere; }
+      .af-card .af-links { display: flex; flex-wrap: wrap; gap: 0.3rem 1rem; font-size: 0.88rem; margin-top: 0.3rem; }
+      @media (prefers-reduced-motion: reduce) {
+        .appflow [data-n], .appflow [data-e], .appflow .af-mark { transition: none; }
+      }
       details.cut > summary::before { content: "▸"; color: var(--muted); font-weight: 400; }
       details.cut[open] > summary::before { content: "▾"; }
       details.cut > summary .small { margin-left: auto; font-weight: 400; }
@@ -1810,6 +1842,131 @@
         <summary>The application, inside <span class="small">one request followed through every service it reaches &mdash; generated from the services manifest and the code</span></summary>
         <!--APP-FLOW-->
       </details>
+      <script>
+        /* The picture's three ways in: point at a step (its arrow lights), follow
+           one request through every step, open a box. Everything it lights or
+           says comes from #af-data, which the generator wrote beside the picture. */
+        (function () {
+          "use strict";
+          var cut = document.getElementById("app-flow-cut");
+          var dataEl = document.getElementById("af-data");
+          if (!cut || !dataEl) return;
+          var svg = cut.querySelector("svg.appflow");
+          var D = JSON.parse(dataEl.textContent);
+          var lis = cut.querySelectorAll(".appflow-steps li[data-s]");
+          var cap = document.getElementById("af-caption");
+          var card = document.getElementById("af-card");
+          var play = document.getElementById("af-play");
+          var idle = cap.innerHTML;
+          var total = Object.keys(D.steps).length;
+          var still = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+          var cur = 0, pinned = false, timer = null, openKey = null, dot = null, raf = 0;
+
+          function q(sel) { return svg.querySelectorAll(sel); }
+          function attr(name, v) { return "[" + name + '="' + String(v).replace(/"/g, '\\"') + '"]'; }
+          function clear() {
+            svg.classList.remove("af-focus");
+            Array.prototype.forEach.call(cut.querySelectorAll(".af-on"), function (el) { el.classList.remove("af-on"); });
+            if (dot) { dot.remove(); dot = null; } cancelAnimationFrame(raf);
+          }
+          function light(edges, nodes, step) {
+            clear(); svg.classList.add("af-focus");
+            edges.forEach(function (id) { Array.prototype.forEach.call(q(attr("data-e", id)), function (el) { el.classList.add("af-on"); }); });
+            nodes.forEach(function (k) { Array.prototype.forEach.call(q(attr("data-n", k)), function (el) { el.classList.add("af-on"); }); });
+            if (step) {
+              Array.prototype.forEach.call(q(attr("data-s", step)), function (el) { el.classList.add("af-on"); });
+              if (lis[step - 1]) lis[step - 1].classList.add("af-on");
+            }
+          }
+          function travel(id) {
+            // a dot runs along the step's own arrow; with reduced motion it does not
+            var path = svg.querySelector("path" + attr("data-e", id));
+            if (still || !path || !path.getTotalLength) return;
+            var len = path.getTotalLength(), t0 = 0;
+            dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            dot.setAttribute("class", "af-dot"); dot.setAttribute("r", "7"); svg.appendChild(dot);
+            function frame(ts) {
+              if (!dot) return;
+              if (!t0) t0 = ts;
+              var k = Math.min(1, (ts - t0) / 1100), pt = path.getPointAtLength(len * k);
+              dot.setAttribute("cx", pt.x); dot.setAttribute("cy", pt.y);
+              if (k < 1) raf = requestAnimationFrame(frame);
+            }
+            raf = requestAnimationFrame(frame);
+          }
+          function show(n) {
+            var g = D.steps[n]; if (!g) return;
+            light(g.e, g.n, n); travel(g.e[0]);
+            cap.innerHTML = "<b>" + n + " of " + total + "</b>" + lis[n - 1].innerHTML;
+          }
+          function rest() {
+            stop(); clear(); cur = 0; pinned = false; cap.innerHTML = idle; closeCard();
+          }
+          function stop() {
+            if (timer) { clearInterval(timer); timer = null; }
+            play.textContent = cur >= total ? "Follow it again" : (cur ? "Go on" : "Follow one request");
+          }
+          function go(n) { closeCard(); cur = Math.max(1, Math.min(total, n)); pinned = true; show(cur); }
+          play.addEventListener("click", function () {
+            if (timer) { stop(); return; }
+            if (cur >= total) cur = 0;
+            go(cur + 1); play.textContent = "Pause";
+            timer = setInterval(function () {
+              if (cur >= total) { stop(); return; }
+              go(cur + 1);
+              if (cur >= total) stop();
+            }, 2600);
+          });
+          document.getElementById("af-prev").addEventListener("click", function () { stop(); go((cur || 2) - 1); });
+          document.getElementById("af-next").addEventListener("click", function () { stop(); go(cur + 1); });
+          document.getElementById("af-all").addEventListener("click", rest);
+
+          function pick(n) { stop(); if (pinned && cur === n && !openKey) { rest(); return; } go(n); }
+          Array.prototype.forEach.call(lis, function (li) {
+            var n = +li.getAttribute("data-s");
+            li.addEventListener("mouseenter", function () { if (!pinned && !timer) show(n); });
+            li.addEventListener("mouseleave", function () { if (!pinned && !timer) { clear(); cap.innerHTML = idle; } });
+            li.addEventListener("click", function () { pick(n); });
+          });
+          Array.prototype.forEach.call(q(".af-mark"), function (m) {
+            var n = +m.getAttribute("data-s");
+            m.addEventListener("click", function () { pick(n); });
+            m.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(n); } });
+          });
+
+          function closeCard() {
+            card.hidden = true; card.innerHTML = "";
+            if (openKey) Array.prototype.forEach.call(q(".af-hit.af-open"), function (h) { h.classList.remove("af-open"); });
+            openKey = null;
+          }
+          function esc(s) { var d = document.createElement("span"); d.textContent = s; return d.innerHTML; }
+          function open(key) {
+            var c = D.cards[key]; if (!c) return;
+            if (openKey === key) { rest(); return; }
+            stop(); cur = 0; pinned = true;
+            var touching = D.edges.filter(function (e) { return e[1] === key || e[2] === key; });
+            var ends = [key];
+            touching.forEach(function (e) { [e[1], e[2]].forEach(function (k) { if (k && ends.indexOf(k) < 0) ends.push(k); }); });
+            light(touching.map(function (e) { return e[0]; }), ends, null);
+            closeCard(); openKey = key;
+            Array.prototype.forEach.call(q(".af-hit" + attr("data-card", key)), function (h) { h.classList.add("af-open"); });
+            // the card's values are the generator's own HTML (codes and names it escaped); the page adds only structure
+            card.innerHTML = '<h3>' + esc(c.t) + ' <span class="small">' + esc(c.s) + '</span><button type="button" id="af-close">Close</button></h3>' +
+              "<dl>" + c.r.map(function (r) { return "<dt>" + r[0] + "</dt><dd>" + r[1] + "</dd>"; }).join("") + "</dl>" +
+              '<div class="af-links">' + c.l.map(function (l) { return '<a href="' + esc(l[1]) + '" target="_blank" rel="noopener">' + esc(l[0]) + " &#8599;</a>"; }).join("") + "</div>";
+            card.hidden = false;
+            cap.innerHTML = "<b>" + esc(c.t) + "</b>its arrows are lit; the card is below the picture.";
+            document.getElementById("af-close").addEventListener("click", rest);
+          }
+          Array.prototype.forEach.call(q(".af-hit"), function (h) {
+            var k = h.getAttribute("data-card");
+            h.addEventListener("click", function () { open(k); });
+            h.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(k); } });
+          });
+          cut.addEventListener("keydown", function (e) { if (e.key === "Escape") rest(); });
+          cut.addEventListener("toggle", function () { if (!cut.open) rest(); });
+        })();
+      </script>
 
       <section data-part="detail" class="contour" id="c-permanent">
         <h2>Permanent <span class="note">&mdash; <span id="perm-note">no destroy workflow touches these</span></span></h2>
