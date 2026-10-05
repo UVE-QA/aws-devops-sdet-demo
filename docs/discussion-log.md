@@ -6,6 +6,20 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
+**As of 2026-10-05 (47 — the link card).** A link to the demo now shows a
+card: a title in the page's own name, one sentence, and a picture of the
+deploy pipeline drawn in the page's AWS icons - the owner turned down a
+screenshot of the page as text nobody reads in a feed. Static and generic.
+
+**As of 2026-10-04 (47 — the application, generated).** One record,
+**ADR-0104**, and ADR-0103's drawing replaced by a derivation. The manifest
+now says what runs inside each service and which tables it owns; a gate holds
+that to the code and refuses a part that writes another service's data - the
+first time ADR-0098's rule is enforced rather than stated. The picture in
+`Details` is generated from it: the steps are the walk a request takes, the
+clauses beyond the manifest are checked in the code, and the layout file only
+places. Structure, not state - it is whole without a cycle.
+
 **As of 2026-10-02 (47 — the application, drawn).** One record,
 **ADR-0103**, and the first picture on the page that is drawn rather than
 derived. The owner asked what the worker is for; the answer was the shape, not

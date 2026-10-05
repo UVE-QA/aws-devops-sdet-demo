@@ -1,7 +1,8 @@
 # ADR-0103: The application, drawn
 
 ## Status
-Accepted (2026-10-02). Adds a second cut to `Details` beside **ADR-0079**'s
+Accepted (2026-10-02). **Superseded by ADR-0104** on 2026-10-04: the picture
+is generated from the manifest and the code; D3, the cut, stands. Adds a second cut to `Details` beside **ADR-0079**'s
 one; the first picture on the page that is drawn rather than derived.
 
 ## Context

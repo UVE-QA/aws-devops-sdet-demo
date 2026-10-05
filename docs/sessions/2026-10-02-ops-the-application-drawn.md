@@ -34,6 +34,24 @@ page's icon sprite and theme variables - light and dark both photographed -
 and the page builder injects it, so `site-page-check` holds the copy. The ten
 steps are an HTML list under it.
 
+## The polling, made quiet
+
+The page was metered in a browser over the live bucket: 23 documents every
+30 seconds, all full `200`s, about 5 MB an hour per open tab whether visible
+or not. Free, and still waste a reviewer's network panel would show. On the
+owner's word the page now revalidates instead of re-downloading - CloudFront
+answers `304` with no body - and stops polling in a hidden tab; metered again,
+31 KB per three visible minutes instead of 255 and nothing while hidden, with
+the same cadence and every page check green.
+
+## #41
+
+The owner pressed the button over the day's work. Green in 68 minutes:
+signed in to ECR Public, three images on the first attempt; the first snapshot
+in the bucket 25 seconds after the press, and the page - polling quietly now -
+closing the button and drawing the cycle within the next half-minute, exactly
+as fast as before; three `destroyed` after.
+
 ## What is still open
 
 A derived version, if this one earns its place. `measure-page`'s fixture,

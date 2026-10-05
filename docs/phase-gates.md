@@ -4568,6 +4568,41 @@ Links to the repository are sent continuously, so in two steps.
   too - its fixture lacks the lab's progress file.
 - Merged to `main` on the owner's *да, вливай*; CI and publish-site green;
   the live page carries the closed section.
+- **The polling, made quiet**, on the owner's *if it not broke smthn - go
+  ahead*: status and run-layer documents fetched with `no-cache` (a 304
+  while unchanged) and no polling in a hidden tab. Metered on the live
+  data: 31 KB per three visible minutes instead of 255, zero while hidden,
+  the same cadence. Gates 15/15; contrast, freshness, in-flight and schema
+  page checks green. Merged to `main` on *yes - go ahead*; CI and
+  publish-site green, the live page carries it.
+- **#41 from the button, 2026-10-02, green in 68 minutes**, pressed by the
+  owner over everything merged that day - the drawn picture and the quiet
+  polling: signed in to ECR Public, three images on the
+  first attempt, the first snapshot 25 s after the press and the quiet page
+  showing the cycle within the next half-minute, three `destroyed` after,
+  the hook's `completed` 25 s after the lock, zero GitHub requests.
+- **2026-10-04, the application generated (ADR-0104)**: the picture in
+  `Details` is derived from `services.json` - now with each service's tables,
+  parts and event contracts, held to the code by `manifest-check`, which also
+  refuses a part touching another service's table - and the layout file only
+  places things. Ten steps by walking the flow; notes refused when the code
+  stops saying them; `app-flow-check` in the one list (16 local). The
+  drawing and its script removed; ADR-0103 superseded.
+- Both merged to `main` on the owner's *да, вливай*; CI and publish-site
+  green; the live page carries the generated picture.
+- **The lab says what it is**, on the owner's word - display only: wherever
+  the page shows an environment's name, the lab reads `lab · Kubernetes`,
+  and its panel adds one line on why it sits beside prod; the id `lab`
+  is unchanged everywhere. The estate links to the application's picture
+  in Details. Gates 16/16, every page check green.
+  Merged to `main` on *да, вливай*; CI and publish-site green, live.
+- **The link card**, on the owner's request through the Resume session: a
+  description, Open Graph and Twitter card tags in the page's head, and
+  `site/og.png`, a 1200x627 card of the deploy pipeline in the page's AWS
+  icons - the owner turned down a screenshot of the page as saying nothing
+  in a feed, and chose the pipeline over the application's request path.
+  Merged to `main` on *да, вливай*; CI and publish-site green; the tags
+  and `og.png` are served live.
 - Next allowed step: on the owner's word - step 2 above, or the tail the
   plan left behind: per-service database users (ADR-0098 D2, *leave it as
   is for now*), a lab site, the blunted break tests, the release-tag 403,
