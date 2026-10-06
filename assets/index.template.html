@@ -2017,9 +2017,13 @@
             t.textContent = label;
             var r = document.createElementNS(NS, "rect");
             g.appendChild(r); g.appendChild(t); svg.appendChild(g);
-            var bb = t.getBBox();
-            r.setAttribute("x", bb.x - 7); r.setAttribute("y", bb.y - 4); r.setAttribute("width", bb.width + 14);
-            r.setAttribute("height", bb.height + 8); r.setAttribute("rx", 9);
+            // Sized from the label, not measured: the event can arrive while the
+            // cut is closed or Details is hidden, and a hidden SVG measures
+            // every text as zero - which drew the frames as dots in a corner
+            // on the first live cycle. The face is monospace, so length is width.
+            var tx = b[0] + 22, ty = (edge === "bottom" ? b[1] + b[3] : b[1]) + 4.5, w = label.length * 7.6;
+            r.setAttribute("x", tx - 7); r.setAttribute("y", ty - 13); r.setAttribute("width", w + 14);
+            r.setAttribute("height", 18); r.setAttribute("rx", 9);
           }
           function drawLive() {
             Array.prototype.forEach.call(svg.querySelectorAll(".af-live-mark, .af-live-line"), function (el) { el.remove(); });
@@ -2031,7 +2035,7 @@
             if (!up.length) {
               envSeg.hidden = true;
               say.textContent = moving.length
-                ? moving.join(" and ") + (moving.length > 1 ? " are" : " is") + " changing now; figures arrive when the job ends. The picture shows the design."
+                ? "A cycle is under way; figures arrive as each environment reports. Until then the picture shows the design."
                 : "No environment is up: the picture shows the design.";
               return;
             }
