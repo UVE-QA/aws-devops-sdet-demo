@@ -1513,6 +1513,22 @@
       .detail .af-card dl > dt { margin: 0; font-size: 0.86rem; font-weight: 400; color: var(--muted); }
       .detail .af-card dl > dd { margin: 0; min-width: 0; font: inherit; color: var(--fg); overflow-wrap: anywhere; }
       .af-card .af-links { display: flex; flex-wrap: wrap; gap: 0.3rem 1rem; font-size: 0.88rem; margin-top: 0.3rem; }
+      /* THE PICTURE DURING A CYCLE (2026-10-06): the counts the estate already
+         reads, put on the boxes they belong to. Only while an environment is
+         up and its reading is current; otherwise the picture is the design. */
+      .af-live { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.8rem; margin-top: 0.35rem;
+                 font-size: 0.86rem; color: var(--muted); }
+      .af-live b { color: var(--fg); }
+      .af-live .seg { display: inline-flex; gap: 0.3rem; }
+      .af-live .seg button { font-size: 0.8rem; padding: 0.1rem 0.6rem; }
+      .af-live .seg button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+      .appflow .af-live-mark rect { fill: var(--panel); stroke-width: 1.4; }
+      .appflow .af-live-mark text { font-size: 12.5px; font-weight: 700; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+      .appflow .af-live-ok rect { stroke: var(--ok); } .appflow .af-live-ok text { fill: var(--ok); }
+      .appflow .af-live-busy rect { stroke: var(--accent); } .appflow .af-live-busy text { fill: var(--accent); }
+      .appflow .af-live-bad rect { stroke: var(--bad); } .appflow .af-live-bad text { fill: var(--bad); }
+      .appflow .af-live-line { font-size: 12px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; fill: var(--fg); }
+      .appflow .af-live-line .bad { fill: var(--bad); font-weight: 700; }
       @media (prefers-reduced-motion: reduce) {
         .appflow [data-n], .appflow [data-e], .appflow .af-mark { transition: none; }
       }
@@ -1976,6 +1992,88 @@
             h.addEventListener("click", function () { open(k); });
             h.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(k); } });
           });
+          // ---- live, during a cycle ------------------------------------------
+          // The estate's own observation, handed over by the page's main script
+          // as `cycle:observed` - never fetched again here. An environment is
+          // drawn only when it is up, its reading is current, and it has ECS
+          // services (the lab's runtime is another picture).
+          var LIVE = D.live, lastEnvs = null, liveEnv = null;
+          var say = document.getElementById("af-live-say"), envSeg = document.getElementById("af-live-env");
+          var NS = "http://www.w3.org/2000/svg";
+          try { liveEnv = localStorage.getItem("af-live-env"); } catch (e) {}
+          function ago(t) {
+            var m = Math.round((Date.now() - new Date(t)) / 60000);
+            return isNaN(m) ? "" : m < 1 ? "just now" : m < 60 ? m + " min ago" : Math.round(m / 60) + " h ago";
+          }
+          // A badge sits ON the box's edge, left, clear of its title: a
+          // service's on the top edge, a queue's on the bottom one, where no
+          // arrow of the picture runs.
+          function mark(node, label, kind, edge) {
+            var b = LIVE.boxes[node]; if (!b) return;
+            var g = document.createElementNS(NS, "g");
+            g.setAttribute("class", "af-live-mark af-live-" + kind); g.setAttribute("data-n", node);
+            var t = document.createElementNS(NS, "text");
+            t.setAttribute("x", b[0] + 22); t.setAttribute("y", (edge === "bottom" ? b[1] + b[3] : b[1]) + 4.5);
+            t.textContent = label;
+            var r = document.createElementNS(NS, "rect");
+            g.appendChild(r); g.appendChild(t); svg.appendChild(g);
+            var bb = t.getBBox();
+            r.setAttribute("x", bb.x - 7); r.setAttribute("y", bb.y - 4); r.setAttribute("width", bb.width + 14);
+            r.setAttribute("height", bb.height + 8); r.setAttribute("rx", 9);
+          }
+          function drawLive() {
+            Array.prototype.forEach.call(svg.querySelectorAll(".af-live-mark, .af-live-line"), function (el) { el.remove(); });
+            if (!LIVE) return;
+            var envs = lastEnvs || {}, keys = Object.keys(envs);
+            var hasEcs = function (o) { return Object.keys(LIVE.services).some(function (n) { return o.resources && o.resources[LIVE.services[n]]; }); };
+            var up = keys.filter(function (e) { var o = envs[e]; return o && o.state === "up" && !o.stale && hasEcs(o); });
+            var moving = keys.filter(function (e) { var o = envs[e]; return o && (o.tearing || (o.stale && o.state)); });
+            if (!up.length) {
+              envSeg.hidden = true;
+              say.textContent = moving.length
+                ? moving.join(" and ") + (moving.length > 1 ? " are" : " is") + " changing now; figures arrive when the job ends. The picture shows the design."
+                : "No environment is up: the picture shows the design.";
+              return;
+            }
+            if (up.indexOf(liveEnv) < 0) liveEnv = up[0];
+            envSeg.hidden = up.length < 2;
+            envSeg.innerHTML = up.map(function (e) { return '<button type="button" data-env="' + e + '" aria-pressed="' + (e === liveEnv) + '">' + e + "</button>"; }).join("");
+            var o = envs[liveEnv], r = o.resources, trouble = [];
+            Object.keys(LIVE.services).forEach(function (n) {
+              var x = r[LIVE.services[n]]; if (!x) return;
+              var ok = x.desired > 0 && x.running >= x.desired;
+              if (!ok) trouble.push(n.split(":")[1] + " " + x.running + " of " + x.desired);
+              mark(n, x.running + "/" + x.desired + " running", ok ? "ok" : "bad", "top");
+            });
+            var dl = [], alarm = false;
+            Object.keys(LIVE.queues).forEach(function (n) {
+              var x = r[LIVE.queues[n]]; if (!x) return;
+              mark(n, (x.visible == null ? "?" : x.visible) + " waiting", x.visible > 0 ? "busy" : "ok", "bottom");
+              dl.push(n.split(":")[1] + " " + (x.dead_letter_visible == null ? "?" : x.dead_letter_visible));
+              if (x.dead_letter_alarm === "ALARM") alarm = true;
+            });
+            var b = LIVE.boxes.dlq;
+            if (b && dl.length) {
+              var t = document.createElementNS(NS, "text");
+              t.setAttribute("class", "af-live-line"); t.setAttribute("data-n", "dlq");
+              t.setAttribute("x", b[0] + 16); t.setAttribute("y", b[1] + b[3] - 10);
+              t.textContent = "now: " + dl.join(" · ");
+              if (alarm) { var sp = document.createElementNS(NS, "tspan"); sp.setAttribute("class", "bad"); sp.textContent = " · ALARM"; t.appendChild(sp); trouble.push("a dead-letter alarm"); }
+              svg.appendChild(t);
+            }
+            say.innerHTML = "Live from <b>" + esc(liveEnv) + "</b>, observed " + esc(ago(o.observed_at)) +
+              ": tasks running against desired, messages waiting" + (trouble.length ? " - <b>" + esc(trouble.join(", ")) + "</b>" : ", all as asked") + ".";
+          }
+          envSeg.addEventListener("click", function (e) {
+            var bt = e.target.closest("button"); if (!bt) return;
+            liveEnv = bt.getAttribute("data-env");
+            try { localStorage.setItem("af-live-env", liveEnv); } catch (x) {}
+            drawLive();
+          });
+          document.addEventListener("cycle:observed", function (e) {
+            lastEnvs = (e.detail && e.detail.environments) || null; drawLive();
+          });
+
           cut.addEventListener("keydown", function (e) { if (e.key === "Escape") rest(); });
           cut.addEventListener("toggle", function () { if (!cut.open) rest(); });
         })();
