@@ -26,3 +26,11 @@ that tells someone.
 
 Gates 33/33 on the devbox. The whole path watched locally: a new item waiting,
 then processed by the worker ten seconds later, without a reload.
+
+Then, on the merged page, the owner again: no answer from `web` on the picture,
+and nothing saying what the interface is for. The interface became a box inside
+the browser, its purpose read from the file's own fetch calls and methods - it
+lists, adds, edits and deletes items - and its card lists every path it asks
+for; `web`'s answer got its own arrow back to the browser, the call to the
+`api` now starts at the interface and the `api`'s answer returns to it. Thirteen
+steps. Gates 33/33.

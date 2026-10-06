@@ -80,6 +80,13 @@ reads and another part writes - `item_processing`, which is how the worker's
 half reaches the visitor. The interface shows that half too: each item says
 when and by whom it was processed, or that it is waiting, filled in place while
 it waits, or that it was not processed when two minutes have passed.
+Then the owner again: the answer from `web` and what the interface is for were
+still not on the picture. So the interface is drawn as a box of its own inside
+the browser, and its purpose is read from the interface file - the paths it
+fetches and the methods it uses, `lists, adds, edits and deletes items` - not
+written by hand; `web`'s answer is an arrow of its own back to the browser; the
+call to the `api` starts at the interface and the `api`'s answer returns to it.
+Thirteen steps.
 
 ## Consequences
 

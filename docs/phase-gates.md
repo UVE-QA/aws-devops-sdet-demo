@@ -4620,8 +4620,10 @@ Links to the repository are sent continuously, so in two steps.
   это не следует*: every flow read back from the code - nginx serves files
   only, the interface's script calls `/api/*` from the browser, the outbox,
   `SKIP LOCKED`, both consumers idempotent, delete after publish, poison
-  versus transient - and the picture made to say it: twelve steps, from the
-  page to the next read that carries `item_processing`. The interface now
+  versus transient - and the picture made to say it: from the page to the
+  next read that carries `item_processing`; then, on the owner's second
+  look, the interface drawn inside the browser with its purpose read from its
+  own calls, and `web`'s answer as its own arrow - thirteen steps. The interface now
   shows each item's processing, filled in place. Left for a later word: no
   `item.deleted` (receipts outlive the item), an outbox nobody trims, no cap
   on a row that never sends, the dead-letter alarm with no action. Gates
