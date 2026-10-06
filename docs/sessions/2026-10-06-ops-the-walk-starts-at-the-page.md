@@ -34,3 +34,13 @@ lists, adds, edits and deletes items - and its card lists every path it asks
 for; `web`'s answer got its own arrow back to the browser, the call to the
 `api` now starts at the interface and the `api`'s answer returns to it. Thirteen
 steps. Gates 33/33.
+
+Then: is anything on the picture live during a cycle? Nothing was, by D4. The
+status files already carry what it would need - tasks running against desired,
+messages waiting, dead-letter counts and the alarm - so it became a page-only
+change (ADR-0104 D7): badges on the box edges while an environment is up and
+current, a line saying which one and what is not as asked, a switch when both
+stage and prod are up, and the design alone otherwise. Checked on the recorded
+fixtures - one environment with a stopped worker and an alarm, two
+environments, none - in both themes; the credentials arrows moved to the right
+of Secrets Manager so the worker's badge has room. Gates green.

@@ -88,6 +88,22 @@ written by hand; `web`'s answer is an arrow of its own back to the browser; the
 call to the `api` starts at the interface and the `api`'s answer returns to it.
 Thirteen steps.
 
+**D7. The picture during a cycle (2026-10-06, on the owner's yes).** D4 kept
+the picture to structure, and the structure is still all it draws. But while
+an environment is up and its reading is current, the counts the estate already
+reads from the status files are laid on the boxes they belong to: tasks running
+against desired on each service, messages waiting on each queue, the
+dead-letter counts and the alarm's state in the dead-letter box, with a line
+above saying which environment, when it was observed, and what is not as
+asked. Nothing new is fetched or collected: the picture listens to the
+observation the page's main script already hands out, and it decides nothing
+about `up` or `stale` on its own. Which reading belongs to which box is
+generated - a service's `status_key` from the manifest, a queue's key from the
+observation script - and a queue the script does not observe is a refusal. The
+lab is left out: its runtime is another picture. With nothing up, or an
+environment being built or torn down, the picture says so and shows the
+design.
+
 ## Consequences
 
 - A fourth service, a renamed table, a new queue or a part that starts writing

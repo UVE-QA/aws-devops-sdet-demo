@@ -4623,7 +4623,10 @@ Links to the repository are sent continuously, so in two steps.
   versus transient - and the picture made to say it: from the page to the
   next read that carries `item_processing`; then, on the owner's second
   look, the interface drawn inside the browser with its purpose read from its
-  own calls, and `web`'s answer as its own arrow - thirteen steps. The interface now
+  own calls, and `web`'s answer as its own arrow - thirteen steps. Then
+  the picture live during a cycle (ADR-0104 D7): the counts the estate
+  already reads, laid on the boxes while an environment is up and current;
+  no new data, the lab left out. The interface now
   shows each item's processing, filled in place. Left for a later word: no
   `item.deleted` (receipts outlive the item), an outbox nobody trims, no cap
   on a row that never sends, the dead-letter alarm with no action. Gates
