@@ -4626,7 +4626,21 @@ Links to the repository are sent continuously, so in two steps.
   own calls, and `web`'s answer as its own arrow - thirteen steps. Then
   the picture live during a cycle (ADR-0104 D7): the counts the estate
   already reads, laid on the boxes while an environment is up and current;
-  no new data, the lab left out. The interface now
+  no new data, the lab left out.
+- **#42 from the button, 2026-10-06, green in 67 minutes**, pressed by the
+  owner over everything merged that day, and watched frame by frame - the
+  application's picture and the cycle view captured at every change of job
+  or environment, twelve frames. The picture went live when stage came up
+  (all three services 1/1, both queues empty, no dead-letter), offered a
+  switch while stage and prod were both up, moved to prod by itself once
+  stage's teardown made its reading stale, and fell back to the design at
+  the end. The stage interface carried the processed column; its one item,
+  the seed, read "not processed", which is true - the seed is written past
+  the outbox. Two faults, found only live: the badges had no frames, because
+  the picture was hidden when the first observation arrived and a hidden SVG
+  measures every label as zero, and the line before the environments report
+  was clumsy. Both fixed - frames sized from the label, one plain line - and
+  merged on *да, вливай*; CI and publish-site green, live. The interface now
   shows each item's processing, filled in place. Left for a later word: no
   `item.deleted` (receipts outlive the item), an outbox nobody trims, no cap
   on a row that never sends, the dead-letter alarm with no action. Gates

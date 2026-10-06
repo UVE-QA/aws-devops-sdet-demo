@@ -117,3 +117,7 @@ design.
 - (D5) The cards link to line numbers, so an edit that only moves code also
   asks for a regenerated picture; that is the price of links that cannot point
   at the wrong line.
+- (D7) The live badges are sized from their labels, not measured: the
+  observation can arrive while the picture is hidden, and on the first live
+  cycle (#42) every frame was measured as zero. A label set in another face
+  than monospace would need this revisited.

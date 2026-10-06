@@ -44,3 +44,15 @@ stage and prod are up, and the design alone otherwise. Checked on the recorded
 fixtures - one environment with a stopped worker and an alarm, two
 environments, none - in both themes; the credentials arrows moved to the right
 of Secrets Manager so the worker's badge has room. Gates green.
+
+Then the owner pressed the button and asked for every stage on camera. Cycle
+#42 ran green in 67 minutes over everything merged that day; a loop captured
+the picture and the cycle view at each change of job or environment, twelve
+frames from launch to release-lock. The live picture behaved as designed -
+stage alone, a switch while both were up, prod alone once stage's teardown
+made its reading stale, the design at the end - and showed two faults the
+fixtures had not: frames measured as zero because the picture was hidden when
+the observation arrived, and a clumsy line before anything had reported. Both
+fixed and merged. The stage interface showed the processed column; nothing was
+written there during the cycle, so the path from waiting to processed on AWS
+is still to be watched.
