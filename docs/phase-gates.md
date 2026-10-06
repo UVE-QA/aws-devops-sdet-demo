@@ -4615,6 +4615,18 @@ Links to the repository are sent continuously, so in two steps.
   without a step - and was green on the rerun. Merged to `main` on
   *да, вливай*; publish-site green, the live page byte-identical to the
   build and clicked through.
+- **The walk starts at the page (ADR-0104 D6)**, 2026-10-06, on the
+  owner's *вроде бы UI (web) должен общаться с бэкэндом api, но из схемы
+  это не следует*: every flow read back from the code - nginx serves files
+  only, the interface's script calls `/api/*` from the browser, the outbox,
+  `SKIP LOCKED`, both consumers idempotent, delete after publish, poison
+  versus transient - and the picture made to say it: twelve steps, from the
+  page to the next read that carries `item_processing`. The interface now
+  shows each item's processing, filled in place. Left for a later word: no
+  `item.deleted` (receipts outlive the item), an outbox nobody trims, no cap
+  on a row that never sends, the dead-letter alarm with no action. Gates
+  33/33 on the devbox; the whole path watched locally - waiting, then
+  processed by the worker ten seconds later.
 - Next allowed step: on the owner's word - step 2 above, or the tail the
   plan left behind: per-service database users (ADR-0098 D2, *leave it as
   is for now*), a lab site, the blunted break tests, the release-tag 403,

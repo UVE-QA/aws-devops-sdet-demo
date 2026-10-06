@@ -6,6 +6,12 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
+**As of 2026-10-06 (47 — the walk starts at the page).** The picture said the
+interface never reaches the api, by leaving out how it does: `web` serves the
+interface, and the interface's script, in the browser, calls the `api`. The
+walk now begins there and closes on the read that shows the worker's result,
+which the interface now displays.
+
 **As of 2026-10-05 (47 — the picture answers back).** The application's
 picture in `Details` is no longer only looked at: a step lights its arrows,
 one request can be followed through all ten, and a box opens a card with what

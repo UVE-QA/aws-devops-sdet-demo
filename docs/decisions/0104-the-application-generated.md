@@ -68,6 +68,19 @@ link to it on every part, drawn as the one thing in that row to press, and an
 address ending in `#app-flow-cut` opens it - the owner's point being that a
 stranger who does not know it is behind a cut in Details never gets there.
 
+**D6. The walk starts at the page and ends at the next read (2026-10-06).**
+The owner read the picture as saying the interface never reaches the api, and
+it did say that by leaving it out: the walk began at "the browser asks".
+`web` never calls the `api` - the browser does, from the interface `web`
+serves. So the manifest says it: the `web` part names its `interface` and
+that it `calls` the `api`, and the generator refuses the claim unless the
+interface file fetches one of the `api`'s paths. The walk now starts with the
+page and then the script's call, and it closes on the table the answering part
+reads and another part writes - `item_processing`, which is how the worker's
+half reaches the visitor. The interface shows that half too: each item says
+when and by whom it was processed, or that it is waiting, filled in place while
+it waits, or that it was not processed when two minutes have passed.
+
 ## Consequences
 
 - A fourth service, a renamed table, a new queue or a part that starts writing
