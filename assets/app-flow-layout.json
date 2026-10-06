@@ -213,6 +213,10 @@
       "label": [
         386,
         190
+      ],
+      "step": [
+        375,
+        226
       ]
     },
     "write:api/HTTP handlers->demo_items": {
@@ -230,11 +234,11 @@
     "write:api/HTTP handlers->outbox": {
       "path": [
         [
-          860,
+          840,
           530
         ],
         [
-          860,
+          840,
           678
         ]
       ]
@@ -246,7 +250,7 @@
           588
         ],
         [
-          860,
+          840,
           588
         ]
       ],
@@ -354,25 +358,25 @@
     "write:api/results consumer->item_processing": {
       "path": [
         [
-          876,
+          882,
           530
         ],
         [
-          876,
-          632
+          882,
+          624
         ],
         [
-          1124,
-          632
+          1150,
+          624
         ],
         [
-          1124,
+          1150,
           678
         ]
       ],
       "step": [
-        1000,
-        632
+        1010,
+        624
       ]
     },
     "dlq:items": {
@@ -426,6 +430,30 @@
           206
         ]
       ]
+    },
+    "read:api/HTTP handlers<-item_processing": {
+      "path": [
+        [
+          1096,
+          678
+        ],
+        [
+          1096,
+          646
+        ],
+        [
+          862,
+          646
+        ],
+        [
+          862,
+          534
+        ]
+      ],
+      "step": [
+        1096,
+        662
+      ]
     }
   },
   "notes": {
@@ -450,6 +478,13 @@
       "evidence": {
         "file": "app/src/outbox.py",
         "contains": "with_for_update(skip_locked=True)"
+      }
+    },
+    "read:api/HTTP handlers<-item_processing": {
+      "text": "The interface puts it beside each item, and asks again every few seconds while one is still waiting for the worker.",
+      "evidence": {
+        "file": "web/static/index.html",
+        "contains": "waiting for the worker"
       }
     }
   }

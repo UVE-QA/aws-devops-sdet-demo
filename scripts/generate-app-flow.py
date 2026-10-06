@@ -117,11 +117,35 @@ def build():
         for q in p.get("consumes", []):
             q_consumers.setdefault(q, []).append(k)
 
-    edge("request", "sync", "browser", "alb", "The browser asks.")
     routes = " and ".join(f"<code>{esc(r)}</code>" for r in entry["routes"])
-    edge(f"route:{entry['name']}", "sync", "alb", f"service:{entry['name']}",
-         f"The load balancer sends {routes} to the {esc(entry['name'])} and everything else to {esc(default[0]['name'])}.")
-    edge(f"route-default:{default[0]['name']}", "sync", "alb", f"service:{default[0]['name']}", numbered=False)
+    web, en = default[0]["name"], entry["name"]
+    # THE INTERFACE CALLS THE API FROM THE BROWSER (2026-10-06). A default
+    # service whose part says it serves an interface that `calls` the routed
+    # one is where the walk starts: the page first, then what its script asks.
+    # The claim is held to the interface file - it must fetch one of the
+    # routed service's paths - or the picture would draw a call nobody makes.
+    caller = [(k, p) for k, (s, p) in parts.items() if s is default[0] and en in p.get("calls", [])]
+    starred = [r for r in entry["routes"] if r.endswith("*")]
+    if caller:
+        iface = caller[0][1].get("interface")
+        if not iface or not (ROOT / iface).is_file():
+            raise Refusal(f"services.json: {web}'s part says it calls the {en} but names no interface file that exists")
+        body = (ROOT / iface).read_text(errors="replace")
+        if "fetch(" not in body or not any(r[:-1] in body for r in starred):
+            raise Refusal(f"{iface} fetches none of {starred} - the picture would draw a call the interface does not make")
+        asked = " and ".join(f"<code>{esc(r)}</code>" for r in starred) or routes
+        edge("request", "sync", "browser", "alb", "The browser asks for the page.")
+        edge(f"route-default:{web}", "sync", "alb", f"service:{web}",
+             f"The load balancer sends it to {esc(web)}, which answers with the interface: files from nginx and nothing "
+             f"else. {esc(web).capitalize()} never calls the {esc(en)}.")
+        edge(f"route:{en}", "sync", "alb", f"service:{en}",
+             f"The interface's script, now running in the browser, asks for {asked} at the same address, and the load "
+             f"balancer sends that to the {esc(en)}.")
+    else:
+        edge("request", "sync", "browser", "alb", "The browser asks.")
+        edge(f"route:{en}", "sync", "alb", f"service:{en}",
+             f"The load balancer sends {routes} to the {esc(en)} and everything else to {esc(web)}.")
+        edge(f"route-default:{web}", "sync", "alb", f"service:{web}", numbered=False)
 
     seen_parts, seen_tables = set(), set()
 
@@ -172,6 +196,19 @@ def build():
     unreached = [k for k, (s, p) in parts.items() if k not in seen_parts and p["kind"] == "loop"]
     if unreached:
         raise Refusal(f"parts no request reaches: {unreached} - the walk from the browser never gets to them")
+    # THE LOOP CLOSES WHERE IT STARTED: a table the answering part reads and
+    # another part writes is how what happened after the answer gets back to
+    # the visitor - on the next read.
+    ek = entry_parts[0]
+    ep = parts[ek][1]
+    for t in ep.get("reads", []):
+        if t in ep.get("writes", []):
+            continue
+        if any(t in p2.get("writes", []) for k2, (_, p2) in parts.items() if k2 != ek):
+            edge(f"read:{ek}<-{t}", "sync back", f"table:{t}", f"part:{ek}",
+                 f"The next read shows it: what the {esc(en)} answers for "
+                 + (" and ".join(f"<code>{esc(r)}</code>" for r in starred) or routes)
+                 + f" carries <code>{esc(t)}</code>'s row with each item." + _note(f"read:{ek}<-{t}"))
     for q in q_consumers:
         edges.append({"id": f"dlq:{q}", "kind": "failp", "src": f"queue:{q}", "dst": "dlq", "n": None})
     for s in services:
@@ -201,7 +238,7 @@ def build():
     groups = {}
     for n, (eid, _) in enumerate(steps, 1):
         ids = [eid]
-        if eid.startswith("route:"):
+        if eid.startswith("route:") and not any(x.startswith("route-default:") for x, _ in steps):
             ids += [e["id"] for e in edges if e["id"].startswith("route-default:")]
         if eid.startswith("tx:"):
             ids += [e["id"] for e in edges if e["id"].startswith(f"write:{eid[3:]}->")]
@@ -291,10 +328,14 @@ def cards(services, parts, table_owner, events, edges, max_receive, alarm_silent
         if s["routes"]:
             rows.append(["answers", code(s["routes"]) if s["routes"] != ["default"] else "everything the others do not"])
         rows.append(["inside", ", ".join(esc(p["name"]) for p in s.get("parts", []))])
+        for p in s.get("parts", []):
+            if p.get("interface"):
+                rows.append(["interface", f"<code>{esc(p['interface'])}</code>, run in the browser"
+                             + (f"; it calls the {', '.join(esc(c) for c in p.get('calls', []))} from there" if p.get("calls") else "")])
         rows.append(["data", f"schema <code>{esc(db['schema'])}</code>: {code(db['tables'])}" if db else "no database"])
         if s.get("suites"):
             rows.append(["tested by", code(s["suites"])])
-        links = [["its code", tree(s["context"])]]
+        links = [["its code", tree(s["context"])]] + [["the interface", blob(p["interface"])] for p in s.get("parts", []) if p.get("interface")]
         if db:
             links.append(["its migrations", tree(db["migrations"])])
         out[f"service:{s['name']}"] = {"t": s["name"], "s": "a service", "r": rows, "l": links}
@@ -412,7 +453,7 @@ def render():
         if p.get("reads"): lines.append("reads " + ", ".join(p["reads"]))
         if p.get("writes"): lines.append("writes " + ", ".join(p["writes"]))
         if p.get("publishes"): lines.append("publishes to " + ", ".join(p["publishes"]))
-        if p["kind"] == "http": lines = ["answers " + " · ".join(sv["routes"])] + lines[:1]
+        if p["kind"] == "http": lines = ["answers " + " · ".join(sv["routes"])] + [ln for ln in lines if ln.startswith("writes")][:1]
         title = p["name"] + (" · a thread" if p["kind"] == "loop" and len([1 for _, (s2, _) in parts.items() if s2 is sv]) > 1 else "")
         part_box(f"part:{k}", title, lines[:3] if N[f"part:{k}"][3] < 100 else lines)
     for q in sorted({e["src"].split(":", 1)[1] for e in edges if e["kind"] == "failp"}):

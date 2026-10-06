@@ -45,6 +45,10 @@
           "kind": "http",
           "file": "app/src/main.py",
           "symbol": "create_item",
+          "reads": [
+            "demo_items",
+            "item_processing"
+          ],
           "writes": [
             "demo_items",
             "outbox"
@@ -101,7 +105,11 @@
           "name": "static interface",
           "kind": "http",
           "file": "web/nginx.conf",
-          "symbol": "location /"
+          "symbol": "location /",
+          "interface": "web/static/index.html",
+          "calls": [
+            "api"
+          ]
         }
       ]
     },
@@ -151,7 +159,7 @@
       ]
     }
   ],
-  "_parts": "THE INSIDE OF EACH SERVICE (2026-10-04), for the application's picture in Details, which is generated from this file and the code rather than drawn. `database.tables` names the tables the service's migrations own, held by manifest-check to app/src/models.py and the worker's migrations. `parts` are what runs inside: `http` answers requests, `loop` is a thread or process that works on its own; each names the file and the class or function it is, and the tables and queues it reads and writes - manifest-check refuses a symbol the file does not define, a table the service does not own, a queue the service does not publish or consume. The picture's steps are not written anywhere: they are the walk from the request through what each part writes and the next part reads.",
+  "_parts": "THE INSIDE OF EACH SERVICE (2026-10-04), for the application's picture in Details, which is generated from this file and the code rather than drawn. `database.tables` names the tables the service's migrations own, held by manifest-check to app/src/models.py and the worker's migrations. `parts` are what runs inside: `http` answers requests, `loop` is a thread or process that works on its own; each names the file and the class or function it is, and the tables and queues it reads and writes - manifest-check refuses a symbol the file does not define, a table the service does not own, a queue the service does not publish or consume. The picture's steps are not written anywhere: they are the walk from the request through what each part writes and the next part reads. `interface` and `calls` (2026-10-06) say what a part serves to the browser and whose routes that interface then calls from the browser - web never calls the api itself; the generator refuses a `calls` the interface file does not make.",
   "_events": "What each queue carries: the contract of its event, a JSON Schema in contracts/ (ADR-0098). manifest-check refuses a queue a service uses with no contract here, and a contract file that does not exist.",
   "events": {
     "items": "contracts/item.created.v1.json",

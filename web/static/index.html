@@ -56,7 +56,7 @@
 
   <table>
     <thead>
-      <tr><th>id</th><th>name</th><th>description</th><th></th></tr>
+      <tr><th>id</th><th>name</th><th>description</th><th>processed</th><th></th></tr>
     </thead>
     <tbody data-testid="items-table"></tbody>
   </table>
@@ -135,6 +135,43 @@
       return td;
     }
 
+    // THE OTHER HALF OF THE FLOW, SHOWN (2026-10-06). Creating an item is
+    // answered at once; the worker's part arrives later, through two queues,
+    // as processed_at and processed_by on the same item. Until it does, the
+    // cell says what is being waited for.
+    function processedText(item) {
+      if (!item.processed_at) return null;
+      const at = new Date(item.processed_at);
+      const when = isNaN(at) ? item.processed_at : at.toLocaleString();
+      return `by ${item.processed_by || "the worker"} at ${when}`;
+    }
+
+    function processedCell(item) {
+      const td = document.createElement("td");
+      td.dataset.testid = "item-processed";
+      td.dataset.itemId = item.id;
+      fillProcessed(td, item);
+      return td;
+    }
+
+    // Two minutes is far past the seconds the queues take; an item older than
+    // that with no report is not on its way - made before the worker existed,
+    // or its event is in the dead-letter queue - and saying "waiting" would
+    // be a promise nothing keeps.
+    const WAIT_MS = 120000;
+    function waiting(item) {
+      if (item.processed_at) return false;
+      const made = new Date(item.created_at);
+      return isNaN(made) || Date.now() - made < WAIT_MS;
+    }
+
+    function fillProcessed(td, item) {
+      const text = processedText(item);
+      td.textContent = text || (waiting(item) ? "waiting for the worker" : "not processed");
+      td.className = text ? "" : "muted";
+      td.dataset.processed = text ? "true" : "false";
+    }
+
     function readOnlyRow(item) {
       const tr = document.createElement("tr");
       tr.dataset.testid = "item-row";
@@ -175,7 +212,7 @@
       buttons.append(edit, del);
       actions.appendChild(buttons);
 
-      tr.append(id, name, description, actions);
+      tr.append(id, name, description, processedCell(item), actions);
       return tr;
     }
 
@@ -223,7 +260,7 @@
       buttons.append(save, cancel);
       actions.appendChild(buttons);
 
-      tr.append(id, nameCell, descCell, actions);
+      tr.append(id, nameCell, descCell, processedCell(item), actions);
       return tr;
     }
 
@@ -251,6 +288,35 @@
       tbody.dataset.total = String(page.total);
       tbody.dataset.offset = String(page.offset);
       tbody.dataset.limit = String(page.limit);
+    }
+
+    // While an item on the page is still waiting for the worker, the same page
+    // is read again every few seconds and ONLY the processed cells are filled
+    // in, in place: no re-render, and none of the tbody markers the tests wait
+    // on change. It stops when nothing is waiting, after a minute, or while
+    // the tab is hidden.
+    let watchTimer = null, watchUntil = 0;
+    function watchProcessing() {
+      if (!page || !page.items.some(waiting)) return;
+      watchUntil = Date.now() + 60000;
+      if (watchTimer) return;
+      watchTimer = setInterval(async () => {
+        if (document.hidden) return;
+        if (Date.now() > watchUntil || !page.items.some(waiting)) {
+          clearInterval(watchTimer); watchTimer = null; return;
+        }
+        try {
+          const fresh = await fetchPage(page.offset);
+          const byId = new Map(fresh.items.map((it) => [it.id, it]));
+          for (const it of page.items) {
+            const f = byId.get(it.id);
+            if (!f || !f.processed_at || it.processed_at) continue;  // fills any that arrived, young or old
+            it.processed_at = f.processed_at; it.processed_by = f.processed_by;
+            const td = tbody.querySelector(`td[data-testid="item-processed"][data-item-id="${it.id}"]`);
+            if (td) fillProcessed(td, it);
+          }
+        } catch (e) { /* the next tick tries again; the list itself is unaffected */ }
+      }, 3000);
     }
 
     async function fetchPage(at) {
@@ -281,6 +347,7 @@
         }
         page = data;
         render();
+        watchProcessing();
       } catch (e) {
         say("could not load items", true);
       }
