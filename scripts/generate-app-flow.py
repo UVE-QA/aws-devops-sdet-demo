@@ -70,6 +70,48 @@ def queue_facts() -> tuple[int, bool]:
     return int(m.group(1)), alarmed and silent
 
 
+def interface_calls(body: str) -> list[tuple[str, str]]:
+    """What an interface file asks the api for: (method, path), read from its
+    fetch calls and the /api/ paths it names. A template's ${...} becomes {id};
+    a query string is dropped."""
+    calls = []
+    for m in re.finditer(r"fetch\(\s*([`\"'])(.*?)\1", body):
+        path = re.sub(r"\$\{[^}]*\}", "{id}", m.group(2)).split("?")[0]
+        tail = body[m.end():m.end() + 160]
+        mm = re.match(r"\s*,\s*\{[^}]*?method:\s*[\"'](\w+)[\"']", tail, re.S)
+        calls.append(((mm.group(1) if mm else "GET").upper(), path))
+    named = {p for _, p in calls}
+    for path in re.findall(r"[\"'](/api/[a-z0-9/_-]+)[\"']", body):
+        if path not in named:
+            calls.append(("GET", path)); named.add(path)
+    return [c for c in dict.fromkeys(calls) if c[1].startswith("/")]
+
+
+VERBS = {("GET", False): "lists", ("POST", False): "adds", ("GET", True): "reads",
+         ("PATCH", True): "edits", ("PUT", True): "edits", ("DELETE", True): "deletes"}
+
+
+def interface_purpose(calls: list[tuple[str, str]]) -> tuple[list[str], str]:
+    """(verbs, resource) for the one resource the interface changes - `lists,
+    adds, edits, deletes` and `items`. A path only read, like a health check,
+    is not what the interface is for."""
+    by_res = {}
+    for meth, path in calls:
+        m = re.match(r"/api/([a-z_]+)(/\{id\})?$", path)
+        if m and (meth, bool(m.group(2))) in VERBS:
+            by_res.setdefault(m.group(1), []).append(VERBS[(meth, bool(m.group(2)))])
+    changed = {r: [v for v in dict.fromkeys(vs) if v != "reads"] for r, vs in by_res.items()
+               if set(vs) & {"adds", "edits", "deletes"}}
+    if len(changed) != 1:
+        return [], ""
+    (res, verbs), = changed.items()
+    return verbs, res
+
+
+def said(verbs: list[str]) -> str:
+    return verbs[0] if len(verbs) == 1 else ", ".join(verbs[:-1]) + " and " + verbs[-1]
+
+
 def human_list(xs):
     xs = [f"<code>{esc(x)}</code>" for x in xs]
     return xs[0] if len(xs) == 1 else ", ".join(xs[:-1]) + " and " + xs[-1]
@@ -134,13 +176,21 @@ def build():
         if "fetch(" not in body or not any(r[:-1] in body for r in starred):
             raise Refusal(f"{iface} fetches none of {starred} - the picture would draw a call the interface does not make")
         asked = " and ".join(f"<code>{esc(r)}</code>" for r in starred) or routes
+        verbs, res = interface_purpose(interface_calls(body))
+        purpose = f"{said(verbs)} {res}" if verbs else ""
+        fname = iface.rsplit("/", 1)[-1]
         edge("request", "sync", "browser", "alb", "The browser asks for the page.")
         edge(f"route-default:{web}", "sync", "alb", f"service:{web}",
-             f"The load balancer sends it to {esc(web)}, which answers with the interface: files from nginx and nothing "
-             f"else. {esc(web).capitalize()} never calls the {esc(en)}.")
+             f"The load balancer sends it to {esc(web)}, the default for every path that is not the {esc(en)}'s.")
+        edge(f"response:{web}", "sync back", f"service:{web}", "alb",
+             f"{esc(web).capitalize()} answers with <code>{esc(fname)}</code> and its script, files from nginx and "
+             f"nothing else, and the browser runs them: that is the interface"
+             + (f", which {esc(purpose)}" if purpose else "") + f". {esc(web).capitalize()} never calls the {esc(en)}.")
+        edges.append({"id": f"response-browser:{web}", "kind": "sync back", "src": "alb", "dst": "browser", "n": None})
+        edge(f"call:{web}", "sync", f"interface:{web}", "alb",
+             f"The interface asks for {asked} at the same address it came from.")
         edge(f"route:{en}", "sync", "alb", f"service:{en}",
-             f"The interface's script, now running in the browser, asks for {asked} at the same address, and the load "
-             f"balancer sends that to the {esc(en)}.")
+             f"The load balancer sends {asked} to the {esc(en)}.", numbered=False)
     else:
         edge("request", "sync", "browser", "alb", "The browser asks.")
         edge(f"route:{en}", "sync", "alb", f"service:{en}",
@@ -170,7 +220,8 @@ def build():
         if how == "request":
             edge(f"response:{s['name']}", "sync back", f"service:{s['name']}", "alb",
                  "And answers. The visitor's wait ends here.")
-            edges.append({"id": "response-browser", "kind": "sync back", "src": "alb", "dst": "browser", "n": None})
+            edges.append({"id": "response-browser", "kind": "sync back", "src": "alb",
+                          "dst": f"interface:{web}" if caller else "browser", "n": None})
         for q in p.get("publishes", []):
             reads = p.get("reads", [])
             lead = (f"The {esc(s['name'])}'s {esc(p['name'])}, a thread of its own, sends what {human_list(reads)} holds"
@@ -222,6 +273,8 @@ def build():
     nodes |= {f"schema:{s['database']['schema']}" for s in services if s.get("database")}
     nodes |= {f"part:{k}" for k, (s, p) in parts.items() if s is not by_name.get(default[0]["name"])}
     nodes |= {f"table:{t}" for t in table_owner}
+    if caller:
+        nodes.add(f"interface:{web}")
     placed = {k for k in lay["nodes"]}
     drawn = {e["id"] for e in edges}
     routed_ids = {k for k in lay["edges"]}
@@ -243,7 +296,9 @@ def build():
         if eid.startswith("tx:"):
             ids += [e["id"] for e in edges if e["id"].startswith(f"write:{eid[3:]}->")]
         if eid.startswith("response:"):
-            ids.append("response-browser")
+            ids.append(f"response-browser:{eid[9:]}" if eid[9:] == web and caller else "response-browser")
+        if eid.startswith("call:"):
+            ids += [e["id"] for e in edges if e["id"].startswith("route:")]
         ends = []
         for e in edges:
             if e["id"] in ids:
@@ -251,7 +306,11 @@ def build():
                     if k and k not in ends:
                         ends.append(k)
         groups[n] = {"e": ids, "n": ends}
-    return man, lay, services, by_name, parts, table_owner, events, edges, steps, max_receive, alarm_silent, default[0], groups
+    iface_info = None
+    if caller:
+        iface_info = {"file": caller[0][1]["interface"], "calls": interface_calls(body), "purpose": purpose,
+                      "verbs": verbs, "res": res, "service": web, "calls_service": en}
+    return man, lay, services, by_name, parts, table_owner, events, edges, steps, max_receive, alarm_silent, default[0], groups, iface_info
 
 
 # ---- the cards: what a box is, read from the same sources as the picture
@@ -390,7 +449,7 @@ def cards(services, parts, table_owner, events, edges, max_receive, alarm_silent
 
 
 def render():
-    man, lay, services, by_name, parts, table_owner, events, edges, steps, max_receive, alarm_silent, web, groups = build()
+    man, lay, services, by_name, parts, table_owner, events, edges, steps, max_receive, alarm_silent, web, groups, iface = build()
     N, E = lay["nodes"], lay["edges"]
     s = []
     A = s.append
@@ -434,15 +493,24 @@ def render():
         x = 40 + i * 260
         A(f'<path class="{cls}" d="M{x},29 L{x + 34},29"/>'); text(x + 42, 34, t, "af-lg")
 
-    group("browser"); x, y, *_ = box("browser"); head(x, y, "Browser", "the visitor"); end()
+    group("browser"); x, y, *_ = box("browser"); head(x, y, "Browser", "the visitor's"); end()
+    if iface:
+        ik = f"interface:{iface['service']}"
+        lines = [f"{iface['file'].rsplit('/', 1)[-1]}, from {iface['service']}"]
+        if iface["verbs"]:
+            lines += [", ".join(iface["verbs"]), f"{iface['res']} through the {iface['calls_service']}"]
+        else:
+            lines.append(f"asks the {iface['calls_service']}")
+        part_box(ik, "the interface", lines)
     group("alb"); x, y, *_ = box("alb"); head(x, y, "Load balancer", "routes by path", "elb"); end()
     for sv in services:
         group(f"service:{sv['name']}")
         x, y, w, h = box(f"service:{sv['name']}")
         head(x, y, sv["name"], lay["labels"].get(sv["name"], ""), "ecs")
         if sv is web:
-            what = " · ".join([f"serves {r}" if r != "default" else "serves /" for r in sv["routes"]]
-                              + ["no database" if not sv.get("database") else "a database"])
+            served = f"serves {iface['file'].rsplit('/', 1)[-1]} and its script" if iface else (
+                " · ".join(f"serves {r}" if r != "default" else "serves /" for r in sv["routes"]))
+            what = served + " · " + ("no database" if not sv.get("database") else "a database")
             text(x + 66, y + 80, what, "af-ps")
         end()
     for k, (sv, p) in parts.items():
@@ -514,7 +582,16 @@ def render():
     # What can be opened, drawn last so a box inside another is picked first:
     # the database under its tables, a service under its parts.
     info = cards(services, parts, table_owner, events, edges, max_receive, alarm_silent)
+    if iface:
+        info[f"interface:{iface['service']}"] = {
+            "t": "the interface", "s": "runs in the visitor's browser",
+            "r": [["file", f"<code>{esc(iface['file'])}</code>, served by {esc(iface['service'])}"],
+                  ["does", esc(iface["purpose"]) or "-"],
+                  ["asks", ", ".join(f"<code>{esc(m)} {esc(p)}</code>" for m, p in iface["calls"])],
+                  ["answers come", f"from the {esc(iface['calls_service'])}, through the load balancer, at the same address"]],
+            "l": [["open the interface", f"https://github.com/{repo()}/blob/main/{iface['file']}"]]}
     order = (["db"] + [f"service:{sv['name']}" for sv in services] + ["alb", "secrets", "dlq"]
+             + [k for k in info if k.startswith("interface:")]
              + sorted(k for k in info if k.startswith("queue:")) + [f"part:{k}" for k in parts]
              + sorted(k for k in info if k.startswith("table:")))
     for k in order:

@@ -5,21 +5,21 @@
   "labels": {
     "_": "One short line under a service's name, and what a queue's dead-letter box says beside its numbers. Editorial; each says what the service is, not what it does - the arrows say that.",
     "api": "FastAPI · the domain",
-    "web": "nginx · the interface",
+    "web": "nginx · the interface's files",
     "worker": "no port · no balancer"
   },
   "nodes": {
     "browser": [
-      40,
-      260,
-      180,
-      76
+      24,
+      236,
+      236,
+      186
     ],
     "alb": [
-      270,
-      260,
-      210,
-      76
+      300,
+      250,
+      206,
+      150
     ],
     "service:web": [
       560,
@@ -128,41 +128,47 @@
       682,
       226,
       40
+    ],
+    "interface:web": [
+      36,
+      316,
+      212,
+      96
     ]
   },
   "edges": {
     "request": {
       "path": [
         [
-          220,
-          290
+          260,
+          272
         ],
         [
-          266,
-          290
+          296,
+          272
         ]
       ],
       "step": [
-        243,
-        272
+        278,
+        256
       ]
     },
     "response-browser": {
       "path": [
         [
-          266,
-          318
+          296,
+          386
         ],
         [
-          224,
-          318
+          252,
+          386
         ]
       ]
     },
     "route:api": {
       "path": [
         [
-          480,
+          506,
           282
         ],
         [
@@ -175,7 +181,7 @@
         266
       ],
       "label": [
-        490,
+        512,
         274
       ]
     },
@@ -186,7 +192,7 @@
           312
         ],
         [
-          484,
+          510,
           312
         ]
       ],
@@ -199,7 +205,7 @@
       "path": [
         [
           375,
-          260
+          250
         ],
         [
           375,
@@ -210,13 +216,13 @@
           106
         ]
       ],
-      "label": [
-        386,
-        190
-      ],
       "step": [
         375,
         226
+      ],
+      "label": [
+        384,
+        96
       ]
     },
     "write:api/HTTP handlers->demo_items": {
@@ -453,6 +459,54 @@
       "step": [
         1096,
         662
+      ]
+    },
+    "response-browser:web": {
+      "path": [
+        [
+          296,
+          298
+        ],
+        [
+          264,
+          298
+        ]
+      ]
+    },
+    "call:web": {
+      "path": [
+        [
+          248,
+          350
+        ],
+        [
+          296,
+          350
+        ]
+      ],
+      "step": [
+        272,
+        334
+      ]
+    },
+    "response:web": {
+      "path": [
+        [
+          556,
+          140
+        ],
+        [
+          455,
+          140
+        ],
+        [
+          455,
+          246
+        ]
+      ],
+      "step": [
+        455,
+        190
       ]
     }
   },
