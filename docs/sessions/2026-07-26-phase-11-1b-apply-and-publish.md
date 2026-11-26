@@ -210,7 +210,7 @@ Verified afterwards on the resources themselves — `get-bucket-tagging`,
 `list-tags-for-resource`, `list-role-tags` — all three now `UVE`.
 
 And a third value surfaced: `docs/preflight-inventory.md` documented the Owner
-tag as `papers.usher.3m@icloud.com`, which nothing in the account had ever been
+tag as a personal email address, which nothing in the account had ever been
 tagged with. That is the budget alert address, recorded in the wrong section, and
 it had been the written answer to "what is the Owner tag" for seven weeks.
 

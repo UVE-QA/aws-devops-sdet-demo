@@ -15,7 +15,7 @@ delegation is its established pattern rather than a mechanism invented here.
 
 Finding it took most of an hour, and the reason is worth recording because it
 will mislead the next person too. A SECOND hosted zone for `uveapp.net` exists in
-an unrelated account, `478937318617` (`vlad.urban.qa`), outside this
+an unrelated account, `478937318617` (a personal account), outside this
 Organization. It is a near-complete copy — MX for SES, three DKIM CNAMEs,
 `api`, `serverless`, `autodiscover`, and its own `files` and `who` delegations —
 and it is **authoritative for nothing**: its delegation set
@@ -121,7 +121,7 @@ which git also cannot assert. Both are recorded here precisely because nothing
 else can hold them. If prod's name ever stops resolving, this record is the
 first thing to check.
 
-**A stray `demo` NS record remains in the `vlad.urban.qa` copy of the zone** and
+**A stray `demo` NS record remains in that unrelated account's copy of the zone** and
 should be deleted. It resolves for nobody, and a record that looks like a working
 delegation and is not is exactly the class of trap this project keeps paying for.
 

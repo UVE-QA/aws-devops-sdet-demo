@@ -22,8 +22,8 @@ password-shaped string is `POSTGRES_PASSWORD=demo` in `docker-compose.yml` and
 
 ```text
 993912191738                  AWS account id, 13 files, including every backend.tf
-34.213.147.86                 devbox static IP (and private 172.26.4.52), 2 files
-papers.usher.3m@icloud.com    3 places in docs — and the author of 52 commits
+<devbox IP>                   devbox static IP (and private IP), 2 files
+<personal email>              3 places in docs — and the author of 52 commits
 d-90661cc65d.awsapps.com      IAM Identity Center start URL, 2 files
 ```
 

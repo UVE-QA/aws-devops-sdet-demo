@@ -17,8 +17,8 @@ Size             2 GB RAM / 2 vCPU / 60 GB  (~$12/month, a Lightsail fixed
                                             price - not part of the per-cycle
                                             AWS cost in docs/cost-control.md)
 AZ               us-west-2a
-Static IP        34.213.147.86
-Private IP       172.26.4.52
+Static IP        <devbox IP> - not published; see the Lightsail console
+Private IP       <private IP> - not published
 Firewall         SSH/22 only
 ```
 
@@ -59,7 +59,7 @@ To reach the app running in Compose from a laptop browser, tunnel it over SSH
 rather than opening the port on the devbox's firewall:
 
 ```bash
-ssh -L 8000:localhost:8000 ubuntu@34.213.147.86
+ssh -L 8000:localhost:8000 ubuntu@<devbox IP>
 ```
 
 then open `http://localhost:8000` locally. The Lightsail firewall stays
@@ -108,7 +108,7 @@ the chat, which then issues one command at a time, each labelled `[mac]` or
   twice: gitleaks (Phase 15a) and Checkov (Phase 15b) were both absent
   locally days after their CI jobs went green - a reminder that "the gate
   passes in CI" and "this machine can reproduce it" are different claims.
-- git identity on the devbox: UVE-QA / papers.usher.3m@icloud.com. The
+- git identity on the devbox: UVE-QA / the GitHub noreply address. The
   repository clone lives at /home/ubuntu/aws-devops-sdet-demo.
 ```
 

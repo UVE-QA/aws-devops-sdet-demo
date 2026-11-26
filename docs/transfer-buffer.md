@@ -3,7 +3,7 @@
 `~/Projects/_claude-transfer` on the MacBook is the staging area between a chat
 session and the repository. **It is not a working copy of
 `aws-devops-sdet-demo`.** The only working copy is on the devbox
-(`ubuntu@34.213.147.86:~/aws-devops-sdet-demo`); GitHub is the source of truth.
+(`ubuntu@<devbox IP>:~/aws-devops-sdet-demo`); GitHub is the source of truth.
 
 ## Layout
 

@@ -672,7 +672,7 @@ track 14-19), shaped by ADR-0017. This table tracks only what is done.
   documents were no-ops it could not prove in advance), and verified with
   `get-bucket-tagging`, `list-tags-for-resource` and `list-role-tags`.
   `docs/preflight-inventory.md` turned out to document a THIRD value —
-  `papers.usher.3m@icloud.com`, which nothing had ever been tagged with. Now
+  the account's personal email address, which nothing had ever been tagged with. Now
   corrected to what the account actually shows.
 - Cost now running: one 4 KB object, one PriceClass_100 distribution, a free
   certificate, six records in an existing zone. Inside the CloudFront free tier

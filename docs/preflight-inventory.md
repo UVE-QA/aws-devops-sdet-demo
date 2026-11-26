@@ -58,7 +58,7 @@ Status: Phase 0 and Phase 1 completed and confirmed.
   prod additionally has 2 protection rules — required reviewers (UVE-QA) and
   `main` as the only deployment branch, administrator bypass disabled. That is
   UI state; git cannot assert it.
-- Git identity on devbox: UVE-QA / papers.usher.3m@icloud.com
+- Git identity on devbox: UVE-QA / the GitHub noreply address
 - Local clone: /home/ubuntu/aws-devops-sdet-demo
 
 ## Lightsail Devbox
@@ -67,8 +67,8 @@ Status: Phase 0 and Phase 1 completed and confirmed.
 - OS: Ubuntu 24.04 LTS
 - Size: 2 GB RAM / 2 vCPU / 60 GB ($12/mo)
 - AZ: us-west-2a
-- Static IP: 34.213.147.86
-- Private IP: 172.26.4.52
+- Static IP: <devbox IP> - not published; see the Lightsail console
+- Private IP: <private IP> - not published
 - Firewall: SSH/22 only
 - Installed toolchain:
   - Docker 29.5.3
@@ -103,19 +103,19 @@ Status: Phase 0 and Phase 1 completed and confirmed.
   manual `NS` record for `demo`. That record is untracked by git and is the first
   thing to check if prod's name stops resolving.
 - Trap: a SECOND, non-authoritative hosted zone for `uveapp.net` exists in an
-  unrelated account, 478937318617 (`vlad.urban.qa`), outside this Organization.
+  unrelated account, 478937318617 (a personal account), outside this Organization.
   It looks complete and serves nobody. Ground truth for the delegation is
   `dig +noall +authority NS uveapp.net @a.gtld-servers.net`.
 
 ## Budget Alerts
 
-- Budget alert email: papers.usher.3m@icloud.com
+- Budget alert email: a personal address, not published
 
 ## Resource Tagging
 
 - Owner tag value: `UVE` — the value of the GitHub variable `TF_VAR_OWNER`, and
   what is actually on every resource in the account. This line previously said
-  `papers.usher.3m@icloud.com`, which nothing had ever been tagged with; that is
+  a personal email address, which nothing had ever been tagged with; that is
   the budget alert address, and it is recorded under Budget Alerts above. Checked
   2026-07-26 against `get-bucket-tagging`, `list-tags-for-resource` and
   `list-role-tags`.

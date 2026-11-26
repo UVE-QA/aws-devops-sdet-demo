@@ -170,7 +170,7 @@ the devbox is the test.
 
 **The MacBook's default AWS credential answers for the wrong account.** No
 `demo-admin` profile exists there, but the default one resolves to
-`arn:aws:iam::478937318617:user/AdminCLI` — the unrelated `vlad.urban.qa` account
+an IAM user in account 478937318617 — the unrelated personal account
 outside the Organization, already known for holding a look-alike hosted zone.
 `iam get-role` asked from the Mac would have returned `NoSuchEntity` for both
 roles, which reads exactly like "the orphans are gone". Every AWS question in

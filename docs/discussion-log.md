@@ -3196,7 +3196,7 @@ destroy.yml run surfaced two latent deploy-role bugs:
 
 ## Collaboration / context model
 
-- One working copy, on the Lightsail devbox (`ubuntu@34.213.147.86`,
+- One working copy, on the Lightsail devbox (`ubuntu@<devbox IP>`,
   `~/aws-devops-sdet-demo`); laptops connect via SSH. GitHub is the source of
   truth. Don't sync repos via Dropbox/iCloud or scp between machines.
 - **`~/Projects/aws-devops-sdet-demo` on the MacBook** is NOT a working copy.
