@@ -4646,6 +4646,26 @@ Links to the repository are sent continuously, so in two steps.
   on a row that never sends, the dead-letter alarm with no action. Gates
   33/33 on the devbox; the whole path watched locally - waiting, then
   processed by the worker ten seconds later.
+- **The ALB wildcard renewed by hand, 2026-11-02.** ACM had marked
+  `*.demo.uveapp.net` (us-west-2, `infra/dns`) INELIGIBLE for renewal: it is
+  attached to the stage and prod ALBs only during a cycle, and ACM renews
+  only what is in use. Replaced on the owner's yes with
+  `-replace=aws_acm_certificate.wildcard` - 3 added, 3 destroyed, no drift
+  after; prod finds it by `most_recent` ISSUED. The new one expires
+  2027-05-18 and will need the same in April 2027.
+- **Five dependency updates merged, 2026-11-26**, on the owner's yes: the
+  app (FastAPI 0.141 -> 0.162, SQLAlchemy 2.1.6, Alembic 1.20.1, boto3),
+  Playwright 1.64, pytest and SQLAlchemy in the test suites, three pinned
+  Actions. Checked together on top of `main` first: 33/33 on the devbox
+  once a stale local web build and a stale test venv were refreshed; then
+  merged into `next` one at a time, CI green after each, `main`
+  fast-forwarded.
+- **#43 from the button, 2026-11-26, green in 66 minutes**, over those
+  updates: three images built with them, stage, lab and prod up and down
+  clean. The first cycle on the renewed wildcard - promote's HTTPS worked.
+  And the path left open on 2026-10-06 watched on AWS: one item created on
+  stage after its tests, on the owner's yes, was processed by the worker
+  and shown in the interface 0.3 s after it was written.
 - Next allowed step: on the owner's word - step 2 above, or the tail the
   plan left behind: per-service database users (ADR-0098 D2, *leave it as
   is for now*), a lab site, the blunted break tests, the release-tag 403,

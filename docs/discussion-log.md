@@ -6,6 +6,12 @@ not a transcript. New decisions go to `docs/decisions/` as ADRs.
 
 ## Current state (update at every phase gate)
 
+**As of 2026-11-26 (47 — cycle #43).** Upkeep rather than design: the ALB
+wildcard renewed by hand because ACM will not renew a certificate that is in
+use only during a cycle, five dependency updates merged after a combined
+local check, and a cycle over them that also watched the worker's half of the
+flow on AWS for the first time.
+
 **As of 2026-10-06 (47 — the walk starts at the page).** The picture said the
 interface never reaches the api, by leaving out how it does: `web` serves the
 interface, and the interface's script, in the browser, calls the `api`. The
